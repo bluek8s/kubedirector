@@ -30,7 +30,7 @@ Thanks for your interesting in joining and contributing to our community!
 
 We will update the community on availability of the first pre-alpha release later this summer. 
 
-In the meantime, you’re welcome to join the [BlueK8s Slack workspace](bluek8s.slack.com) for feedback and discussion.
+In the meantime, you’re welcome to join the [BlueK8s Slack workspace](https://bluek8s.slack.com) for feedback and discussion.
 
 # Code of conduct
 

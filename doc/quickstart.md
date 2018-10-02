@@ -28,6 +28,7 @@ So if you intend to later work with the KubeDirector source, you would clone the
 
 If you want to work with a specific released version of KubeDirector (instead of the tip of the master branch), now is the time to switch the repo to that. This is recommended, especially for your first time trying out KubeDirector. At the time of last updating this doc, the most recent KubeDirector release was v0.1.0; you can set the repo to that release as follows:
 ```bash
+    cd kubedirector
     git checkout v0.1.0
 ```
 

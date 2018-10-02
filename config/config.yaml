@@ -1,0 +1,3 @@
+apiVersion: kubedirector.bluedata.io/v1alpha1
+kind: KubeDirectorCluster
+projectName: kubedirector

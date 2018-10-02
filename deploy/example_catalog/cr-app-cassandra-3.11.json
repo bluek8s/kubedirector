@@ -1,0 +1,85 @@
+{
+    "apiVersion": "kubedirector.bluedata.io/v1alpha1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name" : "cassandra311"
+    },
+
+    "spec" : {
+        "systemdRequired" : true,
+        "persist_dirs" : ["/data"],
+        "capabilities" : [
+            "SYS_RESOURCE",
+            "IPC_LOCK"
+        ],
+        "config": {
+            "config_meta": {},
+            "role_services": [
+                {
+                    "service_ids": [
+                        "ssh",
+                        "cassandra"
+                    ],
+                    "role_id": "seed"
+                },
+                {
+                    "service_ids": [
+                        "ssh",
+                        "cassandra"
+                    ],
+                    "role_id": "worker"
+                }
+            ],
+            "selected_roles": [
+                "seed",
+                "worker"
+            ]
+        },
+        "image": {
+            "repoTag": "docker.io/bluedata/cassandra:3.0"
+        },
+        "label": {
+            "name": "Cassandra 3.11",
+            "description": "Cassandra 3.11 on centos 7.x"
+        },
+        "distro_id": "bluedata/cassandra311",
+        "version": "3.0",
+        "services": [
+            {
+                "endpoint": {
+                    "port": 22,
+                    "is_dashboard": false
+                },
+                "id": "ssh",
+                "label": {
+                    "name": "SSH"
+                }
+            },
+            {
+                "endpoint": {
+                    "url_scheme": "cql",
+                    "is_dashboard": false,
+                    "port": 9042
+                },
+                "id": "cassandra",
+                "label": {
+                    "name": "cql"
+                }
+            }
+        ],
+        "setup_package": {
+            "config_api_version": 7,
+            "import_url": "https://s3.amazonaws.com/bluek8s/kubedirector/cassandra311/appconfig.tgz"
+        },
+        "roles": [
+            {
+                "cardinality": "2+",
+                "id": "seed"
+            },
+            {
+                "cardinality": "0+",
+                "id": "worker"
+            }
+        ]
+    }
+}

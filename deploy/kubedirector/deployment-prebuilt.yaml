@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubedirector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: kubedirector
+  template:
+    metadata:
+      labels:
+        name: kubedirector
+    spec:
+      containers:
+        - name: kubedirector
+          image: bluek8s/kubedirector:unstable
+          ports:
+          - containerPort: 60000
+            name: metrics
+          command:
+          - "/bin/sh"
+          args:
+          - "-c"
+          - "mkfifo /tmp/fifo; (/root/kubedirector &> /tmp/fifo) & while true; do cat /tmp/fifo; done"
+          imagePullPolicy: Always
+          env:
+            - name: MY_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPERATOR_NAME
+              value: "kubedirector"
+      serviceAccountName: kubedirector

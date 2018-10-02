@@ -1,0 +1,82 @@
+{
+    "apiVersion": "kubedirector.bluedata.io/v1alpha1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name" : "tensorflowjupyter"
+    },
+
+    "spec" : {
+        "systemdRequired": true,
+        "config": {
+            "role_services": [
+                {
+                    "service_ids": [
+                        "ssh",
+                        "jupyter-notebook"
+                    ],
+                    "role_id": "controller"
+                },
+                {
+                    "service_ids": [
+                        "ssh"
+                    ],
+                    "role_id": "worker"
+                }
+            ],
+            "selected_roles": [
+                "controller",
+                "worker"
+            ]
+        },
+        "label": {
+            "name": "Tensorflow distributed 1.9 on CPU with jupyter notebook & centos7x",
+            "description": "TensorFlow1.9 CPU with centos7x"
+        },
+        "distro_id": "bluedata/tensorflow19cpu",
+        "version": "1.7",
+        "services": [
+            {
+                "endpoint": {
+                    "port": 22,
+                    "is_dashboard": false
+                },
+                "id": "ssh",
+                "label": {
+                    "name": "SSH"
+                }
+            },
+            {
+                "endpoint": {
+                    "url_scheme": "http",
+                    "path": "/",
+                    "is_dashboard": true,
+                    "port": 8888
+                },
+                "id": "jupyter-notebook",
+                "label": {
+                    "name": "Jupyter Notebook"
+                }
+            }
+        ],
+        "setup_package": {
+            "config_api_version": 7,
+            "import_url": "https://s3.amazonaws.com/bluek8s/kubedirector/tensorflowcpu/appconfig.tgz"
+        },
+        "roles": [
+            {
+                "image": {
+                    "repoTag": "docker.io/bluedata/tensorflowcpu-jupyter:2.0"
+                },
+                "cardinality": "1",
+                "id": "controller"
+            },
+            {
+                "image": {
+                    "repoTag": "docker.io/bluedata/tensorflowcpu-jupyter:2.0"
+                },
+                "cardinality": "0+",
+                "id": "worker"
+            }
+        ]
+    }
+}

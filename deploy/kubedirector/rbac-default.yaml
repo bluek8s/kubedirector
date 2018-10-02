@@ -1,0 +1,65 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: kubedirector
+rules:
+- apiGroups:
+  - kubedirector.bluedata.io
+  resources:
+  - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - endpoints
+  - persistentvolumeclaims
+  - events
+  - configmaps
+  - secrets
+  - pods/exec
+  verbs:
+  - "*"
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - "*"
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - "get"
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  verbs:
+  - "get"
+  - "create"
+
+---
+
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: kubedirector
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: kubedirector
+subjects:
+- kind: ServiceAccount
+  name: kubedirector
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: kubedirector
+  apiGroup: rbac.authorization.k8s.io

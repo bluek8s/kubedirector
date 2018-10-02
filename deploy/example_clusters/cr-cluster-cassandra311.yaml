@@ -1,0 +1,25 @@
+apiVersion: "kubedirector.bluedata.io/v1alpha1"
+kind: "KubeDirectorCluster"
+metadata:
+  name: "cassandra-instance"
+spec:
+  app: cassandra311
+  roles:
+  - id: seed
+    members: 2
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "4Gi"
+        cpu: "2"
+  - id: worker
+    members: 2
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "4Gi"
+        cpu: "2"

@@ -1,0 +1,104 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: kubedirectorclusters.kubedirector.bluedata.io
+spec:
+  group: kubedirector.bluedata.io
+  names:
+    kind: KubeDirectorCluster
+    listKind: KubeDirectorClusterList
+    plural: kubedirectorclusters
+    singular: kubedirectorcluster
+  scope: Namespaced
+  version: v1alpha1
+  validation:
+    openAPIV3Schema:
+      properties:
+        spec:
+          required: [app, roles]
+          properties:
+            app:
+              type: string
+              minLength: 1
+            serviceType:
+              type: string
+              pattern: '^NodePort$|^LoadBalancer$'
+            roles:
+              type: array
+              items:
+                required: [id, resources]
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                  members:
+                    type: integer
+                    minimum: 0
+                  resources:
+                    required: [limits]
+                    properties:
+                      limits:
+                        required: [memory, cpu]
+                        properties:
+                          memory:
+                            type: string
+                            pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          cpu:
+                            type: string
+                            pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                      requests:
+                        properties:
+                          memory:
+                            type: string
+                            pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          cpu:
+                            type: string
+                            pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                  env:
+                    type: array
+                    items:
+                      required: [name, value]
+                      properties:
+                        name:
+                          type: string
+                          minLength: 1
+                        value:
+                          type: string
+                  storage:
+                    required: [size, storageClassName]
+                    properties:
+                        size:
+                          type: string
+                          pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                        storageClassName:
+                          type: string
+                          minLength: 1
+        status:
+          properties:
+            state:
+              type: string
+            generation_uid:
+              type: string
+            cluster_service:
+              type: string
+            roles:
+              type: array
+              items:
+                properties:
+                  name:
+                    type: string
+                  stateful_set:
+                    type: string
+                  members:
+                    type: array
+                    items:
+                      properties:
+                        pod:
+                          type: string
+                        service:
+                          type: string
+                        pvc:
+                          type: string
+                        state:
+                          type: string
+

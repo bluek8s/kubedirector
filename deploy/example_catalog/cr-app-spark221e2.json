@@ -1,0 +1,135 @@
+{
+    "apiVersion": "kubedirector.bluedata.io/v1alpha1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name" : "spark221e2"
+    },
+
+    "spec" : {
+        "systemdRequired": true,
+        "config": {
+            "role_services": [
+                {
+                    "service_ids": [
+                        "ssh",
+                        "spark",
+                        "spark_master",
+                        "spark_worker"
+                    ],
+                    "role_id": "controller"
+                },
+                {
+                    "service_ids": [
+                        "ssh",
+                        "spark_worker"
+                    ],
+                    "role_id": "worker"
+                },
+                {
+                    "service_ids": [
+                        "ssh",
+                        "jupyter-notebook"
+                    ],
+                    "role_id": "jupyter"
+                }
+            ],
+            "selected_roles": [
+                "controller",
+                "worker",
+                "jupyter"
+            ]
+        },
+        "label": {
+            "name": "Spark 2.2.1 on centos7x with Jupyter",
+            "description": "Spark 2.2.1 with Jupyter"
+        },
+        "distro_id": "bluedata/spark221e2",
+        "version": "2.5",
+        "services": [
+            {
+                "endpoint": {
+                    "port": 22,
+                    "is_dashboard": false
+                },
+                "id": "ssh",
+                "label": {
+                    "name": "SSH"
+                }
+            },
+            {
+                "endpoint": {
+                    "url_scheme": "http",
+                    "path": "/",
+                    "is_dashboard": true,
+                    "port": 8080
+                },
+                "id": "spark",
+                "label": {
+                    "name": "Spark master"
+                }
+            },
+            {
+                "endpoint": {
+                    "url_scheme": "spark",
+                    "is_dashboard": false,
+                    "port": 7077
+                },
+                "id": "spark_master",
+                "label": {
+                    "name": "Spark master"
+                }
+            },
+            {
+                "endpoint": {
+                    "url_scheme": "http",
+                    "path": "/",
+                    "is_dashboard": true,
+                    "port": 8081
+                },
+                "id": "spark_worker",
+                "label": {
+                    "name": "Spark worker"
+                }
+            },
+            {
+                "endpoint": {
+                    "url_scheme": "http",
+                    "path": "/",
+                    "is_dashboard": true,
+                    "port": 8888
+                },
+                "id": "jupyter-notebook",
+                "label": {
+                    "name": "Jupyter Notebook"
+                }
+            }
+        ],
+        "setup_package": {
+            "config_api_version": 7,
+            "import_url": "https://s3.amazonaws.com/bluek8s/kubedirector/spark221e2/appconfig.tgz"
+        },
+        "roles": [
+            {
+                "image": {
+                    "repoTag": "docker.io/bluedata/sparkbase:2.0"
+                },
+                "cardinality": "1",
+                "id": "controller"
+            },
+            {
+                "image": {
+                    "repoTag": "docker.io/bluedata/sparkbase:2.0"
+                },
+                "cardinality": "0+",
+                "id": "worker"
+            },
+            {
+                "image": {
+                    "repoTag": "docker.io/bluedata/jupyter:2.2"
+                },
+                "cardinality": "0+",
+                "id": "jupyter"
+            }
+        ]
+    }
+}

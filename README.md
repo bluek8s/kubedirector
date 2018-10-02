@@ -18,19 +18,20 @@ Unlike some other custom controller implementations, KubeDirector does not tie a
 
 * End users can launch and reconfigure clusters using familiar K8s tools, selecting from application-specific choices provided to them by the experts.
 
-Read the wiki for additional details: https://github.com/bluek8s/kubedirector/wiki
+The [wiki](https://github.com/bluek8s/kubedirector/wiki) describes KubeDirector concepts, architecture, and data formats.
 
-# Roadmap
-
-The first pre-alpha version of KubeDirector is in development now, and will be available soon.
+See the files in the "doc" directory for information about deploying and using KubeDirector:
+* [gke-notes.md](doc/gke-notes.md): important information if you intend to deploy KubeDirector using Google Kubernetes Engine
+* [quickstart.md](doc/quickstart.md): deploying a pre-built KubeDirector image
+* [virtual-clusters.md](doc/virtual-clusters.md): creating and managing virtual clusters with KubeDirector
+* [app-authoring.md](doc/app-authoring.md): creating app definitions for KubeDirector virtual clusters
+* [kubedirector-development.md](doc/kubedirector-development.md): building KubeDirector from source
 
 # Contributing
 
-Thanks for your interest in joining and contributing to our community!
+Thanks for your interest in joining and contributing to our community! Current work items and release progress are tracked on the [Issues](https://github.com/bluek8s/kubedirector/issues) page.
 
-We will update the community on availability of the first pre-alpha release later this summer. 
-
-In the meantime, you’re welcome to join the [BlueK8s Slack workspace](https://bluek8s.slack.com) for feedback and discussion.
+You’re welcome to join the [BlueK8s Slack workspace](https://bluek8s.slack.com) for feedback and discussion.
 
 # Code of conduct
 

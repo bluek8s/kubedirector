@@ -1,7 +1,7 @@
 # can use Local.mk to override the image var
 -include Local.mk
 
-default_image := bluek8s/kubedirector:unstable
+default_image := bluek8s/kubedirector:v0.1.0
 image ?= ${default_image}
 
 cluster_resource_name := KubeDirectorCluster

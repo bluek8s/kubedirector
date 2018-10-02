@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: kubedirector
-          image: bluek8s/kubedirector:unstable
+          image: bluek8s/kubedirector:v0.1.0
           ports:
           - containerPort: 60000
             name: metrics

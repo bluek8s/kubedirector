@@ -20,6 +20,9 @@ endif
 
 build_dir = 'tmp/_output'
 
+compile:
+	make clean
+	go build -o tmp/_output/bin ./cmd/kubedirector
 
 build: pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go | $(build_dir)
 	@echo

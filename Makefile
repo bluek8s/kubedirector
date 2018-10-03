@@ -190,4 +190,4 @@ distclean: clean
 $(build_dir):
 	@mkdir -p $@
 
-.PHONY: build push deploy redeploy undeploy teardown format dep clean distclean
+.PHONY: build push deploy redeploy undeploy teardown format dep clean distclean compile

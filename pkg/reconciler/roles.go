@@ -41,6 +41,16 @@ func syncRoles(
 		return nil, clusterMembersUnknown, rolesErr
 	}
 
+	// Role changes will be postponed if any members are currently in the
+	// creating state. Such members may have been informed of the current
+	// member set, and they are not yet ready to receive updates about
+	// changes to the member set.
+	for _, r := range roles {
+		if len(r.membersByState[memberCreating]) != 0 {
+			return roles, clusterMembersStableUnready, nil
+		}
+	}
+
 	// Assume cluster is stable until found otherwise.
 	allMembersReady := true
 	anyMembersChanged := false
@@ -118,8 +128,8 @@ func initRoleInfo(
 	numRoleStatuses := len(cr.Status.Roles)
 
 	// Capture the desired roles and member count in the spec. The fields
-	// statefulSet and roleStatus may be populated later in this function,
-	// and membersByState will be populated later in syncRole.
+	// statefulSet, roleStatus, and membersByState may be populated later
+	// in this function.
 	for i := 0; i < numRoleSpecs; i++ {
 		roleSpec := &(cr.Spec.Roles[i])
 		roles[roleSpec.Name] = &roleInfo{
@@ -197,12 +207,32 @@ func initRoleInfo(
 		}
 	}
 
-	// Return a slice of roleinfo made from the map values.
+	// Return a slice of roleinfo made from the map values, and with the
+	// membersByState maps populated.
 	var result []*roleInfo
 	for _, info := range roles {
+		calcRoleMembersByState(info)
 		result = append(result, info)
 	}
 	return result, nil
+}
+
+// calcRoleMembersByState builds the members-by-state map based on the current
+// member statuses in the role.
+func calcRoleMembersByState(
+	role *roleInfo,
+) {
+
+	if role.roleStatus == nil {
+		return
+	}
+	numMembers := len(role.roleStatus.Members)
+	for i := 0; i < numMembers; i++ {
+		member := &(role.roleStatus.Members[i])
+		role.membersByState[memberState(member.State)] = append(
+			role.membersByState[memberState(member.State)],
+			member)
+	}
 }
 
 // handleRoleCreate deals with a newly specified role. If the desired population
@@ -220,6 +250,12 @@ func handleRoleCreate(
 		// the statefulset or the role status.
 		return nil
 	}
+
+	shared.LogInfof(
+		cr,
+		"creating role{%s}",
+		role.roleSpec.Name,
+	)
 
 	// Create the associated statefulset.
 	statefulSet, createErr := executor.CreateStatefulSet(
@@ -277,6 +313,11 @@ func handleRoleReCreate(
 			return handleRoleCreate(cr, role, anyMembersChanged)
 		}
 	} else {
+		shared.LogInfof(
+			cr,
+			"restoring role{%s}",
+			role.roleStatus.Name,
+		)
 		*anyMembersChanged = true
 		// Need to clean up from the old status before we make a new
 		// statefulset. For any pods that had reached "ready" state, we should
@@ -294,6 +335,9 @@ func handleRoleReCreate(
 				member.State = string(memberDeleting)
 			}
 		}
+		// This should be quite unusual so we won't try to be clever about
+		// updating the membersByState map. Just nuke and re-create it.
+		role.membersByState = make(map[memberState][]*kdv1.MemberStatus)
 		calcRoleMembersByState(role)
 	}
 	return nil
@@ -330,6 +374,11 @@ func handleRoleDelete(
 	role *roleInfo,
 ) {
 
+	shared.LogInfof(
+		cr,
+		"finishing cleanup on role{%s}",
+		role.roleStatus.Name,
+	)
 	deleteErr := executor.DeleteStatefulSet(cr.Namespace, role.statefulSet.Name)
 	if deleteErr == nil || errors.IsNotFound(deleteErr) {
 		// Mark the role status for removal.
@@ -354,26 +403,37 @@ func handleRoleResize(
 	anyMembersChanged *bool,
 ) {
 
-	calcRoleMembersByState(role)
-	currentPop :=
+	// We won't even be attempting a resize if there are any creating-state
+	// members, so the current set of "requested members" is just ready plus
+	// create_pending.
+	prevDesiredPop :=
 		len(role.membersByState[memberReady]) +
-			len(role.membersByState[memberCreating]) +
 			len(role.membersByState[memberCreatePending])
-	if role.desiredPop == currentPop {
+	if role.desiredPop == prevDesiredPop {
 		return
 	}
-	if role.desiredPop > currentPop {
+	if role.desiredPop > prevDesiredPop {
 		// Only expand if no members are in delete_pending or deleting states;
 		// we can't use expand to "rescue" a member that is currently being
 		// deleted. (The way statefulsets reuse FQDNs, we might be able to get
 		// away with that actually, but let's not complicate things.)
-		if len(role.roleStatus.Members) == currentPop {
+		if len(role.roleStatus.Members) == prevDesiredPop {
+			shared.LogInfof(
+				cr,
+				"expanding role{%s}",
+				role.roleStatus.Name,
+			)
 			*anyMembersChanged = true
 			addMemberStatuses(role)
 		}
 	} else {
 		// We can shrink in any state. This is a helpful thing to allow when
 		// the expand was overambitious and is waiting for resources.
+		shared.LogInfof(
+			cr,
+			"shrinking role{%s}",
+			role.roleStatus.Name,
+		)
 		*anyMembersChanged = true
 		deleteMemberStatuses(cr, role)
 	}
@@ -425,8 +485,9 @@ func deleteMemberStatuses(
 
 	currentPop := len(role.roleStatus.Members)
 	createPendingPop := len(role.membersByState[memberCreatePending])
-	creatingPop := len(role.membersByState[memberCreating])
 	readyPop := len(role.membersByState[memberReady])
+	// Don't need to worry about creating-state members, since if any existed
+	// we wouldn't be able to make role changes.
 	for i := role.desiredPop; i < currentPop; i++ {
 		member := &(role.roleStatus.Members[i])
 		switch memberState(member.State) {
@@ -437,13 +498,6 @@ func deleteMemberStatuses(
 				member,
 			)
 			createPendingPop -= 1
-		case memberCreating:
-			member.State = string(memberDeleting)
-			role.membersByState[memberDeleting] = append(
-				role.membersByState[memberDeleting],
-				member,
-			)
-			creatingPop -= 1
 		case memberReady:
 			member.State = string(memberDeletePending)
 			role.membersByState[memberDeletePending] = append(
@@ -460,32 +514,11 @@ func deleteMemberStatuses(
 	} else {
 		delete(role.membersByState, memberCreatePending)
 	}
-	if creatingPop > 0 {
-		role.membersByState[memberCreating] =
-			role.membersByState[memberCreating][:creatingPop]
-	} else {
-		delete(role.membersByState, memberCreating)
-	}
 	if readyPop > 0 {
 		role.membersByState[memberReady] =
 			role.membersByState[memberReady][:readyPop]
 	} else {
 		delete(role.membersByState, memberReady)
-	}
-}
-
-// calcRoleMembersByState builds the members-by-state map based on the current
-// member statuses in the role.
-func calcRoleMembersByState(
-	role *roleInfo,
-) {
-
-	numMembers := len(role.roleStatus.Members)
-	for i := 0; i < numMembers; i++ {
-		member := &(role.roleStatus.Members[i])
-		role.membersByState[memberState(member.State)] = append(
-			role.membersByState[memberState(member.State)],
-			member)
 	}
 }
 

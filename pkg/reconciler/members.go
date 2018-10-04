@@ -18,6 +18,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -65,10 +66,10 @@ func syncMembers(
 	// and such operations need to be serialized. (For simplicity of
 	// implementation in the app setup package.)
 	for _, r := range roles {
-		// Only handle creating state members when there are no create_pending.
 		if _, ok := r.membersByState[memberCreatePending]; ok {
 			handleCreatePendingMembers(cr, r)
-		} else if _, ok := r.membersByState[memberCreating]; ok {
+		}
+		if _, ok := r.membersByState[memberCreating]; ok {
 			handleCreatingMembers(cr, r, roles, configmetaGenerator)
 		}
 		if _, ok := r.membersByState[memberDeletePending]; ok {
@@ -183,9 +184,9 @@ func handleCreatePendingMembers(
 			}
 			if pod.Status.Phase == v1.PodRunning {
 				m.State = string(memberCreating)
-				// We don't need to update membersByState because these
-				// members won't be processed until a subsequent handler pass
-				// anyway.
+				// We don't need to update membersByState; the newly
+				// creating-state members will be processed on a subsequent
+				// handler pass.
 			}
 		}(member)
 	}
@@ -222,64 +223,23 @@ func handleCreatingMembers(
 	for _, member := range creating {
 		go func(m *kdv1.MemberStatus) {
 			defer wgSetup.Done()
-			configmeta := configmetaGenerator(m.Pod)
-			createFileErr := executor.CreateFile(
-				cr,
-				m.Pod,
-				configMetaFile,
-				strings.NewReader(configmeta),
-			)
-			if createFileErr != nil {
-				// We'll try again next pass.
-				shared.LogWarnf(
-					cr,
-					"failed to update config in member{%s}: %v",
-					m.Pod,
-					createFileErr,
-				)
-				return
-			}
-
-			// If setup package is not present, skip doing nodeprep and appconfig
+			// If setup package is not present, skip doing any setup.
 			if setupUrl == "" {
 				// Set a temporary state used below for notifies.
 				m.State = string(memberConfigured)
 				return
 			}
-
-			// Set up nodeprep package for this member (if not set up already).
-			prepErr := setupNodePrep(cr, m.Pod)
-			if prepErr != nil {
-				shared.LogWarnf(
-					cr,
-					"failed to set up nodeprep package in member{%s}: %v",
-					m.Pod,
-					prepErr,
-				)
+			// Start or continue the initial configuration.
+			isFinal, configErr := appConfig(
+				cr,
+				setupUrl,
+				m.Pod,
+				role.roleStatus.Name,
+				configmetaGenerator,
+			)
+			if !isFinal {
 				return
 			}
-
-			// AGENT TBD
-			/*
-				if agent is to be used
-					if agent is not already on pod (executor.IsFileExists)
-						use executor.CreateFile and executor.RunScript to push agent
-			*/
-
-			// Set up app config package for this member (if not set up already).
-			setupErr := setupAppConfig(cr, setupUrl, m.Pod, role.roleStatus.Name)
-			if setupErr != nil {
-				shared.LogWarnf(
-					cr,
-					"failed to set up appconfig package in member{%s}: %v",
-					m.Pod,
-					setupErr,
-				)
-				return
-			}
-
-			// Now use it for initial configuration.
-			configErr := runAppConfig(cr, m.Pod, role.roleStatus.Name, nil)
 			if configErr != nil {
 				shared.LogWarnf(
 					cr,
@@ -289,6 +249,11 @@ func handleCreatingMembers(
 				)
 				return
 			}
+			shared.LogInfof(
+				cr,
+				"initial config done for member{%s}",
+				m.Pod,
+			)
 			// Set a temporary state used below for notifies.
 			m.State = string(memberConfigured)
 		}(member)
@@ -566,7 +531,7 @@ func setupAppConfig(
 	return executor.RunScript(
 		cr,
 		podName,
-		"appconfig setup",
+		"app config setup",
 		strings.NewReader(cmd),
 	)
 }
@@ -596,7 +561,7 @@ func notifyReadyNodes(
 			for _, member := range ready {
 				go func(m *kdv1.MemberStatus, r *roleInfo) {
 					defer wgReady.Done()
-					configErr := runAppConfig(cr, m.Pod, r.roleStatus.Name, role)
+					configErr := appReConfig(cr, m.Pod, r.roleStatus.Name, role)
 					if configErr != nil {
 						shared.LogWarnf(
 							cr,
@@ -615,62 +580,134 @@ func notifyReadyNodes(
 	return allNotifyFinished
 }
 
-// runAppConfig notifies a member's app setup script, if any, about cluster
-// lifecycle events. If otherRole is nil, this is a notification for the
-// designated pod about its own creation. Otherwise we are notifying about new
+// appConfig does the initial run of a member's app setup script, including
+// the installation of any prerequisite materials. Check the returned
+// "result is final" boolean to see if this needs to be called again on next
+// handler pass.
+func appConfig(
+	cr *kdv1.KubeDirectorCluster,
+	setupUrl string,
+	podName string,
+	roleName string,
+	configmetaGenerator func(string) string,
+) (bool, error) {
+
+	// For initial configuration, startscript will run asynchronously and we
+	// will check back periodically. So let's have a look at the existing
+	// status if any.
+	var statusStrB strings.Builder
+	readErr := executor.ReadFile(
+		cr,
+		podName,
+		appPrepConfigStatus,
+		&statusStrB,
+	)
+	if readErr == nil {
+		// Configure script was previously started.
+		statusStr := statusStrB.String()
+		if statusStr == "" {
+			// Script is still running.
+			return false, nil
+		}
+		// All done, what status did we get?
+		status, convErr := strconv.Atoi(statusStr)
+		if convErr == nil && status == 0 {
+			return true, nil
+		}
+		statusErr := fmt.Errorf(
+			"configure failed with exit status {%s}",
+			statusStr,
+		)
+		return true, statusErr
+	}
+
+	// We haven't successfully started the configure script yet.
+	// First upload the configmeta file
+	configmetaErr := executor.CreateFile(
+		cr,
+		podName,
+		configMetaFile,
+		strings.NewReader(configmetaGenerator(podName)),
+	)
+	if configmetaErr != nil {
+		return true, configmetaErr
+	}
+	// Set up nodeprep package for this member (if not set up already).
+	prepErr := setupNodePrep(cr, podName)
+	if prepErr != nil {
+		return true, prepErr
+	}
+	// Make sure the necessary app-specific materials are in place.
+	setupErr := setupAppConfig(cr, setupUrl, podName, roleName)
+	if setupErr != nil {
+		return true, setupErr
+	}
+	// Now kick off the initial config.
+	cmdErr := executor.RunScript(
+		cr,
+		podName,
+		"app config",
+		strings.NewReader(appPrepConfigRunCmd),
+	)
+	if cmdErr != nil {
+		return true, cmdErr
+	}
+	return false, nil
+}
+
+// appReConfig notifies a member's app setup script, if any, about cluster
+// lifecycle events after initial configuration. We are notifying about new
 // memmbers either being added to the otherRole (if it has members in
 // creating state) or being removed (if it has members in delete_pending
 // state).
-func runAppConfig(
+func appReConfig(
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
 	roleName string,
 	otherRole *roleInfo,
 ) error {
 
-	// Figure out which lifecycle event we're dealing with. If this is noi
-	// the initial configure event, also collect the FQDNs of the affected
-	// members.
+	// Figure out which lifecycle event we're dealing with, and collect the
+	// FQDNs of the affected members.
 	op := ""
 	deltaFqdns := ""
-	if otherRole == nil {
-		op = "configure"
-	} else {
-		if creating, ok := otherRole.membersByState[memberCreating]; ok {
-			// Members in this list are either marked with the creating state
-			// or configured_internal. The fqdnsList function will appropriately
-			// skip the ones in the creating state since they are unconfigured.
-			op = "addnodes"
-			deltaFqdns = fqdnsList(cr, creating)
+	if creating, ok := otherRole.membersByState[memberCreating]; ok {
+		// Members in this list are either marked with the creating state
+		// or configured_internal. The fqdnsList function will appropriately
+		// skip the ones in the creating state since they are unconfigured.
+		op = "addnodes"
+		deltaFqdns = fqdnsList(cr, creating)
+	}
+	if op == "" {
+		if deletePending, ok := otherRole.membersByState[memberDeletePending]; ok {
+			op = "delnodes"
+			deltaFqdns = fqdnsList(cr, deletePending)
 		}
-		if op == "" {
-			if deletePending, ok := otherRole.membersByState[memberDeletePending]; ok {
-				op = "delnodes"
-				deltaFqdns = fqdnsList(cr, deletePending)
-			}
-		}
-		if deltaFqdns == "" {
-			// No nodes actually being created/deleted. One example of this
-			// is in the creating case where none have been successfully
-			// configured.
-			return nil
-		}
+	}
+	if deltaFqdns == "" {
+		// No nodes actually being created/deleted. One example of this
+		// is in the creating case where none have been successfully
+		// configured.
+		return nil
 	}
 
-	// Compose the command args and run it.
-	cmd := appPrepStartscript + " --" + op
-	if op != "configure" {
-		// Currently only 1 nodegroup possible in KubeDirector cluster.
-		cmd = cmd + " --nodegroup 1"
-		// identify the role of the changed nodes
-		cmd = cmd + " --role " + otherRole.roleStatus.Name
-		// and finally list the FQDNs of the changed nodes
-		cmd = cmd + " --fqdns " + deltaFqdns
-	}
+	// Compose and run the command line.
+	cmd := strings.Join(
+		[]string{
+			appPrepStartscript,
+			"--" + op,
+			"--nodegroup 1", // currently only 1 nodegroup possible
+			"--role",
+			otherRole.roleStatus.Name,
+			"--fqdns",
+			deltaFqdns,
+		},
+		" ",
+	)
 	return executor.RunScript(
 		cr,
 		podName,
-		"appconfig",
+		"app reconfig",
 		strings.NewReader(cmd),
 	)
 }

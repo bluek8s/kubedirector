@@ -105,7 +105,7 @@ func CreateFile(
 	return nil
 }
 
-// ReadFile takes the stream from the given reader, and writes to it the
+// ReadFile takes the stream from the given writer, and writes to it the
 // contents of the indicated filepath in the filesystem of the given pod.
 func ReadFile(
 	cr *kdv1.KubeDirectorCluster,

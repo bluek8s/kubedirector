@@ -44,6 +44,7 @@ func syncRoles(
 	// Assume cluster is stable until found otherwise.
 	allMembersReady := true
 	anyMembersChanged := false
+	anyMemberError := false
 
 	// Reconcile each role as necessary.
 	for _, r := range roles {
@@ -88,6 +89,9 @@ func syncRoles(
 		if !allRoleMembersReady(r) {
 			allMembersReady = false
 		}
+		if anyRoleMemberError(r) {
+			anyMemberError = true
+		}
 	}
 
 	// Let the caller know about significant changes that happened.
@@ -97,6 +101,8 @@ func syncRoles(
 	} else {
 		if allMembersReady {
 			returnState = clusterMembersStableReady
+		} else if anyMemberError {
+			returnState = clusterMembersError
 		} else {
 			returnState = clusterMembersStableUnready
 		}
@@ -279,8 +285,8 @@ func handleRoleReCreate(
 	} else {
 		*anyMembersChanged = true
 		// Need to clean up from the old status before we make a new
-		// statefulset. For any pods that had reached "ready" state, we should
-		// mark them first as "delete_pending" -- we know we have notified
+		// statefulset. For any pods that had reached "ready" or "error" state,
+		// we should mark them first as "delete_pending" -- we know we have notified
 		// other pods of these creations, so we should now notify of deletions.
 		// For other pods we can just move them straight into deleting state.
 		numMembers := len(role.roleStatus.Members)
@@ -289,6 +295,7 @@ func handleRoleReCreate(
 			switch memberState(member.State) {
 			case memberDeletePending:
 			case memberReady:
+			case memberError:
 				member.State = string(memberDeletePending)
 			default:
 				member.State = string(memberDeleting)
@@ -357,6 +364,7 @@ func handleRoleResize(
 	calcRoleMembersByState(role)
 	currentPop :=
 		len(role.membersByState[memberReady]) +
+			len(role.membersByState[memberError]) +
 			len(role.membersByState[memberCreating]) +
 			len(role.membersByState[memberCreatePending])
 	if role.desiredPop == currentPop {
@@ -427,6 +435,7 @@ func deleteMemberStatuses(
 	createPendingPop := len(role.membersByState[memberCreatePending])
 	creatingPop := len(role.membersByState[memberCreating])
 	readyPop := len(role.membersByState[memberReady])
+	errorPop := len(role.membersByState[memberError])
 	for i := role.desiredPop; i < currentPop; i++ {
 		member := &(role.roleStatus.Members[i])
 		switch memberState(member.State) {
@@ -451,6 +460,13 @@ func deleteMemberStatuses(
 				member,
 			)
 			readyPop -= 1
+		case memberError:
+			member.State = string(memberDeletePending)
+			role.membersByState[memberDeletePending] = append(
+				role.membersByState[memberDeletePending],
+				member,
+			)
+			errorPop -= 1
 		default:
 		}
 	}
@@ -471,6 +487,12 @@ func deleteMemberStatuses(
 			role.membersByState[memberReady][:readyPop]
 	} else {
 		delete(role.membersByState, memberReady)
+	}
+	if errorPop > 0 {
+		role.membersByState[memberError] =
+			role.membersByState[memberError][:errorPop]
+	} else {
+		delete(role.membersByState, memberError)
 	}
 }
 
@@ -507,4 +529,17 @@ func allRoleMembersReady(
 		// More than one state, so obviously some are not ready.
 		return false
 	}
+}
+
+// anyRoleMemberError examines the members-by-state map and returns whether
+// any existing members are in an error state
+func anyRoleMemberError(
+	role *roleInfo,
+) bool {
+
+	if len(role.membersByState[memberError]) == 0 {
+		return false
+	}
+
+	return true
 }

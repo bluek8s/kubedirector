@@ -127,7 +127,7 @@ func syncCluster(
 		if cr.Status.State != string(clusterWarning) {
 			shared.LogInfo(
 				cr,
-				"error",
+				"warning",
 			)
 			cr.Status.State = string(clusterWarning)
 		}
@@ -235,7 +235,7 @@ func handleFinalizers(
 
 // calcMemberNamesForRoles generates a map of role name to list of all member
 // names the role that are intended to exist -- i.e. members in states
-// memberCreatePending, memberCreating, memberReady or memberError
+// memberCreatePending, memberCreating, memberReady or memberConfigError
 func calcMemberNamesForRoles(
 	roles []*roleInfo,
 ) map[string][]string {
@@ -251,7 +251,7 @@ func calcMemberNamesForRoles(
 					),
 					roleInfo.membersByState[memberReady]...,
 				),
-				roleInfo.membersByState[memberError]...,
+				roleInfo.membersByState[memberConfigError]...,
 			)
 			var memberNamesForRole []string
 			for _, member := range membersStatus {

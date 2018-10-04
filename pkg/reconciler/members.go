@@ -223,9 +223,9 @@ func handleCreatingMembers(
 		go func(m *kdv1.MemberStatus) {
 			defer wgSetup.Done()
 			configmeta := configmetaGenerator(m.Pod)
-			// Set member state to error. On successful return from this function
+			// Set member state to configError. On successful return from this function
 			// state will be set to configured.
-			m.State = string(memberError)
+			m.State = string(memberConfigError)
 			createFileErr := executor.CreateFile(
 				cr,
 				m.Pod,
@@ -297,7 +297,7 @@ func handleCreatingMembers(
 	}
 	wgSetup.Wait()
 
-	// Now let any ready nodes know that some new nodes (non-errored) have appeared.
+	// Now let any ready nodes know that some new nodes have appeared.
 	if setupUrl != "" {
 		if !notifyReadyNodes(cr, role, allRoles) {
 			shared.LogWarn(
@@ -457,7 +457,7 @@ func checkMemberCount(
 	replicas := int32(len(role.membersByState[memberCreatePending]) +
 		len(role.membersByState[memberCreating]) +
 		len(role.membersByState[memberReady]) +
-		len(role.membersByState[memberError]))
+		len(role.membersByState[memberConfigError]))
 
 	// Fix the statefulset if we haven't successfully resized it yet.
 	if *(role.statefulSet.Spec.Replicas) != replicas {

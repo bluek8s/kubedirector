@@ -64,7 +64,7 @@ const (
 	memberReady                     = "ready"
 	memberDeletePending             = "delete_pending"
 	memberDeleting                  = "deleting"
-	memberError                     = "error"
+	memberConfigError               = "config_error"
 )
 
 const (

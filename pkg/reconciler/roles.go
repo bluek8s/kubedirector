@@ -295,7 +295,7 @@ func handleRoleReCreate(
 			switch memberState(member.State) {
 			case memberDeletePending:
 			case memberReady:
-			case memberError:
+			case memberConfigError:
 				member.State = string(memberDeletePending)
 			default:
 				member.State = string(memberDeleting)
@@ -364,7 +364,7 @@ func handleRoleResize(
 	calcRoleMembersByState(role)
 	currentPop :=
 		len(role.membersByState[memberReady]) +
-			len(role.membersByState[memberError]) +
+			len(role.membersByState[memberConfigError]) +
 			len(role.membersByState[memberCreating]) +
 			len(role.membersByState[memberCreatePending])
 	if role.desiredPop == currentPop {
@@ -435,7 +435,7 @@ func deleteMemberStatuses(
 	createPendingPop := len(role.membersByState[memberCreatePending])
 	creatingPop := len(role.membersByState[memberCreating])
 	readyPop := len(role.membersByState[memberReady])
-	errorPop := len(role.membersByState[memberError])
+	errorPop := len(role.membersByState[memberConfigError])
 	for i := role.desiredPop; i < currentPop; i++ {
 		member := &(role.roleStatus.Members[i])
 		switch memberState(member.State) {
@@ -460,7 +460,7 @@ func deleteMemberStatuses(
 				member,
 			)
 			readyPop -= 1
-		case memberError:
+		case memberConfigError:
 			member.State = string(memberDeletePending)
 			role.membersByState[memberDeletePending] = append(
 				role.membersByState[memberDeletePending],
@@ -489,10 +489,10 @@ func deleteMemberStatuses(
 		delete(role.membersByState, memberReady)
 	}
 	if errorPop > 0 {
-		role.membersByState[memberError] =
-			role.membersByState[memberError][:errorPop]
+		role.membersByState[memberConfigError] =
+			role.membersByState[memberConfigError][:errorPop]
 	} else {
-		delete(role.membersByState, memberError)
+		delete(role.membersByState, memberConfigError)
 	}
 }
 
@@ -532,12 +532,12 @@ func allRoleMembersReady(
 }
 
 // anyRoleMemberError examines the members-by-state map and returns whether
-// any existing members are in an error state
+// any existing members are in an error state.
 func anyRoleMemberError(
 	role *roleInfo,
 ) bool {
 
-	if len(role.membersByState[memberError]) == 0 {
+	if len(role.membersByState[memberConfigError]) == 0 {
 		return false
 	}
 

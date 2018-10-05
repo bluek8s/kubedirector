@@ -85,7 +85,7 @@ func syncRoles(
 			)
 			panic(panicMsg)
 		}
-		if !allRoleMembersReady(r) {
+		if !allRoleMembersReadyOrError(r) {
 			allMembersReady = false
 		}
 	}
@@ -279,8 +279,8 @@ func handleRoleReCreate(
 	} else {
 		*anyMembersChanged = true
 		// Need to clean up from the old status before we make a new
-		// statefulset. For any pods that had reached "ready" state, we should
-		// mark them first as "delete_pending" -- we know we have notified
+		// statefulset. For any pods that had reached "ready" or "error" state,
+		// we should mark them first as "delete_pending" -- we know we have notified
 		// other pods of these creations, so we should now notify of deletions.
 		// For other pods we can just move them straight into deleting state.
 		numMembers := len(role.roleStatus.Members)
@@ -289,6 +289,7 @@ func handleRoleReCreate(
 			switch memberState(member.State) {
 			case memberDeletePending:
 			case memberReady:
+			case memberConfigError:
 				member.State = string(memberDeletePending)
 			default:
 				member.State = string(memberDeleting)
@@ -357,6 +358,7 @@ func handleRoleResize(
 	calcRoleMembersByState(role)
 	currentPop :=
 		len(role.membersByState[memberReady]) +
+			len(role.membersByState[memberConfigError]) +
 			len(role.membersByState[memberCreating]) +
 			len(role.membersByState[memberCreatePending])
 	if role.desiredPop == currentPop {
@@ -427,6 +429,7 @@ func deleteMemberStatuses(
 	createPendingPop := len(role.membersByState[memberCreatePending])
 	creatingPop := len(role.membersByState[memberCreating])
 	readyPop := len(role.membersByState[memberReady])
+	errorPop := len(role.membersByState[memberConfigError])
 	for i := role.desiredPop; i < currentPop; i++ {
 		member := &(role.roleStatus.Members[i])
 		switch memberState(member.State) {
@@ -451,6 +454,13 @@ func deleteMemberStatuses(
 				member,
 			)
 			readyPop -= 1
+		case memberConfigError:
+			member.State = string(memberDeletePending)
+			role.membersByState[memberDeletePending] = append(
+				role.membersByState[memberDeletePending],
+				member,
+			)
+			errorPop -= 1
 		default:
 		}
 	}
@@ -472,6 +482,12 @@ func deleteMemberStatuses(
 	} else {
 		delete(role.membersByState, memberReady)
 	}
+	if errorPop > 0 {
+		role.membersByState[memberConfigError] =
+			role.membersByState[memberConfigError][:errorPop]
+	} else {
+		delete(role.membersByState, memberConfigError)
+	}
 }
 
 // calcRoleMembersByState builds the members-by-state map based on the current
@@ -489,22 +505,22 @@ func calcRoleMembersByState(
 	}
 }
 
-// allRoleMembersReady examines the members-by-state map and returns whether
-// all existing members are in the ready-state bucket. (The situation of "no
+// allRoleMembersReadyOrError examines the members-by-state map and returns whether
+// all existing members are in the ready-state or error-state bucket. (The situation of "no
 // members" will also return true.)
-func allRoleMembersReady(
+func allRoleMembersReadyOrError(
 	role *roleInfo,
 ) bool {
 
 	switch len(role.membersByState) {
 	case 0:
 		return true
-	case 1:
-		// All role members have the same state. Is that the ready state?
-		_, stateIsReady := role.membersByState[memberReady]
-		return stateIsReady
 	default:
-		// More than one state, so obviously some are not ready.
-		return false
+		for key := range role.membersByState {
+			if key != memberReady && key != memberConfigError {
+				return false
+			}
+		}
+		return true
 	}
 }

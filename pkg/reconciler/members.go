@@ -223,6 +223,9 @@ func handleCreatingMembers(
 		go func(m *kdv1.MemberStatus) {
 			defer wgSetup.Done()
 			configmeta := configmetaGenerator(m.Pod)
+			// Set member state to configError. On successful return from this function
+			// state will be set to configured.
+			m.State = string(memberConfigError)
 			createFileErr := executor.CreateFile(
 				cr,
 				m.Pod,
@@ -230,7 +233,6 @@ func handleCreatingMembers(
 				strings.NewReader(configmeta),
 			)
 			if createFileErr != nil {
-				// We'll try again next pass.
 				shared.LogWarnf(
 					cr,
 					"failed to update config in member{%s}: %v",
@@ -454,7 +456,8 @@ func checkMemberCount(
 	// we'll ignore it if we're still working on a previous change.
 	replicas := int32(len(role.membersByState[memberCreatePending]) +
 		len(role.membersByState[memberCreating]) +
-		len(role.membersByState[memberReady]))
+		len(role.membersByState[memberReady]) +
+		len(role.membersByState[memberConfigError]))
 
 	// Fix the statefulset if we haven't successfully resized it yet.
 	if *(role.statefulSet.Spec.Replicas) != replicas {

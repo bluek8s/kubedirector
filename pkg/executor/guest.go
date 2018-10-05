@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+        "strings"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
@@ -35,22 +36,51 @@ func IsFileExists(
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
 	filePath string,
-) bool {
+) (bool, error) {
 
 	var (
 		stdOut bytes.Buffer
 		stdErr bytes.Buffer
 	)
-	command := []string{"test", "-f", filePath}
+	command := []string{"test", "-fFFFFFFF", filePath}
 	ioStreams := &streams{
 		out:    &stdOut,
 		errOut: &stdErr,
 	}
 	execErr := execCommand(cr, podName, command, ioStreams)
-	if execErr != nil {
-		return false
-	}
-	return true
+        if  execErr != nil {
+
+shared.LogErrorf(
+cr,
+"command{%s} IsFileExists FAILED: %v",
+command,
+execErr,
+)
+
+
+                // If the command fails with the error "command terminated with exit code 1",
+    		// this means the file existence check completed successfully, but the file does not exist.
+                // Otherwise the command failed for some other reason.
+		if strings.Compare(strings.TrimRight(execErr.Error(), "\r\n") , "command terminated with exit code 1") == 0 {
+
+shared.LogErrorf(
+cr,
+"command{%s} IsFileExists FAILED with exit code match - returning nil for error",
+command,
+)
+
+
+                   return false, nil
+                }
+
+shared.LogErrorf(
+cr,
+"command{%s} IsFileExists FAILED WITHOUT exit code match - returning NON nil for error",
+command,
+)
+                return false, execErr
+        }
+        return true, nil
 }
 
 // CreateDir creates a directory (and any parent directors)

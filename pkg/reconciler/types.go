@@ -42,7 +42,6 @@ const (
 	clusterCreating clusterState = "creating"
 	clusterUpdating              = "updating"
 	clusterReady                 = "ready"
-	clusterWarning               = "warning"
 )
 
 type clusterStateInternal int
@@ -51,7 +50,6 @@ const (
 	clusterMembersChangedUnready clusterStateInternal = iota
 	clusterMembersStableUnready
 	clusterMembersStableReady
-	clusterMembersError
 	clusterMembersUnknown
 )
 

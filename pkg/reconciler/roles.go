@@ -44,7 +44,6 @@ func syncRoles(
 	// Assume cluster is stable until found otherwise.
 	allMembersReady := true
 	anyMembersChanged := false
-	anyMemberError := false
 
 	// Reconcile each role as necessary.
 	for _, r := range roles {
@@ -86,11 +85,8 @@ func syncRoles(
 			)
 			panic(panicMsg)
 		}
-		if !allRoleMembersReady(r) {
+		if !allRoleMembersReadyOrError(r) {
 			allMembersReady = false
-		}
-		if anyRoleMemberError(r) {
-			anyMemberError = true
 		}
 	}
 
@@ -101,8 +97,6 @@ func syncRoles(
 	} else {
 		if allMembersReady {
 			returnState = clusterMembersStableReady
-		} else if anyMemberError {
-			returnState = clusterMembersError
 		} else {
 			returnState = clusterMembersStableUnready
 		}
@@ -511,35 +505,22 @@ func calcRoleMembersByState(
 	}
 }
 
-// allRoleMembersReady examines the members-by-state map and returns whether
-// all existing members are in the ready-state bucket. (The situation of "no
+// allRoleMembersReadyOrError examines the members-by-state map and returns whether
+// all existing members are in the ready-state or error-state bucket. (The situation of "no
 // members" will also return true.)
-func allRoleMembersReady(
+func allRoleMembersReadyOrError(
 	role *roleInfo,
 ) bool {
 
 	switch len(role.membersByState) {
 	case 0:
 		return true
-	case 1:
-		// All role members have the same state. Is that the ready state?
-		_, stateIsReady := role.membersByState[memberReady]
-		return stateIsReady
 	default:
-		// More than one state, so obviously some are not ready.
-		return false
+		for key := range role.membersByState {
+			if key != memberReady && key != memberConfigError {
+				return false
+			}
+		}
+		return true
 	}
-}
-
-// anyRoleMemberError examines the members-by-state map and returns whether
-// any existing members are in an error state.
-func anyRoleMemberError(
-	role *roleInfo,
-) bool {
-
-	if len(role.membersByState[memberConfigError]) == 0 {
-		return false
-	}
-
-	return true
 }

@@ -123,15 +123,6 @@ func syncCluster(
 			cr.Status.State = string(clusterReady)
 		}
 		return nil
-	} else if state == clusterMembersError {
-		if cr.Status.State != string(clusterWarning) {
-			shared.LogInfo(
-				cr,
-				"warning",
-			)
-			cr.Status.State = string(clusterWarning)
-		}
-		return nil
 	} else {
 		if cr.Status.State != string(clusterCreating) {
 			cr.Status.State = string(clusterUpdating)

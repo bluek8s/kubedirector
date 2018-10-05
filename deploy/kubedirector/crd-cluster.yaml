@@ -85,7 +85,7 @@ spec:
               type: array
               items:
                 properties:
-                  name:
+                  id:
                     type: string
                   stateful_set:
                     type: string

@@ -1,5 +1,7 @@
 # KubeDirector
 
+[![Build Status](https://travis-ci.com/bluek8s/kubedirector.svg?branch=master)](https://travis-ci.com/bluek8s/kubedirector)
+
 The [**BlueK8s**](https://github.com/bluek8s) open source initiative will include a number of projects to help bring enterprise-level capabilities for distributed stateful applications to Kubernetes. 
 
 The first open source project in this initiative is **Kubernetes Director** or **KubeDirector** for short.
@@ -31,7 +33,7 @@ See the files in the "doc" directory for information about deploying and using K
 
 Thanks for your interest in joining and contributing to our community! Current work items and release progress are tracked on the [Issues](https://github.com/bluek8s/kubedirector/issues) page.
 
-You’re welcome to join the [BlueK8s Slack workspace](https://bluek8s.slack.com) for feedback and discussion.
+You’re welcome to join the [BlueK8s Slack workspace](https://join.slack.com/t/bluek8s/shared_invite/enQtNDUwMzkwODY5OTM4LTRhYmRmZmE4YzY3OGUzMjA1NDg0MDVhNDQ2MGNkYjRhM2RlMDNjMTI1NDQyMjAzZGVlMDFkNThkNGFjZGZjMGY) for feedback and discussion.
 
 # Code of conduct
 

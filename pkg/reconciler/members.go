@@ -238,6 +238,11 @@ func handleCreatingMembers(
 				configmetaGenerator,
 			)
 			if !isFinal {
+				shared.LogInfof(
+					cr,
+					"initial config ongoing for member{%s}",
+					m.Pod,
+				)
 				return
 			}
 			if configErr != nil {

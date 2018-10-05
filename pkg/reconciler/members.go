@@ -225,7 +225,8 @@ func handleCreatingMembers(
 			defer wgSetup.Done()
 			// If setup package is not present, skip doing any setup.
 			if setupUrl == "" {
-				// Set a temporary state used below for notifies.
+				// Set a temporary state used below so we won't send notifies
+				// to this member yet.
 				m.State = string(memberConfigured)
 				return
 			}
@@ -252,6 +253,7 @@ func handleCreatingMembers(
 					m.Pod,
 					configErr,
 				)
+				m.State = string(memberConfigError)
 				return
 			}
 			shared.LogInfof(
@@ -259,7 +261,8 @@ func handleCreatingMembers(
 				"initial config done for member{%s}",
 				m.Pod,
 			)
-			// Set a temporary state used below for notifies.
+			// Set a temporary state used below so we won't send notifies
+			// to this member yet.
 			m.State = string(memberConfigured)
 		}(member)
 	}
@@ -424,7 +427,8 @@ func checkMemberCount(
 	// we'll ignore it if we're still working on a previous change.
 	replicas := int32(len(role.membersByState[memberCreatePending]) +
 		len(role.membersByState[memberCreating]) +
-		len(role.membersByState[memberReady]))
+		len(role.membersByState[memberReady]) +
+		len(role.membersByState[memberConfigError]))
 
 	// Fix the statefulset if we haven't successfully resized it yet.
 	if *(role.statefulSet.Spec.Replicas) != replicas {

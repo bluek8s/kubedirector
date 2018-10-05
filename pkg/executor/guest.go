@@ -57,9 +57,9 @@ func IsFileExists(
 		)
 
 
-                // If the command fails with the error "command terminated with exit code 1",
-    		// this means the file existence check completed successfully, but the file does not exist.
-                // Otherwise the command failed for some other reason.
+		// If the command fails with the error "command terminated with exit code 1",
+		// this means the file existence check completed successfully, but the file does not exist.
+		// Otherwise the command failed for some other reason.
 		if strings.Compare(strings.TrimRight(execErr.Error(), "\r\n") , "command terminated with exit code 1") == 0 {
                    return false, nil
                 }

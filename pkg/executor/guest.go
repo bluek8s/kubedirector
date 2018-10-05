@@ -61,11 +61,11 @@ func IsFileExists(
 		// this means the file existence check completed successfully, but the file does not exist.
 		// Otherwise the command failed for some other reason.
 		if strings.Compare(strings.TrimRight(execErr.Error(), "\r\n") , "command terminated with exit code 1") == 0 {
-                   return false, nil
-                }
-                return false, execErr
-        }
-        return true, nil
+			return false, nil
+		}
+		return false, execErr
+	}
+	return true, nil
 }
 
 // CreateDir creates a directory (and any parent directors)

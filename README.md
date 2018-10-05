@@ -1,6 +1,6 @@
 # KubeDirector
 
-[![Build Status](https://travis-ci.org/BlueK8s/kubedirector.svg?branch=master)](https://travis-ci.org/BlueK8s/kubedirector)
+[![Build Status](https://travis-ci.com/bluek8s/kubedirector.svg?branch=master)](https://travis-ci.com/bluek8s/kubedirector)
 
 The [**BlueK8s**](https://github.com/bluek8s) open source initiative will include a number of projects to help bring enterprise-level capabilities for distributed stateful applications to Kubernetes. 
 

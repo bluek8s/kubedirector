@@ -1,0 +1,22 @@
+# Default values for kubedirector.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+appCrdName: kubedirectorapps.kubedirector.bluedata.io
+clusterCrdName: kubedirectorclusters.kubedirector.bluedata.io
+image:
+  repository: bluek8s/kubedirector
+  tag: unstable
+  pullPolicy: Always
+serviceAccount:
+  name: kubedirector
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

@@ -1,0 +1,1 @@
+KubeDirector is now running. You can create and manage virtual clusters as described in https://github.com/bluek8s/kubedirector/blob/master/doc/virtual-clusters.md

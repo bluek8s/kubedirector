@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "kubedirector.fullname" . }}
+  labels:
+    app: {{ template "kubedirector.name" . }}
+    chart: {{ template "kubedirector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "kubedirector.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "kubedirector.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+          - containerPort: 60000
+            name: metrics
+          command:
+          - "/bin/sh"
+          args:
+          - "-c"
+          - "mkfifo /tmp/fifo; (/root/kubedirector &> /tmp/fifo) & while true; do cat /tmp/fifo; done"
+          env:
+          - name: MY_NAMESPACE
+            value: {{ .Release.Namespace }}
+          - name: WATCH_NAMESPACE
+            value: {{ default .Release.Namespace .Values.watchNamespace }}
+          - name: OPERATOR_NAME
+            value: "kubedirector"
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+    {{- with .Values.resources }}
+      resources:
+{{ toYaml . | indent 12 }}
+      {{- end }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}

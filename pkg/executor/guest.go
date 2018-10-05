@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
-        "strings"
+	"strings"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
@@ -48,19 +48,18 @@ func IsFileExists(
 		errOut: &stdErr,
 	}
 	execErr := execCommand(cr, podName, command, ioStreams)
-        if  execErr != nil {
-      		shared.LogErrorf(
+	if execErr != nil {
+		shared.LogErrorf(
 			cr,
 			"command{%s} IsFileExists: %v",
 			command,
 			execErr,
 		)
 
-
 		// If the command fails with the error "command terminated with exit code 1",
 		// this means the file existence check completed successfully, but the file does not exist.
 		// Otherwise the command failed for some other reason.
-		if strings.Compare(strings.TrimRight(execErr.Error(), "\r\n") , "command terminated with exit code 1") == 0 {
+		if strings.Compare(strings.TrimRight(execErr.Error(), "\r\n"), "command terminated with exit code 1") == 0 {
 			return false, nil
 		}
 		return false, execErr

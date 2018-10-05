@@ -42,7 +42,7 @@ func IsFileExists(
 		stdOut bytes.Buffer
 		stdErr bytes.Buffer
 	)
-	command := []string{"test", "-fFFFFFFF", filePath}
+	command := []string{"test", "-f", filePath}
 	ioStreams := &streams{
 		out:    &stdOut,
 		errOut: &stdErr,

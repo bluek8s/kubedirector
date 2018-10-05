@@ -49,35 +49,20 @@ func IsFileExists(
 	}
 	execErr := execCommand(cr, podName, command, ioStreams)
         if  execErr != nil {
-
-shared.LogErrorf(
-cr,
-"command{%s} IsFileExists FAILED: %v",
-command,
-execErr,
-)
+      		shared.LogErrorf(
+			cr,
+			"command{%s} IsFileExists: %v",
+			command,
+			execErr,
+		)
 
 
                 // If the command fails with the error "command terminated with exit code 1",
     		// this means the file existence check completed successfully, but the file does not exist.
                 // Otherwise the command failed for some other reason.
 		if strings.Compare(strings.TrimRight(execErr.Error(), "\r\n") , "command terminated with exit code 1") == 0 {
-
-shared.LogErrorf(
-cr,
-"command{%s} IsFileExists FAILED with exit code match - returning nil for error",
-command,
-)
-
-
                    return false, nil
                 }
-
-shared.LogErrorf(
-cr,
-"command{%s} IsFileExists FAILED WITHOUT exit code match - returning NON nil for error",
-command,
-)
                 return false, execErr
         }
         return true, nil

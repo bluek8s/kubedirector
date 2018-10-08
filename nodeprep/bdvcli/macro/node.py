@@ -14,12 +14,13 @@
 
 from .. import BDVCLI_SubCommand
 
-class BDMacroNode(BDVCLI_SubCommand):
+class MacroNode(BDVCLI_SubCommand):
     """
     Macros related to node
     """
-    def __init__(self, cmdObj):
-        BDVCLI_SubCommand.__init__(self, cmdObj, 'node')
+    def __init__(self, vcli):
+        BDVCLI_SubCommand.__init__(self, vcli, 'node')
+        self.configmeta = self.vcli.getCommandObject('namespace')
 
     def getSubcmdDescripton(self):
         return 'Node related macros.'
@@ -48,21 +49,23 @@ class BDMacroNode(BDVCLI_SubCommand):
         if pargs.nodeid != None:
             return self.getNodeIdFromFqdn(pargs.nodeid[0])
 
-    def _prune_id_from_string(self, inputid):
+    def _prune_id_from_string(self, node_id):
         """
         Pick off the trailing node index digits and return as an int so it may be used
         as a sort criteria.
         """
-        return inputid[:len(inputid.rstrip("0123456789"))]
+        return int(node_id[len(node_id.rstrip("0123456789")):])
 
     def _getNodeIndexFromId(self, node_id):
         """
         Calculate node index given a node_id
         """
         all_node_id_keys = self.configmeta.searchForToken([u"nodegroups"], u"node_ids")
+
         node_id_list = []
         for node_id_key in all_node_id_keys:
-            node_id_list.extend(self.configmeta.getWithTokens(node_id_key))
+            key = self.configmeta.getWithTokens(node_id_key)
+            node_id_list.extend(key)
 
         # We don't know the prefix, but as we don't allow trailing digits in the prefix, we can simply
         # pluck off the trailing digits in the id and use that to locate the index of the given node_id

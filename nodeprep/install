@@ -18,15 +18,10 @@ THIS_DIR=$(dirname $(readlink -nf ${BASH_SOURCE[0]}))
 
 chmod 644 /etc/guestconfig/configmeta.json
 
+
 mkdir -p /var/log/guestconfig
 mkdir -p /opt/guestconfig
+chmod a+X /opt/guestconfig /var/log/guestconfig
 
-(cd "$THIS_DIR"; python setup.py install)
-
-# Don't change full file path for this binary. KubeDirector expects this path.
-BDVCLI_DST='/usr/bin/bdvcli'
-BDVCLI_OLD_DST='/usr/bin/bd_vcli'
-BDMACRO_DST='/usr/bin/bdmacro'
-
-ln -sf ${BDVCLI_DST} ${BDVCLI_OLD_DST}
-chmod +x ${BDVCLI_DST} ${BDVCLI_OLD_DST} ${BDMACRO_DST}
+cd ${THIS_DIR}
+python ./setup.py install

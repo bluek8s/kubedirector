@@ -1,32 +1,34 @@
-#!/usr/bin/env python2
-
-# Copyright 2018 BlueData Software, Inc.
-
+#!/bin/env python
+#
+# Copyright (c) 2018 BlueData Software, Inc.
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, argparse
-from bdmacro import BDMacro
-from bdmacro.node import BDMacroNode
+from __future__ import print_function
+from .. import BDVCLI_Command
 
-def main():
-    try:
-        macro = BDMacro()
-        #Initialize sub commands
-        BDMacroNode(macro)
-        print(macro.dispatch(sys.argv[1:]))
-    except Exception as e:
-        print(str(e))
-        sys.exit(1)
+from .version import BaseimageVersion
 
-if __name__ == "__main__":
-    main()
+class Baseimage(BDVCLI_Command):
+    """
+
+    """
+
+    def __init__(self, vcli):
+        BDVCLI_Command.__init__(self, vcli, 'baseimg',
+                         'Baseimage related information.')
+
+        BaseimageVersion(self)
+
+BDVCLI_Command.register(Baseimage)
+__all__ = ['Baseimage']

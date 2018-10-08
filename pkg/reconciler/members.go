@@ -488,7 +488,7 @@ func setupNodePrep(
 	// Check to see if the destination file exists already, in which case just
 	// return
 	fileExists, fileError := executor.IsFileExists(cr, podName, nodePrepTestFile)
-	if fileError != nil || !fileExists {
+	if fileError == nil && fileExists {
 		return nil
 	}
 
@@ -533,7 +533,7 @@ func setupAppConfig(
 	// Check to see if the destination file exists already, in which case just
 	// return.
 	fileExists, fileError := executor.IsFileExists(cr, podName, appPrepStartscript)
-	if fileError != nil || !fileExists {
+	if fileError == nil && fileExists {
 		return nil
 	}
 

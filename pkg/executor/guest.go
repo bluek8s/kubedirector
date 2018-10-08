@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
-	"strings"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
@@ -28,6 +27,7 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
+	"k8s.io/client-go/util/exec"
 )
 
 // IsFileExists probes whether the given pod's filesystem contains something
@@ -49,21 +49,20 @@ func IsFileExists(
 	}
 	execErr := execCommand(cr, podName, command, ioStreams)
 	if execErr != nil {
-		shared.LogErrorf(
-			cr,
-			"command{%s} IsFileExists: %v",
-			command,
-			execErr,
-		)
-
-		// If the command fails with the error "command terminated with exit code 1",
-		// this means the file existence check completed successfully, but the file does not exist.
-		// Otherwise the command failed for some other reason.
-		if strings.Compare(strings.TrimRight(execErr.Error(), "\r\n"), "command terminated with exit code 1") == 0 {
-			return false, nil
+		// Determine which type of error occured
+		coe, iscoe := execErr.(exec.CodeExitError)
+		if iscoe {
+			// If the command failed with a CodeExitError error and an exit
+			// code of 1, this means that the file existence check completed
+			// successfully, but the file does not exist.
+			if coe.ExitStatus() == 1 {
+				return false, nil
+			}
 		}
+		// Some error, other than file does not exist, occured.
 		return false, execErr
 	}
+	// The file exists.
 	return true, nil
 }
 

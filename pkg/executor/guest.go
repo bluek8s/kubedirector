@@ -118,6 +118,32 @@ func CreateFile(
 	return nil
 }
 
+// ReadFile takes the stream from the given writer, and writes to it the
+// contents of the indicated filepath in the filesystem of the given pod.
+func ReadFile(
+	cr *kdv1.KubeDirectorCluster,
+	podName string,
+	filePath string,
+	writer io.Writer,
+) error {
+
+	command := []string{"cat", filePath}
+	ioStreams := &streams{
+		out: writer,
+	}
+	shared.LogInfof(
+		cr,
+		"reading file{%s} in pod{%s}",
+		filePath,
+		podName,
+	)
+	execErr := execCommand(cr, podName, command, ioStreams)
+	if execErr != nil {
+		return execErr
+	}
+	return nil
+}
+
 // RunScript takes the stream from the given reader, and executes it as a
 // shell script in the given pod.
 func RunScript(

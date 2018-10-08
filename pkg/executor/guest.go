@@ -27,6 +27,7 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
+	"k8s.io/client-go/util/exec"
 )
 
 // IsFileExists probes whether the given pod's filesystem contains something
@@ -35,7 +36,7 @@ func IsFileExists(
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
 	filePath string,
-) bool {
+) (bool, error) {
 
 	var (
 		stdOut bytes.Buffer
@@ -48,9 +49,21 @@ func IsFileExists(
 	}
 	execErr := execCommand(cr, podName, command, ioStreams)
 	if execErr != nil {
-		return false
+		// Determine which type of error occured
+		coe, iscoe := execErr.(exec.CodeExitError)
+		if iscoe {
+			// If the command failed with a CodeExitError error and an exit
+			// code of 1, this means that the file existence check completed
+			// successfully, but the file does not exist.
+			if coe.ExitStatus() == 1 {
+				return false, nil
+			}
+		}
+		// Some error, other than file does not exist, occured.
+		return false, execErr
 	}
-	return true
+	// The file exists.
+	return true, nil
 }
 
 // CreateDir creates a directory (and any parent directors)

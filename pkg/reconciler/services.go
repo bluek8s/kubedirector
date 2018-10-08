@@ -29,6 +29,7 @@ var serviceShouldExist = map[memberState]bool{
 	memberCreatePending: true,
 	memberCreating:      true,
 	memberReady:         true,
+	memberConfigError:   true,
 	memberDeletePending: false,
 	memberDeleting:      false,
 }

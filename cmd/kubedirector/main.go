@@ -48,7 +48,12 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("failed to get watch namespace: %v", err)
 	}
-	resyncPeriod := time.Duration(20) * time.Second
+	// The resync period essentially determines how granularly we can detect
+	// the completion of cluster config changes. Making this too small can
+	// actually be bad in that there is benefit to batch-resolving changes,
+	// within KubeDirector but also especially with the cluster's app config
+	// scripts.
+	resyncPeriod := time.Duration(30) * time.Second
 	logrus.Infof("Watching %s, %s, %s, %d", resource, kind, namespace, resyncPeriod)
 
 	// Fetch our deployment object

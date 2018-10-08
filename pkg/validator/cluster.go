@@ -101,8 +101,8 @@ func validateCardinality(
 }
 
 // validateRoles checks that 1) all configured roles actually exist in the
-// app type, and 2) all active roles (according to the app config) are
-// covered by the cluster config.
+// app type, and 2) all active roles (according to the app config) that
+// require more than 0 members are covered by the cluster config.
 func validateRoles(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
@@ -126,12 +126,20 @@ func validateRoles(
 	}
 	for _, activeRole := range catalog.GetSelectedRoleIDs(appCR) {
 		if !shared.StringInList(activeRole, configuredRoles) {
-			unconfiguredRoleMsg := fmt.Sprintf(
-				unconfiguredRole,
-				activeRole,
-				appCR.Name,
-			)
-			errorMessages = append(errorMessages, unconfiguredRoleMsg)
+			role := catalog.GetRoleFromID(appCR, activeRole)
+			// If our app CR validation is on point this should never be nil,
+			// but it doesn't hurt to be careful.
+			if role != nil {
+				validMin, _ := catalog.GetRoleCardinality(role)
+				if validMin != 0 {
+					unconfiguredRoleMsg := fmt.Sprintf(
+						unconfiguredRole,
+						activeRole,
+						appCR.Name,
+					)
+					errorMessages = append(errorMessages, unconfiguredRoleMsg)
+				}
+			}
 		}
 	}
 

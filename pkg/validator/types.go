@@ -39,6 +39,9 @@ const (
 	invalidRole        = "Invalid role(%s) in app(%s) specified. Valid roles: \"%s\""
 	unconfiguredRole   = "Active role(%s) in app(%s) must have its configuration included in the roles array."
 
+	modifiedProperty = "The %s property is read-only."
+	modifiedRole     = "Role(%s) properties other than the members count cannot be modified while role members exist."
+
 	invalidNodeRoleID     = "Invalid role_id(%s) in role_services array in config section. Valid roles: \"%s\""
 	invalidSelectedRoleID = "Invalid element(%s) in selected_roles array in config section. Valid roles: \"%s\""
 	invalidServiceID      = "Invalid service_id(%s) in role_services array in config section. Valid services: \"%s\""

@@ -16,6 +16,7 @@ package executor
 
 import (
 	"encoding/json"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -154,11 +155,31 @@ func getStatefulset(
 	persistDirs := make([]string, len(defaultMountFolders), len(defaultMountFolders)+len(appPersistDirs))
 	copy(persistDirs, defaultMountFolders)
 
+	// if the app directory is either same or a subdir of one of the default mount
+	// dirs, we can skip them. if not we should add them to the persistDirs list
 	for _, appDir := range appPersistDirs {
-		// If this app directory is not present in the default mounts
-		// append to the persistDirs list
-		if !shared.StringInList(appDir, defaultMountFolders) {
-			persistDirs = append(persistDirs, appDir)
+		isSubDir := false
+		for _, defaultDir := range defaultMountFolders {
+			// Get relative path of the app dir wrt defaultDir
+			rel, _ := filepath.Rel(defaultDir, appDir)
+
+			// If rel path doesn't start with "..", it is a subdir
+			if !strings.HasPrefix(rel, "..") {
+				shared.LogInfof(
+					cr,
+					"skipping {%s} from volume claim mounts. defaul dir {%s} covers it",
+					appDir,
+					defaultDir,
+				)
+				isSubDir = true
+				break
+			}
+		}
+		if !isSubDir {
+			// Get the absolute path for the app dir
+			abs, _ := filepath.Abs(appDir)
+
+			persistDirs = append(persistDirs, abs)
 		}
 	}
 
@@ -344,7 +365,7 @@ func generateInitContainerLaunch(persistDirs []string) string {
 	// To be safe in the case that this container is restarted by someone,
 	// don't do this copy if the configmeta file already exists in /etc.
 	launchCmd := "! [ -f /mnt" + configMetaFile + " ]" + " && " +
-		"cp -ax " + strings.Join(persistDirs, " ") + " /mnt || exit 0"
+		"cp --parent -ax " + strings.Join(persistDirs, " ") + " /mnt || exit 0"
 
 	return launchCmd
 }

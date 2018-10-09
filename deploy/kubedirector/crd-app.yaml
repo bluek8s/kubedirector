@@ -128,7 +128,7 @@ spec:
               type: array
               items:
                 type: string
-                pattern: '^/[^/]+$'
+                pattern: '^/.*[^/]$'
             capabilities:
               type: array
               items:

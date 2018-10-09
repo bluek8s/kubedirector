@@ -184,7 +184,7 @@ func validateGeneralChanges(
 // validateRoleChanges checks for modifications to role properties. The
 // members property of a role can always be changed (within cardinality
 // constraints that are checked elsewhere). However other properties cannot
-// be changed unless the role members value is currently zero.
+// be changed unless the role currently has no members.
 func validateRoleChanges(
 	cr *kdv1.KubeDirectorCluster,
 	prevCr *kdv1.KubeDirectorCluster,

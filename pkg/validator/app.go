@@ -29,7 +29,6 @@ import (
 
 // validateUniqueness checks the lists of roles and service IDs for duplicates.
 func validateUniqueness(
-	appCR *kdv1.KubeDirectorApp,
 	allRoleIDs []string,
 	allServiceIDs []string,
 ) string {
@@ -205,7 +204,7 @@ func admitAppCR(
 	allServiceIDs := catalog.GetAllServiceIDs(&appCR)
 
 	// Verify uniqueness constraints in the roles and services lists.
-	uniquenessErr := validateUniqueness(&appCR, allRoleIDs, allServiceIDs)
+	uniquenessErr := validateUniqueness(allRoleIDs, allServiceIDs)
 	if uniquenessErr != "" {
 		errorMessages = append(errorMessages, uniquenessErr)
 	}

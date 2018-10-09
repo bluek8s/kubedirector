@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"time"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
@@ -29,6 +30,8 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/exec"
 )
+
+const DEFAULT_CMD_TIMEOUT_IN_SECONDS = 60
 
 // IsFileExists probes whether the given pod's filesystem contains something
 // at the indicated filepath.
@@ -172,13 +175,46 @@ func RunScript(
 
 // execCommand is a utility function for executing a command in a pod. It
 // uses the given ioStreams to provide the command inputs and accept the
-// command outputs.
+// command outputs. The command will be given DEFAULT_CMD_TIMEOUT_IN_SECONDS
+// to complete.
 func execCommand(
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
 	command []string,
 	ioStreams *streams,
 ) error {
+	error, errch := execCommandAsync(
+		cr,
+		podName,
+		command,
+		ioStreams,
+	)
+	if error != nil {
+		return error
+	}
+
+	var timeInMilliSeconds time.Duration = DEFAULT_CMD_TIMEOUT_IN_SECONDS * time.Second
+	return execCommandWait(
+		cr,
+		podName,
+		command,
+		ioStreams,
+		errch,
+		timeInMilliSeconds,
+	)
+}
+
+// execCommandAsync is a utility function for submitting a command in a pod.
+// It uses the given ioStreams to provide the command inputs and accept the
+// command outputs.
+// The expectation is that the caller will invoke execCommandWait() to
+// determine when the command has completed.
+func execCommandAsync(
+	cr *kdv1.KubeDirectorCluster,
+	podName string,
+	command []string,
+	ioStreams *streams,
+) (error, chan error) {
 
 	pod, podErr := observer.GetPod(cr.Namespace, podName)
 	if podErr != nil {
@@ -191,7 +227,7 @@ func execCommand(
 		return fmt.Errorf(
 			"pod{%v} does not exist",
 			podName,
-		)
+		), nil
 	}
 
 	if pod.Status.Phase == v1.PodSucceeded || pod.Status.Phase == v1.PodFailed {
@@ -199,7 +235,7 @@ func execCommand(
 			"cannot connect to pod{%v} in phase %v",
 			podName,
 			pod.Status.Phase,
-		)
+		), nil
 	}
 
 	foundContainer := false
@@ -214,7 +250,7 @@ func execCommand(
 			"container{%s} does not exist in pod{%v}",
 			appContainerName,
 			podName,
-		)
+		), nil
 	}
 
 	request := shared.Client.Clientset.CoreV1().RESTClient().Post().
@@ -242,14 +278,56 @@ func execCommand(
 			"failed to init the executor: %v",
 			initErr,
 		)
-		return errors.New("failed to initialize command executor")
+		return errors.New("failed to initialize command executor"), nil
 	}
-	execErr := exec.Stream(remotecommand.StreamOptions{
-		Tty:    false,
-		Stdin:  ioStreams.in,
-		Stdout: ioStreams.out,
-		Stderr: ioStreams.errOut,
-	})
 
-	return execErr
+	// Setup channel for remote command execution
+	errch := make(chan error)
+
+	go func() {
+		execErr := exec.Stream(remotecommand.StreamOptions{
+			Tty:    false,
+			Stdin:  ioStreams.in,
+			Stdout: ioStreams.out,
+			Stderr: ioStreams.errOut,
+		})
+		if execErr != nil {
+			errch <- execErr
+			return
+		}
+		errch <- nil
+		return
+	}()
+
+	return nil, errch
+}
+
+// execCommandWait is a utility function for waiting for the completion of a
+// command submitted to a pod via the execCommandSync() function.
+func execCommandWait(
+	cr *kdv1.KubeDirectorCluster,
+	podName string,
+	command []string,
+	ioStreams *streams,
+	errch chan error,
+	timeInMilliSeconds time.Duration,
+) error {
+	timer := time.NewTimer(timeInMilliSeconds)
+	defer timer.Stop()
+
+	// Wait for command completion, or timeout
+	select {
+	case execErr := <-errch:
+		close(errch)
+		return execErr
+	case <-timer.C:
+		close(errch)
+		return fmt.Errorf(
+			"command{%v} sent to container{%s} in pod {%v} timed out in {%.3f} seconds",
+			command,
+			appContainerName,
+			podName,
+			timeInMilliSeconds.Seconds(),
+		)
+	}
 }

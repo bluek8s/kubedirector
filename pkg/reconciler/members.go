@@ -488,10 +488,10 @@ func setupNodePrep(
 	// Check to see if the destination file exists already, in which case just
 	// return. Also bail out if we cannot manage to check file existence.
 	fileExists, fileError := executor.IsFileExists(cr, podName, nodePrepTestFile)
-	if fileExists {
-		return nil
-	} else if fileError != nil {
+	if fileError != nil {
 		return fileError
+	} else if fileExists {
+		return nil
 	}
 
 	// Inject the nodeprep package, taken from the KubeDirector's container.
@@ -535,10 +535,10 @@ func setupAppConfig(
 	// Check to see if the destination file exists already, in which case just
 	// return. Also bail out if we cannot manage to check file existence.
 	fileExists, fileError := executor.IsFileExists(cr, podName, appPrepStartscript)
-	if fileExists {
-		return nil
-	} else if fileError != nil {
+	if fileError != nil {
 		return fileError
+	} else if fileExists {
+		return nil
 	}
 
 	// Fetch and install it.
@@ -617,6 +617,10 @@ func appConfig(
 		appPrepConfigStatus,
 		&statusStrB,
 	)
+	if fileError != nil {
+		return true, fileError
+	}
+
 	if fileExists {
 		// Configure script was previously started.
 		statusStr := statusStrB.String()
@@ -635,10 +639,6 @@ func appConfig(
 		)
 		return true, statusErr
 	}
-	if fileError != nil {
-		return true, fileError
-	}
-
 	// We haven't successfully started the configure script yet.
 	// First upload the configmeta file
 	configmetaErr := executor.CreateFile(

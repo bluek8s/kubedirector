@@ -39,6 +39,22 @@ func StringInList(
 	return false
 }
 
+// ListIsUnique is a utility function that checks if a given slice of strings
+// is free of duplicates.
+func ListIsUnique(
+	list []string,
+) bool {
+
+	seen := make(map[string]bool)
+	for _, s := range list {
+		if _, ok := seen[s]; ok {
+			return false
+		}
+		seen[s] = true
+	}
+	return true
+}
+
 // GetKubeDirectorNamespace is a utility function to fetch the namespace
 // where kubedirector is running
 func GetKubeDirectorNamespace() (string, error) {

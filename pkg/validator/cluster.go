@@ -100,10 +100,10 @@ func validateCardinality(
 	return strings.Join(errorMessages, "\n"), nil
 }
 
-// validateRoles checks that 1) all configured roles actually exist in the
-// app type, and 2) all active roles (according to the app config) that
+// validateClusterRoles checks that 1) all configured roles actually exist in
+// the app type, and 2) all active roles (according to the app config) that
 // require more than 0 members are covered by the cluster config.
-func validateRoles(
+func validateClusterRoles(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
 ) string {
@@ -239,7 +239,7 @@ func admitClusterCR(
 	}
 
 	// Validate that roles are known & sufficient
-	rolesErr := validateRoles(&clusterCR, appCR)
+	rolesErr := validateClusterRoles(&clusterCR, appCR)
 	if rolesErr != "" {
 		errorMessages = append(errorMessages, rolesErr)
 	}

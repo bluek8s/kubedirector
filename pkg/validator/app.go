@@ -40,10 +40,6 @@ func validateUniqueness(
 	if !shared.ListIsUnique(allServiceIDs) {
 		errorMessages = append(errorMessages, nonUniqueServiceID)
 	}
-
-	if len(errorMessages) == 0 {
-		return ""
-	}
 	return strings.Join(errorMessages, "\n")
 }
 
@@ -63,10 +59,6 @@ func validateRefUniqueness(
 			break
 		}
 		roleSeen[roleService.RoleID] = true
-	}
-
-	if len(errorMessages) == 0 {
-		return ""
 	}
 	return strings.Join(errorMessages, "\n")
 }
@@ -101,10 +93,6 @@ func validateServiceRoles(
 			}
 		}
 	}
-
-	if len(errorMessages) == 0 {
-		return ""
-	}
 	return strings.Join(errorMessages, "\n")
 }
 
@@ -125,10 +113,6 @@ func validateSelectedRoles(
 			)
 			errorMessages = append(errorMessages, invalidMsg)
 		}
-	}
-
-	if len(errorMessages) == 0 {
-		return ""
 	}
 	return strings.Join(errorMessages, "\n")
 }
@@ -168,10 +152,6 @@ func validateServices(
 				errorMessages = append(errorMessages, invalidMsg)
 			}
 		}
-	}
-
-	if len(errorMessages) == 0 {
-		return ""
 	}
 	return strings.Join(errorMessages, "\n")
 }

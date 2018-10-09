@@ -152,10 +152,6 @@ func validateClusterRoles(
 			}
 		}
 	}
-
-	if len(errorMessages) == 0 {
-		return ""
-	}
 	return strings.Join(errorMessages, "\n")
 }
 
@@ -181,10 +177,6 @@ func validateGeneralChanges(
 			"serviceType",
 		)
 		errorMessages = append(errorMessages, serviceTypeModifiedMsg)
-	}
-
-	if len(errorMessages) == 0 {
-		return ""
 	}
 	return strings.Join(errorMessages, "\n")
 }
@@ -247,10 +239,6 @@ func validateRoleChanges(
 			)
 			errorMessages = append(errorMessages, roleModifiedMsg)
 		}
-	}
-
-	if len(errorMessages) == 0 {
-		return ""
 	}
 	return strings.Join(errorMessages, "\n")
 }

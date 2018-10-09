@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from version import __version__ as VERSION
+import os
 
 BDVCLI_VERSION = VERSION
 
@@ -21,16 +22,18 @@ DEFAULT_BOOL_TRUE = True
 DEFAULT_BOOL_FALSE = False
 
 # BlueData internal Environment variables
-BDVCLI_DEBUG='BDVCLI_DEBUG'
+ENV_BDVCLI_DEBUG='BDVCLI_DEBUG'
 
-DEFAULT_LOG_DIR = "/var/log/bluedata/bdvcli"
+DEFAULT_LOG_DIR = "/var/log/guestconfig/bdvcli"
 DEFAULT_LOG_FILENAME = "bdvcli.log"
 
-BDVCLI_CONFIG_FILENAME = '/etc/bluedata/bdvcli.conf'
-BASEIMG_META_FILE = '/etc/bluedata/base_img_version'
-PUBLIC_CONFIG_METADATA_FILE = '/etc/bluedata/configmeta.json'
-PRIV_CONFIG_METDATA_FILE = '/etc/bluedata/.priv_configmeta.json'
-PLATFORM_INFO_METADATA_FILE = '/etc/bluedata/.platform.json'
+######### Configuration files ###########
+CONFIG_DIR = '/etc/guestconfig'
+BDVCLI_CONFIG_FILENAME = os.path.join(CONFIG_DIR, 'bdvcli.conf')
+BASEIMG_META_FILE = os.path.join(CONFIG_DIR, 'base_img_version')
+PUBLIC_CONFIG_METADATA_FILE = os.path.join(CONFIG_DIR, 'configmeta.json')
+PRIV_CONFIG_METDATA_FILE = os.path.join(CONFIG_DIR, '.priv_configmeta.json')
+PLATFORM_INFO_METADATA_FILE = os.path.join(CONFIG_DIR, '.platform.json')
 
 
 ######### Configuration file sections and keys ###########

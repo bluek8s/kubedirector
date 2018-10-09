@@ -145,7 +145,7 @@ func getStatefulset(
 	}
 
 	// Check to see if app has requested additional directories to be persisted
-	appPersistDirs, persistErr := catalog.AppPersistDirs(cr)
+	appPersistDirs, persistErr := catalog.AppPersistDirs(cr, role.Name)
 	if persistErr != nil {
 		return nil, persistErr
 	}
@@ -167,7 +167,7 @@ func getStatefulset(
 			if !strings.HasPrefix(rel, "..") {
 				shared.LogInfof(
 					cr,
-					"skipping {%s} from volume claim mounts. defaul dir {%s} covers it",
+					"skipping {%s} from volume claim mounts. default dir {%s} covers it",
 					appDir,
 					defaultDir,
 				)

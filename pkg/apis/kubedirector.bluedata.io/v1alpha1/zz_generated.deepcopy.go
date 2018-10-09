@@ -25,7 +25,9 @@ func (in *AppSpec) DeepCopyInto(out *AppSpec) {
 	if in.NodeRoles != nil {
 		in, out := &in.NodeRoles, &out.NodeRoles
 		*out = make([]NodeRole, len(*in))
-		copy(*out, *in)
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 	in.Config.DeepCopyInto(&out.Config)
 	if in.PersistDirs != nil {
@@ -359,6 +361,11 @@ func (in *NodeRole) DeepCopyInto(out *NodeRole) {
 	*out = *in
 	out.Image = in.Image
 	out.SetupPackage = in.SetupPackage
+	if in.PersistDirs != nil {
+		in, out := &in.PersistDirs, &out.PersistDirs
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

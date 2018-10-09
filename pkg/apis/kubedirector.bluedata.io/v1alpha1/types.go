@@ -184,6 +184,7 @@ type NodeRole struct {
 	Cardinality  string       `json:"cardinality"`
 	Image        Image        `json:"image,omitempty"`
 	SetupPackage SetupPackage `json:"setup_package,omitempty"`
+	PersistDirs  []string     `json:"persist_dirs"`
 }
 
 // NodeGroupConfig identifies a set of roles, and the services on those roles.

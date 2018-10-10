@@ -162,11 +162,17 @@ class Namespace(BDVCLI_Command):
         Beginning at the 'startKey' search the remainder of the name space for
         all occurrences of 'matchToken' and return the complete keys.
         """
-        if isinstance(startKey, list):
-            return self._search_token_recursive(startKey, matchToken, self.jsonData)
-        else:
-            return self._search_token_recursive(startKey.split('.'), matchToken,
-                                                self.jsonData)
+        try:
+            if isinstance(startKey, list):
+                return self._search_token_recursive(startKey, matchToken, self.jsonData)
+            else:
+                return self._search_token_recursive(startKey.split('.'), matchToken,
+                                                    self.jsonData)
+        except KeyError as e:
+            if self.vcli.is_interactive():
+                return "KeyError: " + str(e)
+            else:
+                raise e
 
     def _get_value(self, subcmd, pargs):
         """
@@ -182,18 +188,24 @@ class Namespace(BDVCLI_Command):
             if pargs != '':
                 keyTokens = keyTokens + pargs.split('.')
 
-        result = self._resolve_indirections(keyTokens, self.jsonData)
-        if isinstance(result, list):
-            return ','.join(result)
-        elif isinstance(result, bool):
-            return "true" if result else "false"
-        elif isinstance(result, str) or isinstance(result, unicode):
-            return result
-        elif isinstance(result, int):
-            # make sure to check int AFTER bool, since bool will also match as int
-            return str(result)
-        else:
-            return result
+        try:
+            result = self._resolve_indirections(keyTokens, self.jsonData)
+            if isinstance(result, list):
+                return ','.join(result)
+            elif isinstance(result, bool):
+                return "true" if result else "false"
+            elif isinstance(result, str) or isinstance(result, unicode):
+                return result
+            elif isinstance(result, int):
+                # make sure to check int AFTER bool, since bool will also match as int
+                return str(result)
+            else:
+                return result
+        except KeyError as e:
+            if self.vcli.is_interactive():
+                return "KeyError: " + str(e)
+            else:
+                raise e
 
     def _dig_jsondata_recursive(self, keyTokenList, nextLevelJsonData):
         """

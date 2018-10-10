@@ -96,7 +96,7 @@ class BDvcli(cmd.Cmd):
         setattr(self, 'do_' + cmd, lambda x: self.command_do(cmd, x))
         setattr(self, 'help_' + cmd, lambda : self.command_help(cmd))
 
-    def _is_interactive(self):
+    def is_interactive(self):
         """
         Check whether BVCLI is being executed intractively.
         """
@@ -185,10 +185,10 @@ class BDvcli(cmd.Cmd):
             result = self.commands[cmd].run(line)
         except ArgumentParseError:
             result = None
-            if not self._is_interactive():
+            if not self.is_interactive():
                 sys.exit(1)
 
-        if self._is_interactive():
+        if self.is_interactive():
             print(result)
             if (result == None):
                 # Keep the command loop going in interactive mode.

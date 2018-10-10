@@ -77,7 +77,7 @@ deploy:
         pods_gone=False; \
         kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name} &> /dev/null || pods_gone=True; \
         if [[ "$$pods_gone" != "True" ]]; then \
-            echo "KubeDirector pod still exists. Maybe old pod is still terminating?"; \
+            echo "KubeDirector pod already exists. Maybe old pod is still terminating?"; \
             exit 1; \
         fi; \
         kubectl_ns=`kubectl config get-contexts | grep '^\*' | awk '{print $$5}'`; \
@@ -94,9 +94,6 @@ deploy:
 	kubectl create -f deploy/kubedirector/crd-cluster.yaml
 	kubectl create -f deploy/kubedirector/crd-app.yaml
 	@echo
-	@echo \* Creating example application types...
-	kubectl create -f deploy/example_catalog/
-	@echo
 	@set -e; \
         if [[ -f deploy/kubedirector/deployment-localbuilt.yaml ]]; then \
         	echo \* Deploying KubeDirector...; \
@@ -107,10 +104,30 @@ deploy:
         	echo kubectl create -f deploy/kubedirector/deployment-prebuilt.yaml; \
             kubectl create -f deploy/kubedirector/deployment-prebuilt.yaml; \
         fi; \
-        podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
         echo; \
-        echo KubeDirector pod name is $$podname
+        echo \* Waiting for KubeDirector container startup...; \
+        echo; \
+        sleep 3; \
+        podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
+        retries=20; \
+        while [ $$retries ]; do \
+            if kubectl logs $$podname &> /dev/null; then \
+                exit 0; \
+            else \
+            	retries=`expr $$retries - 1`; \
+                if [ $$retries -le 0 ]; then \
+                    echo KubeDirector container failed to start!; \
+                    exit 1; \
+                fi; \
+                sleep 3; \
+            fi; \
+        done
+	@echo \* Creating example application types...
+	kubectl create -f deploy/example_catalog/
 	@echo
+	@set -e; \
+        podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
+        echo KubeDirector pod name is $$podname
 
 redeploy:
 	@echo

@@ -40,16 +40,18 @@ type membersPatchSpec struct {
 }
 
 // validateCardinality checks the member count specified for a role in the
-// cluster CR against the cardinality value from the app CR. It can also
-// return a list of PATCH specs that will populate default members values as
-// necessary.
+// cluster CR against the cardinality value from the app CR. Any generated
+// error messages will be added to the input list and returned. If there were
+// no errors generated, a list of PATCH specs will also be returned for the
+// purpose of populating default members values as necessary.
 func validateCardinality(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
-) (string, []membersPatchSpec) {
+	valErrors []string,
+) ([]string, []membersPatchSpec) {
 
-	var errorMessages []string
 	var patches []membersPatchSpec
+	anyError := false
 
 	numRoles := len(cr.Spec.Roles)
 	for i := 0; i < numRoles; i++ {
@@ -72,8 +74,9 @@ func validateCardinality(
 				}
 			}
 			if invalidMemberCount {
-				errorMessages = append(
-					errorMessages,
+				anyError = true
+				valErrors = append(
+					valErrors,
 					fmt.Sprintf(
 						invalidCardinality,
 						role.Name,
@@ -94,22 +97,25 @@ func validateCardinality(
 		}
 	}
 
-	if len(errorMessages) == 0 {
-		return "", patches
+	if anyError {
+		var emptyPatchList []membersPatchSpec
+		return valErrors, emptyPatchList
 	}
-	return strings.Join(errorMessages, "\n"), nil
+	return valErrors, patches
 }
 
 // validateClusterRoles checks that 1) all configured roles actually exist in
 // the app type, 2) all active roles (according to the app config) that
 // require more than 0 members are covered by the cluster config, and 3) we
-// don't try to configure the same role more than once.
+// don't try to configure the same role more than once. Any generated error
+// messages will be added to the input list and returned.
 func validateClusterRoles(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
-) string {
+	valErrors []string,
+) []string {
 
-	var configuredRoles, errorMessages []string
+	var configuredRoles []string
 
 	allRoles := catalog.GetAllRoleIDs(appCR)
 	roleSeen := make(map[string]bool)
@@ -124,7 +130,7 @@ func validateClusterRoles(
 				appCR.Name,
 				strings.Join(allRoles, ","),
 			)
-			errorMessages = append(errorMessages, invalidRoleMsg)
+			valErrors = append(valErrors, invalidRoleMsg)
 		}
 		if _, ok := roleSeen[role.Name]; ok {
 			uniqueRoles = false
@@ -132,7 +138,7 @@ func validateClusterRoles(
 		roleSeen[role.Name] = true
 	}
 	if !uniqueRoles {
-		errorMessages = append(errorMessages, nonUniqueRoleID)
+		valErrors = append(valErrors, nonUniqueRoleID)
 	}
 	for _, activeRole := range catalog.GetSelectedRoleIDs(appCR) {
 		if !shared.StringInList(activeRole, configuredRoles) {
@@ -147,50 +153,52 @@ func validateClusterRoles(
 						activeRole,
 						appCR.Name,
 					)
-					errorMessages = append(errorMessages, unconfiguredRoleMsg)
+					valErrors = append(valErrors, unconfiguredRoleMsg)
 				}
 			}
 		}
 	}
-	return strings.Join(errorMessages, "\n")
+	return valErrors
 }
 
 // validateGeneralChanges checks for modifications to any property that is
 // not ever allowed to change after initial deployment. Currently this covers
-// the top-level app and serviceType properties.
+// the top-level app and serviceType properties. Any generated error messages
+// will be added to the input list and returned.
 func validateGeneralChanges(
 	cr *kdv1.KubeDirectorCluster,
 	prevCr *kdv1.KubeDirectorCluster,
-) string {
+	valErrors []string,
+) []string {
 
-	var errorMessages []string
 	if cr.Spec.AppID != prevCr.Spec.AppID {
 		appModifiedMsg := fmt.Sprintf(
 			modifiedProperty,
 			"app",
 		)
-		errorMessages = append(errorMessages, appModifiedMsg)
+		valErrors = append(valErrors, appModifiedMsg)
 	}
 	if cr.Spec.ServiceType != prevCr.Spec.ServiceType {
 		serviceTypeModifiedMsg := fmt.Sprintf(
 			modifiedProperty,
 			"serviceType",
 		)
-		errorMessages = append(errorMessages, serviceTypeModifiedMsg)
+		valErrors = append(valErrors, serviceTypeModifiedMsg)
 	}
-	return strings.Join(errorMessages, "\n")
+	return valErrors
 }
 
 // validateRoleChanges checks for modifications to role properties. The
 // members property of a role can always be changed (within cardinality
 // constraints that are checked elsewhere). However other properties cannot
-// be changed unless the role currently has no members.
+// be changed unless the role currently has no members. Any generated error
+// messages will be added to the input list and returned.
 func validateRoleChanges(
 	cr *kdv1.KubeDirectorCluster,
 	prevCr *kdv1.KubeDirectorCluster,
-) string {
+	valErrors []string,
+) []string {
 
-	var errorMessages []string
 	prevRoles := make(map[string]*kdv1.Role)
 	numPrevRoles := len(prevCr.Spec.Roles)
 	for i := 0; i < numPrevRoles; i++ {
@@ -225,7 +233,7 @@ func validateRoleChanges(
 				modifiedRole,
 				role.Name,
 			)
-			errorMessages = append(errorMessages, roleModifiedMsg)
+			valErrors = append(valErrors, roleModifiedMsg)
 			continue
 		}
 		// There is status (i.e. current members) and a current spec. Reject
@@ -237,10 +245,10 @@ func validateRoleChanges(
 				modifiedRole,
 				role.Name,
 			)
-			errorMessages = append(errorMessages, roleModifiedMsg)
+			valErrors = append(valErrors, roleModifiedMsg)
 		}
 	}
-	return strings.Join(errorMessages, "\n")
+	return valErrors
 }
 
 // admitClusterCR is the top-level cluster validation function, which invokes
@@ -251,8 +259,8 @@ func admitClusterCR(
 	handlerState *reconciler.Handler,
 ) *v1beta1.AdmissionResponse {
 
-	var errorMessages []string
-
+	var valErrors []string
+	var membersPatches []membersPatchSpec
 	var admitResponse = v1beta1.AdmissionResponse{
 		Allowed: false,
 	}
@@ -338,55 +346,43 @@ func admitClusterCR(
 
 	// If cluster already exists, check for property changes.
 	if prevClusterExists {
-		genChangesErr := validateGeneralChanges(&clusterCR, prevCluster)
-		if genChangesErr != "" {
-			errorMessages = append(errorMessages, genChangesErr)
-		}
-		roleChangesErr := validateRoleChanges(&clusterCR, prevCluster)
-		if roleChangesErr != "" {
-			errorMessages = append(errorMessages, roleChangesErr)
-		}
+		valErrors = validateGeneralChanges(&clusterCR, prevCluster, valErrors)
+		valErrors = validateRoleChanges(&clusterCR, prevCluster, valErrors)
 		// We coooooould continue to do other validation at this point, but
 		// that could be misleading. Let's not do other validation unless we
 		// know that only change-able properties are being changed.
-		if len(errorMessages) != 0 {
+		if len(valErrors) != 0 {
 			admitResponse.Result = &metav1.Status{
-				Message: "\n" + strings.Join(errorMessages, "\n"),
+				Message: "\n" + strings.Join(valErrors, "\n"),
 			}
 			return &admitResponse
 		}
 	}
 
-	// Validate cardinality
-	cardinalityErr, membersPatches := validateCardinality(&clusterCR, appCR)
-	if cardinalityErr != "" {
-		errorMessages = append(errorMessages, cardinalityErr)
-	}
+	// Validate cardinality and generate patches for defaults members values.
+	valErrors, membersPatches = validateCardinality(&clusterCR, appCR, valErrors)
 
-	// Validate that roles are known & sufficient
-	rolesErr := validateClusterRoles(&clusterCR, appCR)
-	if rolesErr != "" {
-		errorMessages = append(errorMessages, rolesErr)
-	}
+	// Validate that roles are known & sufficient.
+	valErrors = validateClusterRoles(&clusterCR, appCR, valErrors)
 
-	if len(errorMessages) == 0 {
-		if membersPatches != nil {
+	if len(valErrors) == 0 {
+		if len(membersPatches) != 0 {
 			patchResult, patchErr := json.Marshal(membersPatches)
 			if patchErr == nil {
 				admitResponse.Patch = patchResult
 				patchType := v1beta1.PatchTypeJSONPatch
 				admitResponse.PatchType = &patchType
 			} else {
-				errorMessages = append(errorMessages, defaultMemberErr)
+				valErrors = append(valErrors, defaultMemberErr)
 			}
 		}
 	}
 
-	if len(errorMessages) == 0 {
+	if len(valErrors) == 0 {
 		admitResponse.Allowed = true
 	} else {
 		admitResponse.Result = &metav1.Status{
-			Message: "\n" + strings.Join(errorMessages, "\n"),
+			Message: "\n" + strings.Join(valErrors, "\n"),
 		}
 	}
 

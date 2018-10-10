@@ -51,7 +51,7 @@ const (
 	nonUniqueSelectedRole = "Each element of selected_roles array in config section must be unique."
 	nonUniqueServiceRole  = "Each role_id in role_services array in config section must be unique."
 
-	noDefaultImage = "Unless all roles specify an image, a top-level default image must be specified."
+	noDefaultImage = "Role(%s) has no specified image, and no top-level default image is specified."
 
 	noUrlScheme = "The endpoint for service(%s) must include a url_scheme value because is_dashboard is true."
 

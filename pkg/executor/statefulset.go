@@ -189,7 +189,7 @@ func getStatefulset(
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName:    cr.Name + "-" + role.Name + "-",
+			GenerateName:    "kd" + "-",
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labels,
@@ -469,18 +469,27 @@ func generateTmpfsSupport(
 
 	volumeMounts := []v1.VolumeMount{
 		v1.VolumeMount{
-			Name:      "tmpfs",
+			Name:      "tmpfs-tmp",
 			MountPath: "/tmp",
 		},
 		v1.VolumeMount{
-			Name:      "tmpfs",
+			Name:      "tmpfs-run",
 			MountPath: "/run",
 		},
 	}
 	maxTmpSize, _ := resource.ParseQuantity(tmpFsVolSize)
 	volumes := []v1.Volume{
 		v1.Volume{
-			Name: "tmpfs",
+			Name: "tmpfs-tmp",
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{
+					Medium:    "Memory",
+					SizeLimit: &maxTmpSize,
+				},
+			},
+		},
+		v1.Volume{
+			Name: "tmpfs-run",
 			VolumeSource: v1.VolumeSource{
 				EmptyDir: &v1.EmptyDirVolumeSource{
 					Medium:    "Memory",

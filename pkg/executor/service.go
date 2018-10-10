@@ -33,7 +33,7 @@ func CreateHeadlessService(
 	cr *kdv1.KubeDirectorCluster,
 ) (*v1.Service, error) {
 
-	name := headlessServiceName(cr)
+	name := headlessServiceName
 	service := &v1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
@@ -164,15 +164,6 @@ func DeletePodService(
 	}
 
 	return sdk.Delete(toDelete)
-}
-
-// headlessServiceName is a utility function for generating the name of the
-// cluster service from the cluster name.
-func headlessServiceName(
-	cr *kdv1.KubeDirectorCluster,
-) string {
-
-	return serviceName(cr.Name)
 }
 
 // serviceName is a utility function for generating the name of a service

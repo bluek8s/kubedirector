@@ -45,7 +45,7 @@ func labelsForRole(
 	return map[string]string{
 		"kubedirectorcluster": cr.Name,
 		"role":                role.Name,
-		headlessServiceLabel:  headlessServiceName(cr),
+		headlessServiceLabel:  headlessServiceName + "-" + cr.Name,
 	}
 }
 

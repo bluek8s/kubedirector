@@ -1,0 +1,25 @@
+apiVersion: "kubedirector.bluedata.io/v1alpha1"
+kind: "KubeDirectorCluster"
+metadata:
+  name: "cdh5142cm-instance"
+spec:
+  app: cdh5142cm
+  serviceType: LoadBalancer
+  roles:
+  - id: controller
+    resources:
+      requests:
+        memory: "16Gi"
+        cpu: "2"
+      limits:
+        memory: "16Gi"
+        cpu: "2"
+  - id: worker
+    members: 2
+    resources:
+      requests:
+        memory: "8Gi"
+        cpu: "2"
+      limits:
+        memory: "8Gi"
+        cpu: "2"

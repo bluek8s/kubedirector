@@ -35,22 +35,20 @@ import (
 const DEFAULT_CMD_TIMEOUT_IN_SECONDS = 900
 
 // IsFileExists probes whether the given pod's filesystem contains something
-// at the indicated filepath.
+// at the indicated filepath. The returned boolean will be true if the file
+// was found. If false, the returned error will be nil if the file is known to
+// be missing, or non-nil if the probe failed to execute.
 func IsFileExists(
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
 	filePath string,
 ) (bool, error) {
 
-	var (
-		stdOut bytes.Buffer
-		stdErr bytes.Buffer
-	)
 	command := []string{"test", "-f", filePath}
-	ioStreams := &streams{
-		out:    &stdOut,
-		errOut: &stdErr,
-	}
+	// We only need the exit status, but we have to supply at least one
+	// stream to avoid an error.
+	var stdOut bytes.Buffer
+	ioStreams := &streams{out: &stdOut}
 	execErr := execCommand(cr, podName, command, ioStreams)
 	if execErr != nil {
 		// Determine which type of error occured
@@ -78,15 +76,11 @@ func CreateDir(
 	dirName string,
 ) error {
 
-	var (
-		stdOut bytes.Buffer
-		stdErr bytes.Buffer
-	)
 	command := []string{"mkdir", "-p", dirName}
-	ioStreams := &streams{
-		out:    &stdOut,
-		errOut: &stdErr,
-	}
+	// We only need the exit status, but we have to supply at least one
+	// stream to avoid an error.
+	var stdOut bytes.Buffer
+	ioStreams := &streams{out: &stdOut}
 	return execCommand(cr, podName, command, ioStreams)
 }
 
@@ -124,12 +118,14 @@ func CreateFile(
 
 // ReadFile takes the stream from the given writer, and writes to it the
 // contents of the indicated filepath in the filesystem of the given pod.
+// The returned boolean and error are interpreted in the same way as for
+// IsFileExists.
 func ReadFile(
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
 	filePath string,
 	writer io.Writer,
-) error {
+) (bool, error) {
 
 	command := []string{"cat", filePath}
 	ioStreams := &streams{
@@ -143,9 +139,15 @@ func ReadFile(
 	)
 	execErr := execCommand(cr, podName, command, ioStreams)
 	if execErr != nil {
-		return execErr
+		coe, iscoe := execErr.(exec.CodeExitError)
+		if iscoe {
+			if coe.ExitStatus() == 1 {
+				return false, nil
+			}
+		}
+		return false, execErr
 	}
-	return nil
+	return true, nil
 }
 
 // RunScript takes the stream from the given reader, and executes it as a

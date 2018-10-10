@@ -101,6 +101,11 @@ spec:
                       import_url:
                         type: string
                         pattern: '^https?://.+\.tgz$'
+                  persist_dirs:
+                    type: array
+                    items:
+                      type: string
+                      pattern: '^/.*[^/]$'
             config:
               required: [selected_roles, role_services]
               properties:
@@ -128,7 +133,7 @@ spec:
               type: array
               items:
                 type: string
-                pattern: '^/[^/]+$'
+                pattern: '^/.*[^/]$'
             capabilities:
               type: array
               items:

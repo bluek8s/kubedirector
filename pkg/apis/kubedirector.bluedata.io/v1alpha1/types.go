@@ -132,7 +132,7 @@ type AppSpec struct {
 	Services        []Service       `json:"services"`
 	NodeRoles       []NodeRole      `json:"roles"`
 	Config          NodeGroupConfig `json:"config"`
-	PersistDirs     []string        `json:"persist_dirs"`
+	PersistDirs     *[]string       `json:"persist_dirs"`
 	Capabilities    []v1.Capability `json:"capabilities"`
 	SystemdRequired bool            `json:"systemdRequired"`
 }
@@ -184,6 +184,7 @@ type NodeRole struct {
 	Cardinality  string       `json:"cardinality"`
 	Image        Image        `json:"image,omitempty"`
 	SetupPackage SetupPackage `json:"setup_package,omitempty"`
+	PersistDirs  *[]string    `json:"persist_dirs"`
 }
 
 // NodeGroupConfig identifies a set of roles, and the services on those roles.

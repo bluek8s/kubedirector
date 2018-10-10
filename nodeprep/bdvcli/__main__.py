@@ -169,9 +169,6 @@ def main():
 
 
     args = parser.parse_args()
-    # print("ARGUMENTS:", args)
-
-    bdvcli = BDvcli(libmode=False)
 
     instruction = None
     if args.version == True:
@@ -229,13 +226,13 @@ def main():
         instruction = 'namespace tenant --info'
     elif args.tenant_info_key:
         instruction = 'namespace tenant %s' % (args.tenant_info_key)
-    elif args.instruction != []:
+    elif len(args.instruction) > 0:
         instruction=' '.join(args.instruction)
     else:
         ## spawn the shell.
-        return bdvcli.cmdloop()
+        return BDvcli(libmode=False).cmdloop()
 
-    return bdvcli.onecmd(instruction)
+    return BDvcli(libmode=True).onecmd(instruction)
 
 if __name__ == "__main__":
     main()

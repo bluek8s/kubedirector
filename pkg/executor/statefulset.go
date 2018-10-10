@@ -16,6 +16,7 @@ package executor
 
 import (
 	"encoding/json"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -144,21 +145,48 @@ func getStatefulset(
 	}
 
 	// Check to see if app has requested additional directories to be persisted
-	appPersistDirs, persistErr := catalog.AppPersistDirs(cr)
+	appPersistDirs, persistErr := catalog.AppPersistDirs(cr, role.Name)
 	if persistErr != nil {
 		return nil, persistErr
 	}
 
 	// Create a combined unique list of directories that have be persisted
 	// Start with default mounts
-	persistDirs := make([]string, len(defaultMountFolders), len(defaultMountFolders)+len(appPersistDirs))
+	var maxLen = len(defaultMountFolders)
+	if appPersistDirs != nil {
+		maxLen += len(*appPersistDirs)
+	}
+	persistDirs := make([]string, len(defaultMountFolders), maxLen)
 	copy(persistDirs, defaultMountFolders)
 
-	for _, appDir := range appPersistDirs {
-		// If this app directory is not present in the default mounts
-		// append to the persistDirs list
-		if !shared.StringInList(appDir, defaultMountFolders) {
-			persistDirs = append(persistDirs, appDir)
+	// if the app directory is either same or a subdir of one of the default mount
+	// dirs, we can skip them. if not we should add them to the persistDirs list
+	// Also eliminate any duplicates or sub-dirs from appPersistDirs as well
+	if appPersistDirs != nil {
+		for _, appDir := range *appPersistDirs {
+			isSubDir := false
+			for _, defaultDir := range persistDirs {
+				// Get relative path of the app dir wrt defaultDir
+				rel, _ := filepath.Rel(defaultDir, appDir)
+
+				// If rel path doesn't start with "..", it is a subdir
+				if !strings.HasPrefix(rel, "..") {
+					shared.LogInfof(
+						cr,
+						"skipping {%s} from volume claim mounts. dir {%s} covers it",
+						appDir,
+						defaultDir,
+					)
+					isSubDir = true
+					break
+				}
+			}
+			if !isSubDir {
+				// Get the absolute path for the app dir
+				abs, _ := filepath.Abs(appDir)
+
+				persistDirs = append(persistDirs, abs)
+			}
 		}
 	}
 
@@ -344,7 +372,7 @@ func generateInitContainerLaunch(persistDirs []string) string {
 	// To be safe in the case that this container is restarted by someone,
 	// don't do this copy if the configmeta file already exists in /etc.
 	launchCmd := "! [ -f /mnt" + configMetaFile + " ]" + " && " +
-		"cp -ax " + strings.Join(persistDirs, " ") + " /mnt || exit 0"
+		"cp --parent -ax " + strings.Join(persistDirs, " ") + " /mnt || exit 0"
 
 	return launchCmd
 }

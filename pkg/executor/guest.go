@@ -31,7 +31,8 @@ import (
 	"k8s.io/client-go/util/exec"
 )
 
-const DEFAULT_CMD_TIMEOUT_IN_SECONDS = 60
+// default to 15 minute timeout
+const DEFAULT_CMD_TIMEOUT_IN_SECONDS = 900
 
 // IsFileExists probes whether the given pod's filesystem contains something
 // at the indicated filepath.

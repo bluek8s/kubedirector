@@ -47,7 +47,7 @@ func CreateHeadlessService(
 		Spec: v1.ServiceSpec{
 			ClusterIP: "None",
 			Selector: map[string]string{
-				headlessServiceLabel: name,
+				headlessServiceLabel: name + "-" + cr.Name,
 			},
 			Ports: []v1.ServicePort{
 				{

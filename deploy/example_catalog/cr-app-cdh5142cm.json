@@ -81,43 +81,12 @@
             "repoTag": "docker.io/bluedata/cdh5142cm:3.0"
         },
         "label": {
-            "name": "CDH 5.14.2 on 7x  with Cloudera Manager",
-            "description": "CDH 5.14.2 with YARN and HBase support. Includes Pig, Hive, Hue and Spark."
+            "name": "CDH 5.14.2 on 7x with Cloudera Manager",
+            "description": "CDH 5.14.2 with YARN support. Includes Pig, Hive, and Hue."
         },
         "distro_id": "bluedata/cdh51427x",
         "version": "1.3",
         "services": [
-            {
-                "exported_service": "hbase",
-                "endpoint": {
-                    "is_dashboard": true,
-                    "url_scheme": "http",
-                    "port": 60010,
-                    "path": "/"
-                },
-                "id": "hbase_master",
-                "label": {
-                    "name": "HMaster"
-                }
-            },
-            {
-                "endpoint": {
-                    "is_dashboard": true,
-                    "url_scheme": "http",
-                    "port": 60030,
-                    "path": "/"
-                },
-                "id": "hbase_worker",
-                "label": {
-                    "name": "HRegionServer"
-                }
-            },
-            {
-                "id": "hbase_thrift",
-                "label": {
-                    "name": "HBase Thrift service."
-                }
-            },
             {
                 "exported_service": "cloudera_scm_server",
                 "endpoint": {
@@ -196,18 +165,6 @@
                 }
             },
             {
-                "id": "hdfs_jn",
-                "label": {
-                    "name": "HDFS JournalNode"
-                }
-            },
-            {
-                "id": "hdfs_snn",
-                "label": {
-                    "name": "Secondary NameNode"
-                }
-            },
-            {
                 "endpoint": {
                     "is_dashboard": true,
                     "url_scheme": "http",
@@ -217,16 +174,6 @@
                 "id": "job_history_server",
                 "label": {
                     "name": "Yarn Job history server"
-                }
-            },
-            {
-                "endpoint": {
-                    "port": 2181,
-                    "is_dashboard": false
-                },
-                "id": "zookeeper",
-                "label": {
-                    "name": "Zookeeper Server"
                 }
             },
             {
@@ -278,19 +225,6 @@
                 "id": "impala",
                 "label": {
                     "name": "Impala service"
-                }
-            },
-            {
-                "exported_service": "spark",
-                "endpoint": {
-                    "is_dashboard": true,
-                    "url_scheme": "http",
-                    "port": 18088,
-                    "path": "/"
-                },
-                "id": "spark_history",
-                "label": {
-                    "name": "Spark history server"
                 }
             },
             {

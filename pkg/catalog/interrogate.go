@@ -250,14 +250,14 @@ func AppCapabilities(
 func AppPersistDirs(
 	cr *kdv1.KubeDirectorCluster,
 	role string,
-) ([]string, error) {
+) (*[]string, error) {
 
-	var appPersistDirs []string
+	var appPersistDirs *[]string
 	// Fetch the app type definition if we haven't yet cached it in this
 	// handler pass.
 	appCR, err := GetApp(cr)
 	if err != nil {
-		return []string{}, err
+		return nil, err
 	}
 
 	// Check to see if there is a role-specific setup package.
@@ -269,7 +269,7 @@ func AppPersistDirs(
 	}
 
 	// If role-specific persist_dirs is not present, use the main one.
-	if len(appPersistDirs) == 0 {
+	if appPersistDirs == nil {
 		appPersistDirs = cr.AppSpec.Spec.PersistDirs
 	}
 

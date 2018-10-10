@@ -152,34 +152,41 @@ func getStatefulset(
 
 	// Create a combined unique list of directories that have be persisted
 	// Start with default mounts
-	persistDirs := make([]string, len(defaultMountFolders), len(defaultMountFolders)+len(appPersistDirs))
+	var maxLen = len(defaultMountFolders)
+	if appPersistDirs != nil {
+		maxLen += len(*appPersistDirs)
+	}
+	persistDirs := make([]string, len(defaultMountFolders), maxLen)
 	copy(persistDirs, defaultMountFolders)
 
 	// if the app directory is either same or a subdir of one of the default mount
 	// dirs, we can skip them. if not we should add them to the persistDirs list
-	for _, appDir := range appPersistDirs {
-		isSubDir := false
-		for _, defaultDir := range defaultMountFolders {
-			// Get relative path of the app dir wrt defaultDir
-			rel, _ := filepath.Rel(defaultDir, appDir)
+	// Also eliminate any duplicates or sub-dirs from appPersistDirs as well
+	if appPersistDirs != nil {
+		for _, appDir := range *appPersistDirs {
+			isSubDir := false
+			for _, defaultDir := range persistDirs {
+				// Get relative path of the app dir wrt defaultDir
+				rel, _ := filepath.Rel(defaultDir, appDir)
 
-			// If rel path doesn't start with "..", it is a subdir
-			if !strings.HasPrefix(rel, "..") {
-				shared.LogInfof(
-					cr,
-					"skipping {%s} from volume claim mounts. default dir {%s} covers it",
-					appDir,
-					defaultDir,
-				)
-				isSubDir = true
-				break
+				// If rel path doesn't start with "..", it is a subdir
+				if !strings.HasPrefix(rel, "..") {
+					shared.LogInfof(
+						cr,
+						"skipping {%s} from volume claim mounts. dir {%s} covers it",
+						appDir,
+						defaultDir,
+					)
+					isSubDir = true
+					break
+				}
 			}
-		}
-		if !isSubDir {
-			// Get the absolute path for the app dir
-			abs, _ := filepath.Abs(appDir)
+			if !isSubDir {
+				// Get the absolute path for the app dir
+				abs, _ := filepath.Abs(appDir)
 
-			persistDirs = append(persistDirs, abs)
+				persistDirs = append(persistDirs, abs)
+			}
 		}
 	}
 

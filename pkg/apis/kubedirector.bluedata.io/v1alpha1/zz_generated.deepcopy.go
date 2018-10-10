@@ -32,8 +32,16 @@ func (in *AppSpec) DeepCopyInto(out *AppSpec) {
 	in.Config.DeepCopyInto(&out.Config)
 	if in.PersistDirs != nil {
 		in, out := &in.PersistDirs, &out.PersistDirs
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new([]string)
+			if **in != nil {
+				in, out := *in, *out
+				*out = make([]string, len(*in))
+				copy(*out, *in)
+			}
+		}
 	}
 	if in.Capabilities != nil {
 		in, out := &in.Capabilities, &out.Capabilities
@@ -363,8 +371,16 @@ func (in *NodeRole) DeepCopyInto(out *NodeRole) {
 	out.SetupPackage = in.SetupPackage
 	if in.PersistDirs != nil {
 		in, out := &in.PersistDirs, &out.PersistDirs
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new([]string)
+			if **in != nil {
+				in, out := *in, *out
+				*out = make([]string, len(*in))
+				copy(*out, *in)
+			}
+		}
 	}
 	return
 }

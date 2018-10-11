@@ -83,9 +83,7 @@ func syncCluster(
 					return
 				}
 				if wait < maxWait {
-					// Ye, this casting makes no sense conceptually. But
-					// it gives us the behavior we want.
-					wait = wait * time.Duration(2)
+					wait = wait * 2
 				}
 				shared.LogWarnf(
 					cr,

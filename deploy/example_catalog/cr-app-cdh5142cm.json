@@ -88,7 +88,6 @@
         "version": "1.3",
         "services": [
             {
-                "exported_service": "cloudera_scm_server",
                 "endpoint": {
                     "is_dashboard": true,
                     "url_scheme": "http",
@@ -113,7 +112,6 @@
                 }
             },
             {
-                "exported_service": "hadoop",
                 "label": {
                     "name": "ResourceManager"
                 },
@@ -177,7 +175,6 @@
                 }
             },
             {
-                "exported_service": "pig",
                 "id": "pig",
                 "label": {
                     "name": "Pig"
@@ -190,7 +187,6 @@
                 }
             },
             {
-                "exported_service": "hive",
                 "id": "hive_server",
                 "label": {
                     "name": "HIVE Server 2"
@@ -221,7 +217,6 @@
                 }
             },
             {
-                "exported_service": "impala",
                 "id": "impala",
                 "label": {
                     "name": "Impala service"

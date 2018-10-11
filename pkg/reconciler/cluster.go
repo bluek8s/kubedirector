@@ -21,9 +21,11 @@ import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/executor"
+	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/google/uuid"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 // syncCluster runs the reconciliation logic. It is invoked because of a
@@ -57,16 +59,45 @@ func syncCluster(
 		if !reflect.DeepEqual(cr.Status, oldStatus) {
 			// Write back the status. Don't exit this handler until we
 			// succeed (will block other handlers for this resource).
-			updated := false
-			for updated == false {
+			wait := time.Second
+			maxWait := 4096 * time.Second
+			for {
 				cr.Status.GenerationUid = uuid.New().String()
 				WriteStatusGen(cr, handlerState, cr.Status.GenerationUid)
 				updateErr := executor.UpdateStatus(cr)
 				if updateErr == nil {
-					updated = true
-				} else {
-					time.Sleep(10 * time.Second)
+					return
 				}
+				// Update failed. If the cluster has been or is being
+				// deleted, that's ok... otherwise wait and try again.
+				currentCluster, currentClusterErr := observer.GetCluster(
+					cr.Namespace,
+					cr.Name,
+				)
+				if currentClusterErr != nil {
+					if errors.IsNotFound(currentClusterErr) {
+						return
+					}
+				}
+				if currentCluster.DeletionTimestamp != nil {
+					return
+				}
+				if wait < maxWait {
+					// Ye, this casting makes no sense conceptually. But
+					// it gives us the behavior we want.
+					wait = wait * time.Duration(2)
+				}
+				shared.LogWarnf(
+					cr,
+					"failed to update status: %v",
+					updateErr,
+				)
+				shared.LogWarnf(
+					cr,
+					"trying status update again in %v",
+					wait,
+				)
+				time.Sleep(wait)
 			}
 		}
 	}()

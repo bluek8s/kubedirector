@@ -78,9 +78,10 @@ func syncCluster(
 					if errors.IsNotFound(currentClusterErr) {
 						return
 					}
-				}
-				if currentCluster.DeletionTimestamp != nil {
-					return
+				} else {
+					if currentCluster.DeletionTimestamp != nil {
+						return
+					}
 				}
 				if wait < maxWait {
 					wait = wait * 2

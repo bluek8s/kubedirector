@@ -339,13 +339,14 @@ func handleDeletingMembers(
 	role *roleInfo,
 ) {
 
-	// Fix statefulset if necessary, and bail out if it is not good yet.
+	// Fix statefulset if necessary.
 	if !checkMemberCount(cr, role) {
 		return
 	}
-	if !replicasSynced(cr, role) {
-		return
-	}
+	// We won't call replicasSynced here. We've already sent out the delete
+	// notifies, so it wouldn't help batch those up. And it's nice to be
+	// able to see the member statuses vanish one by one in concert with the
+	// pods going away.
 
 	deleting := role.membersByState[memberDeleting]
 

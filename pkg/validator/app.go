@@ -27,16 +27,55 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// validateUniqueness checks the lists of roles and service IDs for duplicates.
+// Any generated error messages will be added to the input list and returned.
+func validateUniqueness(
+	allRoleIDs []string,
+	allServiceIDs []string,
+	valErrors []string,
+) []string {
+
+	if !shared.ListIsUnique(allRoleIDs) {
+		valErrors = append(valErrors, nonUniqueRoleID)
+	}
+	if !shared.ListIsUnique(allServiceIDs) {
+		valErrors = append(valErrors, nonUniqueServiceID)
+	}
+	return valErrors
+}
+
+// validateRefUniqueness checks the lists of role references for duplicates.
+// Any generated error messages will be added to the input list and returned.
+func validateRefUniqueness(
+	appCR *kdv1.KubeDirectorApp,
+	valErrors []string,
+) []string {
+
+	if !shared.ListIsUnique(appCR.Spec.Config.SelectedRoles) {
+		valErrors = append(valErrors, nonUniqueSelectedRole)
+	}
+	roleSeen := make(map[string]bool)
+	for _, roleService := range appCR.Spec.Config.RoleServices {
+		if _, ok := roleSeen[roleService.RoleID]; ok {
+			valErrors = append(valErrors, nonUniqueServiceRole)
+			break
+		}
+		roleSeen[roleService.RoleID] = true
+	}
+	return valErrors
+}
+
 // validateServiceRoles checks service_ids and role_id from role_services
 // in the config section, to ensure that they refer to legal/existing service
-// and role definitions.
+// and role definitions. Any generated error messages will be added to the
+// input list and returned.
 func validateServiceRoles(
 	appCR *kdv1.KubeDirectorApp,
 	allRoleIDs []string,
 	allServiceIDs []string,
-) string {
+	valErrors []string,
+) []string {
 
-	var errorMessages []string
 	for _, nodeRole := range appCR.Spec.Config.RoleServices {
 		if !shared.StringInList(nodeRole.RoleID, allRoleIDs) {
 			invalidMsg := fmt.Sprintf(
@@ -44,7 +83,7 @@ func validateServiceRoles(
 				nodeRole.RoleID,
 				strings.Join(allRoleIDs, ","),
 			)
-			errorMessages = append(errorMessages, invalidMsg)
+			valErrors = append(valErrors, invalidMsg)
 		}
 		for _, serviceID := range nodeRole.ServiceIDs {
 			if !shared.StringInList(serviceID, allServiceIDs) {
@@ -53,25 +92,22 @@ func validateServiceRoles(
 					serviceID,
 					strings.Join(allServiceIDs, ","),
 				)
-				errorMessages = append(errorMessages, invalidMsg)
+				valErrors = append(valErrors, invalidMsg)
 			}
 		}
 	}
-
-	if len(errorMessages) == 0 {
-		return ""
-	}
-	return strings.Join(errorMessages, "\n")
+	return valErrors
 }
 
 // validateSelectedRoles checks the selected_roles array to make sure it
-// only contains valid role IDs.
+// only contains valid role IDs. Any generated error messages will be added to
+// the input list and returned.
 func validateSelectedRoles(
 	appCR *kdv1.KubeDirectorApp,
 	allRoleIDs []string,
-) string {
+	valErrors []string,
+) []string {
 
-	var errorMessages []string
 	for _, role := range appCR.Spec.Config.SelectedRoles {
 		if catalog.GetRoleFromID(appCR, role) == nil {
 			invalidMsg := fmt.Sprintf(
@@ -79,14 +115,56 @@ func validateSelectedRoles(
 				role,
 				strings.Join(allRoleIDs, ","),
 			)
-			errorMessages = append(errorMessages, invalidMsg)
+			valErrors = append(valErrors, invalidMsg)
 		}
 	}
+	return valErrors
+}
 
-	if len(errorMessages) == 0 {
-		return ""
+// validateRoles checks each role for property constraints not expressable
+// in the schema. Currently this just means checking that the role must
+// specify an image if there is no top-level default image. Any generated
+// error messages will be added to the input list and returned.
+func validateRoles(
+	appCR *kdv1.KubeDirectorApp,
+	valErrors []string,
+) []string {
+
+	for _, role := range appCR.Spec.NodeRoles {
+		if role.Image.RepoTag == "" {
+			if appCR.Spec.Image.RepoTag == "" {
+				invalidMsg := fmt.Sprintf(
+					noDefaultImage,
+					role.ID,
+				)
+				valErrors = append(valErrors, invalidMsg)
+			}
+		}
 	}
-	return strings.Join(errorMessages, "\n")
+	return valErrors
+}
+
+// validateServices checks each service for property constraints not
+// expressable in the schema. Currently this just means checking that the
+// service endpoint must specify url_schema if is_dashboard is true. Any
+// generated error messages will be added to the input list and returned.
+func validateServices(
+	appCR *kdv1.KubeDirectorApp,
+	valErrors []string,
+) []string {
+
+	for _, service := range appCR.Spec.Services {
+		if service.Endpoint.IsDashboard {
+			if service.Endpoint.URLScheme == "" {
+				invalidMsg := fmt.Sprintf(
+					noUrlScheme,
+					service.ID,
+				)
+				valErrors = append(valErrors, invalidMsg)
+			}
+		}
+	}
+	return valErrors
 }
 
 // admitAppCR is the top-level app validation function, which invokes
@@ -97,7 +175,7 @@ func admitAppCR(
 	handlerState *reconciler.Handler,
 ) *v1beta1.AdmissionResponse {
 
-	var errorMessages []string
+	var valErrors []string
 
 	var admitResponse = v1beta1.AdmissionResponse{
 		Allowed: false,
@@ -116,23 +194,18 @@ func admitAppCR(
 	allRoleIDs := catalog.GetAllRoleIDs(&appCR)
 	allServiceIDs := catalog.GetAllServiceIDs(&appCR)
 
-	// Verify node services from the config section of the app
-	serviceRoleErr := validateServiceRoles(&appCR, allRoleIDs, allServiceIDs)
-	if serviceRoleErr != "" {
-		errorMessages = append(errorMessages, serviceRoleErr)
-	}
+	valErrors = validateUniqueness(allRoleIDs, allServiceIDs, valErrors)
+	valErrors = validateRefUniqueness(&appCR, valErrors)
+	valErrors = validateServiceRoles(&appCR, allRoleIDs, allServiceIDs, valErrors)
+	valErrors = validateSelectedRoles(&appCR, allRoleIDs, valErrors)
+	valErrors = validateRoles(&appCR, valErrors)
+	valErrors = validateServices(&appCR, valErrors)
 
-	// Verify selected_roles from the config section of the app
-	selectedRoleErr := validateSelectedRoles(&appCR, allRoleIDs)
-	if selectedRoleErr != "" {
-		errorMessages = append(errorMessages, selectedRoleErr)
-	}
-
-	if len(errorMessages) == 0 {
+	if len(valErrors) == 0 {
 		admitResponse.Allowed = true
 	} else {
 		admitResponse.Result = &metav1.Status{
-			Message: "\n" + strings.Join(errorMessages, "\n"),
+			Message: "\n" + strings.Join(valErrors, "\n"),
 		}
 	}
 

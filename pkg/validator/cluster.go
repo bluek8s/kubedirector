@@ -40,16 +40,18 @@ type membersPatchSpec struct {
 }
 
 // validateCardinality checks the member count specified for a role in the
-// cluster CR against the cardinality value from the app CR. It can also
-// return a list of PATCH specs that will populate default members values as
-// necessary.
+// cluster CR against the cardinality value from the app CR. Any generated
+// error messages will be added to the input list and returned. If there were
+// no errors generated, a list of PATCH specs will also be returned for the
+// purpose of populating default members values as necessary.
 func validateCardinality(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
-) (string, []membersPatchSpec) {
+	valErrors []string,
+) ([]string, []membersPatchSpec) {
 
-	var errorMessages []string
 	var patches []membersPatchSpec
+	anyError := false
 
 	numRoles := len(cr.Spec.Roles)
 	for i := 0; i < numRoles; i++ {
@@ -72,8 +74,9 @@ func validateCardinality(
 				}
 			}
 			if invalidMemberCount {
-				errorMessages = append(
-					errorMessages,
+				anyError = true
+				valErrors = append(
+					valErrors,
 					fmt.Sprintf(
 						invalidCardinality,
 						role.Name,
@@ -94,23 +97,29 @@ func validateCardinality(
 		}
 	}
 
-	if len(errorMessages) == 0 {
-		return "", patches
+	if anyError {
+		var emptyPatchList []membersPatchSpec
+		return valErrors, emptyPatchList
 	}
-	return strings.Join(errorMessages, "\n"), nil
+	return valErrors, patches
 }
 
-// validateRoles checks that 1) all configured roles actually exist in the
-// app type, and 2) all active roles (according to the app config) that
-// require more than 0 members are covered by the cluster config.
-func validateRoles(
+// validateClusterRoles checks that 1) all configured roles actually exist in
+// the app type, 2) all active roles (according to the app config) that
+// require more than 0 members are covered by the cluster config, and 3) we
+// don't try to configure the same role more than once. Any generated error
+// messages will be added to the input list and returned.
+func validateClusterRoles(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
-) string {
+	valErrors []string,
+) []string {
 
-	var configuredRoles, errorMessages []string
+	var configuredRoles []string
 
 	allRoles := catalog.GetAllRoleIDs(appCR)
+	roleSeen := make(map[string]bool)
+	uniqueRoles := true
 	for _, role := range cr.Spec.Roles {
 		if shared.StringInList(role.Name, allRoles) {
 			configuredRoles = append(configuredRoles, role.Name)
@@ -121,8 +130,15 @@ func validateRoles(
 				appCR.Name,
 				strings.Join(allRoles, ","),
 			)
-			errorMessages = append(errorMessages, invalidRoleMsg)
+			valErrors = append(valErrors, invalidRoleMsg)
 		}
+		if _, ok := roleSeen[role.Name]; ok {
+			uniqueRoles = false
+		}
+		roleSeen[role.Name] = true
+	}
+	if !uniqueRoles {
+		valErrors = append(valErrors, nonUniqueRoleID)
 	}
 	for _, activeRole := range catalog.GetSelectedRoleIDs(appCR) {
 		if !shared.StringInList(activeRole, configuredRoles) {
@@ -137,16 +153,102 @@ func validateRoles(
 						activeRole,
 						appCR.Name,
 					)
-					errorMessages = append(errorMessages, unconfiguredRoleMsg)
+					valErrors = append(valErrors, unconfiguredRoleMsg)
 				}
 			}
 		}
 	}
+	return valErrors
+}
 
-	if len(errorMessages) == 0 {
-		return ""
+// validateGeneralChanges checks for modifications to any property that is
+// not ever allowed to change after initial deployment. Currently this covers
+// the top-level app and serviceType properties. Any generated error messages
+// will be added to the input list and returned.
+func validateGeneralChanges(
+	cr *kdv1.KubeDirectorCluster,
+	prevCr *kdv1.KubeDirectorCluster,
+	valErrors []string,
+) []string {
+
+	if cr.Spec.AppID != prevCr.Spec.AppID {
+		appModifiedMsg := fmt.Sprintf(
+			modifiedProperty,
+			"app",
+		)
+		valErrors = append(valErrors, appModifiedMsg)
 	}
-	return strings.Join(errorMessages, "\n")
+	if cr.Spec.ServiceType != prevCr.Spec.ServiceType {
+		serviceTypeModifiedMsg := fmt.Sprintf(
+			modifiedProperty,
+			"serviceType",
+		)
+		valErrors = append(valErrors, serviceTypeModifiedMsg)
+	}
+	return valErrors
+}
+
+// validateRoleChanges checks for modifications to role properties. The
+// members property of a role can always be changed (within cardinality
+// constraints that are checked elsewhere). However other properties cannot
+// be changed unless the role currently has no members. Any generated error
+// messages will be added to the input list and returned.
+func validateRoleChanges(
+	cr *kdv1.KubeDirectorCluster,
+	prevCr *kdv1.KubeDirectorCluster,
+	valErrors []string,
+) []string {
+
+	prevRoles := make(map[string]*kdv1.Role)
+	numPrevRoles := len(prevCr.Spec.Roles)
+	for i := 0; i < numPrevRoles; i++ {
+		p := &(prevCr.Spec.Roles[i])
+		prevRoles[p.Name] = p
+	}
+	prevRoleHasStatus := make(map[string]bool)
+	if prevCr.Status != nil {
+		for _, s := range prevCr.Status.Roles {
+			prevRoleHasStatus[s.Name] = true
+		}
+	}
+	numRoles := len(cr.Spec.Roles)
+	for i := 0; i < numRoles; i++ {
+		role := &(cr.Spec.Roles[i])
+		// Skip checking for modified properties if there are no existing role
+		// members; i.e. no populated role status at all. Note that this is
+		// different from just checking the "members" count of prevRole;
+		// "members" is just the desired value which may not yet be reconciled.
+		// Restricting change to when all role members are gone is good because:
+		// - We won't show misleading configuration for existing members.
+		// - We aren't required to do any explicit statefulset reconfig. The
+		//   previous role's statefulset will have been deleted.
+		if _, ok := prevRoleHasStatus[role.Name]; !ok {
+			continue
+		}
+		// If there is status but no existing spec, the role was deleted.
+		// Don't allow resurrecting it until it has finished going away.
+		prevRole, hasPrevRole := prevRoles[role.Name]
+		if !hasPrevRole {
+			roleModifiedMsg := fmt.Sprintf(
+				modifiedRole,
+				role.Name,
+			)
+			valErrors = append(valErrors, roleModifiedMsg)
+			continue
+		}
+		// There is status (i.e. current members) and a current spec. Reject
+		// the new spec if anything other than the members count is different.
+		compareRole := *role
+		compareRole.Members = prevRole.Members
+		if !reflect.DeepEqual(&compareRole, prevRole) {
+			roleModifiedMsg := fmt.Sprintf(
+				modifiedRole,
+				role.Name,
+			)
+			valErrors = append(valErrors, roleModifiedMsg)
+		}
+	}
+	return valErrors
 }
 
 // admitClusterCR is the top-level cluster validation function, which invokes
@@ -157,8 +259,8 @@ func admitClusterCR(
 	handlerState *reconciler.Handler,
 ) *v1beta1.AdmissionResponse {
 
-	var errorMessages []string
-
+	var valErrors []string
+	var membersPatches []membersPatchSpec
 	var admitResponse = v1beta1.AdmissionResponse{
 		Allowed: false,
 	}
@@ -171,6 +273,24 @@ func admitClusterCR(
 			Message: "\n" + err.Error(),
 		}
 		return &admitResponse
+	}
+
+	// For various checks we'll need to compare to the current cluster object.
+	prevCluster, prevClusterErr := observer.GetCluster(
+		clusterCR.Namespace,
+		clusterCR.Name,
+	)
+	prevClusterExists := true
+	if prevClusterErr != nil {
+		// We'll handle not-found as needed in different cases below. Other
+		// kinds of errors here are bad though.
+		if !errors.IsNotFound(prevClusterErr) {
+			admitResponse.Result = &metav1.Status{
+				Message: "\nError when fetching current cluster object",
+			}
+			return &admitResponse
+		}
+		prevClusterExists = false
 	}
 
 	// Don't allow Status to be updated except by KubeDirector. Do this by
@@ -193,22 +313,14 @@ func admitClusterCR(
 		// it's OK to write the status again as long as nothing is changing.
 		// (For example we'll see this when a PATCH happens.)
 		if expectedStatusGen.Validated {
-			currentCluster, err := observer.GetCluster(
-				clusterCR.Namespace,
-				clusterCR.Name,
-			)
-			if err != nil {
-				if errors.IsNotFound(err) {
-					// Go ahead and let the core API reject this.
-					admitResponse.Allowed = true
-					return &admitResponse
-				}
-				admitResponse.Result = &metav1.Status{
-					Message: "\nError when fetching current cluster object",
-				}
+			if !prevClusterExists {
+				// This is a not-found error for a cluster UID that DID
+				// previously exist. Has to be a delete/update race, so go
+				// ahead and let the core API controller reject or ignore this.
+				admitResponse.Allowed = true
 				return &admitResponse
 			}
-			if !reflect.DeepEqual(clusterCR.Status, currentCluster.Status) {
+			if !reflect.DeepEqual(clusterCR.Status, prevCluster.Status) {
 				admitResponse.Result = &metav1.Status{
 					Message: "\nKubeDirector-related status properties are read-only",
 				}
@@ -232,36 +344,45 @@ func admitClusterCR(
 		return &admitResponse
 	}
 
-	// Validate cardinality
-	cardinalityErr, membersPatches := validateCardinality(&clusterCR, appCR)
-	if cardinalityErr != "" {
-		errorMessages = append(errorMessages, cardinalityErr)
+	// If cluster already exists, check for property changes.
+	if prevClusterExists {
+		valErrors = validateGeneralChanges(&clusterCR, prevCluster, valErrors)
+		valErrors = validateRoleChanges(&clusterCR, prevCluster, valErrors)
+		// We coooooould continue to do other validation at this point, but
+		// that could be misleading. Let's not do other validation unless we
+		// know that only change-able properties are being changed.
+		if len(valErrors) != 0 {
+			admitResponse.Result = &metav1.Status{
+				Message: "\n" + strings.Join(valErrors, "\n"),
+			}
+			return &admitResponse
+		}
 	}
 
-	// Validate that roles are known & sufficient
-	rolesErr := validateRoles(&clusterCR, appCR)
-	if rolesErr != "" {
-		errorMessages = append(errorMessages, rolesErr)
-	}
+	// Validate cardinality and generate patches for defaults members values.
+	valErrors, membersPatches = validateCardinality(&clusterCR, appCR, valErrors)
 
-	if len(errorMessages) == 0 {
-		if membersPatches != nil {
+	// Validate that roles are known & sufficient.
+	valErrors = validateClusterRoles(&clusterCR, appCR, valErrors)
+
+	if len(valErrors) == 0 {
+		if len(membersPatches) != 0 {
 			patchResult, patchErr := json.Marshal(membersPatches)
 			if patchErr == nil {
 				admitResponse.Patch = patchResult
 				patchType := v1beta1.PatchTypeJSONPatch
 				admitResponse.PatchType = &patchType
 			} else {
-				errorMessages = append(errorMessages, defaultMemberErr)
+				valErrors = append(valErrors, defaultMemberErr)
 			}
 		}
 	}
 
-	if len(errorMessages) == 0 {
+	if len(valErrors) == 0 {
 		admitResponse.Allowed = true
 	} else {
 		admitResponse.Result = &metav1.Status{
-			Message: "\n" + strings.Join(errorMessages, "\n"),
+			Message: "\n" + strings.Join(valErrors, "\n"),
 		}
 	}
 

@@ -9,25 +9,17 @@
         "systemdRequired" : true,
         "persist_dirs" : ["/data"],
         "capabilities" : [
-            "SETPCAP",
             "SYS_PACCT",
             "SYS_RESOURCE",
-            "AUDIT_WRITE",
             "CHOWN",
-            "DAC_OVERRIDE",
-            "FOWNER",
-            "DAC_READ_SEARCH",
             "FSETID",
             "KILL",
             "SETGID",
             "SETUID",
             "NET_BIND_SERVICE",
             "NET_BROADCAST",
-            "SYS_CHROOT",
             "SYS_PTRACE",
-            "SETFCAP",
-            "IPC_LOCK",
-            "NET_RAW"
+            "SETFCAP"
         ],
 
         "config": {

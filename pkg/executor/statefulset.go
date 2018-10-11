@@ -329,6 +329,7 @@ func getStartupScript(
 					".\\1 \\1/\" /etc/resolv.conf > /etc/resolv.conf.new;" +
 					"cat /etc/resolv.conf.new > /etc/resolv.conf;" +
 					"rm /etc/resolv.conf.new;" +
+					"chmod 755 /run;" +
 					"exit 0",
 			},
 		},

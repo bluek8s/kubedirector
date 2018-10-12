@@ -24,6 +24,7 @@ const (
 	storageClassName     = "volume.beta.kubernetes.io/storage-class"
 	appContainerName     = "app"
 	pvcName              = "pvc"
+	headlessServiceName  = "svc"
 	initContainerName    = "init"
 	execShell            = "bash"
 	configMetaFile       = "/etc/guestconfig/configmeta.json"

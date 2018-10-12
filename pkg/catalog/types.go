@@ -43,10 +43,10 @@ type nodegroup struct {
 }
 
 type cluster struct {
-	Name       string  `json:"name"`
-	Isolated   bool    `json:"isolated"`
-	Id         string  `json:"id"`
-	ConfigMeta refkeys `json:"config_metadata"`
+	Name       string             `json:"name"`
+	Isolated   bool               `json:"isolated"`
+	Id         string             `json:"id"`
+	ConfigMeta map[string]refkeys `json:"config_metadata"`
 }
 
 type node struct {

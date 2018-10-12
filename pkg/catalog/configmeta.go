@@ -190,8 +190,10 @@ func clusterBaseConfig(
 			Name:     cr.Name,
 			Isolated: false, // currently, always false
 			Id:       string(cr.UID),
-			ConfigMeta: refkeys{
-				BdvlibRefKey: []string{"nodegroups", "1", "config_metadata"},
+			ConfigMeta: map[string]refkeys{
+				"1": refkeys{
+					BdvlibRefKey: []string{"nodegroups", "1", "config_metadata"},
+				},
 			},
 		},
 	}

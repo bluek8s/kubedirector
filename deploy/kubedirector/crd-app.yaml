@@ -67,7 +67,8 @@ spec:
                     properties:
                       port:
                         type: integer
-                        minimum: 0
+                        minimum: 1
+                        maximum: 65535
                       url_scheme:
                         type: string
                         minLength: 1
@@ -101,6 +102,11 @@ spec:
                       import_url:
                         type: string
                         pattern: '^https?://.+\.tgz$'
+                  persist_dirs:
+                    type: array
+                    items:
+                      type: string
+                      pattern: '^/.*[^/]$'
             config:
               required: [selected_roles, role_services]
               properties:
@@ -128,7 +134,7 @@ spec:
               type: array
               items:
                 type: string
-                pattern: '^/[^/]+$'
+                pattern: '^/.*[^/]$'
             capabilities:
               type: array
               items:

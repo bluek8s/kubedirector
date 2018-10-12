@@ -244,20 +244,36 @@ func AppCapabilities(
 	return appCR.Spec.Capabilities, nil
 }
 
-// AppPersistDirs fetches the required directories for a given app that
-// has be persisted on a PVC
+// AppPersistDirs fetches the required directories for a given role that
+// has be persisted on a PVC. If the role doesn't have an explicit list, use
+// the top level list.
 func AppPersistDirs(
 	cr *kdv1.KubeDirectorCluster,
-) ([]string, error) {
+	role string,
+) (*[]string, error) {
 
+	var appPersistDirs *[]string
 	// Fetch the app type definition if we haven't yet cached it in this
 	// handler pass.
 	appCR, err := GetApp(cr)
 	if err != nil {
-		return []string{}, err
+		return nil, err
 	}
 
-	return appCR.Spec.PersistDirs, nil
+	// Check to see if there is a role-specific setup package.
+	for _, nodeRole := range appCR.Spec.NodeRoles {
+		if nodeRole.ID == role {
+			appPersistDirs = nodeRole.PersistDirs
+			break
+		}
+	}
+
+	// If role-specific persist_dirs is not present, use the main one.
+	if appPersistDirs == nil {
+		appPersistDirs = cr.AppSpec.Spec.PersistDirs
+	}
+
+	return appPersistDirs, nil
 }
 
 // GetApp returns the app type definition for the given virtual cluster. If

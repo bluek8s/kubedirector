@@ -16,6 +16,7 @@ package executor
 
 import (
 	"encoding/json"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -144,21 +145,48 @@ func getStatefulset(
 	}
 
 	// Check to see if app has requested additional directories to be persisted
-	appPersistDirs, persistErr := catalog.AppPersistDirs(cr)
+	appPersistDirs, persistErr := catalog.AppPersistDirs(cr, role.Name)
 	if persistErr != nil {
 		return nil, persistErr
 	}
 
 	// Create a combined unique list of directories that have be persisted
 	// Start with default mounts
-	persistDirs := make([]string, len(defaultMountFolders), len(defaultMountFolders)+len(appPersistDirs))
+	var maxLen = len(defaultMountFolders)
+	if appPersistDirs != nil {
+		maxLen += len(*appPersistDirs)
+	}
+	persistDirs := make([]string, len(defaultMountFolders), maxLen)
 	copy(persistDirs, defaultMountFolders)
 
-	for _, appDir := range appPersistDirs {
-		// If this app directory is not present in the default mounts
-		// append to the persistDirs list
-		if !shared.StringInList(appDir, defaultMountFolders) {
-			persistDirs = append(persistDirs, appDir)
+	// if the app directory is either same or a subdir of one of the default mount
+	// dirs, we can skip them. if not we should add them to the persistDirs list
+	// Also eliminate any duplicates or sub-dirs from appPersistDirs as well
+	if appPersistDirs != nil {
+		for _, appDir := range *appPersistDirs {
+			isSubDir := false
+			for _, defaultDir := range persistDirs {
+				// Get relative path of the app dir wrt defaultDir
+				rel, _ := filepath.Rel(defaultDir, appDir)
+
+				// If rel path doesn't start with "..", it is a subdir
+				if !strings.HasPrefix(rel, "..") {
+					shared.LogInfof(
+						cr,
+						"skipping {%s} from volume claim mounts. dir {%s} covers it",
+						appDir,
+						defaultDir,
+					)
+					isSubDir = true
+					break
+				}
+			}
+			if !isSubDir {
+				// Get the absolute path for the app dir
+				abs, _ := filepath.Abs(appDir)
+
+				persistDirs = append(persistDirs, abs)
+			}
 		}
 	}
 
@@ -189,7 +217,7 @@ func getStatefulset(
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName:    cr.Name + "-" + role.Name + "-",
+			GenerateName:    "kd" + "-",
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labels,
@@ -329,6 +357,7 @@ func getStartupScript(
 					".\\1 \\1/\" /etc/resolv.conf > /etc/resolv.conf.new;" +
 					"cat /etc/resolv.conf.new > /etc/resolv.conf;" +
 					"rm /etc/resolv.conf.new;" +
+					"chmod 755 /run;" +
 					"exit 0",
 			},
 		},
@@ -344,7 +373,7 @@ func generateInitContainerLaunch(persistDirs []string) string {
 	// To be safe in the case that this container is restarted by someone,
 	// don't do this copy if the configmeta file already exists in /etc.
 	launchCmd := "! [ -f /mnt" + configMetaFile + " ]" + " && " +
-		"cp -ax " + strings.Join(persistDirs, " ") + " /mnt || exit 0"
+		"cp --parent -ax " + strings.Join(persistDirs, " ") + " /mnt || exit 0"
 
 	return launchCmd
 }
@@ -469,18 +498,27 @@ func generateTmpfsSupport(
 
 	volumeMounts := []v1.VolumeMount{
 		v1.VolumeMount{
-			Name:      "tmpfs",
+			Name:      "tmpfs-tmp",
 			MountPath: "/tmp",
 		},
 		v1.VolumeMount{
-			Name:      "tmpfs",
+			Name:      "tmpfs-run",
 			MountPath: "/run",
 		},
 	}
 	maxTmpSize, _ := resource.ParseQuantity(tmpFsVolSize)
 	volumes := []v1.Volume{
 		v1.Volume{
-			Name: "tmpfs",
+			Name: "tmpfs-tmp",
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{
+					Medium:    "Memory",
+					SizeLimit: &maxTmpSize,
+				},
+			},
+		},
+		v1.Volume{
+			Name: "tmpfs-run",
 			VolumeSource: v1.VolumeSource{
 				EmptyDir: &v1.EmptyDirVolumeSource{
 					Medium:    "Memory",

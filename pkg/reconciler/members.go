@@ -339,13 +339,14 @@ func handleDeletingMembers(
 	role *roleInfo,
 ) {
 
-	// Fix statefulset if necessary, and bail out if it is not good yet.
+	// Fix statefulset if necessary.
 	if !checkMemberCount(cr, role) {
 		return
 	}
-	if !replicasSynced(cr, role) {
-		return
-	}
+	// We won't call replicasSynced here. We've already sent out the delete
+	// notifies, so it wouldn't help batch those up. And it's nice to be
+	// able to see the member statuses vanish one by one in concert with the
+	// pods going away.
 
 	deleting := role.membersByState[memberDeleting]
 
@@ -486,9 +487,11 @@ func setupNodePrep(
 ) error {
 
 	// Check to see if the destination file exists already, in which case just
-	// return
+	// return. Also bail out if we cannot manage to check file existence.
 	fileExists, fileError := executor.IsFileExists(cr, podName, nodePrepTestFile)
-	if fileError != nil || !fileExists {
+	if fileError != nil {
+		return fileError
+	} else if fileExists {
 		return nil
 	}
 
@@ -531,9 +534,11 @@ func setupAppConfig(
 ) error {
 
 	// Check to see if the destination file exists already, in which case just
-	// return.
+	// return. Also bail out if we cannot manage to check file existence.
 	fileExists, fileError := executor.IsFileExists(cr, podName, appPrepStartscript)
-	if fileError != nil || !fileExists {
+	if fileError != nil {
+		return fileError
+	} else if fileExists {
 		return nil
 	}
 
@@ -607,13 +612,17 @@ func appConfig(
 	// will check back periodically. So let's have a look at the existing
 	// status if any.
 	var statusStrB strings.Builder
-	readErr := executor.ReadFile(
+	fileExists, fileError := executor.ReadFile(
 		cr,
 		podName,
 		appPrepConfigStatus,
 		&statusStrB,
 	)
-	if readErr == nil {
+	if fileError != nil {
+		return true, fileError
+	}
+
+	if fileExists {
 		// Configure script was previously started.
 		statusStr := statusStrB.String()
 		if statusStr == "" {
@@ -631,7 +640,6 @@ func appConfig(
 		)
 		return true, statusErr
 	}
-
 	// We haven't successfully started the configure script yet.
 	// First upload the configmeta file
 	configmetaErr := executor.CreateFile(

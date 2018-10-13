@@ -46,7 +46,7 @@ func allServiceRefkeys(
 // format expected by the app setup Python packages.
 func getServices(
 	appCR *kdv1.KubeDirectorApp,
-	nodeNamesForRole map[string][]string,
+	membersForRole map[string][]*kdv1.MemberStatus,
 ) map[string]ngRefkeysMap {
 
 	result := make(map[string]ngRefkeysMap)
@@ -55,7 +55,7 @@ func getServices(
 		var activeRoleNames []string
 		for _, roleService := range appCR.Spec.Config.RoleServices {
 			if shared.StringInList(service.ID, roleService.ServiceIDs) {
-				if _, ok := nodeNamesForRole[roleService.RoleID]; ok {
+				if _, ok := membersForRole[roleService.RoleID]; ok {
 					activeRoleNames = append(activeRoleNames, roleService.RoleID)
 				}
 			}
@@ -75,7 +75,7 @@ func getServices(
 func servicesForRole(
 	appCR *kdv1.KubeDirectorApp,
 	roleName string,
-	nodeNames []string,
+	members []*kdv1.MemberStatus,
 ) map[string]service {
 
 	result := make(map[string]service)
@@ -86,9 +86,10 @@ func servicesForRole(
 				serviceDef := GetServiceFromID(appCR, serviceID)
 				var endpoints []string
 				if serviceDef.Endpoint.Port != nil {
-					for _, n := range nodeNames {
+					for _, m := range members {
+						nodeName := m.Pod
 						endpoint := serviceDef.Endpoint.URLScheme
-						endpoint += "://" + n
+						endpoint += "://" + nodeName
 						endpoint += ":" + strconv.Itoa(int(*(serviceDef.Endpoint.Port)))
 						endpoints = append(endpoints, endpoint)
 					}
@@ -122,20 +123,27 @@ func servicesForRole(
 func nodegroups(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
-	nodeNamesForRole map[string][]string,
+	membersForRole map[string][]*kdv1.MemberStatus,
 	domain string,
 ) map[string]nodegroup {
 
 	roles := make(map[string]role)
 	for _, roleSpec := range cr.Spec.Roles {
 		roleName := roleSpec.Name
-		nodeNames := nodeNamesForRole[roleName]
+		members := membersForRole[roleName]
+
 		var fqdns []string
+		var nodeIds []string
 		fqdnMappings := make(map[string]string)
-		for _, n := range nodeNames {
-			f := n + "." + domain
+		for _, m := range members {
+			nodeName := m.Pod
+			nodeId := m.NodeId
+
+			f := nodeName + "." + domain
+			fqdnMappings[f] = nodeId
+
 			fqdns = append(fqdns, f)
-			fqdnMappings[f] = n
+			nodeIds = append(nodeIds, nodeId)
 		}
 		memoryQuant := roleSpec.Resources.Limits[v1.ResourceMemory]
 		memoryMb := memoryQuant.Value() / (1024 * 1024)
@@ -148,8 +156,8 @@ func nodegroups(
 			Cores:       strconv.FormatInt(coresQuant.Value(), 10), // rounds up
 		}
 		roles[roleName] = role{
-			Services:     servicesForRole(appCR, roleName, nodeNames),
-			NodeIds:      nodeNames,
+			Services:     servicesForRole(appCR, roleName, members),
+			NodeIds:      nodeIds,
 			Hostnames:    fqdns,
 			Fqdns:        fqdns,
 			FqdnMappings: fqdnMappings,
@@ -171,14 +179,14 @@ func nodegroups(
 func clusterBaseConfig(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
-	memberNamesForRole map[string][]string,
+	membersForRole map[string][]*kdv1.MemberStatus,
 	domain string,
 ) *configmeta {
 
 	return &configmeta{
 		Version:    strconv.Itoa(appCR.Spec.SetupPackage.ConfigAPIVersion),
-		Services:   getServices(appCR, memberNamesForRole),
-		Nodegroups: nodegroups(cr, appCR, memberNamesForRole, domain),
+		Services:   getServices(appCR, membersForRole),
+		Nodegroups: nodegroups(cr, appCR, membersForRole, domain),
 		Distros: map[string]refkeysMap{
 			appCR.Spec.DistroID: refkeysMap{
 				"1": refkeys{
@@ -205,7 +213,7 @@ func clusterBaseConfig(
 // referenced in the virtual cluster spec.
 func ConfigmetaGenerator(
 	cr *kdv1.KubeDirectorCluster,
-	memberNamesForRole map[string][]string,
+	membersForRole map[string][]*kdv1.MemberStatus,
 ) (func(string) string, error) {
 
 	// Fetch the app type definition if we haven't yet cached it in this
@@ -221,13 +229,14 @@ func ConfigmetaGenerator(
 	// would be generated.
 	domain := cr.Status.ClusterService + "." + cr.Namespace + shared.DomainBase
 	perNodeConfig := make(map[string]*node)
-	c := clusterBaseConfig(cr, appCR, memberNamesForRole, domain)
-	for roleName, memberNames := range memberNamesForRole {
-		for _, memberName := range memberNames {
+	c := clusterBaseConfig(cr, appCR, membersForRole, domain)
+	for roleName, members := range membersForRole {
+		for _, member := range members {
+			memberName := member.Pod
 			perNodeConfig[memberName] = &node{
 				RoleId:      roleName,
 				NodegroupId: "1",
-				Id:          memberName,
+				Id:          member.NodeId,
 				Hostname:    memberName + "." + domain,
 				Fqdn:        memberName + "." + domain,
 				Domain:      domain,

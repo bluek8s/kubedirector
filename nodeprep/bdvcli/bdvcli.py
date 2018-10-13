@@ -23,7 +23,7 @@ from . import BDVCLI_Command
 from utils import isDebug
 from config import VcliConfig
 from utils.log import VcliLog
-from errors import ArgumentParseError
+from errors import ArgumentParseError, UnknownValueType
 from constants import BDVCLI_VERSION
 
 from vcli import Vcli
@@ -122,18 +122,6 @@ class BDvcli(cmd.Cmd):
         # do nothing.
         return
 
-
-    # def onecmd(self, line):
-    #     """
-    #     Override the parent method to process any exceptions appropriately.
-    #     """
-    #     try:
-    #         return cmd.Cmd.onecmd(self, arg)
-    #     except Exception as e:
-    #         if (self.use_rawinput == True):
-    #             flush(sys.stdout)
-    #             pass
-
     def precmd(self, line):
         """
         This overridden method added for convienience when the user executes
@@ -181,20 +169,33 @@ class BDvcli(cmd.Cmd):
         end up here and do not get redirected to the corresponding
         help_<cmd> method.
         """
+        result = None
         try:
-            result = self.commands[cmd].run(line)
-        except ArgumentParseError as ape:
-            result = None
-            if not self.is_interactive():
-                raise ape
+            res = self.commands[cmd].run(line)
+            result = self.process_result(res)
+        except ArgumentParseError as ae:
+            # The command help will already be displayed so we don't have to
+            # show the stack trace as well for this exception.
+            if self.is_interactive():
+                flush(sys.stdout)
+                pass
+            else:
+                sys.exit(1)
+        except Exception as e:
+            if self.is_interactive():
+                self.log.exception(e)
+                flush(sys.stdout)
+                pass
+            else:
+                raise e
 
         if self.is_interactive():
-            print(result)
-            if (result == None):
-                # Keep the command loop going in interactive mode.
-                return False
-        else:
-            return result
+            if result != None:
+                print(result)
+            # keep the loop going.
+            return False
+
+        return result
 
     def command_help(self, cmd):
         """
@@ -220,7 +221,7 @@ class BDvcli(cmd.Cmd):
         elif (result is None):
             return ""
         else:
-            return result
+            raise UnknownValueType("ValueType: %s Value: %s" % (type(result), result))
 
     ##############################################################
     #       default complete function                            #

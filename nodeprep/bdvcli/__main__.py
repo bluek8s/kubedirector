@@ -201,9 +201,9 @@ def main():
         instruction=' '.join(args.instruction)
     else:
         ## spawn the shell.
-        return BDvcli(libmode=False).cmdloop()
+        return BDvcli(shell=True).cmdloop()
 
-    bdvcli = BDvcli(libmode=True)
+    bdvcli = BDvcli(shell=False)
     result = bdvcli.onecmd(instruction)
     print(bdvcli.process_result(result))
 

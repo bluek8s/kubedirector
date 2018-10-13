@@ -18,11 +18,10 @@ import sys
 from bdvcli import BDvcli as BDvcli
 
 def main():
-    bdvcli = BDvcli(libmode=True)
+    bdvcli = BDvcli(shell=False)
     result = bdvcli.onecmd(' '.join(["macro"] + sys.argv[1:]))
     print(bdvcli.process_result(result))
 
     return
-
 if __name__ == "__main__":
     main()

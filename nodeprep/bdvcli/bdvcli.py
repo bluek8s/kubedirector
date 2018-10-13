@@ -46,7 +46,7 @@ __all__ = ['BDvcli']
 
 class BDvcli(cmd.Cmd):
 
-    def __init__(self, libmode=True):
+    def __init__(self, shell=False):
         """
         """
         self.config = VcliConfig()
@@ -57,7 +57,8 @@ class BDvcli(cmd.Cmd):
         self.ruler = '_'
         self.prompt = 'bdvcli> '
 
-        if not libmode:
+        if shell:
+            # Interactive session.
             self.intro = "BlueData vCLI %s.\n" %(BDVCLI_VERSION)
             self.use_rawinput = True
             cmd.Cmd.__init__(self)

@@ -183,10 +183,10 @@ class BDvcli(cmd.Cmd):
         """
         try:
             result = self.commands[cmd].run(line)
-        except ArgumentParseError:
+        except ArgumentParseError as ape:
             result = None
             if not self.is_interactive():
-                sys.exit(1)
+                raise ape
 
         if self.is_interactive():
             print(result)

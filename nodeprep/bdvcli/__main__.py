@@ -232,7 +232,10 @@ def main():
         ## spawn the shell.
         return BDvcli(libmode=False).cmdloop()
 
-    print(BDvcli(libmode=True).onecmd(instruction))
+    bdvcli = BDvcli(libmode=True)
+    result = bdvcli.onecmd(instruction)
+    print(bdvcli.process_result(result))
+
     return
 
 if __name__ == "__main__":

@@ -204,6 +204,24 @@ class BDvcli(cmd.Cmd):
         """
         return
 
+    def process_result(self, result):
+        """
+
+        """
+        if isinstance(result, list):
+            return ','.join(result)
+        elif isinstance(result, bool):
+            return "true" if result else "false"
+        elif isinstance(result, str) or isinstance(result, unicode):
+            return result
+        elif isinstance(result, int):
+            # make sure to check int AFTER bool, since bool will also match as int
+            return str(result)
+        elif (result is None):
+            return ""
+        else:
+            return result
+
     ##############################################################
     #       default complete function                            #
     ##############################################################

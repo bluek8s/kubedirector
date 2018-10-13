@@ -35,10 +35,11 @@ class BDVCLI_SubCommand(object):
         # Register this SubCommand with the parent Command.
         cmdObj.addSubcommand(subcmd, self)
 
-    def setParams(self, vcli, log, config):
+    def setParams(self, vcli, log, config, parser):
         self.log = log
         self.vcli = vcli
         self.config = config
+        self.parser = parser
 
     @abstractmethod
     def getSubcmdDescripton(self):
@@ -85,7 +86,7 @@ class BDVCLI_Command(object):
         subcmdObj.populateParserArgs(parser_subcmd)
 
         self.subcommands[subcmd] = subcmdObj
-        subcmdObj.setParams(self.vcli, self.log, self.config)
+        subcmdObj.setParams(self.vcli, self.log, self.config, parser_subcmd)
 
     def setLogger(self, log):
         self.log = log

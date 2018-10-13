@@ -12,12 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import print_function
 
 import sys
 from bdvcli import BDvcli as BDvcli
 
 def main():
-    BDvcli(libmode=True).onecmd(' '.join(["macro"] + sys.argv[1:]))
+    print(BDvcli(libmode=True).onecmd(' '.join(["macro"] + sys.argv[1:])))
     return
 
 if __name__ == "__main__":

@@ -23,6 +23,7 @@ from .. import BDVCLI_Command
 from ..errors import KeyError
 
 from .node import MacroNode
+from .nodegroup import MacroNodegroup
 
 class Macro(BDVCLI_Command):
     """
@@ -34,8 +35,10 @@ class Macro(BDVCLI_Command):
                                 'A higher order command that abstracts a group '
                                 'of other commands to generate the required '
                                 'information.')
+        self.configmeta = vcli.getCommandObject('namespace')
 
         MacroNode(self)
+        MacroNodegroup(self)
 
 
 BDVCLI_Command.register(Macro)

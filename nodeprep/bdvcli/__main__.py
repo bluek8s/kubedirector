@@ -89,30 +89,7 @@ def main():
                             help="A namespace key uniquely identifying the "
                             "application's service to unregister.")
 
-    ##  System service un/registration
-    ## No application uses these API yet, so I am blocking them from being used
-    ## going forward. - Krishna (8/27/2018)
-    # compatArgs.add_argument('--system_sysv', action='store', type=str,
-    #                         dest="sys_srvc", metavar="SRVC_NAME",
-    #                         help="The system SysV service name whose lifecycle "
-    #                         "should be managed by the vAgent.")
-    # compatArgs.add_argument('--system_sysctl', action='store', type=str,
-    #                         dest='sys_sysd',  metavar='SRVC_NAME',
-    #                         help='A system SysD service name whose lifecycle '
-    #                         'should be managed by the vAgent.')
-    # compatArgs.add_argument('--desc', action='store', type=str,
-    #                         dest="sys_srvc_desc", metavar="DESCRIPTION",
-    #                         help="A short description for the service. This "
-    #                         "will be displayed to the end user when service "
-    #                         "status is reported.")
-    # compatArgs.add_argument('--unregister_system_srvc', action='store',
-    #                         type=str, dest="unreg_sys_srvc", metavar="SRVC_NAME",
-    #                         help="The system SysV service name to unregister.")
-    # compatArgs.add_argument('--unregister_system_sysctl', action='store',
-    #                         type=str, dest="unreg_sys_sysd", metavar="SRVC_NAME",
-    #                         help="The system SysD service name to unregister.")
-
-    ## File Copy API.
+    ## File Copy API. (only works if agent is present)
     compatArgs.add_argument('--cp', action='store_true', default=None, dest='copy',
                             help="Copy file to a node. File owner (user) & "
                             "permissions can be specified")
@@ -125,7 +102,7 @@ def main():
     compatArgs.add_argument('--perms', action="store", type=str, default='600',
                             help="Permissions of the file in octal form.")
 
-    ## Remote execute options.
+    ## Remote execute options. (only works if agent is present)
     compatArgs.add_argument('--execute', action="store_true", default=None,
                             help="Execute a file on a remote node.")
     compatArgs.add_argument('--remote_node', action="store", type=str,
@@ -142,30 +119,18 @@ def main():
                             help="Lookup the value of the given key in the tenant"
                             "information.")
 
-    ## Miscellaneous options.
-    ## This options was used by the data_server to restart all registered
-    ## services when it has to reboot. Lets keep it disabled until we really
-    ## need it. -Krishna (8/27/2018)
-    # compatArgs.add_argument('--restart_all_services', action='store_true',
-    #                         dest="advconfig_restartsrvc", default=False,
-    #                         help="Restarts all the services previously registered "
-    #                         "during the cluster configuration on this node. This "
-    #                         "is expected to be used after modifying configuration "
-    #                         "parameters.")
-
-    ## These options were only used by the vagent. Removing them until the
-    ## cl-agent actually needs them. Even if it does, we should use the new API
-    ## any way. - krishna (8/27/2018)
-    # compatArgs.add_argument('--get_local_group_fqdns', action='store_true',
-    #                         dest='getLocalGroupFqdns', default=False,
-    #                         help="Get all FQDNs deployed for the node group that "
-    #                         "the local node belongs to.")
-    # compatArgs.add_argument('--get_nodegroup_fqdns', action='store_true',
-    #                         default=None, dest='getNodeGroupFqdns',
-    #                         help="Get all FQDNs in the given Node group.")
-    # compatArgs.add_argument('--get_all_fqdns', action='store_true',
-    #                         dest='getAllFqdns', default=False,
-    #                         help='Get FQDNs of all the nodes in the cluster.')
+    ## Nodegroup level queries
+    compatArgs.add_argument('--get_local_group_fqdns', action='store_true',
+                            dest='getLocalGroupFqdns', default=False,
+                            help="Get all FQDNs deployed for the node group that "
+                            "the local node belongs to.")
+    compatArgs.add_argument('--get_nodegroup_fqdns', action='store',
+                            metavar='NODEGROUP_ID', dest='getNodeGroupFqdns',
+                            default=None,
+                            help="Get all FQDNs in the given Node group.")
+    compatArgs.add_argument('--get_all_fqdns', action='store_true',
+                            dest='getAllFqdns', default=False,
+                            help='Get FQDNs of all the nodes in the cluster.')
 
 
     args = parser.parse_args()
@@ -226,6 +191,12 @@ def main():
         instruction = 'namespace tenant --info'
     elif args.tenant_info_key:
         instruction = 'namespace tenant %s' % (args.tenant_info_key)
+    elif args.getLocalGroupFqdns:
+        instruction = 'macro nodegroup --get_local_group_fqdns'
+    elif args.getNodeGroupFqdns != None:
+        instruction = 'macro nodegroup --get_nodegroup_fqdns %s' % (args.getNodeGroupFqdns)
+    elif args.getAllFqdns:
+        instruction = 'macro nodegroup --get_all_fqdns'
     elif len(args.instruction) > 0:
         instruction=' '.join(args.instruction)
     else:

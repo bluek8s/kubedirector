@@ -162,17 +162,11 @@ class Namespace(BDVCLI_Command):
         Beginning at the 'startKey' search the remainder of the name space for
         all occurrences of 'matchToken' and return the complete keys.
         """
-        try:
-            if isinstance(startKey, list):
-                return self._search_token_recursive(startKey, matchToken, self.jsonData)
-            else:
-                return self._search_token_recursive(startKey.split('.'), matchToken,
-                                                    self.jsonData)
-        except KeyError as e:
-            if self.vcli.is_interactive():
-                return "KeyError: " + str(e)
-            else:
-                raise e
+        if isinstance(startKey, list):
+            return self._search_token_recursive(startKey, matchToken, self.jsonData)
+        else:
+            return self._search_token_recursive(startKey.split('.'), matchToken,
+                                                self.jsonData)
 
     def _get_value(self, subcmd, pargs):
         """
@@ -315,7 +309,7 @@ class Namespace(BDVCLI_Command):
 
             try:
                 data = self._resolve_indirections(eleList, jsonData)
-            except KeyTokensRemainingException:
+            except KeyError:
                 # No more subkeys for this element. And we already removed it
                 # from the list so, we can skip to the next element.
                 continue

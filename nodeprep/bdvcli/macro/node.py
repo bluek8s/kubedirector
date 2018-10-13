@@ -20,7 +20,6 @@ class MacroNode(BDVCLI_SubCommand):
     """
     def __init__(self, vcli):
         BDVCLI_SubCommand.__init__(self, vcli, 'node')
-        self.configmeta = self.vcli.getCommandObject('namespace')
 
     def getSubcmdDescripton(self):
         return 'Node related macros.'
@@ -62,11 +61,11 @@ class MacroNode(BDVCLI_SubCommand):
         """
         Calculate node index given a node_id
         """
-        all_node_id_keys = self.configmeta.searchForToken([u"nodegroups"], u"node_ids")
+        all_node_id_keys = self.command.configmeta.searchForToken([u"nodegroups"], u"node_ids")
 
         node_id_list = []
         for node_id_key in all_node_id_keys:
-            key = self.configmeta.getWithTokens(node_id_key)
+            key = self.command.configmeta.getWithTokens(node_id_key)
             node_id_list.extend(key)
 
         # We don't know the prefix, but as we don't allow trailing digits in the prefix, we can simply
@@ -79,7 +78,7 @@ class MacroNode(BDVCLI_SubCommand):
         """
         Return the node index of current node
         """
-        node_id = self.configmeta.getWithTokens([u"node", u"id"])
+        node_id = self.command.configmeta.getWithTokens([u"node", u"id"])
         return self._getNodeIndexFromId(node_id)
 
     def getNodeIndexFromFqdn(self, fqdn):
@@ -93,17 +92,17 @@ class MacroNode(BDVCLI_SubCommand):
         """
         Return node id of current node
         """
-        return self.configmeta.getWithTokens([u"node", u"id"])
+        return self.command.configmeta.getWithTokens([u"node", u"id"])
 
     def getNodeIdFromFqdn(self, fqdn):
         """
         Return the node id of a given fqdn
         """
-        all_fqdn_keys = self.configmeta.searchForToken([u"nodegroups"], u"fqdn_mappings")
+        all_fqdn_keys = self.command.configmeta.searchForToken([u"nodegroups"], u"fqdn_mappings")
         for fqdn_key in all_fqdn_keys:
-            fqdn_token_list = self.configmeta.searchForToken(fqdn_key, fqdn)
+            fqdn_token_list = self.command.configmeta.searchForToken(fqdn_key, fqdn)
             if fqdn_token_list != []:
-                return self.configmeta.getWithTokens(fqdn_token_list[0])
+                return self.command.configmeta.getWithTokens(fqdn_token_list[0])
         raise Exception("Failed to get node Id for the given FQDN " + str(fqdn))
 
     def complete(self, text, argsList):

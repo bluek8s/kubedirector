@@ -62,6 +62,9 @@ class VcliLog(object):
     def error(self, *args, **kwargs):
         self.LOG.error(args, kwargs)
 
+    def exception(self, args):
+        self.LOG.exception(args)
+
     # def instruction(self, *args, **kwargs):
     #     self.LOG_CMD.info(args, kwargs)
 

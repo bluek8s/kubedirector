@@ -17,8 +17,8 @@ import sys
 from bdvcli import BDvcli as BDvcli
 
 def main():
-    bdvcli = BDvcli(libmode=False)
-    return bdvcli.onecmd(' '.join(["macro"] + sys.argv[1:]))
+    BDvcli(libmode=True).onecmd(' '.join(["macro"] + sys.argv[1:]))
+    return
 
 if __name__ == "__main__":
     main()

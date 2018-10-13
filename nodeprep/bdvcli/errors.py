@@ -18,3 +18,6 @@ class ArgumentParseError(Exception):
 
 class KeyError(Exception):
     pass
+
+class UnknownValueType(Exception):
+    pass

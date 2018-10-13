@@ -42,12 +42,14 @@ class MacroNode(BDVCLI_SubCommand):
     def run(self, pargs):
         if pargs.selfindex != False:
             return self.getNodeIndexSelf()
-        if pargs.selfid != False:
+        elif pargs.selfid != False:
             return self.getNodeIdSelf()
-        if pargs.nodeindex != None:
+        elif pargs.nodeindex != None:
             return self.getNodeIndexFromFqdn(pargs.nodeindex[0])
-        if pargs.nodeid != None:
+        elif pargs.nodeid != None:
             return self.getNodeIdFromFqdn(pargs.nodeid[0])
+        else:
+            self.parser.error("atleast one argument must be provided")
 
     def _prune_id_from_string(self, node_id):
         """

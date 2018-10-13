@@ -50,7 +50,7 @@ class BDvcli(cmd.Cmd):
         """
         """
         self.config = VcliConfig()
-        self.log = VcliLog(self.config)
+        self.log = VcliLog(self.config, shell)
 
         self._initialize_commands()
 

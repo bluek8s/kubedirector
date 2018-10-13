@@ -15,6 +15,7 @@
 
 import os
 import logging
+import logging.handlers
 
 from ..constants import SECTION_BDVCLI, KEY_LOGDIR, DEFAULT_LOG_FILENAME
 
@@ -22,48 +23,44 @@ class VcliLog(object):
     """
 
     """
-    def __init__(self, config):
+    def __init__(self, config, interactive):
         logDir = config.get(SECTION_BDVCLI, KEY_LOGDIR)
         logFile = os.path.join(logDir, DEFAULT_LOG_FILENAME)
 
         if not os.path.exists(logDir):
             os.makedirs(logDir)
 
-        self.LOG = logging.getLogger('bdvcli')
-        console_format = logging.Formatter('%(message)s')
-        console_hdlr = logging.StreamHandler()
-        console_hdlr.setLevel(logging.INFO)
-        console_hdlr.setFormatter(console_format)
-        self.LOG.addHandler(console_hdlr)
+        self.root = logging.getLogger('bdvcli')
 
-        self.LOG_FILE = logging.getLogger('bdvcli.file')
-        file_formatter = logging.Formatter('%(asctime)s %(module)s %(lineno)d %(levelname)s : %(message)s')
-        file_hdlr = logging.FileHandler(logFile)
+        if interactive:
+            console_format = logging.Formatter('%(levelname)-7s: %(message)s')
+            console_hdlr = logging.StreamHandler()
+            console_hdlr.setLevel(logging.INFO)
+            console_hdlr.setFormatter(console_format)
+            self.root.addHandler(console_hdlr)
+
+        file_formatter = logging.Formatter('%(asctime)s %(levelname)-7s: %(message)s')
+        file_hdlr = logging.handlers.RotatingFileHandler(logFile,
+                                                         backupCount=3,
+                                                         maxBytes=1048576)
         file_hdlr.setLevel(logging.DEBUG)
         file_hdlr.setFormatter(file_formatter)
-        self.LOG_FILE.addHandler(file_hdlr)
+        self.root.addHandler(file_hdlr)
 
-        # self.LOG_CMD = logging.getLogger('bdvcli.cmd')
-        # file_formatter = logging.Formatter('%(message)s')
-        # file_hdlr = logging.FileHandler(logFile)
-        # file_hdlr.setLevel(logging.INFO)
-        # file_hdlr.setFormatter(file_formatter)
-        # self.LOG_CMD.addHandler(file_hdlr)
+    def debug(self, msg, *args):
+        self.root.debug(msg, *args)
 
-    def debug(self, *args, **kwargs):
-        self.LOG.debug(args, kwargs)
+    def info(self, msg, *args):
+        self.root.info(msg, *args)
 
-    def info(self, *args, **kwargs):
-        self.LOG.info(args, kwargs)
+    def warn(self, msg, *args):
+        self.root.warning(msg, *args)
 
-    def warn(self, *args, **kwargs):
-        self.LOG.warning(args, kwargs)
+    def error(self, msg, *args):
+        self.root.error(msg, *args)
 
-    def error(self, *args, **kwargs):
-        self.LOG.error(args, kwargs)
-
-    def exception(self, args):
-        self.LOG.exception(args)
+    def exception(self, *args):
+        self.root.exception(*args)
 
     # def instruction(self, *args, **kwargs):
     #     self.LOG_CMD.info(args, kwargs)

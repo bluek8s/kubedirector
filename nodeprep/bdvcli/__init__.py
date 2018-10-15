@@ -88,6 +88,25 @@ class BDVCLI_Command(object):
         self.subcommands[subcmd] = subcmdObj
         subcmdObj.setParams(self.vcli, self.log, self.config, parser_subcmd)
 
+    def getSubcommandObject(self, name):
+        """
+        Returns the subcommand object corresponding to the name, if it exists
+
+        This is useful when bdvcli is being used as a python library to get
+        the command objects. Each command object has its own publicly available
+        methods.
+
+        For example:
+            macro = bdvcli.getCommandObject('macro')
+            nodeMacro = macro.getSubcommandObject('node')
+            ...
+            
+        """
+        if (name != None) and (self.subcommands.has_key(name)):
+            return self.subcommands[name]
+        else:
+            return None
+
     def setLogger(self, log):
         self.log = log
 

@@ -178,14 +178,12 @@ class BDvcli(cmd.Cmd):
             # The command help will already be displayed so we don't have to
             # show the stack trace as well for this exception.
             if self.is_interactive():
-                flush(sys.stdout)
                 pass
             else:
                 sys.exit(1)
         except Exception as e:
             if self.is_interactive():
                 self.log.exception(e)
-                flush(sys.stdout)
                 pass
             else:
                 raise e

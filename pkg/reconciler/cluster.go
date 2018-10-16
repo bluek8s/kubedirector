@@ -88,13 +88,9 @@ func syncCluster(
 				}
 				shared.LogWarnf(
 					cr,
-					"failed to update status: %v",
-					updateErr,
-				)
-				shared.LogWarnf(
-					cr,
-					"trying status update again in %v",
+					"trying status update again in %v; failed because: %v",
 					wait,
+					updateErr,
 				)
 				time.Sleep(wait)
 			}

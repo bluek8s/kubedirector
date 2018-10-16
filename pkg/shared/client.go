@@ -16,12 +16,17 @@ package shared
 
 import (
 	"github.com/sirupsen/logrus"
+	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/record"
 )
 
 var (
-	Client *K8sClient
+	Client        *K8sClient
+	eventRecorder record.EventRecorder
 )
 
 // init creates the REST API client that will be used for actions not
@@ -29,6 +34,7 @@ var (
 func init() {
 
 	Client = newClientInCluster()
+	eventRecorder = getEventRecorder()
 }
 
 // newClientInCluster creates a k8s REST API client that will operate using
@@ -64,4 +70,21 @@ func getConfigFromServiceAccount() *rest.Config {
 		logrus.Fatal("getConfigFromServiceAccount: ", err)
 	}
 	return config
+}
+
+// eventRecorder returns an EventRecorder type that can be
+// used to post Events to different object's lifecycles.
+func getEventRecorder() record.EventRecorder {
+
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartRecordingToSink(
+		&typedcorev1.EventSinkImpl{
+			Interface: Client.Clientset.CoreV1().Events(""),
+		},
+	)
+	recorder := eventBroadcaster.NewRecorder(
+		scheme.Scheme,
+		v1.EventSource{Component: "kubedirector"},
+	)
+	return recorder
 }

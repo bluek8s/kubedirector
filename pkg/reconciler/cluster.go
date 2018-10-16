@@ -39,6 +39,8 @@ func syncCluster(
 	if event.Deleted {
 		shared.LogInfo(
 			cr,
+			true,
+			shared.EventReasonCluster,
 			"deleted",
 		)
 		DeleteStatusGen(cr, handlerState)
@@ -90,6 +92,8 @@ func syncCluster(
 	errLog := func(domain string, err error) {
 		shared.LogErrorf(
 			cr,
+			true,
+			shared.EventReasonCluster,
 			"failed to sync %s: %v",
 			domain,
 			err,
@@ -118,6 +122,8 @@ func syncCluster(
 		if cr.Status.State != string(clusterReady) {
 			shared.LogInfo(
 				cr,
+				true,
+				shared.EventReasonCluster,
 				"stable",
 			)
 			cr.Status.State = string(clusterReady)
@@ -136,6 +142,8 @@ func syncCluster(
 	if configMetaErr != nil {
 		shared.LogErrorf(
 			cr,
+			true,
+			shared.EventReasonCluster,
 			"failed to generate cluster config: %v",
 			configMetaErr,
 		)
@@ -170,6 +178,8 @@ func handleStatusGen(
 		if incoming == "" {
 			shared.LogInfo(
 				cr,
+				true,
+				shared.EventReasonCluster,
 				"new",
 			)
 			cr.Status.State = string(clusterCreating)
@@ -177,6 +187,8 @@ func handleStatusGen(
 		}
 		shared.LogWarnf(
 			cr,
+			true,
+			shared.EventReasonCluster,
 			"unknown with incoming gen uid %s",
 			incoming,
 		)
@@ -191,6 +203,8 @@ func handleStatusGen(
 
 	shared.LogInfo(
 		cr,
+		true,
+		shared.EventReasonCluster,
 		"dropping stale poll",
 	)
 	return false
@@ -209,6 +223,8 @@ func handleFinalizers(
 		if removeErr == nil {
 			shared.LogInfo(
 				cr,
+				true,
+				shared.EventReasonCluster,
 				"greenlighting for deletion",
 			)
 		}

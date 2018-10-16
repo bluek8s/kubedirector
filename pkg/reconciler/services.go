@@ -58,6 +58,8 @@ func syncClusterService(
 		if cr.Status.ClusterService != "" {
 			shared.LogWarn(
 				cr,
+				true,
+				shared.EventReasonCluster,
 				"re-creating missing cluster service",
 			)
 		}
@@ -111,6 +113,8 @@ func handleClusterServiceCreate(
 		// on every run through the handler.
 		shared.LogErrorf(
 			cr,
+			true,
+			shared.EventReasonCluster,
 			"failed to create cluster service: %v",
 			createErr,
 		)
@@ -134,6 +138,8 @@ func handleClusterServiceConfig(
 	if updateErr != nil {
 		shared.LogWarnf(
 			cr,
+			true,
+			shared.EventReasonCluster,
 			"failed to update Service{%s}: %v",
 			cr.Status.ClusterService,
 			updateErr,
@@ -164,6 +170,8 @@ func handleMemberService(
 			if member.Service != "" {
 				shared.LogWarnf(
 					cr,
+					true,
+					shared.EventReasonCluster,
 					"re-creating missing service for member{%s}",
 					member.Pod,
 				)
@@ -207,6 +215,8 @@ func handleMemberServiceCreate(
 		// on every run through the handler.
 		shared.LogErrorf(
 			cr,
+			true,
+			shared.EventReasonMember,
 			"failed to create member service for member{%s}: %v",
 			member.Pod,
 			createErr,
@@ -238,6 +248,8 @@ func handleMemberServiceConfig(
 	if updateErr != nil {
 		shared.LogWarnf(
 			cr,
+			true,
+			shared.EventReasonMember,
 			"failed to update Service{%s}: %v",
 			member.Service,
 			updateErr,
@@ -269,6 +281,8 @@ func queryService(
 			} else {
 				shared.LogErrorf(
 					cr,
+					false,
+					"",
 					"failed to query Service{%s}: %v",
 					serviceName,
 					queryErr,

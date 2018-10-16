@@ -18,7 +18,7 @@ spec:
       size: "40Gi"
       storageClassName: standard
   - id: worker
-    members: 2
+    members: 1
     resources:
       requests:
         memory: "4Gi"

@@ -95,6 +95,12 @@
   revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/golang/groupcache"
+  packages = ["lru"]
+  revision = "6f2cf27854a4a29e3811b0371547be335d411b8b"
+
+[[projects]]
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -418,16 +424,19 @@
     "pkg/util/httpstream/spdy",
     "pkg/util/intstr",
     "pkg/util/json",
+    "pkg/util/mergepatch",
     "pkg/util/net",
     "pkg/util/remotecommand",
     "pkg/util/runtime",
     "pkg/util/sets",
+    "pkg/util/strategicpatch",
     "pkg/util/validation",
     "pkg/util/validation/field",
     "pkg/util/wait",
     "pkg/util/yaml",
     "pkg/version",
     "pkg/watch",
+    "third_party/forked/golang/json",
     "third_party/forked/golang/netutil",
     "third_party/forked/golang/reflect"
   ]
@@ -485,6 +494,7 @@
     "tools/clientcmd/api/v1",
     "tools/metrics",
     "tools/pager",
+    "tools/record",
     "tools/reference",
     "tools/remotecommand",
     "transport",
@@ -555,6 +565,7 @@
     "pkg/common",
     "pkg/generators",
     "pkg/generators/rules",
+    "pkg/util/proto",
     "pkg/util/sets"
   ]
   revision = "e3762e86a74c878ffed47484592986685639c2cd"
@@ -562,6 +573,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "28358b08a72780dd558695a7457d4d26be406ea9b3e0cbffdc3d12a33df78cc3"
+  inputs-digest = "6f26655c1e3f27ce90dae5d1bec85281d90e14c11123a0ca8a8a22bd9cd8aca5"
   solver-name = "gps-cdcl"
   solver-version = 1

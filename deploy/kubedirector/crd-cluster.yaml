@@ -81,6 +81,8 @@ spec:
               type: string
             cluster_service:
               type: string
+            last_node_id:
+              type: integer
             roles:
               type: array
               items:
@@ -95,10 +97,11 @@ spec:
                       properties:
                         pod:
                           type: string
+                        node_id:
+                          type: string
                         service:
                           type: string
                         pvc:
                           type: string
                         state:
                           type: string
-

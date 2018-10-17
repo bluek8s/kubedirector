@@ -21,12 +21,12 @@ import os, sys, cmd, pkgutil
 from . import ConfigCLI_Command
 
 from utils import isDebug
-from config import VcliConfig
-from utils.log import VcliLog
+from config import CcliConfig
+from utils.log import CcliLog
 from errors import ArgumentParseError, UnknownValueType
 from constants import ConfigCLI_VERSION
 
-from vcli import Vcli
+from ccli import Ccli
 from baseimg import Baseimage
 from namespace import Namespace
 
@@ -42,9 +42,9 @@ from macro import Macro
 #           __import__(modname)
 
 
-__all__ = ['BDvcli']
+__all__ = ['ConfigCli']
 
-class BDvcli(cmd.Cmd):
+class ConfigCli(cmd.Cmd):
 
     def __init__(self, shell=False):
         """
@@ -56,8 +56,8 @@ class BDvcli(cmd.Cmd):
         To import and initialize this class in another python module, leave the
         shell value set to False.
         """
-        self.config = VcliConfig()
-        self.log = VcliLog(self.config, shell)
+        self.config = CcliConfig()
+        self.log = CcliLog(self.config, shell)
 
         self._initialize_commands()
 
@@ -135,11 +135,11 @@ class BDvcli(cmd.Cmd):
         This overridden method added for convienience when the user executes
         help. Normally for a subcommand help, the user execute the following:
 
-            configcli> vcli version -h
+            configcli> ccli version -h
 
         instead, this override lets them execute the following:
 
-            configcli> help vcli version
+            configcli> help ccli version
 
         The second version is more intuitive but, the first one will still work.
         """
@@ -173,7 +173,7 @@ class BDvcli(cmd.Cmd):
         method attribute to do so when instantiating the ConfigCLI_Command's
         implementations (or subclasses).
 
-        Note that the command of the form 'vcli -h' and 'vcli version -h' also
+        Note that the command of the form 'ccli -h' and 'ccli version -h' also
         end up here and do not get redirected to the corresponding
         help_<cmd> method.
         """

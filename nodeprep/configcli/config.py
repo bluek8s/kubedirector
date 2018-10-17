@@ -23,7 +23,7 @@ from .constants import *
 DIRNAME = os.path.dirname(os.path.realpath(__file__))
 SDK_BASE_DIR = os.path.abspath(os.path.join(DIRNAME, '..'))
 
-class VcliConfig(object):
+class CcliConfig(object):
     """
 
     """
@@ -71,4 +71,4 @@ class VcliConfig(object):
         self.config.set(section, key, str(value))
         self._save()
 
-__all__ = ['VcliConfig']
+__all__ = ['CcliConfig']

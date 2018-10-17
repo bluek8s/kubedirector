@@ -16,18 +16,18 @@
 from __future__ import print_function
 from .. import ConfigCLI_Command
 
-from .version import VcliVersion
+from .version import CcliVersion
 
-class Vcli(ConfigCLI_Command):
+class Ccli(ConfigCLI_Command):
     """
 
     """
 
-    def __init__(self, vcli):
-        ConfigCLI_Command.__init__(self, vcli, 'vcli',
-                         'BDvcli command related operations.')
+    def __init__(self, ccli):
+        ConfigCLI_Command.__init__(self, ccli, 'ccli',
+                         'ConfigCli command related operations.')
 
-        VcliVersion(self)
+        CcliVersion(self)
 
-ConfigCLI_Command.register(Vcli)
-__all__ = ['Vcli']
+ConfigCLI_Command.register(Ccli)
+__all__ = ['Ccli']

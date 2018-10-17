@@ -20,8 +20,8 @@ class MacroNodegroup(ConfigCLI_SubCommand):
     """
     Macros related to node
     """
-    def __init__(self, vcli):
-        ConfigCLI_SubCommand.__init__(self, vcli, 'nodegroup')
+    def __init__(self, ccli):
+        ConfigCLI_SubCommand.__init__(self, ccli, 'nodegroup')
 
     def getSubcmdDescripton(self):
         return 'Nodegroup related macros.'

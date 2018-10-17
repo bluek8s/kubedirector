@@ -39,8 +39,8 @@ class Namespace(ConfigCLI_Command):
 
     """
 
-    def __init__(self, vcli):
-        ConfigCLI_Command.__init__(self, vcli, 'namespace',
+    def __init__(self, ccli):
+        ConfigCLI_Command.__init__(self, ccli, 'namespace',
                                 'Access to all available configuration namespaces.')
 
         self.jsonData = None
@@ -117,7 +117,7 @@ class Namespace(ConfigCLI_Command):
         try:
             return  self._resolve_indirections(keyTokens, self.jsonData)
         except KeyError as e:
-            if self.vcli.is_interactive():
+            if self.ccli.is_interactive():
                 return "KeyError: " + str(e)
             else:
                 raise e

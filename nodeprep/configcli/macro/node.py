@@ -18,8 +18,8 @@ class MacroNode(ConfigCLI_SubCommand):
     """
     Macros related to node
     """
-    def __init__(self, vcli):
-        ConfigCLI_SubCommand.__init__(self, vcli, 'node')
+    def __init__(self, ccli):
+        ConfigCLI_SubCommand.__init__(self, ccli, 'node')
 
     def getSubcmdDescripton(self):
         return 'Node related macros.'

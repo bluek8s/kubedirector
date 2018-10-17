@@ -35,9 +35,9 @@ class ConfigCLI_SubCommand(object):
         # Register this SubCommand with the parent Command.
         cmdObj.addSubcommand(subcmd, self)
 
-    def setParams(self, vcli, log, config, parser):
+    def setParams(self, ccli, log, config, parser):
         self.log = log
-        self.vcli = vcli
+        self.ccli = ccli
         self.config = config
         self.parser = parser
 
@@ -67,17 +67,17 @@ class ConfigCLI_Command(object):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, vcli, cmd, desc):
+    def __init__(self, ccli, cmd, desc):
         """
 
         """
         self.cmd = cmd
-        self.vcli = vcli
+        self.ccli = ccli
         self.parser = argparse.ArgumentParser(prog=cmd, description=desc)
         self.subparsers = self.parser.add_subparsers(dest='subcmd',
                                                      title='Subcommands')
         self.subcommands = {}
-        vcli._add_command(cmd, self)
+        ccli._add_command(cmd, self)
 
     def addSubcommand(self, subcmd, subcmdObj):
         desc = subcmdObj.getSubcmdDescripton()
@@ -86,7 +86,7 @@ class ConfigCLI_Command(object):
         subcmdObj.populateParserArgs(parser_subcmd)
 
         self.subcommands[subcmd] = subcmdObj
-        subcmdObj.setParams(self.vcli, self.log, self.config, parser_subcmd)
+        subcmdObj.setParams(self.ccli, self.log, self.config, parser_subcmd)
 
     def getSubcommandObject(self, name):
         """
@@ -157,6 +157,6 @@ class ConfigCLI_Command(object):
             splits.pop(0)
             return self._invoke_subcmd_complete(splits, text)
 
-from configcli import BDvcli
+from configcli import ConfigCli
 
-__all__ = [ "BDvcli", "__version__" ]
+__all__ = [ "ConfigCli", "__version__" ]

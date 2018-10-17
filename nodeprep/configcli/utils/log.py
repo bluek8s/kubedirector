@@ -19,7 +19,7 @@ import logging.handlers
 
 from ..constants import SECTION_ConfigCLI, KEY_LOGDIR, DEFAULT_LOG_FILENAME
 
-class VcliLog(object):
+class CcliLog(object):
     """
 
     """
@@ -65,4 +65,4 @@ class VcliLog(object):
     # def instruction(self, *args, **kwargs):
     #     self.LOG_CMD.info(args, kwargs)
 
-__all__ = ['VcliLog']
+__all__ = ['CcliLog']

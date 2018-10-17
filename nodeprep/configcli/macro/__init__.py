@@ -30,12 +30,12 @@ class Macro(ConfigCLI_Command):
 
     """
 
-    def __init__(self, vcli):
-        ConfigCLI_Command.__init__(self, vcli, 'macro',
+    def __init__(self, ccli):
+        ConfigCLI_Command.__init__(self, ccli, 'macro',
                                 'A higher order command that abstracts a group '
                                 'of other commands to generate the required '
                                 'information.')
-        self.configmeta = vcli.getCommandObject('namespace')
+        self.configmeta = ccli.getCommandObject('namespace')
 
         MacroNode(self)
         MacroNodegroup(self)

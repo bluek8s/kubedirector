@@ -24,8 +24,8 @@ class Baseimage(ConfigCLI_Command):
 
     """
 
-    def __init__(self, vcli):
-        ConfigCLI_Command.__init__(self, vcli, 'baseimg',
+    def __init__(self, ccli):
+        ConfigCLI_Command.__init__(self, ccli, 'baseimg',
                          'Baseimage related information.')
 
         BaseimageVersion(self)

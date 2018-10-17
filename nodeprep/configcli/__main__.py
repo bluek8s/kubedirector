@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from configcli import BDvcli as BDvcli
+from configcli import ConfigCli as ConfigCli
 import sys, argparse
 
 
@@ -137,7 +137,7 @@ def main():
 
     instruction = None
     if args.version == True:
-        instruction = 'vcli version'
+        instruction = 'ccli version'
     elif args.baseimg_version == True:
         instruction = 'baseimg version'
     elif args.namespace:
@@ -201,9 +201,9 @@ def main():
         instruction=' '.join(args.instruction)
     else:
         ## spawn the shell.
-        return BDvcli(shell=True).cmdloop()
+        return ConfigCli(shell=True).cmdloop()
 
-    configcli = BDvcli(shell=False)
+    configcli = ConfigCli(shell=False)
     result = configcli.onecmd(instruction)
     print(configcli.process_result(result))
 

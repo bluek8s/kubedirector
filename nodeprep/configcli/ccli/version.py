@@ -17,7 +17,7 @@ from __future__ import print_function
 from .. import ConfigCLI_SubCommand
 from ..constants import ConfigCLI_VERSION
 
-class VcliVersion(ConfigCLI_SubCommand):
+class CcliVersion(ConfigCLI_SubCommand):
     """
 
     """
@@ -38,5 +38,5 @@ class VcliVersion(ConfigCLI_SubCommand):
         return []
 
 
-ConfigCLI_SubCommand.register(VcliVersion)
-__all__ = ['VcliVersion']
+ConfigCLI_SubCommand.register(CcliVersion)
+__all__ = ['CcliVersion']

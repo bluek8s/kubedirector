@@ -15,10 +15,10 @@
 from __future__ import print_function
 
 import sys
-from configcli import BDvcli as BDvcli
+from configcli import ConfigCli as ConfigCli
 
 def main():
-    configcli = BDvcli(shell=False)
+    configcli = ConfigCli(shell=False)
     result = configcli.onecmd(' '.join(["macro"] + sys.argv[1:]))
     print(configcli.process_result(result))
 

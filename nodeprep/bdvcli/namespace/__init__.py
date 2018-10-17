@@ -89,74 +89,6 @@ class Namespace(BDVCLI_Command):
         """
         return self._get_value(keyTokens[0], keyTokens[1:])
 
-    def getLocalGroupHosts(self):
-        """
-        Returns FQDNs of all nodes that belong to the same nodegroup as the
-        node on which this method is invoked.
-        """
-        LocalNodeGrpId = self.getWithTokens([u"node", u"nodegroup_id"])
-        return self.getNodeGroupFQDN(LocalNodeGrpId)
-
-    # INFO: only used by old bdvcli.
-    # def getClusterHostsFQDN(self):
-    #     """
-    #     Returns the FQDNs of all the nodes that are part of the cluster.
-    #     """
-    #     NodeGroups = self.getWithTokens([u"nodegroups"])
-    #
-    #     fqdnList = []
-    #     for ng in NodeGroups:
-    #         ret = self.getNodeGroupFQDN(ng)
-    #         fqdnList.extend(ret)
-    #
-    #     return fqdnList
-
-    # INFO: only used by old bdvcli.
-    # def getNodeGroupFQDN(self, nodeGroupId):
-    #     matchedKeyTokenLists = self._search_token_recursive([u"nodegroups",
-    #                                                         nodeGroupId],
-    #                                                        u"fqdns", self.jsonData)
-    #
-    #     dupslist = []
-    #     for keyTokenList in matchedKeyTokenLists:
-    #         val = self.getWithTokens(keyTokenList)
-    #
-    #         if isinstance(val, list):
-    #             dupslist.extend(val)
-    #         else:
-    #             dupslist.append(val)
-    #
-    #     return dict.fromkeys(dupslist).keys()
-
-    ## INFO: used by userconfig/auth.py
-    def getNumNodegroups(self):
-        """
-        Returns count of nodegroups in this cluster.
-        """
-        return len(self.getWithTokens([u"nodegroups"]))
-
-    # INFO: only used by old bdvcli
-    # def getTenantInfoKey(self, key):
-    #     """
-    #     Lookup a tenant info key and return the value
-    #     """
-    #     return self.getWithTokens([u"cluster",
-    #                                u"tenant_info",
-    #                                key])
-
-    # INFO: Only used by old bdvcli
-    # def getTenantInfo(self):
-    #     """
-    #     Return all the tenant info key-value pairs
-    #     """
-    #     TenantInfoKeys = self.getWithTokens([u"cluster", u"tenant_info"])
-    #     PropsList = []
-    #     for Key in TenantInfoKeys:
-    #         Value = self.getTenantInfoKey(Key)
-    #         PropsList.append(str(Key) + "=" + str(Value))
-    #     return PropsList
-
-
     def searchForToken(self, startKey, matchToken):
         """
         Beginning at the 'startKey' search the remainder of the name space for
@@ -183,18 +115,7 @@ class Namespace(BDVCLI_Command):
                 keyTokens = keyTokens + pargs.split('.')
 
         try:
-            result = self._resolve_indirections(keyTokens, self.jsonData)
-            if isinstance(result, list):
-                return ','.join(result)
-            elif isinstance(result, bool):
-                return "true" if result else "false"
-            elif isinstance(result, str) or isinstance(result, unicode):
-                return result
-            elif isinstance(result, int):
-                # make sure to check int AFTER bool, since bool will also match as int
-                return str(result)
-            else:
-                return result
+            return  self._resolve_indirections(keyTokens, self.jsonData)
         except KeyError as e:
             if self.vcli.is_interactive():
                 return "KeyError: " + str(e)

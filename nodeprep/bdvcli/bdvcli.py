@@ -48,6 +48,13 @@ class BDvcli(cmd.Cmd):
 
     def __init__(self, shell=False):
         """
+        Initialize the object.
+
+        If shell=True, the the object is intialized in an interactive mode.
+        Unless launching from a shell, setting this option to True is not useful.
+
+        To import and initialize this class in another python module, leave the
+        shell value set to False.
         """
         self.config = VcliConfig()
         self.log = VcliLog(self.config, shell)

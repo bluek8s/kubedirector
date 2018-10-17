@@ -128,6 +128,7 @@ deploy:
 	@set -e; \
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
         echo KubeDirector pod name is $$podname
+	@echo
 
 redeploy:
 	@echo

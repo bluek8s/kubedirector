@@ -27,6 +27,10 @@ class MacroNodegroup(BDVCLI_SubCommand):
         return 'Nodegroup related macros.'
 
     def populateParserArgs(self, subparser):
+        subparser.add_argument('--num_nodegroups', action='store_true',
+                                dest='numgroups', default=False,
+                                help="Returns the number of nodegroups present"
+                                "in the cluster.")
         subparser.add_argument('--get_local_group_fqdns', action='store_true',
                                 dest='getLocalGroupFqdns', default=False,
                                 help="Get all FQDNs deployed for the node group "
@@ -39,39 +43,43 @@ class MacroNodegroup(BDVCLI_SubCommand):
                                 help='Get FQDNs of all the nodes in the cluster.')
 
     def run(self, pargs):
-
-        if pargs.getLocalGroupFqdns:
-            return self._get_local_nodegroup_fqdns()
+        if pargs.numgroups:
+            return self.getNumNodegroups()
+        elif pargs.getLocalGroupFqdns:
+            return self.getLocalGroupHosts()
         elif pargs.getNodeGroupFqdns != None:
-            return self._get_nodegroup_fqdns(pargs.getNodeGroupFqdns)
+            return self.getNodegroupFqdns(pargs.getNodeGroupFqdns)
         elif pargs.getAllFqdns:
-            return self._get_cluster_fqdns()
+            return self.getClusterFqdns()
         else:
             self.parser.error("atleast one argument must be provided.")
 
-    def _get_local_nodegroup_fqdns(self):
+    def getLocalGroupHosts(self):
         """
+        Get node FQDNs that belong to the same nodegroup as the current node.
         """
         LocalNodeGrpId = self.command.configmeta.getWithTokens([u"node", u"nodegroup_id"])
-        return self._get_nodegroup_fqdns(LocalNodeGrpId)
+        return self.getNodegroupFqdns(LocalNodeGrpId)
 
-    def _get_cluster_fqdns(self):
+    def getClusterFqdns(self):
         """
+        Get node FQDNs in the cluster.
         """
         NodeGroups = self.command.configmeta.getWithTokens([u"nodegroups"])
 
         fqdnList = []
         for ng in NodeGroups:
-            ret = self._get_nodegroup_fqdns(ng)
+            ret = self.getNodegroupFqdns(ng)
             fqdnList.extend(ret)
 
         return fqdnList
 
-    def _get_nodegroup_fqdns(self, nodeGroupId):
+    def getNodegroupFqdns(self, nodeGroupId):
         """
+        Get node FQDNs that are part of the given nodegroup.
         """
         matchedKeyTokenLists = self.command.configmeta.searchForToken([u"nodegroups",
-                                                                        nodeGroupId],
+                                                                        str(nodeGroupId)],
                                                                       u"fqdns")
         if len(matchedKeyTokenLists) == 0:
             raise KeyError("No nodegroup %s found." % (nodeGroupId))
@@ -87,6 +95,11 @@ class MacroNodegroup(BDVCLI_SubCommand):
 
         return dict.fromkeys(dupslist).keys()
 
+    def getNumNodegroups(self):
+        """
+        Returns count of nodegroups in this cluster.
+        """
+        return len(self.command.configmeta.getWithTokens([u"nodegroups"]))
 
     def complete(self, text, argsList):
         return []

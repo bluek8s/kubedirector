@@ -23,7 +23,7 @@ from .utils.misc import processArgs
 from .version import __version__
 
 
-class BDVCLI_SubCommand(object):
+class ConfigCLI_SubCommand(object):
     """
 
     """
@@ -61,7 +61,7 @@ class BDVCLI_SubCommand(object):
     def complete(self, text, argsList):
         raise Exception("Function must be implemented.")
 
-class BDVCLI_Command(object):
+class ConfigCLI_Command(object):
     """
 
     """
@@ -92,12 +92,12 @@ class BDVCLI_Command(object):
         """
         Returns the subcommand object corresponding to the name, if it exists
 
-        This is useful when bdvcli is being used as a python library to get
+        This is useful when configcli is being used as a python library to get
         the command objects. Each command object has its own publicly available
         methods.
 
         For example:
-            macro = bdvcli.getCommandObject('macro')
+            macro = configcli.getCommandObject('macro')
             nodeMacro = macro.getSubcommandObject('node')
             ...
             
@@ -157,6 +157,6 @@ class BDVCLI_Command(object):
             splits.pop(0)
             return self._invoke_subcmd_complete(splits, text)
 
-from bdvcli import BDvcli
+from configcli import BDvcli
 
 __all__ = [ "BDvcli", "__version__" ]

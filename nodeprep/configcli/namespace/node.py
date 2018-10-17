@@ -14,28 +14,28 @@
 # limitations under the License.
 
 from __future__ import print_function
-from .. import BDVCLI_SubCommand
+from .. import ConfigCLI_SubCommand
 
-class NamespacePlatform(BDVCLI_SubCommand):
+class NamespaceNode(ConfigCLI_SubCommand):
     """
 
     """
 
     def __init__(self, cmdObj):
-        BDVCLI_SubCommand.__init__(self, cmdObj, 'platform')
+        ConfigCLI_SubCommand.__init__(self, cmdObj, 'node')
 
     def getSubcmdDescripton(self):
-        return 'The platform namespace from the application configuration metadata.'
+        return 'The node namespace from the application configuration metadata'
 
     def populateParserArgs(self, subparser):
         return self.command.addArgument(subparser)
 
     def run(self, pargs):
-        return self.command._get_value("platform", pargs)
+        return self.command._get_value("node", pargs)
 
     def complete(self, text, argsList):
         return []
 
 
-BDVCLI_SubCommand.register(NamespacePlatform)
-__all__ = ['NamespacePlatform']
+ConfigCLI_SubCommand.register(NamespaceNode)
+__all__ = ['NamespaceNode']

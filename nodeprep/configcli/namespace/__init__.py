@@ -19,9 +19,9 @@ from __future__ import print_function
 import json
 import argparse
 
-from .. import BDVCLI_Command
+from .. import ConfigCLI_Command
 from ..errors import KeyError
-from ..constants import SECTION_BDVCLI, KEY_CONFIGMETA_FILE, KEY_PLATFORM_INFO_FILE, KEY_PRIV_METDATA_FILE
+from ..constants import SECTION_ConfigCLI, KEY_CONFIGMETA_FILE, KEY_PLATFORM_INFO_FILE, KEY_PRIV_METDATA_FILE
 
 from .node import NamespaceNode
 from .version import NamespaceVersion
@@ -34,19 +34,19 @@ from .platform import NamespacePlatform
 
 BDVLIB_REF_KEY_TAG='bdvlibrefkey'
 
-class Namespace(BDVCLI_Command):
+class Namespace(ConfigCLI_Command):
     """
 
     """
 
     def __init__(self, vcli):
-        BDVCLI_Command.__init__(self, vcli, 'namespace',
+        ConfigCLI_Command.__init__(self, vcli, 'namespace',
                                 'Access to all available configuration namespaces.')
 
         self.jsonData = None
-        metaFile = self.config.get(SECTION_BDVCLI, KEY_CONFIGMETA_FILE)
-        privMetaFile = self.config.get(SECTION_BDVCLI, KEY_PRIV_METDATA_FILE)
-        platformMetaFile = self.config.get(SECTION_BDVCLI, KEY_PLATFORM_INFO_FILE)
+        metaFile = self.config.get(SECTION_ConfigCLI, KEY_CONFIGMETA_FILE)
+        privMetaFile = self.config.get(SECTION_ConfigCLI, KEY_PRIV_METDATA_FILE)
+        platformMetaFile = self.config.get(SECTION_ConfigCLI, KEY_PLATFORM_INFO_FILE)
 
         try:
             with open(metaFile, 'r') as f:
@@ -257,5 +257,5 @@ class Namespace(BDVCLI_Command):
         return retListOf_KeyTokenLists
 
 
-BDVCLI_Command.register(Namespace)
+ConfigCLI_Command.register(Namespace)
 __all__ = ['Namespace']

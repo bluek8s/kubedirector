@@ -37,11 +37,11 @@ class VcliConfig(object):
             KEY_CONFIGMETA_FILE     : PUBLIC_CONFIG_METADATA_FILE,
             KEY_PLATFORM_INFO_FILE  : PLATFORM_INFO_METADATA_FILE
         })
-        if os.path.exists(BDVCLI_CONFIG_FILENAME):
-            self.config.read([BDVCLI_CONFIG_FILENAME])
+        if os.path.exists(ConfigCLI_CONFIG_FILENAME):
+            self.config.read([ConfigCLI_CONFIG_FILENAME])
 
-        if not self.config.has_section(SECTION_BDVCLI):
-            self.config.add_section(SECTION_BDVCLI)
+        if not self.config.has_section(SECTION_ConfigCLI):
+            self.config.add_section(SECTION_ConfigCLI)
 
     def _save(self):
         """

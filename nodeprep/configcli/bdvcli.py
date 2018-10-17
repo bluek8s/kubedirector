@@ -18,13 +18,13 @@ from __future__ import with_statement
 
 import os, sys, cmd, pkgutil
 
-from . import BDVCLI_Command
+from . import ConfigCLI_Command
 
 from utils import isDebug
 from config import VcliConfig
 from utils.log import VcliLog
 from errors import ArgumentParseError, UnknownValueType
-from constants import BDVCLI_VERSION
+from constants import ConfigCLI_VERSION
 
 from vcli import Vcli
 from baseimg import Baseimage
@@ -34,7 +34,7 @@ from namespace import Namespace
 from macro import Macro
 
 # # FIXME! test this code
-# EXTENSIONS_PATH = '/opt/bluedata/bdvcli/extensions'
+# EXTENSIONS_PATH = '/opt/bluedata/configcli/extensions'
 # if os.path.exists(EXTENSIONS_PATH):
 #     __path__ = pkgutil.extend_path(__path__, EXTENSIONS_PATH)
 #     for importer, modname, ispkg in pkgutil.walk_packages(path=__path__, prefix=__name__+'.'):
@@ -62,11 +62,11 @@ class BDvcli(cmd.Cmd):
         self._initialize_commands()
 
         self.ruler = '_'
-        self.prompt = 'bdvcli> '
+        self.prompt = 'configcli> '
 
         if shell:
             # Interactive session.
-            self.intro = "BlueData vCLI %s.\n" %(BDVCLI_VERSION)
+            self.intro = "BlueData vCLI %s.\n" %(ConfigCLI_VERSION)
             self.use_rawinput = True
             cmd.Cmd.__init__(self)
         else:
@@ -77,12 +77,12 @@ class BDvcli(cmd.Cmd):
         """
         Returns the command object corresponding to the name, if it exists
 
-        This is useful when bdvcli is being used as a python library to get
+        This is useful when configcli is being used as a python library to get
         the command objects. Each command object has its own publicly available
         methods.
 
         For example:
-            namespace = bdvcli.getCommandObject('namespace')
+            namespace = configcli.getCommandObject('namespace')
 
             roleId = namespace.getValue('node.role_id')
             distroId = namesapce.getValue('node.distro_id.')
@@ -94,7 +94,7 @@ class BDvcli(cmd.Cmd):
 
     def _add_command(self, cmd, cmdObj):
         """
-        Invoked by the BDVCLI_Command base class when the implementation is
+        Invoked by the ConfigCLI_Command base class when the implementation is
         instantiated.
         """
         self.commands[cmd] = cmdObj
@@ -118,8 +118,8 @@ class BDvcli(cmd.Cmd):
         """
         self.commands = {}
 
-        for bdvcliCmd in BDVCLI_Command.__subclasses__():
-            bdvcliCmd(self)
+        for configcliCmd in ConfigCLI_Command.__subclasses__():
+            configcliCmd(self)
 
         return
 
@@ -135,11 +135,11 @@ class BDvcli(cmd.Cmd):
         This overridden method added for convienience when the user executes
         help. Normally for a subcommand help, the user execute the following:
 
-            bdvcli> vcli version -h
+            configcli> vcli version -h
 
         instead, this override lets them execute the following:
 
-            bdvcli> help vcli version
+            configcli> help vcli version
 
         The second version is more intuitive but, the first one will still work.
         """
@@ -170,7 +170,7 @@ class BDvcli(cmd.Cmd):
     def command_do(self, cmd, line):
         """
         All do_<cmd> invocation by the cmd.Cmd class end up here as we added a
-        method attribute to do so when instantiating the BDVCLI_Command's
+        method attribute to do so when instantiating the ConfigCLI_Command's
         implementations (or subclasses).
 
         Note that the command of the form 'vcli -h' and 'vcli version -h' also

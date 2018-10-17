@@ -14,15 +14,15 @@
 # limitations under the License.
 
 from __future__ import print_function
-from .. import BDVCLI_SubCommand
+from .. import ConfigCLI_SubCommand
 
-class NamespaceTenant(BDVCLI_SubCommand):
+class NamespaceTenant(ConfigCLI_SubCommand):
     """
 
     """
 
     def __init__(self, cmdObj):
-        BDVCLI_SubCommand.__init__(self, cmdObj, 'tenant')
+        ConfigCLI_SubCommand.__init__(self, cmdObj, 'tenant')
 
     def getSubcmdDescripton(self):
         return 'The tenant namespace from the application configuration metadata.'
@@ -37,5 +37,5 @@ class NamespaceTenant(BDVCLI_SubCommand):
         return []
 
 
-BDVCLI_SubCommand.register(NamespaceTenant)
+ConfigCLI_SubCommand.register(NamespaceTenant)
 __all__ = ['NamespaceTenant']

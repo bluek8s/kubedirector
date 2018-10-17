@@ -12,16 +12,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from __future__ import print_function
+from .. import ConfigCLI_SubCommand
 
-import sys
-from bdvcli import BDvcli as BDvcli
+class NamespaceAuth(ConfigCLI_SubCommand):
+    """
 
-def main():
-    bdvcli = BDvcli(shell=False)
-    result = bdvcli.onecmd(' '.join(["macro"] + sys.argv[1:]))
-    print(bdvcli.process_result(result))
+    """
 
-    return
-if __name__ == "__main__":
-    main()
+    def __init__(self, cmdObj):
+        ConfigCLI_SubCommand.__init__(self, cmdObj, 'auth')
+
+    def getSubcmdDescripton(self):
+        return 'The auth namespace from the application configuration metadata.'
+
+    def populateParserArgs(self, subparser):
+        return self.command.addArgument(subparser)
+
+    def run(self, pargs):
+        return self.command._get_value("auth", pargs)
+
+    def complete(self, text, argsList):
+        return []
+
+
+ConfigCLI_SubCommand.register(NamespaceAuth)
+__all__ = ['NamespaceAuth']

@@ -14,29 +14,20 @@
 # limitations under the License.
 
 from __future__ import print_function
-from .. import BDVCLI_SubCommand
-from ..constants import BDVCLI_VERSION
+from .. import ConfigCLI_Command
 
-class VcliVersion(BDVCLI_SubCommand):
+from .version import VcliVersion
+
+class Vcli(ConfigCLI_Command):
     """
 
     """
 
-    def __init__(self, cmdObj):
-        BDVCLI_SubCommand.__init__(self, cmdObj, 'version')
+    def __init__(self, vcli):
+        ConfigCLI_Command.__init__(self, vcli, 'vcli',
+                         'BDvcli command related operations.')
 
-    def getSubcmdDescripton(self):
-        return 'Displays the workbench version.'
+        VcliVersion(self)
 
-    def populateParserArgs(self, subparser):
-        return
-
-    def run(self, pargs):
-        return BDVCLI_VERSION
-
-    def complete(self, text, argsList):
-        return []
-
-
-BDVCLI_SubCommand.register(VcliVersion)
-__all__ = ['VcliVersion']
+ConfigCLI_Command.register(Vcli)
+__all__ = ['Vcli']

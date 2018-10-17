@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import BDVCLI_SubCommand
+from .. import ConfigCLI_SubCommand
 
-class MacroNode(BDVCLI_SubCommand):
+class MacroNode(ConfigCLI_SubCommand):
     """
     Macros related to node
     """
     def __init__(self, vcli):
-        BDVCLI_SubCommand.__init__(self, vcli, 'node')
+        ConfigCLI_SubCommand.__init__(self, vcli, 'node')
 
     def getSubcmdDescripton(self):
         return 'Node related macros.'

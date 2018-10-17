@@ -17,12 +17,12 @@
 from distutils.core import setup
 from setuptools import find_packages
 
-import bdvcli
+import configcli
 
 setup(
-    name = 'bdvcli',
+    name = 'configcli',
     packages = find_packages(),
-    version = bdvcli.__version__,
+    version = configcli.__version__,
     description = '',
 
     zip_safe=False,
@@ -31,13 +31,12 @@ setup(
     author = 'BlueData Software, Inc.',
     author_email = 'support@bluedata.com',
     url = 'https://github.com/bluek8s/kubedirector/nodeprep',
-    keywords = [ 'BlueData', 'vcli', 'bdmacro', 'EPIC', 'k8s', 'kubedirector'],
+    keywords = [ 'configcli', 'configmacro', 'k8s', 'kubedirector'],
 
     entry_points = {
         "console_scripts" : [
-                              'bdvcli=bdvcli.__main__:main',
-                              'bd_vcli=bdvcli.__main__:main', # For bakward compatibility
-                              'bdmacro=bdvcli.__macro_main__:main'
+                              'configcli=configcli.__main__:main',
+                              'configmacro=configcli.__macro_main__:main'
                             ],
     },
     install_requires = [

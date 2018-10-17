@@ -12,30 +12,38 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from __future__ import print_function
-from .. import BDVCLI_SubCommand
+import os
 
-class NamespaceCluster(BDVCLI_SubCommand):
+from .. import ConfigCLI_SubCommand
+from ..constants import BASEIMG_META_FILE
+
+class BaseimageVersion(ConfigCLI_SubCommand):
     """
 
     """
 
     def __init__(self, cmdObj):
-        BDVCLI_SubCommand.__init__(self, cmdObj, 'cluster')
+        ConfigCLI_SubCommand.__init__(self, cmdObj, 'version')
 
     def getSubcmdDescripton(self):
-        return 'The node namespace from the application configuration metadata'
+        return "Returns the BlueData's base image version used to build the "\
+               "container image where this command is executed. Returns None "\
+               "if the container image is not based on the BlueData's base image."
 
     def populateParserArgs(self, subparser):
-        return self.command.addArgument(subparser)
+        return
 
     def run(self, pargs):
-        return self.command._get_value("cluster", pargs)
+        if os.path.exists(BASEIMG_META_FILE):
+            with open(BASEIMG_META_FILE, 'r') as f:
+                return f.readline().strip('\n')
+        else:
+            return None
 
     def complete(self, text, argsList):
         return []
 
 
-BDVCLI_SubCommand.register(NamespaceCluster)
-__all__ = ['NamespaceCluster']
+ConfigCLI_SubCommand.register(BaseimageVersion)
+__all__ = ['BaseimageVersion']

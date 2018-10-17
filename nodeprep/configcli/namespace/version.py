@@ -14,28 +14,28 @@
 # limitations under the License.
 
 from __future__ import print_function
-from .. import BDVCLI_SubCommand
+from .. import ConfigCLI_SubCommand
 
-class NamespaceAuth(BDVCLI_SubCommand):
+class NamespaceVersion(ConfigCLI_SubCommand):
     """
 
     """
 
     def __init__(self, cmdObj):
-        BDVCLI_SubCommand.__init__(self, cmdObj, 'auth')
+        ConfigCLI_SubCommand.__init__(self, cmdObj, 'version')
 
     def getSubcmdDescripton(self):
-        return 'The auth namespace from the application configuration metadata.'
+        return 'The version namespace from the application configuration metadata'
 
     def populateParserArgs(self, subparser):
         return self.command.addArgument(subparser)
 
     def run(self, pargs):
-        return self.command._get_value("auth", pargs)
+        return self.command._get_value("version", None)
 
     def complete(self, text, argsList):
         return []
 
 
-BDVCLI_SubCommand.register(NamespaceAuth)
-__all__ = ['NamespaceAuth']
+ConfigCLI_SubCommand.register(NamespaceVersion)
+__all__ = ['NamespaceVersion']

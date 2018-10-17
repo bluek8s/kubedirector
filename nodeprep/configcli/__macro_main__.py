@@ -12,30 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from __future__ import print_function
-from .. import BDVCLI_SubCommand
 
-class NamespaceDistros(BDVCLI_SubCommand):
-    """
+import sys
+from configcli import BDvcli as BDvcli
 
-    """
+def main():
+    configcli = BDvcli(shell=False)
+    result = configcli.onecmd(' '.join(["macro"] + sys.argv[1:]))
+    print(configcli.process_result(result))
 
-    def __init__(self, cmdObj):
-        BDVCLI_SubCommand.__init__(self, cmdObj, 'distros')
-
-    def getSubcmdDescripton(self):
-        return 'The distros namespace from the application configuration metadata.'
-
-    def populateParserArgs(self, subparser):
-        return self.command.addArgument(subparser)
-
-    def run(self, pargs):
-        return self.command._get_value("distros", pargs)
-
-    def complete(self, text, argsList):
-        return []
-
-
-BDVCLI_SubCommand.register(NamespaceDistros)
-__all__ = ['NamespaceDistros']
+    return
+if __name__ == "__main__":
+    main()

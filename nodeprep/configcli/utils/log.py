@@ -17,20 +17,20 @@ import os
 import logging
 import logging.handlers
 
-from ..constants import SECTION_BDVCLI, KEY_LOGDIR, DEFAULT_LOG_FILENAME
+from ..constants import SECTION_ConfigCLI, KEY_LOGDIR, DEFAULT_LOG_FILENAME
 
 class VcliLog(object):
     """
 
     """
     def __init__(self, config, interactive):
-        logDir = config.get(SECTION_BDVCLI, KEY_LOGDIR)
+        logDir = config.get(SECTION_ConfigCLI, KEY_LOGDIR)
         logFile = os.path.join(logDir, DEFAULT_LOG_FILENAME)
 
         if not os.path.exists(logDir):
             os.makedirs(logDir)
 
-        self.root = logging.getLogger('bdvcli')
+        self.root = logging.getLogger('configcli')
 
         if interactive:
             console_format = logging.Formatter('%(levelname)-7s: %(message)s')

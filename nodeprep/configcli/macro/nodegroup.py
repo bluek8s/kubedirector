@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import BDVCLI_SubCommand
+from .. import ConfigCLI_SubCommand
 
 from ..errors import KeyError
 
-class MacroNodegroup(BDVCLI_SubCommand):
+class MacroNodegroup(ConfigCLI_SubCommand):
     """
     Macros related to node
     """
     def __init__(self, vcli):
-        BDVCLI_SubCommand.__init__(self, vcli, 'nodegroup')
+        ConfigCLI_SubCommand.__init__(self, vcli, 'nodegroup')
 
     def getSubcmdDescripton(self):
         return 'Nodegroup related macros.'

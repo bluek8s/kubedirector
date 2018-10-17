@@ -14,28 +14,28 @@
 # limitations under the License.
 
 from __future__ import print_function
-from .. import BDVCLI_SubCommand
+from .. import ConfigCLI_SubCommand
 
-class NamespaceNode(BDVCLI_SubCommand):
+class NamespaceServices(ConfigCLI_SubCommand):
     """
 
     """
 
     def __init__(self, cmdObj):
-        BDVCLI_SubCommand.__init__(self, cmdObj, 'node')
+        ConfigCLI_SubCommand.__init__(self, cmdObj, 'services')
 
     def getSubcmdDescripton(self):
-        return 'The node namespace from the application configuration metadata'
+        return 'The services namespace from the application configuration metadata.'
 
     def populateParserArgs(self, subparser):
         return self.command.addArgument(subparser)
 
     def run(self, pargs):
-        return self.command._get_value("node", pargs)
+        return self.command._get_value("services", pargs)
 
     def complete(self, text, argsList):
         return []
 
 
-BDVCLI_SubCommand.register(NamespaceNode)
-__all__ = ['NamespaceNode']
+ConfigCLI_SubCommand.register(NamespaceServices)
+__all__ = ['NamespaceServices']

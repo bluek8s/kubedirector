@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from __future__ import print_function
-from ..constants import ENV_BDVCLI_DEBUG
+from ..constants import ENV_ConfigCLI_DEBUG
 
 import os
 import subprocess
@@ -49,7 +49,7 @@ def isDebug():
     """
 
     """
-    return os.getenv(ENV_BDVCLI_DEBUG, 'false').lower() == 'true'
+    return os.getenv(ENV_ConfigCLI_DEBUG, 'false').lower() == 'true'
 
 
 def executeShellCmd(cmd, alternateStr=None):

@@ -1,3 +1,4 @@
+#!/bin/env python
 #
 # Copyright (c) 2018 BlueData Software, Inc.
 #
@@ -14,28 +15,20 @@
 # limitations under the License.
 
 from __future__ import print_function
-from .. import BDVCLI_SubCommand
+from .. import ConfigCLI_Command
 
-class NamespaceVersion(BDVCLI_SubCommand):
+from .version import BaseimageVersion
+
+class Baseimage(ConfigCLI_Command):
     """
 
     """
 
-    def __init__(self, cmdObj):
-        BDVCLI_SubCommand.__init__(self, cmdObj, 'version')
+    def __init__(self, vcli):
+        ConfigCLI_Command.__init__(self, vcli, 'baseimg',
+                         'Baseimage related information.')
 
-    def getSubcmdDescripton(self):
-        return 'The version namespace from the application configuration metadata'
+        BaseimageVersion(self)
 
-    def populateParserArgs(self, subparser):
-        return self.command.addArgument(subparser)
-
-    def run(self, pargs):
-        return self.command._get_value("version", None)
-
-    def complete(self, text, argsList):
-        return []
-
-
-BDVCLI_SubCommand.register(NamespaceVersion)
-__all__ = ['NamespaceVersion']
+ConfigCLI_Command.register(Baseimage)
+__all__ = ['Baseimage']

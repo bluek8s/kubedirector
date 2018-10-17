@@ -14,28 +14,29 @@
 # limitations under the License.
 
 from __future__ import print_function
-from .. import BDVCLI_SubCommand
+from .. import ConfigCLI_SubCommand
+from ..constants import ConfigCLI_VERSION
 
-class NamespaceServices(BDVCLI_SubCommand):
+class VcliVersion(ConfigCLI_SubCommand):
     """
 
     """
 
     def __init__(self, cmdObj):
-        BDVCLI_SubCommand.__init__(self, cmdObj, 'services')
+        ConfigCLI_SubCommand.__init__(self, cmdObj, 'version')
 
     def getSubcmdDescripton(self):
-        return 'The services namespace from the application configuration metadata.'
+        return 'Displays the workbench version.'
 
     def populateParserArgs(self, subparser):
-        return self.command.addArgument(subparser)
+        return
 
     def run(self, pargs):
-        return self.command._get_value("services", pargs)
+        return ConfigCLI_VERSION
 
     def complete(self, text, argsList):
         return []
 
 
-BDVCLI_SubCommand.register(NamespaceServices)
-__all__ = ['NamespaceServices']
+ConfigCLI_SubCommand.register(VcliVersion)
+__all__ = ['VcliVersion']

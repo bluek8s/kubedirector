@@ -16,20 +16,20 @@
 from version import __version__ as VERSION
 import os
 
-BDVCLI_VERSION = VERSION
+ConfigCLI_VERSION = VERSION
 
 DEFAULT_BOOL_TRUE = True
 DEFAULT_BOOL_FALSE = False
 
 # BlueData internal Environment variables
-ENV_BDVCLI_DEBUG='BDVCLI_DEBUG'
+ENV_ConfigCLI_DEBUG='ConfigCLI_DEBUG'
 
-DEFAULT_LOG_DIR = "/var/log/guestconfig/bdvcli"
-DEFAULT_LOG_FILENAME = "bdvcli.log"
+DEFAULT_LOG_DIR = "/var/log/guestconfig/configcli"
+DEFAULT_LOG_FILENAME = "configcli.log"
 
 ######### Configuration files ###########
 CONFIG_DIR = '/etc/guestconfig'
-BDVCLI_CONFIG_FILENAME = os.path.join(CONFIG_DIR, 'bdvcli.conf')
+ConfigCLI_CONFIG_FILENAME = os.path.join(CONFIG_DIR, 'configcli.conf')
 BASEIMG_META_FILE = os.path.join(CONFIG_DIR, 'base_img_version')
 PUBLIC_CONFIG_METADATA_FILE = os.path.join(CONFIG_DIR, 'configmeta.json')
 PRIV_CONFIG_METDATA_FILE = os.path.join(CONFIG_DIR, '.priv_configmeta.json')
@@ -38,7 +38,7 @@ PLATFORM_INFO_METADATA_FILE = os.path.join(CONFIG_DIR, '.platform.json')
 
 ######### Configuration file sections and keys ###########
 # Sections
-SECTION_BDVCLI = 'bdvcli'
+SECTION_ConfigCLI = 'configcli'
 
 # Keys
 KEY_LOGDIR = 'logdir'

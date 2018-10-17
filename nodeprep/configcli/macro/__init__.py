@@ -1,3 +1,4 @@
+#!/bin/env python
 #
 # Copyright (c) 2018 BlueData Software, Inc.
 #
@@ -14,20 +15,31 @@
 # limitations under the License.
 
 from __future__ import print_function
-from .. import BDVCLI_Command
 
-from .version import VcliVersion
+import json
+import argparse
 
-class Vcli(BDVCLI_Command):
+from .. import ConfigCLI_Command
+from ..errors import KeyError
+
+from .node import MacroNode
+from .nodegroup import MacroNodegroup
+
+class Macro(ConfigCLI_Command):
     """
 
     """
 
     def __init__(self, vcli):
-        BDVCLI_Command.__init__(self, vcli, 'vcli',
-                         'BDvcli command related operations.')
+        ConfigCLI_Command.__init__(self, vcli, 'macro',
+                                'A higher order command that abstracts a group '
+                                'of other commands to generate the required '
+                                'information.')
+        self.configmeta = vcli.getCommandObject('namespace')
 
-        VcliVersion(self)
+        MacroNode(self)
+        MacroNodegroup(self)
 
-BDVCLI_Command.register(Vcli)
-__all__ = ['Vcli']
+
+ConfigCLI_Command.register(Macro)
+__all__ = ['Macro']

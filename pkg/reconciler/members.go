@@ -479,7 +479,7 @@ func replicasSynced(
 	return true
 }
 
-// setupNodePrep injects the nodeprep package (bdvcli et al) into the member's
+// setupNodePrep injects the nodeprep package (configcli et al) into the member's
 // container and installs it.
 func setupNodePrep(
 	cr *kdv1.KubeDirectorCluster,

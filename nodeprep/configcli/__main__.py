@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from bdvcli import BDvcli as BDvcli
+from configcli import BDvcli as BDvcli
 import sys, argparse
 
 
@@ -25,7 +25,7 @@ def main():
                         default=None,
                         help='A single instruction to execute.')
     parser.add_argument('-v', '--version', action='store_true', dest='version',
-                        help='Prints bdvcli version and exits.')
+                        help='Prints configcli version and exits.')
 
     compatArgs = parser.add_argument_group("Backward compatible options",
                         "These command line options are provided to preserve "
@@ -203,9 +203,9 @@ def main():
         ## spawn the shell.
         return BDvcli(shell=True).cmdloop()
 
-    bdvcli = BDvcli(shell=False)
-    result = bdvcli.onecmd(instruction)
-    print(bdvcli.process_result(result))
+    configcli = BDvcli(shell=False)
+    result = configcli.onecmd(instruction)
+    print(configcli.process_result(result))
 
     return
 

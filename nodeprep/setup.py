@@ -35,6 +35,7 @@ setup(
 
     entry_points = {
         "console_scripts" : [
+                              'ccli=configcli.__main__:main',
                               'configcli=configcli.__main__:main',
                               'configmacro=configcli.__macro_main__:main'
                             ],

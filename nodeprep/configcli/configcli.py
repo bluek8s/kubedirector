@@ -62,11 +62,11 @@ class ConfigCli(cmd.Cmd):
         self._initialize_commands()
 
         self.ruler = '_'
-        self.prompt = 'configcli> '
+        self.prompt = 'ccli> '
 
         if shell:
             # Interactive session.
-            self.intro = "BlueData vCLI %s.\n" %(ConfigCLI_VERSION)
+            self.intro = "Configuration CLI %s.\n" %(ConfigCLI_VERSION)
             self.use_rawinput = True
             cmd.Cmd.__init__(self)
         else:

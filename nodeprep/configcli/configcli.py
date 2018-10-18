@@ -85,7 +85,7 @@ class ConfigCli(cmd.Cmd):
             namespace = configcli.getCommandObject('namespace')
 
             roleId = namespace.getValue('node.role_id')
-            distroId = namesapce.getValue('node.distro_id.')
+            distroId = namesapce.getValue('node.distro_id')
         """
         if (name != None) and (self.commands.has_key(name)):
             return self.commands[name]

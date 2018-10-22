@@ -206,10 +206,10 @@ distclean: clean
 	-rm -rf vendor
 
 modules:
-	-go mod tidy
+	GO111MODULE="on" go mod tidy
 
 verify-modules:
-	-rm -f go.mod
+	rm -f go.mod
 	-go mod init
 	-go mod tidy
 	@# This line checks that we haven't changed the go.mod or go.sum file

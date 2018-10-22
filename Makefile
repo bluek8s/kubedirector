@@ -212,9 +212,9 @@ verify-modules:
 	-rm -f go.mod
 	-go mod init
 	-go mod tidy
-	# This line checks that we haven't changed the go.mod or go.sum file
-	# apart from the first line (because Travis thinks that the local build
-	# is under the _user's own_ module)
+	@# This line checks that we haven't changed the go.mod or go.sum file
+	@# apart from the first line (because Travis thinks that the local build
+	@# is under the _user's own_ module)
 	@if [ $$(git --no-pager diff --unified=0 --no-color -- go.mod go.sum | \
              grep -Ev "^(-{3}|\+{3}|\@{2}|diff|index).*$$" | \
              grep -Ev ".*github.com/.+?/kubedirector.*$$" | \

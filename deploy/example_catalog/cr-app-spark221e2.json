@@ -44,7 +44,7 @@
             "description": "Spark 2.2.1 with Jupyter"
         },
         "distro_id": "bluedata/spark221e2",
-        "version": "2.5",
+        "version": "2.6",
         "services": [
             {
                 "endpoint": {
@@ -106,7 +106,7 @@
         ],
         "setup_package": {
             "config_api_version": 7,
-            "import_url": "https://s3.amazonaws.com/bluek8s/kubedirector/spark221e2/appconfig.tgz"
+            "import_url": "https://s3.amazonaws.com/bluek8s/kubedirector/spark221e2/appconfig-2.6.tgz"
         },
         "roles": [
             {

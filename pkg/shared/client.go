@@ -30,7 +30,8 @@ var (
 )
 
 // init creates the REST API client that will be used for actions not
-// supported through the operator SDK.
+// supported through the operator SDK. This function also creates an
+// event recorder objects that will be used to publish events for a cr
 func init() {
 
 	Client = newClientInCluster()

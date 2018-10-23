@@ -167,7 +167,6 @@ func initRoleInfo(
 			} else {
 				shared.LogErrorf(
 					cr,
-					true,
 					shared.EventReasonRole,
 					"failed to query StatefulSet{%s} for role{%s}: %v",
 					roleStatus.StatefulSet,
@@ -255,7 +254,6 @@ func handleRoleCreate(
 
 	shared.LogInfof(
 		cr,
-		true,
 		shared.EventReasonRole,
 		"creating role{%s}",
 		role.roleSpec.Name,
@@ -271,7 +269,6 @@ func handleRoleCreate(
 		// on every run through the handler.
 		shared.LogErrorf(
 			cr,
-			true,
 			shared.EventReasonRole,
 			"failed to create StatefulSet for role{%s}: %v",
 			role.roleSpec.Name,
@@ -321,7 +318,6 @@ func handleRoleReCreate(
 	} else {
 		shared.LogInfof(
 			cr,
-			true,
 			shared.EventReasonRole,
 			"restoring role{%s}",
 			role.roleStatus.Name,
@@ -368,7 +364,6 @@ func handleRoleConfig(
 	if updateErr != nil {
 		shared.LogWarnf(
 			cr,
-			true,
 			shared.EventReasonRole,
 			"failed to update StatefulSet{%s}: %v",
 			role.statefulSet.Name,
@@ -387,7 +382,6 @@ func handleRoleDelete(
 
 	shared.LogInfof(
 		cr,
-		true,
 		shared.EventReasonRole,
 		"finishing cleanup on role{%s}",
 		role.roleStatus.Name,
@@ -399,7 +393,6 @@ func handleRoleDelete(
 	} else {
 		shared.LogWarnf(
 			cr,
-			true,
 			shared.EventReasonRole,
 			"failed to delete StatefulSet{%s}: %v",
 			role.statefulSet.Name,
@@ -436,7 +429,6 @@ func handleRoleResize(
 		if len(role.roleStatus.Members) == prevDesiredPop {
 			shared.LogInfof(
 				cr,
-				true,
 				shared.EventReasonRole,
 				"expanding role{%s}",
 				role.roleStatus.Name,
@@ -449,7 +441,6 @@ func handleRoleResize(
 		// the expand was overambitious and is waiting for resources.
 		shared.LogInfof(
 			cr,
-			true,
 			shared.EventReasonRole,
 			"shrinking role{%s}",
 			role.roleStatus.Name,

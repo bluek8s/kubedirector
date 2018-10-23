@@ -42,7 +42,6 @@ func appendArgs(
 // LogInfo logs the given message at Info level.
 func LogInfo(
 	cr *kdv1.KubeDirectorCluster,
-	logEvent bool,
 	eventReason string,
 	msg string,
 ) {
@@ -53,7 +52,7 @@ func LogInfo(
 		cr.Name,
 	)
 
-	if logEvent {
+	if eventReason != "" {
 		LogEvent(
 			cr,
 			v1.EventTypeNormal,
@@ -66,7 +65,6 @@ func LogInfo(
 // LogInfof logs the given message format and payload at Info level.
 func LogInfof(
 	cr *kdv1.KubeDirectorCluster,
-	logEvent bool,
 	eventReason string,
 	format string,
 	args ...interface{},
@@ -77,7 +75,7 @@ func LogInfof(
 		appendArgs(cr, args...)...,
 	)
 
-	if logEvent {
+	if eventReason != "" {
 		LogEventf(
 			cr,
 			v1.EventTypeNormal,
@@ -91,7 +89,6 @@ func LogInfof(
 // LogWarn logs the given message at Warning level.
 func LogWarn(
 	cr *kdv1.KubeDirectorCluster,
-	logEvent bool,
 	eventReason string,
 	msg string,
 ) {
@@ -102,7 +99,7 @@ func LogWarn(
 		cr.Name,
 	)
 
-	if logEvent {
+	if eventReason != "" {
 		LogEvent(
 			cr,
 			v1.EventTypeWarning,
@@ -115,7 +112,6 @@ func LogWarn(
 // LogWarnf logs the given message format and payload at Warning level.
 func LogWarnf(
 	cr *kdv1.KubeDirectorCluster,
-	logEvent bool,
 	eventReason string,
 	format string,
 	args ...interface{},
@@ -126,7 +122,7 @@ func LogWarnf(
 		appendArgs(cr, args...)...,
 	)
 
-	if logEvent {
+	if eventReason != "" {
 		LogEventf(
 			cr,
 			v1.EventTypeWarning,
@@ -140,7 +136,6 @@ func LogWarnf(
 // LogError logs the given message at Error level.
 func LogError(
 	cr *kdv1.KubeDirectorCluster,
-	logEvent bool,
 	eventReason string,
 	msg string,
 ) {
@@ -151,7 +146,7 @@ func LogError(
 		cr.Name,
 	)
 
-	if logEvent {
+	if eventReason != "" {
 		LogEvent(
 			cr,
 			v1.EventTypeWarning,
@@ -164,7 +159,6 @@ func LogError(
 // LogErrorf logs the given message format and payload at Error level.
 func LogErrorf(
 	cr *kdv1.KubeDirectorCluster,
-	logEvent bool,
 	eventReason string,
 	format string,
 	args ...interface{},
@@ -175,7 +169,7 @@ func LogErrorf(
 		appendArgs(cr, args...)...,
 	)
 
-	if logEvent {
+	if eventReason != "" {
 		LogEventf(
 			cr,
 			v1.EventTypeWarning,

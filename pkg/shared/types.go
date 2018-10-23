@@ -34,6 +34,7 @@ const (
 
 // Event reason constants for recording events
 const (
+	EventReasonNoEvent = ""
 	EventReasonCluster = "Cluster"
 	EventReasonRole    = "Role"
 	EventReasonMember  = "Member"

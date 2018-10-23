@@ -75,7 +75,7 @@ func LogInfof(
 		appendArgs(cr, args...)...,
 	)
 
-	if eventReason != "" {
+	if eventReason != EventReasonNoEvent {
 		LogEventf(
 			cr,
 			v1.EventTypeNormal,
@@ -99,7 +99,7 @@ func LogWarn(
 		cr.Name,
 	)
 
-	if eventReason != "" {
+	if eventReason != EventReasonNoEvent {
 		LogEvent(
 			cr,
 			v1.EventTypeWarning,
@@ -122,7 +122,7 @@ func LogWarnf(
 		appendArgs(cr, args...)...,
 	)
 
-	if eventReason != "" {
+	if eventReason != EventReasonNoEvent {
 		LogEventf(
 			cr,
 			v1.EventTypeWarning,
@@ -146,7 +146,7 @@ func LogError(
 		cr.Name,
 	)
 
-	if eventReason != "" {
+	if eventReason != EventReasonNoEvent {
 		LogEvent(
 			cr,
 			v1.EventTypeWarning,
@@ -169,7 +169,7 @@ func LogErrorf(
 		appendArgs(cr, args...)...,
 	)
 
-	if eventReason != "" {
+	if eventReason != EventReasonNoEvent {
 		LogEventf(
 			cr,
 			v1.EventTypeWarning,

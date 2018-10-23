@@ -209,9 +209,9 @@ modules:
 	GO111MODULE="on" go mod tidy
 
 verify-modules:
-	rm -f go.mod
-	-go mod init
-	-go mod tidy
+	rm -f go.mod go.sum
+	-GO111MODULE="on" go mod init
+	-GO111MODULE="on" go mod tidy
 	@# This line checks that we haven't changed the go.mod or go.sum file
 	@# apart from the first line (because Travis thinks that the local build
 	@# is under the _user's own_ module)

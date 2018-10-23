@@ -89,6 +89,7 @@ func syncCluster(
 				}
 				shared.LogWarnf(
 					cr,
+					shared.EventReasonCluster,
 					"trying status update again in %v; failed because: %v",
 					wait,
 					updateErr,

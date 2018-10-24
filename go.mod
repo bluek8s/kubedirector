@@ -37,7 +37,7 @@ require (
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	k8s.io/api v0.0.0-20180308224125-73d903622b73
+	k8s.io/api v0.0.0-20181018013834-843ad2d9b9ae
 	k8s.io/apimachinery v0.0.0-20180228050457-302974c03f7e
 	k8s.io/client-go v0.0.0-20180406111602-989be4278f35
 )

@@ -94,8 +94,8 @@ gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 h1:uRGJdciOHaEIrze2W8Q3AKkep
 gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7/go.mod h1:dt/ZhP58zS4L8KSrWDmTeBkI65Dw0HsyUHuEVlX15mw=
 gopkg.in/yaml.v2 v2.2.1 h1:mUhvW9EsL+naU5Q3cakzfE91YhliOondGd6ZrsDBHQE=
 gopkg.in/yaml.v2 v2.2.1/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
-k8s.io/api v0.0.0-20180308224125-73d903622b73 h1:5Z+PFfTIOXwKmOhQtZ0WBykbpGBBOuvbDx2YNAqIoYc=
-k8s.io/api v0.0.0-20180308224125-73d903622b73/go.mod h1:iuAfoD4hCxJ8Onx9kaTIt30j7jUFS00AXQi6QMi99vA=
+k8s.io/api v0.0.0-20181018013834-843ad2d9b9ae h1:0/EnqdHphDeYoTzTtEC74h4HFIXewdzLUCx4d6TlO0Y=
+k8s.io/api v0.0.0-20181018013834-843ad2d9b9ae/go.mod h1:iuAfoD4hCxJ8Onx9kaTIt30j7jUFS00AXQi6QMi99vA=
 k8s.io/apimachinery v0.0.0-20180228050457-302974c03f7e h1:CsgbEA8905OlpVLNKWD4GacPex50kFbqhotVNPew+dU=
 k8s.io/apimachinery v0.0.0-20180228050457-302974c03f7e/go.mod h1:ccL7Eh7zubPUSh9A3USN90/OzHNSVN6zxzde07TDCL0=
 k8s.io/client-go v0.0.0-20180406111602-989be4278f35 h1:tz53vZQH9E0Q2IW6A5/fDqM8kohMcrWB2caIhiuEl00=

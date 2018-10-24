@@ -101,6 +101,7 @@ func CreateFile(
 	}
 	shared.LogInfof(
 		cr,
+		shared.EventReasonNoEvent,
 		"creating file{%s} in pod{%s}",
 		filePath,
 		podName,
@@ -129,6 +130,7 @@ func ReadFile(
 	}
 	shared.LogInfof(
 		cr,
+		shared.EventReasonNoEvent,
 		"reading file{%s} in pod{%s}",
 		filePath,
 		podName,
@@ -161,6 +163,7 @@ func RunScript(
 	}
 	shared.LogInfof(
 		cr,
+		shared.EventReasonNoEvent,
 		"running %s in pod{%s}",
 		description,
 		podName,
@@ -186,6 +189,7 @@ func execCommand(
 	if podErr != nil {
 		shared.LogErrorf(
 			cr,
+			shared.EventReasonNoEvent,
 			"could not find pod{%s}: %v",
 			podName,
 			podErr,
@@ -241,6 +245,7 @@ func execCommand(
 	if initErr != nil {
 		shared.LogErrorf(
 			cr,
+			shared.EventReasonNoEvent,
 			"failed to init the executor: %v",
 			initErr,
 		)

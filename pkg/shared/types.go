@@ -31,3 +31,11 @@ const (
 	// which is the namespace of the kubedirector pod.
 	KubeDirectorNamespaceEnvVar = "MY_NAMESPACE"
 )
+
+// Event reason constants for recording events
+const (
+	EventReasonNoEvent = ""
+	EventReasonCluster = "Cluster"
+	EventReasonRole    = "Role"
+	EventReasonMember  = "Member"
+)

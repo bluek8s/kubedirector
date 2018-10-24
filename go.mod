@@ -1,4 +1,4 @@
-module github.com/BlueK8s/kubedirector
+module github.com/bluek8s/kubedirector
 
 require (
 	cloud.google.com/go v0.31.0 // indirect
@@ -20,6 +20,7 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
+	github.com/onsi/gomega v1.4.2 // indirect
 	github.com/operator-framework/operator-sdk v0.0.6
 	github.com/prometheus/client_golang v0.9.0 // indirect
 	github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910 // indirect
@@ -30,13 +31,12 @@ require (
 	golang.org/x/crypto v0.0.0-20181024171144-74cb1d3d52f4 // indirect
 	golang.org/x/net v0.0.0-20181023162649-9b4f9f5ad519 // indirect
 	golang.org/x/oauth2 v0.0.0-20181017192945-9dcd33a902f4 // indirect
-	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect
 	golang.org/x/sys v0.0.0-20181024145615-5cd93ef61a7c // indirect
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
 	google.golang.org/appengine v1.2.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/yaml.v2 v2.2.1 // indirect
 	k8s.io/api v0.0.0-20180308224125-73d903622b73
 	k8s.io/apimachinery v0.0.0-20180228050457-302974c03f7e
 	k8s.io/client-go v0.0.0-20180406111602-989be4278f35
+	k8s.io/kube-openapi v0.0.0-20181024003938-96e8bb74ecdd // indirect
 )

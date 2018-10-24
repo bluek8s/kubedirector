@@ -34,22 +34,6 @@
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
-  digest = "1:d6a2dbf95738f5b59ef488d45297beefbc9271765e9937eda6f90b36a8eda0df"
-  name = "github.com/bluek8s/kubedirector"
-  packages = [
-    "pkg/apis/kubedirector.bluedata.io/v1alpha1",
-    "pkg/catalog",
-    "pkg/executor",
-    "pkg/observer",
-    "pkg/reconciler",
-    "pkg/shared",
-    "pkg/validator",
-  ]
-  pruneopts = "NUT"
-  revision = "c0d00adbbda519bfaa6863d7177189db48ced587"
-  version = "v0.1.0"
-
-[[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -137,6 +121,14 @@
   packages = ["."]
   pruneopts = "NUT"
   revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
+
+[[projects]]
+  branch = "master"
+  digest = "1:3fb07f8e222402962fa190eb060608b34eddfb64562a18e2167df2de0ece85d8"
+  name = "github.com/golang/groupcache"
+  packages = ["lru"]
+  pruneopts = "NUT"
+  revision = "6f2cf27854a4a29e3811b0371547be335d411b8b"
 
 [[projects]]
   digest = "1:63ccdfbd20f7ccd2399d0647a7d100b122f79c13bb83da9660b1598396fd9f62"
@@ -500,7 +492,7 @@
   revision = "73d903622b7391f3312dcbac6483fed484e185f8"
 
 [[projects]]
-  digest = "1:4bbeef478a9432819ef22478266d51595cdf18280403140f97c49336faacb7d1"
+  digest = "1:864206cd10d8ecad4a983ee578ff5488e9a57a6ccd6201b2bf895e7d887afaad"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -533,16 +525,19 @@
     "pkg/util/httpstream/spdy",
     "pkg/util/intstr",
     "pkg/util/json",
+    "pkg/util/mergepatch",
     "pkg/util/net",
     "pkg/util/remotecommand",
     "pkg/util/runtime",
     "pkg/util/sets",
+    "pkg/util/strategicpatch",
     "pkg/util/validation",
     "pkg/util/validation/field",
     "pkg/util/wait",
     "pkg/util/yaml",
     "pkg/version",
     "pkg/watch",
+    "third_party/forked/golang/json",
     "third_party/forked/golang/netutil",
     "third_party/forked/golang/reflect",
   ]
@@ -550,7 +545,7 @@
   revision = "302974c03f7e50f16561ba237db776ab93594ef6"
 
 [[projects]]
-  digest = "1:3d8d9cae46071cb09911cbb497b9e92b2ed2d7053046513ff5fe741080f0974f"
+  digest = "1:b8ef5b64ca69e8d8c65569c92e06a9c18dd4f23c8a239df6b3eebcf5d2f29da2"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -602,6 +597,7 @@
     "tools/clientcmd/api/v1",
     "tools/metrics",
     "tools/pager",
+    "tools/record",
     "tools/reference",
     "tools/remotecommand",
     "transport",
@@ -671,13 +667,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:7790bd1beb3d27468ec9e5cb2d82d8d30fd72811a50dddec50d77f0d410314b2"
+  digest = "1:ea5e30771ca6f8913e96b5e005764f7f1b8ea0a10dbb51230011df50bc073ceb"
   name = "k8s.io/kube-openapi"
   packages = [
     "cmd/openapi-gen/args",
     "pkg/common",
     "pkg/generators",
     "pkg/generators/rules",
+    "pkg/util/proto",
     "pkg/util/sets",
   ]
   pruneopts = "NUT"
@@ -687,13 +684,6 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1",
-    "github.com/bluek8s/kubedirector/pkg/catalog",
-    "github.com/bluek8s/kubedirector/pkg/executor",
-    "github.com/bluek8s/kubedirector/pkg/observer",
-    "github.com/bluek8s/kubedirector/pkg/reconciler",
-    "github.com/bluek8s/kubedirector/pkg/shared",
-    "github.com/bluek8s/kubedirector/pkg/validator",
     "github.com/google/uuid",
     "github.com/operator-framework/operator-sdk/pkg/sdk",
     "github.com/operator-framework/operator-sdk/pkg/util/k8sutil",
@@ -712,8 +702,11 @@
     "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
+    "k8s.io/client-go/kubernetes/typed/core/v1",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
     "k8s.io/client-go/rest",
+    "k8s.io/client-go/tools/record",
+    "k8s.io/client-go/tools/reference",
     "k8s.io/client-go/tools/remotecommand",
     "k8s.io/client-go/util/cert",
     "k8s.io/client-go/util/cert/triple",

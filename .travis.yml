@@ -4,7 +4,7 @@ go:
   - "1.11"
 
 env:
-  - DEP_VERSION="0.5.0" # I'm using 0.5.0, so Travis gets to use 0.5.0
+  - DEP_VERSION="0.5.0" GO111MODULE="on" # I'm using 0.5.0, so Travis gets to use 0.5.0
 
 before_install:
   # if we're in a mainline build, don't make a symlink
@@ -17,3 +17,4 @@ before_install:
 
 script:
   - make compile
+  - make verify-modules

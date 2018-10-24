@@ -205,7 +205,30 @@ clean:
 distclean: clean
 	-rm -rf vendor
 
+modules:
+	GO111MODULE="on" go mod tidy
+
+verify-modules:
+	rm -f go.mod go.sum
+	-GO111MODULE="on" go mod init
+	-GO111MODULE="on" go mod tidy
+	@# This line checks that we haven't changed the go.mod or go.sum file
+	@# apart from the first line (because Travis thinks that the local build
+	@# is under the _user's own_ module)
+	@if [ $$(git --no-pager diff --unified=0 --no-color -- go.mod go.sum | \
+             grep -Ev "^(-{3}|\+{3}|\@{2}|diff|index).*$$" | \
+             grep -Ev ".*github.com/.+?/kubedirector.*$$" | \
+             wc -c) -eq 0 ] ; then \
+        echo "no module changes, good job!" ; \
+    else \
+        echo "changes to go modules" ; \
+        echo "make sure to run \`make modules\` before checking in" ; \
+        git --no-pager diff --unified=0 -- go.mod go.sum ; \
+        dep version ; \
+        exit 1 ; \
+    fi
+
 $(build_dir):
 	@mkdir -p $@
 
-.PHONY: build push deploy redeploy undeploy teardown format dep clean distclean compile
+.PHONY: build push deploy redeploy undeploy teardown format dep clean distclean compile verify-modules modules

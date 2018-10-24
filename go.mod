@@ -3,6 +3,7 @@ module github.com/BlueK8s/kubedirector
 require (
 	cloud.google.com/go v0.26.0 // indirect
 	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect
+	github.com/bluek8s/kubedirector v0.1.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/spdystream v0.0.0-20170912183627-bc6354cbbc29 // indirect
 	github.com/elazarl/goproxy v0.0.0-20181003060214-f58a169a71a5 // indirect
@@ -40,4 +41,5 @@ require (
 	k8s.io/api v0.0.0-20180308224125-73d903622b73
 	k8s.io/apimachinery v0.0.0-20180228050457-302974c03f7e
 	k8s.io/client-go v0.0.0-20180406111602-989be4278f35
+	k8s.io/kube-openapi v0.0.0-20181021203552-90b54e673cf4 // indirect
 )

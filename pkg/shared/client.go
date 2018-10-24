@@ -15,6 +15,7 @@
 package shared
 
 import (
+	k8sutil "github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -31,7 +32,7 @@ var (
 
 // init creates the REST API client that will be used for actions not
 // supported through the operator SDK. This function also creates an
-// event recorder objects that will be used to publish events for a cr
+// event recorder object that will be used to publish events for a cr
 func init() {
 
 	Client = newClientInCluster()
@@ -83,9 +84,10 @@ func getEventRecorder() record.EventRecorder {
 			Interface: Client.Clientset.CoreV1().Events(""),
 		},
 	)
+	operatorName, _ := k8sutil.GetOperatorName()
 	recorder := eventBroadcaster.NewRecorder(
 		scheme.Scheme,
-		v1.EventSource{Component: "kubedirector"},
+		v1.EventSource{Component: operatorName},
 	)
 	return recorder
 }

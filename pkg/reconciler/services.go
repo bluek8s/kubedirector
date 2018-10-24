@@ -167,9 +167,10 @@ func handleMemberService(
 			if member.Service != "" {
 				shared.LogWarnf(
 					cr,
-					shared.EventReasonCluster,
-					"re-creating missing service for member{%s}",
+					shared.EventReasonMember,
+					"re-creating missing service for member{%s} in role{%s}",
 					member.Pod,
+					role.roleStatus.Name,
 				)
 			}
 			// Need to create a service.
@@ -212,8 +213,9 @@ func handleMemberServiceCreate(
 		shared.LogErrorf(
 			cr,
 			shared.EventReasonMember,
-			"failed to create member service for member{%s}: %v",
+			"failed to create member service for member{%s} in role{%s}: %v",
 			member.Pod,
+			role.roleStatus.Name,
 			createErr,
 		)
 		member.Service = ""

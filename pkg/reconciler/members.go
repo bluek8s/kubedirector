@@ -105,8 +105,9 @@ func handleReadyMembers(
 				shared.LogWarnf(
 					cr,
 					shared.EventReasonMember,
-					"failed to find member{%s}: %v",
+					"failed to find member{%s} in role{%s}: %v",
 					m.Pod,
+					role.roleStatus.Name,
 					podGetErr,
 				)
 				allReadyFinished = false
@@ -129,8 +130,9 @@ func handleReadyMembers(
 				shared.LogWarnf(
 					cr,
 					shared.EventReasonMember,
-					"failed to update config in member{%s}: %v",
+					"failed to update config in member{%s} in role{%s}: %v",
 					m.Pod,
+					role.roleStatus.Name,
 					createFileErr,
 				)
 				allReadyFinished = false
@@ -179,8 +181,9 @@ func handleCreatePendingMembers(
 				shared.LogWarnf(
 					cr,
 					shared.EventReasonMember,
-					"failed to find member{%s}: %v",
+					"failed to find member{%s} in role{%s}: %v",
 					m.Pod,
+					role.roleStatus.Name,
 					podGetErr,
 				)
 				return
@@ -214,10 +217,11 @@ func handleCreatingMembers(
 	// Fetch setup url package
 	setupUrl, setupUrlErr := catalog.AppSetupPackageUrl(cr, role.roleStatus.Name)
 	if setupUrlErr != nil {
-		shared.LogWarn(
+		shared.LogWarnf(
 			cr,
-			shared.EventReasonMember,
-			"failed to fetch setup url",
+			shared.EventReasonRole,
+			"failed to fetch setup url for role{%s}",
+			role.roleStatus.Name,
 		)
 		return
 	}
@@ -246,8 +250,9 @@ func handleCreatingMembers(
 				shared.LogInfof(
 					cr,
 					shared.EventReasonMember,
-					"initial config ongoing for member{%s}",
+					"initial config ongoing for member{%s} in role{%s}",
 					m.Pod,
+					role.roleStatus.Name,
 				)
 				return
 			}
@@ -255,8 +260,9 @@ func handleCreatingMembers(
 				shared.LogWarnf(
 					cr,
 					shared.EventReasonMember,
-					"failed to run initial config for member{%s}: %v",
+					"failed to run initial config for member{%s} in role{%s}: %v",
 					m.Pod,
+					role.roleStatus.Name,
 					configErr,
 				)
 				m.State = string(memberConfigError)
@@ -265,8 +271,9 @@ func handleCreatingMembers(
 			shared.LogInfof(
 				cr,
 				shared.EventReasonMember,
-				"initial config done for member{%s}",
+				"initial config done for member{%s} in role{%s}",
 				m.Pod,
+				role.roleStatus.Name,
 			)
 			// Set a temporary state used below so we won't send notifies
 			// to this member yet.
@@ -280,7 +287,7 @@ func handleCreatingMembers(
 		if !notifyReadyNodes(cr, role, allRoles) {
 			shared.LogWarn(
 				cr,
-				shared.EventReasonMember,
+				shared.EventReasonCluster,
 				"failed to notify all ready nodes for addnodes event",
 			)
 		}
@@ -309,10 +316,11 @@ func handleDeletePendingMembers(
 	// Let any ready nodes know that some nodes will disappear,
 	setupUrl, setupUrlErr := catalog.AppSetupPackageUrl(cr, role.roleStatus.Name)
 	if setupUrlErr != nil {
-		shared.LogWarn(
+		shared.LogWarnf(
 			cr,
-			shared.EventReasonMember,
-			"failed to fetch setup url",
+			shared.EventReasonRole,
+			"failed to fetch setup url for role{%s}",
+			role.roleStatus.Name,
 		)
 		return
 	}
@@ -320,7 +328,7 @@ func handleDeletePendingMembers(
 		if !notifyReadyNodes(cr, role, allRoles) {
 			shared.LogWarn(
 				cr,
-				shared.EventReasonMember,
+				shared.EventReasonCluster,
 				"failed to notify all ready nodes for delnodes event",
 			)
 		}
@@ -378,8 +386,9 @@ func handleDeletingMembers(
 				shared.LogWarnf(
 					cr,
 					shared.EventReasonMember,
-					"failed to find member{%s}: %v",
+					"failed to find member{%s} in role{%s}: %v",
 					m.Pod,
+					role.roleStatus.Name,
 					podGetErr,
 				)
 				return
@@ -448,7 +457,7 @@ func checkMemberCount(
 	if *(role.statefulSet.Spec.Replicas) != replicas {
 		shared.LogInfof(
 			cr,
-			shared.EventReasonMember,
+			shared.EventReasonRole,
 			"changing replicas count for role{%s}: %v -> %v",
 			role.roleStatus.Name,
 			*(role.statefulSet.Spec.Replicas),
@@ -461,7 +470,7 @@ func checkMemberCount(
 		if updateErr != nil {
 			shared.LogWarnf(
 				cr,
-				shared.EventReasonMember,
+				shared.EventReasonRole,
 				"failed to change StatefulSet{%s} replicas: %v",
 				role.statefulSet.Name,
 				updateErr,
@@ -483,7 +492,7 @@ func replicasSynced(
 	if role.statefulSet.Status.Replicas != *(role.statefulSet.Spec.Replicas) {
 		shared.LogInfof(
 			cr,
-			shared.EventReasonMember,
+			shared.EventReasonRole,
 			"waiting for replicas count for role{%s}: %v -> %v",
 			role.roleStatus.Name,
 			role.statefulSet.Status.Replicas,
@@ -598,8 +607,9 @@ func notifyReadyNodes(
 						shared.LogWarnf(
 							cr,
 							shared.EventReasonMember,
-							"failed to notify member{%s}: %v",
+							"failed to notify member{%s} in role{%s}: %v",
 							m.Pod,
+							role.roleStatus.Name,
 							configErr,
 						)
 						allNotifyFinished = false

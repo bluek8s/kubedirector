@@ -195,7 +195,7 @@ format:
 	go fmt $(shell go list ./... | grep -v /vendor/)
 
 dep:
-	dep ensure -v
+	dep ensure -v -update
 
 clean:
 	-rm -f deploy/kubedirector/rbac.yaml

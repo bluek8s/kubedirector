@@ -137,13 +137,14 @@ func nodegroups(
 		fqdnMappings := make(map[string]string)
 		for _, m := range members {
 			nodeName := m.Pod
-			nodeId := m.NodeId
+			// ConfigCli expects this to be a string.
+			nodeIdStr := strconv.FormatInt(m.NodeId, 10)
 
 			f := nodeName + "." + domain
-			fqdnMappings[f] = nodeId
+			fqdnMappings[f] = nodeIdStr
 
 			fqdns = append(fqdns, f)
-			nodeIds = append(nodeIds, nodeId)
+			nodeIds = append(nodeIds, nodeIdStr)
 		}
 		memoryQuant := roleSpec.Resources.Limits[v1.ResourceMemory]
 		memoryMb := memoryQuant.Value() / (1024 * 1024)
@@ -236,7 +237,7 @@ func ConfigmetaGenerator(
 			perNodeConfig[memberName] = &node{
 				RoleId:      roleName,
 				NodegroupId: "1",
-				Id:          member.NodeId,
+				Id:          strconv.FormatInt(member.NodeId, 10),
 				Hostname:    memberName + "." + domain,
 				Fqdn:        memberName + "." + domain,
 				Domain:      domain,

@@ -101,7 +101,7 @@ type MemberStatus struct {
 	Service string `json:"service"`
 	PVC     string `json:"pvc,omitempty"`
 	State   string `json:"state"`
-	NodeId  string `json:"node_id"`
+	NodeId  int64  `json:"node_id"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

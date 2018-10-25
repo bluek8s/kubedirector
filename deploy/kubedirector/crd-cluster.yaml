@@ -98,7 +98,7 @@ spec:
                         pod:
                           type: string
                         node_id:
-                          type: string
+                          type: integer
                         service:
                           type: string
                         pvc:

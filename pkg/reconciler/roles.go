@@ -470,7 +470,7 @@ func addMemberStatuses(
 				Pod:     memberName,
 				Service: "",
 				PVC:     pvcName,
-				NodeId:  strconv.FormatInt(atomic.AddInt64(lastNodeId, 1), 10),
+				NodeId:  atomic.AddInt64(lastNodeId, 1),
 				State:   string(memberCreatePending),
 			},
 		)

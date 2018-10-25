@@ -54,6 +54,8 @@ spec:
                   id:
                     type: string
                     minLength: 1
+                    maxLength: 15
+                    pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
                   label:
                     required: [name]
                     properties:
@@ -130,6 +132,8 @@ spec:
                         items:
                           type: string
                           minLength: 1
+                          maxLength: 15
+                          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
             persist_dirs:
               type: array
               items:

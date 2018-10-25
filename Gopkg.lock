@@ -332,7 +332,7 @@
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "NUT"
-  revision = "85e1b3f9139abd58575d728a509643924e3b2ebf"
+  revision = "e84da0312774c21d64ee2317962ef669b27ffb41"
 
 [[projects]]
   branch = "master"
@@ -667,7 +667,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e88a149847a9598d3957919787d2a1a89b2529f05a9b2a71a4d30eaca1d466bd"
+  digest = "1:33c06a4edcd79317020ea1f814ccd918217ab7a5976050aeab87bf11fb2db009"
   name = "k8s.io/kube-openapi"
   packages = [
     "cmd/openapi-gen/args",
@@ -678,7 +678,7 @@
     "pkg/util/sets",
   ]
   pruneopts = "NUT"
-  revision = "3ad5caa95aef432cd737c23ee9ee76eb11e789a6"
+  revision = "3a9b63ab1e397dc12a9764df998f99bc59dfd9ae"
 
 [solve-meta]
   analyzer-name = "dep"

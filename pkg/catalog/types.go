@@ -87,3 +87,8 @@ type flavor struct {
 	Description string `json:"description"`
 	Cores       string `json:"cores"`
 }
+
+type ServicePortInfo struct {
+	ID   string
+	Port int32
+}

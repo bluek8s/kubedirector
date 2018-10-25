@@ -17,4 +17,3 @@ before_install:
 
 script:
   - make compile
-  - make verify-modules

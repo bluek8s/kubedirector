@@ -209,7 +209,7 @@ func handleStatusGen(
 		}
 		shared.LogWarnf(
 			cr,
-			shared.EventReasonCluster,
+			shared.EventReasonNoEvent,
 			"unknown with incoming gen uid %s",
 			incoming,
 		)
@@ -224,7 +224,7 @@ func handleStatusGen(
 
 	shared.LogInfo(
 		cr,
-		shared.EventReasonCluster,
+		shared.EventReasonNoEvent,
 		"dropping stale poll",
 	)
 	return false

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+#
 # Copyright 2018 BlueData Software, Inc.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,11 +14,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from setuptools import setup, find_packages
+from distutils.core import setup
+from setuptools import find_packages
 
-setup(name='bdvcli tool',
-      version='1.0',
-      license='Apache',
-      packages=find_packages(),
-      scripts=['./bd_vlib/bdvcli', './bdmacro/bdmacro'],
-      zip_safe=False)
+import configcli
+
+setup(
+    name = 'configcli',
+    packages = find_packages(),
+    version = configcli.__version__,
+    description = '',
+
+    zip_safe=False,
+    include_package_data=True,
+
+    author = 'BlueData Software, Inc.',
+    author_email = 'support@bluedata.com',
+    url = 'https://github.com/bluek8s/kubedirector/nodeprep',
+    keywords = [ 'configcli', 'configmacro', 'k8s', 'kubedirector'],
+
+    entry_points = {
+        "console_scripts" : [
+                              'ccli=configcli.__main__:main',
+                              'configcli=configcli.__main__:main',
+                              'configmacro=configcli.__macro_main__:main'
+                            ],
+    },
+    install_requires = [
+    ],
+    classifiers = [
+            "Environment :: Console",
+            "Natural Language :: English",
+            "Programming Language :: Python",
+            "Intended Audience :: Developers",
+            "Development Status :: 5 - Production/Stable",
+            "License :: OSI Approved :: Apache Software License",
+            "Programming Language :: Python :: Implementation :: CPython",
+    ]
+)

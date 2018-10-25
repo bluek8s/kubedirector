@@ -161,7 +161,7 @@ func syncCluster(
 
 	configmetaGen, configMetaErr := catalog.ConfigmetaGenerator(
 		cr,
-		calcMemberNamesForRoles(roles),
+		calcMembersForRoles(roles),
 	)
 	if configMetaErr != nil {
 		shared.LogErrorf(
@@ -259,17 +259,19 @@ func handleFinalizers(
 	}
 }
 
-// calcMemberNamesForRoles generates a map of role name to list of all member
-// names the role that are intended to exist -- i.e. members in states
+// calcMembersForRoles generates a map of role name to list of all member
+// in the role that are intended to exist -- i.e. members in states
 // memberCreatePending, memberCreating, memberReady or memberConfigError
-func calcMemberNamesForRoles(
+func calcMembersForRoles(
 	roles []*roleInfo,
-) map[string][]string {
+) map[string][]*kdv1.MemberStatus {
 
-	result := make(map[string][]string)
+	result := make(map[string][]*kdv1.MemberStatus)
 	for _, roleInfo := range roles {
 		if roleInfo.roleSpec != nil {
-			membersStatus := append(
+			var membersStatus []*kdv1.MemberStatus
+
+			membersStatus = append(
 				append(
 					append(
 						roleInfo.membersByState[memberCreatePending],
@@ -279,11 +281,7 @@ func calcMemberNamesForRoles(
 				),
 				roleInfo.membersByState[memberConfigError]...,
 			)
-			var memberNamesForRole []string
-			for _, member := range membersStatus {
-				memberNamesForRole = append(memberNamesForRole, member.Pod)
-			}
-			result[roleInfo.roleSpec.Name] = memberNamesForRole
+			result[roleInfo.roleSpec.Name] = membersStatus
 		}
 	}
 	return result

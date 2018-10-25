@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import print_function
 
 from .. import ConfigCLI_SubCommand
 
@@ -48,7 +49,12 @@ class MacroNode(ConfigCLI_SubCommand):
         elif pargs.nodeid != None:
             return self.getNodeIdFromFqdn(pargs.nodeid[0])
         else:
-            self.parser.error("atleast one argument must be provided")
+            errStr = "atleast one argument must be provided"
+            if self.ccli.is_interactive():
+                self.parser.print_usage()
+                print('macro node: error:', errStr, end='')
+            else:
+                self.parser.error(errStr)
 
     def _prune_id_from_string(self, node_id):
         """

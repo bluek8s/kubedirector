@@ -104,5 +104,5 @@ k8s.io/apimachinery v0.0.0-20180228050457-302974c03f7e h1:CsgbEA8905OlpVLNKWD4Ga
 k8s.io/apimachinery v0.0.0-20180228050457-302974c03f7e/go.mod h1:ccL7Eh7zubPUSh9A3USN90/OzHNSVN6zxzde07TDCL0=
 k8s.io/client-go v0.0.0-20180406111602-989be4278f35 h1:tz53vZQH9E0Q2IW6A5/fDqM8kohMcrWB2caIhiuEl00=
 k8s.io/client-go v0.0.0-20180406111602-989be4278f35/go.mod h1:7vJpHMYJwNQCWgzmNV+VYUl1zCObLyodBc8nIyt8L5s=
-k8s.io/kube-openapi v0.0.0-20181025180445-3ad5caa95aef h1:yTA6APaia2crWjz8/6d+St+Awxy4/tjV/ztr9kCZiV4=
-k8s.io/kube-openapi v0.0.0-20181025180445-3ad5caa95aef/go.mod h1:BXM9ceUBTj2QnfH2MK1odQs778ajze1RxcmP6S8RVVc=
+k8s.io/kube-openapi v0.0.0-20181025202442-3a9b63ab1e39 h1:4I91xwvUbr2jxozOwbUBFBmo6XvBdoC1RLc85Kfg2dY=
+k8s.io/kube-openapi v0.0.0-20181025202442-3a9b63ab1e39/go.mod h1:BXM9ceUBTj2QnfH2MK1odQs778ajze1RxcmP6S8RVVc=

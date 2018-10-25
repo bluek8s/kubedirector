@@ -17,6 +17,7 @@ package reconciler
 import (
 	"fmt"
 	"strconv"
+	"sync/atomic"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/executor"
@@ -292,7 +293,7 @@ func handleRoleCreate(
 		cr.Status.Roles = append(cr.Status.Roles, newRoleStatus)
 		role.roleStatus = &(cr.Status.Roles[len(cr.Status.Roles)-1])
 	}
-	addMemberStatuses(role)
+	addMemberStatuses(cr, role)
 	return nil
 }
 
@@ -434,7 +435,7 @@ func handleRoleResize(
 				role.roleStatus.Name,
 			)
 			*anyMembersChanged = true
-			addMemberStatuses(role)
+			addMemberStatuses(cr, role)
 		}
 	} else {
 		// We can shrink in any state. This is a helpful thing to allow when
@@ -454,9 +455,11 @@ func handleRoleResize(
 // to bring it up to the desired number of members. It also updates the
 // members-by-state map accordingly.
 func addMemberStatuses(
+	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 ) {
 
+	lastNodeId := &cr.Status.LastNodeId
 	currentPop := len(role.roleStatus.Members)
 	for i := currentPop; i < role.desiredPop; i++ {
 		indexString := strconv.Itoa(i)
@@ -476,6 +479,7 @@ func addMemberStatuses(
 				Pod:     memberName,
 				Service: "",
 				PVC:     pvcName,
+				NodeId:  atomic.AddInt64(lastNodeId, 1),
 				State:   string(memberCreatePending),
 			},
 		)

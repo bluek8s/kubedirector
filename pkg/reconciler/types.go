@@ -72,7 +72,7 @@ const (
 	nodePrepInstallCmd = `cd /tmp;tar xzf nodeprep.tgz;
 	chmod +x /tmp/nodeprep/install;/tmp/nodeprep/install;
 	rm -rf /tmp/nodeprep;rm -f /tmp/nodeprep.tgz`
-	nodePrepTestFile   = "/usr/bin/bdvcli"
+	nodePrepTestFile   = "/usr/bin/configcli"
 	appPrepStartscript = "/opt/guestconfig/*/startscript"
 	appPrepInitCmd     = `cd /opt/guestconfig/;
 	rm -rf /opt/guestconfig/*;

@@ -43,7 +43,7 @@
             "description": "Cassandra 3.11 on centos 7.x"
         },
         "distro_id": "bluedata/cassandra311",
-        "version": "3.0",
+        "version": "3.1",
         "services": [
             {
                 "endpoint": {
@@ -69,7 +69,7 @@
         ],
         "setup_package": {
             "config_api_version": 7,
-            "import_url": "https://s3.amazonaws.com/bluek8s/kubedirector/cassandra311/appconfig.tgz"
+            "import_url": "https://s3.amazonaws.com/bluek8s/kubedirector/cassandra311/appconfig-3.1.tgz"
         },
         "roles": [
             {

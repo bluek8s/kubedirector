@@ -1,25 +1,34 @@
-#!/bin/bash
-
-# Copyright 2018 BlueData Software, Inc.
-
+#!/bin/env python
+#
+# Copyright (c) 2018 BlueData Software, Inc.
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-THIS_DIR=$(dirname $(readlink -nf ${BASH_SOURCE[0]}))
+from __future__ import print_function
+from .. import ConfigCLI_Command
 
-chmod 644 /etc/guestconfig/configmeta.json
+from .version import BaseimageVersion
 
-mkdir -p /var/log/guestconfig
-mkdir -p /opt/guestconfig
-chmod a+X /opt/guestconfig /var/log/guestconfig
+class Baseimage(ConfigCLI_Command):
+    """
 
-(cd ${THIS_DIR}; python setup.py install)
+    """
+
+    def __init__(self, ccli):
+        ConfigCLI_Command.__init__(self, ccli, 'baseimg',
+                         'Baseimage related information.')
+
+        BaseimageVersion(self)
+
+ConfigCLI_Command.register(Baseimage)
+__all__ = ['Baseimage']

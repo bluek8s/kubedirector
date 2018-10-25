@@ -33,7 +33,7 @@
             "description": "TensorFlow1.9 CPU with centos7x"
         },
         "distro_id": "bluedata/tensorflow19cpu",
-        "version": "1.7",
+        "version": "1.8",
         "services": [
             {
                 "endpoint": {
@@ -60,7 +60,7 @@
         ],
         "setup_package": {
             "config_api_version": 7,
-            "import_url": "https://s3.amazonaws.com/bluek8s/kubedirector/tensorflowcpu/appconfig.tgz"
+            "import_url": "https://s3.amazonaws.com/bluek8s/kubedirector/tensorflowcpu/appconfig-1.8.tgz"
         },
         "roles": [
             {

@@ -173,6 +173,7 @@ func getStatefulset(
 				if !strings.HasPrefix(rel, "..") {
 					shared.LogInfof(
 						cr,
+						shared.EventReasonNoEvent,
 						"skipping {%s} from volume claim mounts. dir {%s} covers it",
 						appDir,
 						defaultDir,

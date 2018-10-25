@@ -76,6 +76,7 @@ func UpdateStatus(
 	if patchErr != nil {
 		shared.LogErrorf(
 			cr,
+			shared.EventReasonCluster,
 			"failed to update status: %v",
 			patchErr,
 		)
@@ -115,6 +116,7 @@ func RemoveFinalizer(
 	if patchErr != nil {
 		shared.LogErrorf(
 			cr,
+			shared.EventReasonCluster,
 			"failed to remove finalizer: %v",
 			patchErr,
 		)
@@ -166,6 +168,7 @@ func EnsureFinalizer(
 	if patchErr != nil {
 		shared.LogErrorf(
 			cr,
+			shared.EventReasonCluster,
 			"failed to add finalizer: %v",
 			patchErr,
 		)

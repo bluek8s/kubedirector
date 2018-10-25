@@ -104,6 +104,7 @@ func handleReadyMembers(
 				// Can't get the pod. Skip it and try again later.
 				shared.LogWarnf(
 					cr,
+					shared.EventReasonMember,
 					"failed to find member{%s}: %v",
 					m.Pod,
 					podGetErr,
@@ -127,6 +128,7 @@ func handleReadyMembers(
 			if createFileErr != nil {
 				shared.LogWarnf(
 					cr,
+					shared.EventReasonMember,
 					"failed to update config in member{%s}: %v",
 					m.Pod,
 					createFileErr,
@@ -176,6 +178,7 @@ func handleCreatePendingMembers(
 				// Can't get the pod. Skip it and try again later.
 				shared.LogWarnf(
 					cr,
+					shared.EventReasonMember,
 					"failed to find member{%s}: %v",
 					m.Pod,
 					podGetErr,
@@ -213,6 +216,7 @@ func handleCreatingMembers(
 	if setupUrlErr != nil {
 		shared.LogWarn(
 			cr,
+			shared.EventReasonMember,
 			"failed to fetch setup url",
 		)
 		return
@@ -241,6 +245,7 @@ func handleCreatingMembers(
 			if !isFinal {
 				shared.LogInfof(
 					cr,
+					shared.EventReasonMember,
 					"initial config ongoing for member{%s}",
 					m.Pod,
 				)
@@ -249,6 +254,7 @@ func handleCreatingMembers(
 			if configErr != nil {
 				shared.LogWarnf(
 					cr,
+					shared.EventReasonMember,
 					"failed to run initial config for member{%s}: %v",
 					m.Pod,
 					configErr,
@@ -258,6 +264,7 @@ func handleCreatingMembers(
 			}
 			shared.LogInfof(
 				cr,
+				shared.EventReasonMember,
 				"initial config done for member{%s}",
 				m.Pod,
 			)
@@ -273,6 +280,7 @@ func handleCreatingMembers(
 		if !notifyReadyNodes(cr, role, allRoles) {
 			shared.LogWarn(
 				cr,
+				shared.EventReasonMember,
 				"failed to notify all ready nodes for addnodes event",
 			)
 		}
@@ -303,6 +311,7 @@ func handleDeletePendingMembers(
 	if setupUrlErr != nil {
 		shared.LogWarn(
 			cr,
+			shared.EventReasonMember,
 			"failed to fetch setup url",
 		)
 		return
@@ -311,6 +320,7 @@ func handleDeletePendingMembers(
 		if !notifyReadyNodes(cr, role, allRoles) {
 			shared.LogWarn(
 				cr,
+				shared.EventReasonMember,
 				"failed to notify all ready nodes for delnodes event",
 			)
 		}
@@ -367,6 +377,7 @@ func handleDeletingMembers(
 				// later.
 				shared.LogWarnf(
 					cr,
+					shared.EventReasonMember,
 					"failed to find member{%s}: %v",
 					m.Pod,
 					podGetErr,
@@ -383,6 +394,7 @@ func handleDeletingMembers(
 				} else {
 					shared.LogWarnf(
 						cr,
+						shared.EventReasonMember,
 						"failed to delete service{%s}: %v",
 						m.Service,
 						serviceDelErr,
@@ -399,6 +411,7 @@ func handleDeletingMembers(
 				} else {
 					shared.LogWarnf(
 						cr,
+						shared.EventReasonMember,
 						"failed to delete PVC{%s}: %v",
 						m.PVC,
 						pvcDelErr,
@@ -435,6 +448,7 @@ func checkMemberCount(
 	if *(role.statefulSet.Spec.Replicas) != replicas {
 		shared.LogInfof(
 			cr,
+			shared.EventReasonMember,
 			"changing replicas count for role{%s}: %v -> %v",
 			role.roleStatus.Name,
 			*(role.statefulSet.Spec.Replicas),
@@ -447,6 +461,7 @@ func checkMemberCount(
 		if updateErr != nil {
 			shared.LogWarnf(
 				cr,
+				shared.EventReasonMember,
 				"failed to change StatefulSet{%s} replicas: %v",
 				role.statefulSet.Name,
 				updateErr,
@@ -468,6 +483,7 @@ func replicasSynced(
 	if role.statefulSet.Status.Replicas != *(role.statefulSet.Spec.Replicas) {
 		shared.LogInfof(
 			cr,
+			shared.EventReasonMember,
 			"waiting for replicas count for role{%s}: %v -> %v",
 			role.roleStatus.Name,
 			role.statefulSet.Status.Replicas,
@@ -581,6 +597,7 @@ func notifyReadyNodes(
 					if configErr != nil {
 						shared.LogWarnf(
 							cr,
+							shared.EventReasonMember,
 							"failed to notify member{%s}: %v",
 							m.Pod,
 							configErr,

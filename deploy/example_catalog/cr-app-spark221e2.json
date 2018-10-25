@@ -13,22 +13,22 @@
                     "service_ids": [
                         "ssh",
                         "spark",
-                        "spark_master",
-                        "spark_worker"
+                        "spark-master",
+                        "spark-worker"
                     ],
                     "role_id": "controller"
                 },
                 {
                     "service_ids": [
                         "ssh",
-                        "spark_worker"
+                        "spark-worker"
                     ],
                     "role_id": "worker"
                 },
                 {
                     "service_ids": [
                         "ssh",
-                        "jupyter-notebook"
+                        "jupyter-nb"
                     ],
                     "role_id": "jupyter"
                 }
@@ -74,7 +74,7 @@
                     "is_dashboard": false,
                     "port": 7077
                 },
-                "id": "spark_master",
+                "id": "spark-master",
                 "label": {
                     "name": "Spark master"
                 }
@@ -86,7 +86,7 @@
                     "is_dashboard": true,
                     "port": 8081
                 },
-                "id": "spark_worker",
+                "id": "spark-worker",
                 "label": {
                     "name": "Spark worker"
                 }
@@ -98,7 +98,7 @@
                     "is_dashboard": true,
                     "port": 8888
                 },
-                "id": "jupyter-notebook",
+                "id": "jupyter-nb",
                 "label": {
                     "name": "Jupyter Notebook"
                 }

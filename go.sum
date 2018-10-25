@@ -68,8 +68,8 @@ github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnIn
 github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
-golang.org/x/crypto v0.0.0-20181025113841-85e1b3f9139a h1:Pg1/+l4/QV6z7N506eGnLiJ/Rl4IJf1FwYQKvP51OjA=
-golang.org/x/crypto v0.0.0-20181025113841-85e1b3f9139a/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
+golang.org/x/crypto v0.0.0-20181025213731-e84da0312774 h1:a4tQYYYuK9QdeO/+kEvNYyuR21S+7ve5EANok6hABhI=
+golang.org/x/crypto v0.0.0-20181025213731-e84da0312774/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/net v0.0.0-20180724234803-3673e40ba225/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20180906233101-161cd47e91fd/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20181023162649-9b4f9f5ad519 h1:x6rhz8Y9CjbgQkccRGmELH6K+LJj7tOoh3XWeC1yaQM=
@@ -104,5 +104,5 @@ k8s.io/apimachinery v0.0.0-20180228050457-302974c03f7e h1:CsgbEA8905OlpVLNKWD4Ga
 k8s.io/apimachinery v0.0.0-20180228050457-302974c03f7e/go.mod h1:ccL7Eh7zubPUSh9A3USN90/OzHNSVN6zxzde07TDCL0=
 k8s.io/client-go v0.0.0-20180406111602-989be4278f35 h1:tz53vZQH9E0Q2IW6A5/fDqM8kohMcrWB2caIhiuEl00=
 k8s.io/client-go v0.0.0-20180406111602-989be4278f35/go.mod h1:7vJpHMYJwNQCWgzmNV+VYUl1zCObLyodBc8nIyt8L5s=
-k8s.io/kube-openapi v0.0.0-20181025180445-3ad5caa95aef h1:yTA6APaia2crWjz8/6d+St+Awxy4/tjV/ztr9kCZiV4=
-k8s.io/kube-openapi v0.0.0-20181025180445-3ad5caa95aef/go.mod h1:BXM9ceUBTj2QnfH2MK1odQs778ajze1RxcmP6S8RVVc=
+k8s.io/kube-openapi v0.0.0-20181025202442-3a9b63ab1e39 h1:4I91xwvUbr2jxozOwbUBFBmo6XvBdoC1RLc85Kfg2dY=
+k8s.io/kube-openapi v0.0.0-20181025202442-3a9b63ab1e39/go.mod h1:BXM9ceUBTj2QnfH2MK1odQs778ajze1RxcmP6S8RVVc=

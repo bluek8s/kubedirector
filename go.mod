@@ -28,7 +28,7 @@ require (
 	github.com/prometheus/procfs v0.0.0-20181005140218-185b4288413d // indirect
 	github.com/sirupsen/logrus v1.1.1
 	github.com/spf13/pflag v1.0.3 // indirect
-	golang.org/x/crypto v0.0.0-20181025113841-85e1b3f9139a // indirect
+	golang.org/x/crypto v0.0.0-20181025213731-e84da0312774 // indirect
 	golang.org/x/net v0.0.0-20181023162649-9b4f9f5ad519 // indirect
 	golang.org/x/oauth2 v0.0.0-20181017192945-9dcd33a902f4 // indirect
 	golang.org/x/sys v0.0.0-20181025063200-d989b31c8746 // indirect
@@ -38,5 +38,5 @@ require (
 	k8s.io/api v0.0.0-20180308224125-73d903622b73
 	k8s.io/apimachinery v0.0.0-20180228050457-302974c03f7e
 	k8s.io/client-go v0.0.0-20180406111602-989be4278f35
-	k8s.io/kube-openapi v0.0.0-20181025180445-3ad5caa95aef // indirect
+	k8s.io/kube-openapi v0.0.0-20181025202442-3a9b63ab1e39 // indirect
 )

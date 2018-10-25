@@ -15,8 +15,6 @@
 package executor
 
 import (
-	"strconv"
-
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
@@ -98,7 +96,7 @@ func CreatePodService(
 	} else {
 		serviceType = v1.ServiceTypeLoadBalancer
 	}
-	ports, portsErr := catalog.PortsForRole(cr, role.Name)
+	portInfoList, portsErr := catalog.PortsForRole(cr, role.Name)
 	if portsErr != nil {
 		return nil, portsErr
 	}
@@ -118,10 +116,10 @@ func CreatePodService(
 			Type:     serviceType,
 		},
 	}
-	for _, port := range ports {
+	for _, portInfo := range portInfoList {
 		servicePort := v1.ServicePort{
-			Port: port,
-			Name: servicePortName(strconv.Itoa(int(port))),
+			Port: portInfo.Port,
+			Name: portInfo.ID,
 		}
 		service.Spec.Ports = append(service.Spec.Ports, servicePort)
 	}
@@ -173,13 +171,4 @@ func serviceName(
 ) string {
 
 	return "svc-" + baseName
-}
-
-// servicePortName is a utility function for generating the name of a service
-// port from a given base string.
-func servicePortName(
-	baseName string,
-) string {
-
-	return "port-" + baseName
 }

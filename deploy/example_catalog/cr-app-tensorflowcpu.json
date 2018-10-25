@@ -12,7 +12,7 @@
                 {
                     "service_ids": [
                         "ssh",
-                        "jupyter-notebook"
+                        "jupyter-nb"
                     ],
                     "role_id": "controller"
                 },
@@ -52,7 +52,7 @@
                     "is_dashboard": true,
                     "port": 8888
                 },
-                "id": "jupyter-notebook",
+                "id": "jupyter-nb",
                 "label": {
                     "name": "Jupyter Notebook"
                 }

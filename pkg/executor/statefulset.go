@@ -17,7 +17,6 @@ package executor
 import (
 	"encoding/json"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
@@ -133,14 +132,17 @@ func getStatefulset(
 	labels := labelsForRole(cr, role)
 	startupScript := getStartupScript(cr)
 
-	ports, portsErr := catalog.PortsForRole(cr, role.Name)
+	portInfoList, portsErr := catalog.PortsForRole(cr, role.Name)
 	if portsErr != nil {
 		return nil, portsErr
 	}
 
 	var endpointPorts []v1.ContainerPort
-	for _, port := range ports {
-		containerPort := v1.ContainerPort{ContainerPort: port, Name: "port-" + strconv.Itoa(int(port))}
+	for _, portInfo := range portInfoList {
+		containerPort := v1.ContainerPort{
+			ContainerPort: portInfo.Port,
+			Name:          portInfo.ID,
+		}
 		endpointPorts = append(endpointPorts, containerPort)
 	}
 

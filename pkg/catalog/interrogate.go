@@ -111,12 +111,13 @@ func GetRoleCardinality(
 	return int32(count), isScaleOut
 }
 
-// PortsForRole returns list of service ports as integers for a given role.
+// PortsForRole returns list of service port info (id and port num) for a given role.
 // This will be used to export those ports as NodePort/LoadBalancer
 func PortsForRole(
 	cr *kdv1.KubeDirectorCluster,
 	role string,
-) ([]int32, error) {
+) ([]ServicePortInfo, error) {
+	//) ([]int32, error) {
 
 	// Fetch the app type definition if we haven't yet cached it in this
 	// handler pass.
@@ -125,7 +126,7 @@ func PortsForRole(
 		return nil, err
 	}
 
-	var result []int32
+	var result []ServicePortInfo
 
 	// Match the role in the roleService and based on that fetch the service
 	// endpoint ports matching the service IDs.
@@ -134,7 +135,11 @@ func PortsForRole(
 			for _, service := range appCR.Spec.Services {
 				if shared.StringInList(service.ID, roleService.ServiceIDs) {
 					if service.Endpoint.Port != nil {
-						result = append(result, *(service.Endpoint.Port))
+						servicePortInfo := ServicePortInfo{
+							ID:   service.ID,
+							Port: *(service.Endpoint.Port),
+						}
+						result = append(result, servicePortInfo)
 					}
 				}
 			}

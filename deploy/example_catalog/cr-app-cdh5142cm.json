@@ -34,32 +34,32 @@
             "role_services": [
                 {
                     "service_ids": [
-                        "cloudera_scm_server",
-                        "cloudera_scm_server_db",
-                        "cloudera_scm_agent",
-                        "hdfs_dn",
+                        "cdh-scm-srvr",
+                        "cdh-scm-srvr-db",
+                        "cdh-scm-agent",
+                        "hdfs-dn",
                         "ssh",
                         "mysqld",
-                        "job_history_server",
+                        "job-hist-srvr",
                         "pig",
                         "hue",
                         "httpfs",
                         "impala",
-                        "hive_server",
-                        "hive_metastore",
+                        "hive-server",
+                        "hive-metastore",
                         "oozie",
                         "sqoop2",
-                        "yarn_rm",
-                        "hdfs_nn"
+                        "yarn-rm",
+                        "hdfs-nn"
                     ],
                     "role_id": "controller"
                 },
                 {
                     "service_ids": [
-                        "cloudera_scm_agent",
-                        "yarn_nm",
+                        "cdh-scm-agent",
+                        "yarn-nm",
                         "ssh",
-                        "hdfs_dn"
+                        "hdfs-dn"
                     ],
                     "role_id": "worker"
                 }
@@ -86,19 +86,19 @@
                     "port": 7180,
                     "path": "/"
                 },
-                "id": "cloudera_scm_server",
+                "id": "cdh-scm-srvr",
                 "label": {
                     "name": "Cloudera Manager"
                 }
             },
             {
-                "id": "cloudera_scm_server_db",
+                "id": "cdh-scm-srvr-db",
                 "label": {
                     "name": "Cloudera manager database"
                 }
             },
             {
-                "id": "cloudera_scm_agent",
+                "id": "cdh-scm-agent",
                 "label": {
                     "name": "Cloudera manager agent"
                 }
@@ -113,7 +113,7 @@
                     "port": 8088,
                     "path": "/cluster"
                 },
-                "id": "yarn_rm",
+                "id": "yarn-rm",
                 "qualifiers": [
                     "yarn"
                 ]
@@ -125,7 +125,7 @@
                     "port": 8042,
                     "path": "/"
                 },
-                "id": "yarn_nm",
+                "id": "yarn-nm",
                 "label": {
                     "name": "NodeManager"
                 }
@@ -137,7 +137,7 @@
                     "port": 50070,
                     "path": "/"
                 },
-                "id": "hdfs_nn",
+                "id": "hdfs-nn",
                 "label": {
                     "name": "NameNode"
                 }
@@ -149,7 +149,7 @@
                     "port": 50075,
                     "path": "/"
                 },
-                "id": "hdfs_dn",
+                "id": "hdfs-dn",
                 "label": {
                     "name": "DataNode"
                 }
@@ -161,7 +161,7 @@
                     "port": 19888,
                     "path": "/jobhistory"
                 },
-                "id": "job_history_server",
+                "id": "job-hist-srvr",
                 "label": {
                     "name": "Yarn Job history server"
                 }
@@ -173,13 +173,13 @@
                 }
             },
             {
-                "id": "hive_metastore",
+                "id": "hive-metastore",
                 "label": {
                     "name": "HIVE Metastore"
                 }
             },
             {
-                "id": "hive_server",
+                "id": "hive-server",
                 "label": {
                     "name": "HIVE Server 2"
                 }

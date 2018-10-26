@@ -19,9 +19,9 @@ For more details, see the KubeDirector wiki for a [complete spec of the KubeDire
 
 #### INSPECTING
 
-The virtual cluster will be represented by a resource of type KubeDirectorCluster, with the name that was indicated inside the YAML file used to create it. So for example the virtual cluster created from cr-cluster-spark221e2.yaml has the name "spark-instance", and after creating it you could observe its status using kubectl:
+The virtual cluster will be represented by a resource of type KubeDirectorCluster, with the name that was indicated inside the YAML file used to create it. So for example the virtual cluster created from cr-cluster-spark221e2.yaml has the name "spark-instance", and after creating it you could use kubectl to observe its status and any events logged against it:
 ```bash
-    kubectl get -o yaml KubeDirectorCluster spark-instance
+    kubectl describe KubeDirectorCluster spark-instance
 ```
 
 To guarantee that services provided by this virtual cluster are available, wait for the virtual cluster status to indicate that its overall "state" (top-level property of the status object) has a value of "ready". The first time a virtual cluster of a given app type is created, it may take some minutes to reach "ready" state, as the relevant Docker image must be downloaded and imported.
@@ -35,17 +35,30 @@ To get a report on all services related to a specific virtual cluster, you can u
 
 Below is a line from the output of such a query. It shows that port 8080 (the Spark master Web dashboard) on the controller host of a virtual Spark cluster is available on port 30311 of any of the K8s nodes:
 ```bash
-svc-spark-instance-controller-zzwt7-0   NodePort    10.107.133.249   <none>        22:31394/TCP,8080:30311/TCP,7077:30106/TCP,8081:30499/TCP   12m
+svc-kd-ggzpd-0   NodePort    10.107.133.249   <none>        22:31394/TCP,8080:30311/TCP,7077:30106/TCP,8081:30499/TCP   12m
 ```
 
-As another example, below is a line associated with a different virtual cluster, running in GKE and configured to request a serviceType of LoadBalancer. In this case the Spark master Web dashboard is available through the load-balancer IP 35.227.159.141. The port exposed on the load balancer will be the same as the native container port, 8080.
+As another example, below is a line associated with a different virtual cluster, running in GKE and configured to request a serviceType of LoadBalancer. In this case the Spark master Web dashboard is available through the load-balancer IP 35.197.55.117. The port exposed on the load balancer will be the same as the native container port, 8080.
 ```bash
-svc-spark-instance-controller-zxqjf-0   LoadBalancer   10.55.246.39    35.227.159.141   22:31739/TCP,8080:30858/TCP,7077:30969/TCP,8081:32297/TCP   3m
+svc-kd-rmh58-0  LoadBalancer   10.55.240.105   35.197.55.117    22:30892/TCP,8080:31786/TCP,7077:32194/TCP,8081:31026/TCP   2m48s
+```
+
+You can use kubectl to examine a specific service resource in order to see more explicitly which ports are for service endpoints. Using "get -o yaml" or "get -o json", rather than "describe", will format the array of endpoints a little more clearly. For example, examining that LoadBalancer service above:
+```bash
+kubectl get -o yaml service svc-kd-rmh58-0
+```
+will result output that (among other things) contains an array that explicitly names the various endpoints, such as:
+```
+  - name: spark
+    nodePort: 31786
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
 ```
 
 A few notes about using the example applications:
 * In both the Spark and TensorFlow examples, the password for Jupyter is "admin123".
-* The deployed containers will be running sshd, but they will not initially have any login-capable accounts. For container access as a root user, use "kubectl exec" along with the podname. E.g. "kubectl exec -it cassandra-lb-persistent-seed-pr962-0 bash". From there you can reconfigure sshd if you wish.
+* The deployed containers will be running sshd, but they will not initially have any login-capable accounts. For container access as a root user, use "kubectl exec" along with the podname. E.g. "kubectl exec -it kd-vjtrc-0 bash". From there you can reconfigure sshd if you wish.
 * Clickable links to other IPs within the Spark web dashboard will not work, because Spark is not aware of NodePort ports or LoadBalancer IPs.
 
 #### RESIZING

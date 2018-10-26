@@ -31,10 +31,8 @@ See the files in the "doc" directory for information about deploying and using K
 
 # Contributing
 
-Thanks for your interest in joining and contributing to our community! Current work items and release progress are tracked on the [Issues](https://github.com/bluek8s/kubedirector/issues) page.
-
-You’re welcome to join the [BlueK8s Slack workspace](https://join.slack.com/t/bluek8s/shared_invite/enQtNDUwMzkwODY5OTM4LTRhYmRmZmE4YzY3OGUzMjA1NDg0MDVhNDQ2MGNkYjRhM2RlMDNjMTI1NDQyMjAzZGVlMDFkNThkNGFjZGZjMGY) for feedback and discussion.
+Please read through the [CONTRIBUTING](https://github.com/bluek8s/kubedirector/blob/master/CONTRIBUTING.md) guide 
 
 # Code of conduct
 
-Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](https://github.com/kubernetes/community/blob/master/code-of-conduct.md).
+Participation in the Kubernetes community is governed by the [KubeDirector Code of Conduct](https://github.com/bluek8s/kubedirector/blob/master/CODE_OF_CONDUCT.md).

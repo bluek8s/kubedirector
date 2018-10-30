@@ -9,7 +9,7 @@ Most of the developers working on KubeDirector use MacOS, so there may be some u
 * go version 1.11 or 1.11.1
 * dep version 0.5.0
 
-Many of us have also set up travis-ci on our personal forks. To set up travis-ci on your personal fork, follow these instructions:
+Many people have also set up travis-ci on their personal forks. To set up travis-ci on your personal fork, follow these instructions:
 
 1. Log in to GitHub
 1. Sign up for Travis CI ([link](https://travis-ci.com/))
@@ -22,7 +22,7 @@ Many of us have also set up travis-ci on our personal forks. To set up travis-ci
 1. From the dropdown below the radio button, select kubedirector
 1. Click Install
 
-Before making a Pull Request, please ensure that the code still builds. If you're on Windows, this might not work for you, but if you're on MacOS or Linux, this process should be pretty seamless.
+Before making a Pull Request, please ensure that the code still builds. If you're on Windows, this might not work, but if you're on MacOS or Linux, this process should be pretty seamless.
 
 Attempt a build with the following steps:
 
@@ -30,4 +30,4 @@ Attempt a build with the following steps:
 1. `make compile`
 1. `make build`
 
-If everything works in that sequence, please push to your own fork and make the Pull Request. We will do our best to get to your Pull Request in a timely fashion. It may take a while to get to any given Pull Request - please be patient. Please note that having a travis-ci build set up on a personal fork will allow you to run checks before opening your Pull Request.
+If everything works in that sequence, please push to your fork and make the Pull Request. We will do our best to get to your Pull Request in a timely fashion. It may take a while to get to any given Pull Request - please be patient. Please note that having a travis-ci build set up on a personal fork will allow you to run checks before opening your Pull Request.

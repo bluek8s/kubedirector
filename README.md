@@ -31,8 +31,8 @@ See the files in the "doc" directory for information about deploying and using K
 
 # Contributing
 
-Please read through the [CONTRIBUTING](https://github.com/bluek8s/kubedirector/blob/master/CONTRIBUTING.md) guide 
+Please read through the [CONTRIBUTING](CONTRIBUTING.md) guide before making a pull request. If you run into an issue with the contributing guide, please send a pull request to fix the contributing guide.
 
 # Code of conduct
 
-Participation in the Kubernetes community is governed by the [KubeDirector Code of Conduct](https://github.com/bluek8s/kubedirector/blob/master/CODE_OF_CONDUCT.md).
+Participation in the Kubernetes community is governed by the [KubeDirector Code of Conduct](CODE_OF_CONDUCT.md).

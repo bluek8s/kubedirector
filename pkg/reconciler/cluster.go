@@ -100,18 +100,21 @@ func syncCluster(
 	}()
 
 	// Ignore stale poll-driven handler for a resource we have since
-	// updated. Also for a new CR just update the status state/gen and return.
-	if !handleStatusGen(cr, handlerState) {
-		return nil
-	}
+	// updated. Also for a new CR just update the status state/gen.
+	shouldProcessCR := handleStatusGen(cr, handlerState)
 
-	// We use a finalizer to prevent races between polled CR updates and
-	// CR deletion.
+	// Regardless of whether the status gen is as expected, make sure the CR
+	// finalizers are as we want them. We use a finalizer to prevent races
+	// between polled CR updates and CR deletion.
 	doExit, finalizerErr := handleFinalizers(cr)
 	if finalizerErr != nil {
 		return finalizerErr
 	}
 	if doExit {
+		return nil
+	}
+
+	if !shouldProcessCR {
 		return nil
 	}
 

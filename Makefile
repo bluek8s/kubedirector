@@ -1,6 +1,8 @@
 # can use Local.mk to override the image var
 -include Local.mk
 
+SHELL = bash
+
 default_image := bluek8s/kubedirector:unstable
 image ?= ${default_image}
 

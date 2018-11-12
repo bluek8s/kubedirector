@@ -263,14 +263,8 @@ func admitClusterCR(
 		Allowed: false,
 	}
 
-	// If this is a delete, all we need to do is note that this cluster is
-	// no longer referencing its app type.
+	// If this is a delete, the admission handler has nothing to do.
 	if ar.Request.Operation == v1beta1.Delete {
-		reconciler.RemoveClusterAppReference(
-			ar.Request.Namespace,
-			ar.Request.Name,
-			&(handlerState.ClusterState),
-		)
 		admitResponse.Allowed = true
 		return &admitResponse
 	}
@@ -285,23 +279,10 @@ func admitClusterCR(
 		return &admitResponse
 	}
 
-	// Make sure that if we're adding a new cluster, we don't escape from
-	// this handler without recording a reference to its app type.
-	defer func() {
-		if ar.Request.Operation == v1beta1.Create && admitResponse.Allowed == true {
-			reconciler.AddClusterAppReference(
-				&clusterCR,
-				&(handlerState.ClusterState),
-			)
-		}
-	}()
-
-	// Now do validation for create/update.
-
+	// If this is an update, get the previous version of the object ready for
+	// use in some checks.
 	prevClusterCR := kdv1.KubeDirectorCluster{}
 	if ar.Request.Operation == v1beta1.Update {
-		// On update, get the previous version of the object ready for use in
-		// some checks.
 		prevRaw := ar.Request.OldObject.Raw
 		if prevJsonErr := json.Unmarshal(prevRaw, &prevClusterCR); prevJsonErr != nil {
 			admitResponse.Result = &metav1.Status{

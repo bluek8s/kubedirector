@@ -30,9 +30,9 @@ func ReadStatusGen(
 	return val, ok
 }
 
-// WriteStatusGen provides threadsafe write of a status gen UID string.
+// writeStatusGen provides threadsafe write of a status gen UID string.
 // The validated flag will begin as false.
-func WriteStatusGen(
+func writeStatusGen(
 	cr *kdv1.KubeDirectorCluster,
 	handlerState *handlerClusterState,
 	newGenUid string,
@@ -56,8 +56,8 @@ func ValidateStatusGen(
 	}
 }
 
-// DeleteStatusGen provides threadsafe delete of a status gen.
-func DeleteStatusGen(
+// deleteStatusGen provides threadsafe delete of a status gen.
+func deleteStatusGen(
 	cr *kdv1.KubeDirectorCluster,
 	handlerState *handlerClusterState,
 ) {
@@ -87,8 +87,8 @@ func ClustersUsingApp(
 	return clusters
 }
 
-// AddClusterForApp notes that an app type is in use by this cluster.
-func AddClusterAppReference(
+// ensureClusterAppReference notes that an app type is in use by this cluster.
+func ensureClusterAppReference(
 	cr *kdv1.KubeDirectorCluster,
 	handlerState *handlerClusterState,
 ) {
@@ -98,14 +98,13 @@ func AddClusterAppReference(
 	handlerState.clusterAppTypes[clusterKey] = cr.Spec.AppID
 }
 
-// RemoveClusterForApp notes that an app type is no longer in use by this
-// cluster.
-func RemoveClusterAppReference(
-	namespace string,
-	clusterName string,
+// removeClusterAppReference notes that an app type is no longer in use by
+// this cluster.
+func removeClusterAppReference(
+	cr *kdv1.KubeDirectorCluster,
 	handlerState *handlerClusterState,
 ) {
-	clusterKey := namespace + "/" + clusterName
+	clusterKey := cr.Namespace + "/" + cr.Name
 	handlerState.lock.Lock()
 	defer handlerState.lock.Unlock()
 	delete(handlerState.clusterAppTypes, clusterKey)

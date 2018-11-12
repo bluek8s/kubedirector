@@ -37,16 +37,20 @@ func syncCluster(
 	handlerState *handlerClusterState,
 ) error {
 
-	// Exit early if deleting the resource... nothing else for us to do.
+	// Exit early if deleting the resource.
 	if event.Deleted {
 		shared.LogInfo(
 			cr,
 			shared.EventReasonCluster,
 			"deleted",
 		)
-		DeleteStatusGen(cr, handlerState)
+		deleteStatusGen(cr, handlerState)
+		removeClusterAppReference(cr, handlerState)
 		return nil
 	}
+
+	// Otherwise, make sure this cluster marks a reference to its app.
+	ensureClusterAppReference(cr, handlerState)
 
 	// Make sure we have a Status object to work with.
 	if cr.Status == nil {
@@ -64,7 +68,7 @@ func syncCluster(
 			maxWait := 4096 * time.Second
 			for {
 				cr.Status.GenerationUid = uuid.New().String()
-				WriteStatusGen(cr, handlerState, cr.Status.GenerationUid)
+				writeStatusGen(cr, handlerState, cr.Status.GenerationUid)
 				updateErr := executor.UpdateStatus(cr)
 				if updateErr == nil {
 					return
@@ -216,9 +220,9 @@ func handleStatusGen(
 			"unknown with incoming gen uid %s",
 			incoming,
 		)
-		WriteStatusGen(cr, handlerState, incoming)
+		writeStatusGen(cr, handlerState, incoming)
 		ValidateStatusGen(cr, handlerState)
-		AddClusterAppReference(cr, handlerState)
+		ensureClusterAppReference(cr, handlerState)
 		return true
 	}
 

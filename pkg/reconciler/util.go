@@ -75,10 +75,12 @@ func ClustersUsingApp(
 	handlerState.lock.RLock()
 	defer handlerState.lock.RUnlock()
 	// This is a relationship that needs to be query-able given either ONLY
-	// the app name (this function) or ONLY cluster name (RemoveClusterForApp).
-	// Since the app CR deletion/update triggers for this function are very
-	// infrequent, we'll implement this app-name check by just walking the
-	// list of associations.
+	// the app name (in this function) or ONLY the cluster name (in
+	// removeClusterAppReference). Since the app CR deletion/update triggers
+	// for this function are very infrequent, we'll implement this app-name
+	// check by just walking the list of associations. It's also nice to go
+	// ahead and gather all the offending cluster CR names to report back to
+	// the client.
 	for clusterKey, appName := range handlerState.clusterAppTypes {
 		if appName == app {
 			clusters = append(clusters, clusterKey)

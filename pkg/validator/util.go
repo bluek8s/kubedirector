@@ -114,7 +114,11 @@ func createAdmissionService(
 	webhookHandler := v1beta1.Webhook{
 		Name: webhookHandlerName,
 		Rules: []v1beta1.RuleWithOperations{{
-			Operations: []v1beta1.OperationType{v1beta1.Create, v1beta1.Update},
+			Operations: []v1beta1.OperationType{
+				v1beta1.Create,
+				v1beta1.Update,
+				v1beta1.Delete,
+			},
 			Rule: v1beta1.Rule{
 				APIGroups:   []string{"kubedirector.bluedata.io"},
 				APIVersions: []string{"v1alpha1"},

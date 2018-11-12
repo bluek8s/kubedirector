@@ -65,3 +65,48 @@ func DeleteStatusGen(
 	defer handlerState.lock.Unlock()
 	delete(handlerState.clusterStatusGens, cr.UID)
 }
+
+// ClustersUsingApp returns the list of cluster names referencing the given app.
+func ClustersUsingApp(
+	app string,
+	handlerState *handlerClusterState,
+) []string {
+	var clusters []string
+	handlerState.lock.RLock()
+	defer handlerState.lock.RUnlock()
+	// This is a relationship that needs to be query-able given either ONLY
+	// the app name (this function) or ONLY cluster name (RemoveClusterForApp).
+	// Since the app CR deletion/update triggers for this function are very
+	// infrequent, we'll implement this app-name check by just walking the
+	// list of associations.
+	for clusterKey, appName := range handlerState.clusterAppTypes {
+		if appName == app {
+			clusters = append(clusters, clusterKey)
+		}
+	}
+	return clusters
+}
+
+// AddClusterForApp notes that an app type is in use by this cluster.
+func AddClusterAppReference(
+	cr *kdv1.KubeDirectorCluster,
+	handlerState *handlerClusterState,
+) {
+	clusterKey := cr.Namespace + "/" + cr.Name
+	handlerState.lock.Lock()
+	defer handlerState.lock.Unlock()
+	handlerState.clusterAppTypes[clusterKey] = cr.Spec.AppID
+}
+
+// RemoveClusterForApp notes that an app type is no longer in use by this
+// cluster.
+func RemoveClusterAppReference(
+	namespace string,
+	clusterName string,
+	handlerState *handlerClusterState,
+) {
+	clusterKey := namespace + "/" + clusterName
+	handlerState.lock.Lock()
+	defer handlerState.lock.Unlock()
+	delete(handlerState.clusterAppTypes, clusterKey)
+}

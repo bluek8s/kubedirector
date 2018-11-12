@@ -218,6 +218,7 @@ func handleStatusGen(
 		)
 		WriteStatusGen(cr, handlerState, incoming)
 		ValidateStatusGen(cr, handlerState)
+		AddClusterAppReference(cr, handlerState)
 		return true
 	}
 

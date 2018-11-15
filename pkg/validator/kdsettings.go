@@ -51,6 +51,7 @@ func validateSettingsStorageClass(
 	storageClassName *string,
 	valErrors []string,
 ) []string {
+
 	if storageClassName == nil {
 		return valErrors
 	}
@@ -93,6 +94,12 @@ func admitKDSettingsCR(
 		admitResponse.Result = &metav1.Status{
 			Message: "\n" + err.Error(),
 		}
+		return &admitResponse
+	}
+
+	// For a delete operation, we're done now.
+	if ar.Request.Operation == v1beta1.Delete {
+		admitResponse.Allowed = true
 		return &admitResponse
 	}
 

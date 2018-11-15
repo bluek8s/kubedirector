@@ -23,6 +23,7 @@ import (
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
+	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/reconciler"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"

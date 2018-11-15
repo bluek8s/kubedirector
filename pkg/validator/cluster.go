@@ -273,20 +273,18 @@ func validateRoleChanges(
 func validateRoleStorageClass(
 	cr *kdv1.KubeDirectorCluster,
 	valErrors []string,
+	kdSettings *kdv1.KubeDirectorSettings,
 	membersPatches []membersPatchSpec,
 ) ([]string, []membersPatchSpec) {
 
 	var globalStorageClass = ""
 	var validateDefault = false
 
-	// Fetch global settings CR (if present)
-	kdSettings, kdSettingsErr := observer.GetKDSettings(shared.KubeDirectorSettingsCR)
-
-	if kdSettingsErr != nil && kdSettings.Spec.StorageClass != nil {
-		globalStorageClass = *kdSettings.Spec.StorageClass
-	} else {
+	if kdSettings == nil || kdSettings.Spec.StorageClass == nil {
 		// storage class is not present in the settings CR. Lets use the default one
 		globalStorageClass = defaultStorageClassName
+	} else {
+		globalStorageClass = *kdSettings.Spec.StorageClass
 	}
 
 	numRoles := len(cr.Spec.Roles)
@@ -434,6 +432,9 @@ func admitClusterCR(
 		return &admitResponse
 	}
 
+	// Fetch global settings CR (if present)
+	kdSettings, _ := observer.GetKDSettings(shared.KubeDirectorSettingsCR)
+
 	// If cluster already exists, check for property changes.
 	if prevClusterExists {
 		valErrors = validateGeneralChanges(&clusterCR, prevCluster, valErrors)
@@ -455,12 +456,16 @@ func admitClusterCR(
 	// Validate that roles are known & sufficient.
 	valErrors = validateClusterRoles(&clusterCR, appCR, valErrors)
 
-	valErrors, membersPatches = validateRoleStorageClass(&clusterCR, valErrors, membersPatches)
+	valErrors, membersPatches = validateRoleStorageClass(
+		&clusterCR,
+		valErrors,
+		kdSettings,
+		membersPatches,
+	)
 
 	if len(valErrors) == 0 {
 		if len(membersPatches) != 0 {
 			patchResult, patchErr := json.Marshal(membersPatches)
-			fmt.Printf("after json marshal %v:%v\n", string(patchResult), patchErr)
 			if patchErr == nil {
 				admitResponse.Patch = patchResult
 				patchType := v1beta1.PatchTypeJSONPatch

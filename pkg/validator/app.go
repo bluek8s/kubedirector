@@ -181,15 +181,40 @@ func admitAppCR(
 		Allowed: false,
 	}
 
+	// Reject an update or delete if the app CR is currently in use.
+	if ar.Request.Operation == v1beta1.Update || ar.Request.Operation == v1beta1.Delete {
+		references := reconciler.ClustersUsingApp(
+			ar.Request.Name,
+			&(handlerState.ClusterState),
+		)
+		if len(references) != 0 {
+			referencesStr := strings.Join(references, ", ")
+			admitResponse.Result = &metav1.Status{
+				Message: "\nKubeDirectorApp resource cannot be deleted or modified " +
+					"while referenced by the following KubeDirectorCluster resources: " +
+					referencesStr,
+			}
+			return &admitResponse
+		}
+	}
+
+	// For a delete operation, we're done now.
+	if ar.Request.Operation == v1beta1.Delete {
+		admitResponse.Allowed = true
+		return &admitResponse
+	}
+
+	// Deserialize the object.
 	raw := ar.Request.Object.Raw
 	appCR := kdv1.KubeDirectorApp{}
-
-	if err := json.Unmarshal(raw, &appCR); err != nil {
+	if jsonErr := json.Unmarshal(raw, &appCR); jsonErr != nil {
 		admitResponse.Result = &metav1.Status{
-			Message: "\n" + err.Error(),
+			Message: "\n" + jsonErr.Error(),
 		}
 		return &admitResponse
 	}
+
+	// Now do validation for create/update.
 
 	allRoleIDs := catalog.GetAllRoleIDs(&appCR)
 	allServiceIDs := catalog.GetAllServiceIDs(&appCR)

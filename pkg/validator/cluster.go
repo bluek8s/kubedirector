@@ -23,11 +23,9 @@ import (
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
-	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/reconciler"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -355,32 +353,33 @@ func admitClusterCR(
 		Allowed: false,
 	}
 
+	// If this is a delete, the admission handler has nothing to do.
+	if ar.Request.Operation == v1beta1.Delete {
+		admitResponse.Allowed = true
+		return &admitResponse
+	}
+
+	// Deserialize the object.
 	raw := ar.Request.Object.Raw
 	clusterCR := kdv1.KubeDirectorCluster{}
-
-	if err := json.Unmarshal(raw, &clusterCR); err != nil {
+	if jsonErr := json.Unmarshal(raw, &clusterCR); jsonErr != nil {
 		admitResponse.Result = &metav1.Status{
-			Message: "\n" + err.Error(),
+			Message: "\n" + jsonErr.Error(),
 		}
 		return &admitResponse
 	}
 
-	// For various checks we'll need to compare to the current cluster object.
-	prevCluster, prevClusterErr := observer.GetCluster(
-		clusterCR.Namespace,
-		clusterCR.Name,
-	)
-	prevClusterExists := true
-	if prevClusterErr != nil {
-		// We'll handle not-found as needed in different cases below. Other
-		// kinds of errors here are bad though.
-		if !errors.IsNotFound(prevClusterErr) {
+	// If this is an update, get the previous version of the object ready for
+	// use in some checks.
+	prevClusterCR := kdv1.KubeDirectorCluster{}
+	if ar.Request.Operation == v1beta1.Update {
+		prevRaw := ar.Request.OldObject.Raw
+		if prevJsonErr := json.Unmarshal(prevRaw, &prevClusterCR); prevJsonErr != nil {
 			admitResponse.Result = &metav1.Status{
-				Message: "\nError when fetching current cluster object",
+				Message: "\n" + prevJsonErr.Error(),
 			}
 			return &admitResponse
 		}
-		prevClusterExists = false
 	}
 
 	// Don't allow Status to be updated except by KubeDirector. Do this by
@@ -403,14 +402,7 @@ func admitClusterCR(
 		// it's OK to write the status again as long as nothing is changing.
 		// (For example we'll see this when a PATCH happens.)
 		if expectedStatusGen.Validated {
-			if !prevClusterExists {
-				// This is a not-found error for a cluster UID that DID
-				// previously exist. Has to be a delete/update race, so go
-				// ahead and let the core API controller reject or ignore this.
-				admitResponse.Allowed = true
-				return &admitResponse
-			}
-			if !reflect.DeepEqual(clusterCR.Status, prevCluster.Status) {
+			if !reflect.DeepEqual(clusterCR.Status, prevClusterCR.Status) {
 				admitResponse.Result = &metav1.Status{
 					Message: "\nKubeDirector-related status properties are read-only",
 				}
@@ -423,10 +415,18 @@ func admitClusterCR(
 		&(handlerState.ClusterState),
 	)
 
-	// Validate app first
-	appCR, err := catalog.GetApp(&clusterCR)
+	// Shortcut out of here if the spec is not being changed. Among other
+	// things this allows KD to update status or metadata even if the
+	// referenced app is bad/gone.
+	if ar.Request.Operation == v1beta1.Update {
+		if reflect.DeepEqual(clusterCR.Spec, prevClusterCR.Spec) {
+			admitResponse.Allowed = true
+			return &admitResponse
+		}
+	}
 
-	// If app is bad, no need to continue with rest of the validation
+	// At this point, if app is bad, no need to continue with validation.
+	appCR, err := catalog.GetApp(&clusterCR)
 	if err != nil {
 		admitResponse.Result = &metav1.Status{
 			Message: "\n" + fmt.Sprintf(invalidAppMessage, clusterCR.Spec.AppID),
@@ -438,9 +438,9 @@ func admitClusterCR(
 	kdSettings, _ := observer.GetKDSettings(shared.KubeDirectorSettingsCR)
 
 	// If cluster already exists, check for property changes.
-	if prevClusterExists {
-		valErrors = validateGeneralChanges(&clusterCR, prevCluster, valErrors)
-		valErrors = validateRoleChanges(&clusterCR, prevCluster, valErrors)
+	if ar.Request.Operation == v1beta1.Update {
+		valErrors = validateGeneralChanges(&clusterCR, &prevClusterCR, valErrors)
+		valErrors = validateRoleChanges(&clusterCR, &prevClusterCR, valErrors)
 		// We coooooould continue to do other validation at this point, but
 		// that could be misleading. Let's not do other validation unless we
 		// know that only change-able properties are being changed.

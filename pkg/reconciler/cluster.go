@@ -37,16 +37,20 @@ func syncCluster(
 	handlerState *handlerClusterState,
 ) error {
 
-	// Exit early if deleting the resource... nothing else for us to do.
+	// Exit early if deleting the resource.
 	if event.Deleted {
 		shared.LogInfo(
 			cr,
 			shared.EventReasonCluster,
 			"deleted",
 		)
-		DeleteStatusGen(cr, handlerState)
+		deleteStatusGen(cr, handlerState)
+		removeClusterAppReference(cr, handlerState)
 		return nil
 	}
+
+	// Otherwise, make sure this cluster marks a reference to its app.
+	ensureClusterAppReference(cr, handlerState)
 
 	// Make sure we have a Status object to work with.
 	if cr.Status == nil {
@@ -64,7 +68,7 @@ func syncCluster(
 			maxWait := 4096 * time.Second
 			for {
 				cr.Status.GenerationUid = uuid.New().String()
-				WriteStatusGen(cr, handlerState, cr.Status.GenerationUid)
+				writeStatusGen(cr, handlerState, cr.Status.GenerationUid)
 				updateErr := executor.UpdateStatus(cr)
 				if updateErr == nil {
 					return
@@ -100,18 +104,21 @@ func syncCluster(
 	}()
 
 	// Ignore stale poll-driven handler for a resource we have since
-	// updated. Also for a new CR just update the status state/gen and return.
-	if !handleStatusGen(cr, handlerState) {
-		return nil
-	}
+	// updated. Also for a new CR just update the status state/gen.
+	shouldProcessCR := handleStatusGen(cr, handlerState)
 
-	// We use a finalizer to prevent races between polled CR updates and
-	// CR deletion.
+	// Regardless of whether the status gen is as expected, make sure the CR
+	// finalizers are as we want them. We use a finalizer to prevent races
+	// between polled CR updates and CR deletion.
 	doExit, finalizerErr := handleFinalizers(cr)
 	if finalizerErr != nil {
 		return finalizerErr
 	}
 	if doExit {
+		return nil
+	}
+
+	if !shouldProcessCR {
 		return nil
 	}
 
@@ -213,8 +220,9 @@ func handleStatusGen(
 			"unknown with incoming gen uid %s",
 			incoming,
 		)
-		WriteStatusGen(cr, handlerState, incoming)
+		writeStatusGen(cr, handlerState, incoming)
 		ValidateStatusGen(cr, handlerState)
+		ensureClusterAppReference(cr, handlerState)
 		return true
 	}
 

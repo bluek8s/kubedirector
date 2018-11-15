@@ -30,6 +30,7 @@ type StatusGen struct {
 type handlerClusterState struct {
 	lock              sync.RWMutex
 	clusterStatusGens map[types.UID]StatusGen
+	clusterAppTypes   map[string]string
 }
 
 type Handler struct {

@@ -32,11 +32,23 @@ import (
 )
 
 // membersPatchSpec is used to create the PATCH operation for adding a default
-// member count to a role.
+// member count to a role and setting up default storageClassName
 type membersPatchSpec struct {
-	Op    string `json:"op"`
-	Path  string `json:"path"`
-	Value int32  `json:"value"`
+	Op    string            `json:"op"`
+	Path  string            `json:"path"`
+	Value membersPatchValue `json:"value"`
+}
+
+type membersPatchValue struct {
+	ValueInt *int32
+	ValueStr *string
+}
+
+func (obj membersPatchValue) MarshalJSON() ([]byte, error) {
+	if obj.ValueInt != nil {
+		return json.Marshal(obj.ValueInt)
+	}
+	return json.Marshal(obj.ValueStr)
 }
 
 // validateCardinality checks the member count specified for a role in the
@@ -89,9 +101,11 @@ func validateCardinality(
 			patches = append(
 				patches,
 				membersPatchSpec{
-					Op:    "add",
-					Path:  "/spec/roles/" + strconv.Itoa(i) + "/members",
-					Value: cardinality,
+					Op:   "add",
+					Path: "/spec/roles/" + strconv.Itoa(i) + "/members",
+					Value: membersPatchValue{
+						ValueInt: &cardinality,
+					},
 				},
 			)
 		}
@@ -251,6 +265,82 @@ func validateRoleChanges(
 	return valErrors
 }
 
+// validateRoleStorageClass checks for valid storage class defintion.
+// If storage section is defined for a role, user must provide a valid storageClassName
+// or there must be one specified through kubedirector's settings CR.
+// If neither are present, check to see if default storageClassName is valid, in
+// which case add entry in PATCH spec for mutating the cluster CR.
+func validateRoleStorageClass(
+	cr *kdv1.KubeDirectorCluster,
+	valErrors []string,
+	membersPatches []membersPatchSpec,
+) ([]string, []membersPatchSpec) {
+
+	var globalStorageClass = ""
+	var validateDefault = false
+
+	// Fetch global settings CR (if present)
+	kdSettings, kdSettingsErr := observer.GetKDSettings(shared.KubeDirectorSettingsCR)
+
+	if kdSettingsErr != nil && kdSettings.Spec.StorageClass != nil {
+		globalStorageClass = *kdSettings.Spec.StorageClass
+	} else {
+		// storage class is not present in the settings CR. Lets use the default one
+		globalStorageClass = defaultStorageClassName
+	}
+
+	numRoles := len(cr.Spec.Roles)
+	for i := 0; i < numRoles; i++ {
+		role := &(cr.Spec.Roles[i])
+		if role.Storage.Size == "" {
+			continue
+		}
+
+		storageClass := role.Storage.StorageClass
+		if storageClass == nil {
+			validateDefault = true
+			membersPatches = append(
+				membersPatches,
+				membersPatchSpec{
+					Op:   "add",
+					Path: "/spec/roles/" + strconv.Itoa(i) + "/storage/storageClassName",
+					Value: membersPatchValue{
+						ValueStr: &globalStorageClass,
+					},
+				},
+			)
+		} else {
+			_, err := observer.GetStorageClass(*storageClass)
+			if err != nil {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidRoleStorageClass,
+						*storageClass,
+						role.Name,
+						err,
+					),
+				)
+			}
+		}
+	}
+
+	if validateDefault {
+		_, err := observer.GetStorageClass(defaultStorageClassName)
+		if err != nil {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					undefinedRoleStorageClass,
+					defaultStorageClassName,
+				),
+			)
+		}
+	}
+
+	return valErrors, membersPatches
+}
+
 // admitClusterCR is the top-level cluster validation function, which invokes
 // the top-specific validation subroutines and composes the admission
 // response.
@@ -365,9 +455,12 @@ func admitClusterCR(
 	// Validate that roles are known & sufficient.
 	valErrors = validateClusterRoles(&clusterCR, appCR, valErrors)
 
+	valErrors, membersPatches = validateRoleStorageClass(&clusterCR, valErrors, membersPatches)
+
 	if len(valErrors) == 0 {
 		if len(membersPatches) != 0 {
 			patchResult, patchErr := json.Marshal(membersPatches)
+			fmt.Printf("after json marshal %v:%v\n", string(patchResult), patchErr)
 			if patchErr == nil {
 				admitResponse.Patch = patchResult
 				patchType := v1beta1.PatchTypeJSONPatch

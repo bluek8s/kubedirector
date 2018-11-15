@@ -1,0 +1,6 @@
+apiVersion: "kubedirector.bluedata.io/v1alpha1"
+kind: "KubeDirectorSettings"
+metadata:
+  name: "kd-settings"
+spec:
+  storageClassName: "standard"

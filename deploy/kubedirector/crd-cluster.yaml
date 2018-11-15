@@ -65,7 +65,7 @@ spec:
                         value:
                           type: string
                   storage:
-                    required: [size, storageClassName]
+                    required: [size]
                     properties:
                         size:
                           type: string

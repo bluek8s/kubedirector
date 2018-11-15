@@ -73,8 +73,8 @@ type Role struct {
 // ClusterStorage defines the persistent storage size/type, if any, to be used
 // for certain specified directories of each container filesystem in a role.
 type ClusterStorage struct {
-	Size         string `json:"size"`
-	StorageClass string `json:"storageClassName"`
+	Size         string  `json:"size"`
+	StorageClass *string `json:"storageClassName"`
 }
 
 // ClusterStatus is the overall status object for a virtual cluster. It
@@ -203,4 +203,28 @@ type NodeGroupConfig struct {
 type RoleService struct {
 	ServiceIDs []string `json:"service_ids"`
 	RoleID     string   `json:"role_id"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// KubeDirectorSettingsList is the top-level list type for global settings CRs
+type KubeDirectorSettingsList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []KubeDirectorSettings `json:"items"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// KubeDirectorSettings represents single global settings. This will be referenced
+// by kubediector when processing cluster CRs and app CRs.
+type KubeDirectorSettings struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              SettingsSpec `json:"spec"`
+}
+
+// SettingsSpec is the spec provided for an app definition.
+type SettingsSpec struct {
+	StorageClass *string `json:"storageClassName,omitempty"`
 }

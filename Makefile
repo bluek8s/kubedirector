@@ -95,6 +95,7 @@ deploy:
 	@echo \* Creating custom resource definitions...
 	kubectl create -f deploy/kubedirector/crd-cluster.yaml
 	kubectl create -f deploy/kubedirector/crd-app.yaml
+	kubectl create -f deploy/kubedirector/crd-settings.yaml
 	@echo
 	@set -e; \
         if [[ -f deploy/kubedirector/deployment-localbuilt.yaml ]]; then \
@@ -177,6 +178,7 @@ undeploy:
 	@echo \* Deleting custom resource definitions...
 	-kubectl delete -f deploy/kubedirector/crd-app.yaml --now
 	-kubectl delete -f deploy/kubedirector/crd-cluster.yaml --now
+	-kubectl delete -f deploy/kubedirector/crd-settings.yaml --now
 	@echo
 	@echo \* Deleting service account...
 	-@if [[ -f deploy/kubedirector/rbac.yaml ]]; then \

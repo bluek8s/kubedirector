@@ -324,7 +324,7 @@ func getVolumeClaimTemplate(
 			ObjectMeta: metav1.ObjectMeta{
 				Name: pvcName,
 				Annotations: map[string]string{
-					storageClassName: role.Storage.StorageClass,
+					storageClassName: *role.Storage.StorageClass,
 				},
 				OwnerReferences: ownerReferences(cr),
 			},

@@ -30,6 +30,7 @@ func NewHandler() *Handler {
 		ClusterState: handlerClusterState{
 			lock:              sync.RWMutex{},
 			clusterStatusGens: make(map[types.UID]StatusGen),
+			clusterAppTypes:   make(map[string]string),
 		},
 	}
 }

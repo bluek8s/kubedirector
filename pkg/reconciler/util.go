@@ -30,9 +30,9 @@ func ReadStatusGen(
 	return val, ok
 }
 
-// WriteStatusGen provides threadsafe write of a status gen UID string.
+// writeStatusGen provides threadsafe write of a status gen UID string.
 // The validated flag will begin as false.
-func WriteStatusGen(
+func writeStatusGen(
 	cr *kdv1.KubeDirectorCluster,
 	handlerState *handlerClusterState,
 	newGenUid string,
@@ -56,12 +56,58 @@ func ValidateStatusGen(
 	}
 }
 
-// DeleteStatusGen provides threadsafe delete of a status gen.
-func DeleteStatusGen(
+// deleteStatusGen provides threadsafe delete of a status gen.
+func deleteStatusGen(
 	cr *kdv1.KubeDirectorCluster,
 	handlerState *handlerClusterState,
 ) {
 	handlerState.lock.Lock()
 	defer handlerState.lock.Unlock()
 	delete(handlerState.clusterStatusGens, cr.UID)
+}
+
+// ClustersUsingApp returns the list of cluster names referencing the given app.
+func ClustersUsingApp(
+	app string,
+	handlerState *handlerClusterState,
+) []string {
+	var clusters []string
+	handlerState.lock.RLock()
+	defer handlerState.lock.RUnlock()
+	// This is a relationship that needs to be query-able given either ONLY
+	// the app name (in this function) or ONLY the cluster name (in
+	// removeClusterAppReference). Since the app CR deletion/update triggers
+	// for this function are very infrequent, we'll implement this app-name
+	// check by just walking the list of associations. It's also nice to go
+	// ahead and gather all the offending cluster CR names to report back to
+	// the client.
+	for clusterKey, appName := range handlerState.clusterAppTypes {
+		if appName == app {
+			clusters = append(clusters, clusterKey)
+		}
+	}
+	return clusters
+}
+
+// ensureClusterAppReference notes that an app type is in use by this cluster.
+func ensureClusterAppReference(
+	cr *kdv1.KubeDirectorCluster,
+	handlerState *handlerClusterState,
+) {
+	clusterKey := cr.Namespace + "/" + cr.Name
+	handlerState.lock.Lock()
+	defer handlerState.lock.Unlock()
+	handlerState.clusterAppTypes[clusterKey] = cr.Spec.AppID
+}
+
+// removeClusterAppReference notes that an app type is no longer in use by
+// this cluster.
+func removeClusterAppReference(
+	cr *kdv1.KubeDirectorCluster,
+	handlerState *handlerClusterState,
+) {
+	clusterKey := cr.Namespace + "/" + cr.Name
+	handlerState.lock.Lock()
+	defer handlerState.lock.Unlock()
+	delete(handlerState.clusterAppTypes, clusterKey)
 }

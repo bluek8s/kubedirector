@@ -59,9 +59,8 @@ const (
 	defaultMemberErr = "One or more role member counts are unspecified, but KubeDirector failed to apply the apptype-defined defaults."
 
 	invalidSettingsName = "Invalid name for settings CR. Expected(%s), Provided(%s)."
-	invalidStorageClass = "Unable to fetch storageClassName(%s). Error: %v."
+	invalidStorageClass = "Unable to fetch storageClass object with the provided name(%s). Error: %v."
 
-	invalidRoleStorageClass = "Unable to fetch storageClassName(%s) for the role(%s). Error: %v."
-	/// TODO..Reword this
+	invalidRoleStorageClass   = "Unable to fetch storageClassName(%s) for the role(%s). Error: %v."
 	undefinedRoleStorageClass = "storageClassName is not specified for one or more roles. Default storage class (%s) is not available on the system."
 )

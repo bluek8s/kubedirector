@@ -31,7 +31,7 @@ const (
 	// which is the namespace of the kubedirector pod.
 	KubeDirectorNamespaceEnvVar = "MY_NAMESPACE"
 
-	// KubeDirectorSettingsCR Name of the kubedirector settings CR
+	// KubeDirectorSettingsCR - Name of the kubedirector settings CR
 	KubeDirectorSettingsCR = "kd-settings"
 )
 

@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// validateName validates CR name. This has to match the expected value
 func validateName(
 	name string,
 	valErrors []string,
@@ -44,6 +45,8 @@ func validateName(
 	return valErrors
 }
 
+// validateSettingsStorageClass validates storageClassName by checking
+// for a valid storageClass k8s resource.
 func validateSettingsStorageClass(
 	storageClassName *string,
 	valErrors []string,
@@ -70,9 +73,8 @@ func validateSettingsStorageClass(
 	return valErrors
 }
 
-// admitSettingsCR is the top-level cluster validation function, which invokes
-// the top-specific validation subroutines and composes the admission
-// response.
+// admitKDSettingsCR is the top-level settings validation function, which invokes
+// specific validation subroutines and composes the admission response.
 func admitKDSettingsCR(
 	ar *v1beta1.AdmissionReview,
 	handlerState *reconciler.Handler,

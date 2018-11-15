@@ -265,9 +265,9 @@ func validateRoleChanges(
 	return valErrors
 }
 
-// validateRoleStorageClass checks for valid storage class defintion.
-// If storage section is defined for a role, user must provide a valid storageClassName
-// or there must be one specified through kubedirector's settings CR.
+// validateRoleStorageClass verifies storageClassName defintion for a role
+// If storage section is defined for a role, a valid storageClassName must be
+// present or there must be one provided through kubedirector's settings CR.
 // If neither are present, check to see if default storageClassName is valid, in
 // which case add entry in PATCH spec for mutating the cluster CR.
 func validateRoleStorageClass(
@@ -296,6 +296,8 @@ func validateRoleStorageClass(
 
 		storageClass := role.Storage.StorageClass
 		if storageClass == nil {
+			// Use the default storageClassName and also set the flag to
+			// validate the associated storageClass object
 			validateDefault = true
 			membersPatches = append(
 				membersPatches,

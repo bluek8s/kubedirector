@@ -207,7 +207,7 @@ type RoleService struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubeDirectorConfigList is the top-level list type for global settings CRs
+// KubeDirectorConfigList is the top-level list type for global config CRs
 type KubeDirectorConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
@@ -216,7 +216,7 @@ type KubeDirectorConfigList struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubeDirectorConfig represents single global settings. This will be referenced
+// KubeDirectorConfig represents single global config. This will be referenced
 // by kubediector when processing cluster CRs and app CRs.
 type KubeDirectorConfig struct {
 	metav1.TypeMeta   `json:",inline"`

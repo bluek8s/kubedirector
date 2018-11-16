@@ -85,7 +85,6 @@ func admitKDSettingsCR(
 
 	// Validate storage class name if present
 	valErrors = validateSettingsStorageClass(settingsCR.Spec.StorageClass, valErrors)
-	fmt.Println(valErrors)
 
 	if len(valErrors) == 0 {
 		admitResponse.Allowed = true

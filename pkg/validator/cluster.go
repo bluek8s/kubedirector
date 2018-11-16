@@ -31,7 +31,7 @@ import (
 )
 
 // clusterPatchSpec is used to create the PATCH operation for adding a default
-// member count to a role and config up default storageClassName
+// member count to a role and setting up default storageClassName
 type clusterPatchSpec struct {
 	Op    string            `json:"op"`
 	Path  string            `json:"path"`

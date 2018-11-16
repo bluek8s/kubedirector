@@ -14,9 +14,14 @@ spec:
   validation:
     openAPIV3Schema:
       properties:
+        metadata:
+          properties:
+            name:
+              type: string
+              pattern: '^kd-global-settings$'
         spec:
           properties:
-            storageClassName:
+            defaultStorageClassName:
               type: string
               minLength: 1
-              pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+              pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*'

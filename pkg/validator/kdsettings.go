@@ -22,28 +22,9 @@ import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/reconciler"
-	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// validateName validates CR name. This has to match the expected value
-func validateName(
-	name string,
-	valErrors []string,
-) []string {
-
-	if name != shared.KubeDirectorSettingsCR {
-		invalidNameMsg := fmt.Sprintf(
-			invalidSettingsName,
-			shared.KubeDirectorSettingsCR,
-			name,
-		)
-
-		valErrors = append(valErrors, invalidNameMsg)
-	}
-	return valErrors
-}
 
 // validateSettingsStorageClass validates storageClassName by checking
 // for a valid storageClass k8s resource.
@@ -67,7 +48,6 @@ func validateSettingsStorageClass(
 		fmt.Sprintf(
 			invalidStorageClass,
 			*storageClassName,
-			err,
 		),
 	)
 
@@ -90,6 +70,12 @@ func admitKDSettingsCR(
 	raw := ar.Request.Object.Raw
 	settingsCR := kdv1.KubeDirectorSettings{}
 
+	// For a delete operation, we're done now.
+	if ar.Request.Operation == v1beta1.Delete {
+		admitResponse.Allowed = true
+		return &admitResponse
+	}
+
 	if err := json.Unmarshal(raw, &settingsCR); err != nil {
 		admitResponse.Result = &metav1.Status{
 			Message: "\n" + err.Error(),
@@ -97,17 +83,9 @@ func admitKDSettingsCR(
 		return &admitResponse
 	}
 
-	// For a delete operation, we're done now.
-	if ar.Request.Operation == v1beta1.Delete {
-		admitResponse.Allowed = true
-		return &admitResponse
-	}
-
-	// Settings Name MUST match our default
-	valErrors = validateName(settingsCR.Name, valErrors)
-
 	// Validate storage class name if present
 	valErrors = validateSettingsStorageClass(settingsCR.Spec.StorageClass, valErrors)
+	fmt.Println(valErrors)
 
 	if len(valErrors) == 0 {
 		admitResponse.Allowed = true

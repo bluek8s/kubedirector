@@ -226,5 +226,5 @@ type KubeDirectorSettings struct {
 
 // SettingsSpec is the spec provided for an app definition.
 type SettingsSpec struct {
-	StorageClass *string `json:"storageClassName,omitempty"`
+	StorageClass *string `json:"defaultStorageClassName,omitempty"`
 }

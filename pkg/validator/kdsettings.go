@@ -26,9 +26,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// validateSettingsStorageClass validates storageClassName by checking
+// validateConfigStorageClass validates storageClassName by checking
 // for a valid storageClass k8s resource.
-func validateSettingsStorageClass(
+func validateConfigStorageClass(
 	storageClassName *string,
 	valErrors []string,
 ) []string {
@@ -54,9 +54,9 @@ func validateSettingsStorageClass(
 	return valErrors
 }
 
-// admitKDSettingsCR is the top-level settings validation function, which invokes
+// admitKDConfigCR is the top-level config validation function, which invokes
 // specific validation subroutines and composes the admission response.
-func admitKDSettingsCR(
+func admitKDConfigCR(
 	ar *v1beta1.AdmissionReview,
 	handlerState *reconciler.Handler,
 ) *v1beta1.AdmissionResponse {
@@ -68,7 +68,7 @@ func admitKDSettingsCR(
 	}
 
 	raw := ar.Request.Object.Raw
-	settingsCR := kdv1.KubeDirectorSettings{}
+	configCR := kdv1.KubeDirectorConfig{}
 
 	// For a delete operation, we're done now.
 	if ar.Request.Operation == v1beta1.Delete {
@@ -76,7 +76,7 @@ func admitKDSettingsCR(
 		return &admitResponse
 	}
 
-	if err := json.Unmarshal(raw, &settingsCR); err != nil {
+	if err := json.Unmarshal(raw, &configCR); err != nil {
 		admitResponse.Result = &metav1.Status{
 			Message: "\n" + err.Error(),
 		}
@@ -84,7 +84,7 @@ func admitKDSettingsCR(
 	}
 
 	// Validate storage class name if present
-	valErrors = validateSettingsStorageClass(settingsCR.Spec.StorageClass, valErrors)
+	valErrors = validateConfigStorageClass(configCR.Spec.StorageClass, valErrors)
 
 	if len(valErrors) == 0 {
 		admitResponse.Allowed = true

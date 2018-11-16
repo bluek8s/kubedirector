@@ -218,22 +218,22 @@ func GetDeployment(
 	return result, err
 }
 
-// GetKDSettings fetches kubedirector settings CR in KubeDirector's namespace.
-func GetKDSettings(
-	kdSettingsName string,
-) (*kdv1.KubeDirectorSettings, error) {
+// GetKDConfig fetches kubedirector config CR in KubeDirector's namespace.
+func GetKDConfig(
+	kdConfigName string,
+) (*kdv1.KubeDirectorConfig, error) {
 
 	kdNamespace, err := shared.GetKubeDirectorNamespace()
 	if err != nil {
 		return nil, err
 	}
-	result := &kdv1.KubeDirectorSettings{
+	result := &kdv1.KubeDirectorConfig{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeDirectorSettings",
+			Kind:       "KubeDirectorConfig",
 			APIVersion: "kubedirector.bluedata.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      kdSettingsName,
+			Name:      kdConfigName,
 			Namespace: kdNamespace,
 		},
 	}

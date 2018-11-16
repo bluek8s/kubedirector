@@ -207,24 +207,24 @@ type RoleService struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubeDirectorSettingsList is the top-level list type for global settings CRs
-type KubeDirectorSettingsList struct {
+// KubeDirectorConfigList is the top-level list type for global settings CRs
+type KubeDirectorConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
-	Items           []KubeDirectorSettings `json:"items"`
+	Items           []KubeDirectorConfig `json:"items"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubeDirectorSettings represents single global settings. This will be referenced
+// KubeDirectorConfig represents single global settings. This will be referenced
 // by kubediector when processing cluster CRs and app CRs.
-type KubeDirectorSettings struct {
+type KubeDirectorConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
-	Spec              SettingsSpec `json:"spec"`
+	Spec              ConfigSpec `json:"spec"`
 }
 
-// SettingsSpec is the spec provided for an app definition.
-type SettingsSpec struct {
+// ConfigSpec is the spec provided for an app definition.
+type ConfigSpec struct {
 	StorageClass *string `json:"defaultStorageClassName,omitempty"`
 }

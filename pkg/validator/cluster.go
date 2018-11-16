@@ -31,7 +31,7 @@ import (
 )
 
 // clusterPatchSpec is used to create the PATCH operation for adding a default
-// member count to a role and setting up default storageClassName
+// member count to a role and config up default storageClassName
 type clusterPatchSpec struct {
 	Op    string            `json:"op"`
 	Path  string            `json:"path"`
@@ -266,24 +266,24 @@ func validateRoleChanges(
 
 // validateRoleStorageClass verifies storageClassName definition for a role
 // If storage section is defined for a role, a valid storageClassName must be
-// present or there must be one provided through kubedirector's settings CR.
+// present or there must be one provided through kubedirector's config CR.
 // If neither are present, check to see if default storageClassName is valid, in
 // which case add entry in PATCH spec for mutating the cluster CR.
 func validateRoleStorageClass(
 	cr *kdv1.KubeDirectorCluster,
 	valErrors []string,
-	kdSettings *kdv1.KubeDirectorSettings,
+	kdConfig *kdv1.KubeDirectorConfig,
 	patches []clusterPatchSpec,
 ) ([]string, []clusterPatchSpec) {
 
 	var globalStorageClass = ""
 	var validateDefault = false
 
-	if kdSettings == nil || kdSettings.Spec.StorageClass == nil {
-		// storage class is not present in the settings CR. Lets use the default one
+	if kdConfig == nil || kdConfig.Spec.StorageClass == nil {
+		// storage class is not present in the config CR. Lets use the default one
 		globalStorageClass = defaultStorageClassName
 	} else {
-		globalStorageClass = *kdSettings.Spec.StorageClass
+		globalStorageClass = *kdConfig.Spec.StorageClass
 	}
 
 	numRoles := len(cr.Spec.Roles)
@@ -434,8 +434,8 @@ func admitClusterCR(
 		return &admitResponse
 	}
 
-	// Fetch global settings CR (if present)
-	kdSettings, _ := observer.GetKDSettings(shared.KubeDirectorGlobalSettings)
+	// Fetch global config CR (if present)
+	kdConfigCR, _ := observer.GetKDConfig(shared.KubeDirectorGlobalConfig)
 
 	// If cluster already exists, check for property changes.
 	if ar.Request.Operation == v1beta1.Update {
@@ -461,7 +461,7 @@ func admitClusterCR(
 	valErrors, patches = validateRoleStorageClass(
 		&clusterCR,
 		valErrors,
-		kdSettings,
+		kdConfigCR,
 		patches,
 	)
 

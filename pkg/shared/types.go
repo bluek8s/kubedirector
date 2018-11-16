@@ -31,8 +31,8 @@ const (
 	// which is the namespace of the kubedirector pod.
 	KubeDirectorNamespaceEnvVar = "MY_NAMESPACE"
 
-	// KubeDirectorGlobalSettings - Name of the kubedirector settings CR
-	KubeDirectorGlobalSettings = "kd-global-settings"
+	// KubeDirectorGlobalConfig - Name of the kubedirector config CR
+	KubeDirectorGlobalConfig = "kd-global-config"
 )
 
 // Event reason constants for recording events

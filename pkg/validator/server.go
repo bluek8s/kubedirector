@@ -32,9 +32,9 @@ import (
 
 // Add validation handlers for all CRs that we currently support
 var validationHandlers = map[string]admitFunc{
-	"KubeDirectorApp":      admitAppCR,
-	"KubeDirectorCluster":  admitClusterCR,
-	"KubeDirectorSettings": admitKDSettingsCR,
+	"KubeDirectorApp":     admitAppCR,
+	"KubeDirectorCluster": admitClusterCR,
+	"KubeDirectorConfig":  admitKDConfigCR,
 }
 
 // validation handles the http portion of a request prior to dispatching the

@@ -1,6 +1,6 @@
 apiVersion: "kubedirector.bluedata.io/v1alpha1"
-kind: "KubeDirectorSettings"
+kind: "KubeDirectorConfig"
 metadata:
-  name: "kd-global-settings"
+  name: "kd-global-config"
 spec:
   defaultStorageClassName: "ssd"

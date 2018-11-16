@@ -21,6 +21,7 @@ import (
 	"k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -214,5 +215,46 @@ func GetDeployment(
 		},
 	}
 	err = sdk.Get(result)
+	return result, err
+}
+
+// GetKDConfig fetches kubedirector config CR in KubeDirector's namespace.
+func GetKDConfig(
+	kdConfigName string,
+) (*kdv1.KubeDirectorConfig, error) {
+
+	kdNamespace, err := shared.GetKubeDirectorNamespace()
+	if err != nil {
+		return nil, err
+	}
+	result := &kdv1.KubeDirectorConfig{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "KubeDirectorConfig",
+			APIVersion: "kubedirector.bluedata.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kdConfigName,
+			Namespace: kdNamespace,
+		},
+	}
+	err = sdk.Get(result)
+	return result, err
+}
+
+// GetStorageClass fetches storage class resource with a given name
+func GetStorageClass(
+	storageClassName string,
+) (*storagev1.StorageClass, error) {
+
+	result := &storagev1.StorageClass{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "StorageClass",
+			APIVersion: "storage.k8s.io/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: storageClassName,
+		},
+	}
+	err := sdk.Get(result)
 	return result, err
 }

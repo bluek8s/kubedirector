@@ -23,18 +23,31 @@ import (
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
+	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/reconciler"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// membersPatchSpec is used to create the PATCH operation for adding a default
-// member count to a role.
-type membersPatchSpec struct {
-	Op    string `json:"op"`
-	Path  string `json:"path"`
-	Value int32  `json:"value"`
+// clusterPatchSpec is used to create the PATCH operation for adding a default
+// member count to a role and setting up default storageClassName
+type clusterPatchSpec struct {
+	Op    string            `json:"op"`
+	Path  string            `json:"path"`
+	Value clusterPatchValue `json:"value"`
+}
+
+type clusterPatchValue struct {
+	ValueInt *int32
+	ValueStr *string
+}
+
+func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
+	if obj.ValueInt != nil {
+		return json.Marshal(obj.ValueInt)
+	}
+	return json.Marshal(obj.ValueStr)
 }
 
 // validateCardinality checks the member count specified for a role in the
@@ -46,9 +59,9 @@ func validateCardinality(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
 	valErrors []string,
-) ([]string, []membersPatchSpec) {
+) ([]string, []clusterPatchSpec) {
 
-	var patches []membersPatchSpec
+	var patches []clusterPatchSpec
 	anyError := false
 
 	numRoles := len(cr.Spec.Roles)
@@ -86,17 +99,19 @@ func validateCardinality(
 		} else {
 			patches = append(
 				patches,
-				membersPatchSpec{
-					Op:    "add",
-					Path:  "/spec/roles/" + strconv.Itoa(i) + "/members",
-					Value: cardinality,
+				clusterPatchSpec{
+					Op:   "add",
+					Path: "/spec/roles/" + strconv.Itoa(i) + "/members",
+					Value: clusterPatchValue{
+						ValueInt: &cardinality,
+					},
 				},
 			)
 		}
 	}
 
 	if anyError {
-		var emptyPatchList []membersPatchSpec
+		var emptyPatchList []clusterPatchSpec
 		return valErrors, emptyPatchList
 	}
 	return valErrors, patches
@@ -249,6 +264,81 @@ func validateRoleChanges(
 	return valErrors
 }
 
+// validateRoleStorageClass verifies storageClassName definition for a role
+// If storage section is defined for a role, a valid storageClassName must be
+// present or there must be one provided through kubedirector's config CR.
+// If neither are present, check to see if default storageClassName is valid, in
+// which case add entry in PATCH spec for mutating the cluster CR.
+func validateRoleStorageClass(
+	cr *kdv1.KubeDirectorCluster,
+	valErrors []string,
+	kdConfig *kdv1.KubeDirectorConfig,
+	patches []clusterPatchSpec,
+) ([]string, []clusterPatchSpec) {
+
+	var globalStorageClass = ""
+	var validateDefault = false
+
+	if kdConfig == nil || kdConfig.Spec.StorageClass == nil {
+		// storage class is not present in the config CR. Lets use the default one
+		globalStorageClass = defaultStorageClassName
+	} else {
+		globalStorageClass = *kdConfig.Spec.StorageClass
+	}
+
+	numRoles := len(cr.Spec.Roles)
+	for i := 0; i < numRoles; i++ {
+		role := &(cr.Spec.Roles[i])
+		if role.Storage.Size == "" {
+			continue
+		}
+
+		storageClass := role.Storage.StorageClass
+		if storageClass == nil {
+			// Use the default storageClassName and also set the flag to
+			// validate the associated storageClass object
+			validateDefault = true
+			patches = append(
+				patches,
+				clusterPatchSpec{
+					Op:   "add",
+					Path: "/spec/roles/" + strconv.Itoa(i) + "/storage/storageClassName",
+					Value: clusterPatchValue{
+						ValueStr: &globalStorageClass,
+					},
+				},
+			)
+		} else {
+			_, err := observer.GetStorageClass(*storageClass)
+			if err != nil {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidRoleStorageClass,
+						*storageClass,
+						role.Name,
+					),
+				)
+			}
+		}
+	}
+
+	if validateDefault {
+		_, err := observer.GetStorageClass(defaultStorageClassName)
+		if err != nil {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					undefinedRoleStorageClass,
+					defaultStorageClassName,
+				),
+			)
+		}
+	}
+
+	return valErrors, patches
+}
+
 // admitClusterCR is the top-level cluster validation function, which invokes
 // the top-specific validation subroutines and composes the admission
 // response.
@@ -258,7 +348,7 @@ func admitClusterCR(
 ) *v1beta1.AdmissionResponse {
 
 	var valErrors []string
-	var membersPatches []membersPatchSpec
+	var patches []clusterPatchSpec
 	var admitResponse = v1beta1.AdmissionResponse{
 		Allowed: false,
 	}
@@ -344,6 +434,9 @@ func admitClusterCR(
 		return &admitResponse
 	}
 
+	// Fetch global config CR (if present)
+	kdConfigCR, _ := observer.GetKDConfig(shared.KubeDirectorGlobalConfig)
+
 	// If cluster already exists, check for property changes.
 	if ar.Request.Operation == v1beta1.Update {
 		valErrors = validateGeneralChanges(&clusterCR, &prevClusterCR, valErrors)
@@ -360,14 +453,21 @@ func admitClusterCR(
 	}
 
 	// Validate cardinality and generate patches for defaults members values.
-	valErrors, membersPatches = validateCardinality(&clusterCR, appCR, valErrors)
+	valErrors, patches = validateCardinality(&clusterCR, appCR, valErrors)
 
 	// Validate that roles are known & sufficient.
 	valErrors = validateClusterRoles(&clusterCR, appCR, valErrors)
 
+	valErrors, patches = validateRoleStorageClass(
+		&clusterCR,
+		valErrors,
+		kdConfigCR,
+		patches,
+	)
+
 	if len(valErrors) == 0 {
-		if len(membersPatches) != 0 {
-			patchResult, patchErr := json.Marshal(membersPatches)
+		if len(patches) != 0 {
+			patchResult, patchErr := json.Marshal(patches)
 			if patchErr == nil {
 				admitResponse.Patch = patchResult
 				patchType := v1beta1.PatchTypeJSONPatch

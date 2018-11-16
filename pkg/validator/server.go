@@ -34,6 +34,7 @@ import (
 var validationHandlers = map[string]admitFunc{
 	"KubeDirectorApp":     admitAppCR,
 	"KubeDirectorCluster": admitClusterCR,
+	"KubeDirectorConfig":  admitKDConfigCR,
 }
 
 // validation handles the http portion of a request prior to dispatching the

@@ -177,8 +177,8 @@ func validateClusterRoles(
 
 // validateGeneralChanges checks for modifications to any property that is
 // not ever allowed to change after initial deployment. Currently this covers
-// the top-level app. Any generated error messages
-// will be added to the input list and returned.
+// the top-level app. Any generated error messages will be added to the input
+// list and returned.
 func validateGeneralChanges(
 	cr *kdv1.KubeDirectorCluster,
 	prevCr *kdv1.KubeDirectorCluster,
@@ -337,7 +337,7 @@ func validateRoleStorageClass(
 
 // addServiceType function checks to see if serviceType is provided for a
 // cluster CR. If unspecified, check to see if there is a default serviceType
-// provided through kubedirector's  config CR, otherwise use a global constant
+// provided through kubedirector's config CR, otherwise use a global constant
 // for service type. In either of those cases add an entry to PATCH spec for mutating
 // cluster CR.
 func addServiceType(

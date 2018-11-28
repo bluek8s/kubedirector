@@ -485,8 +485,16 @@ func admitClusterCR(
 
 	// If cluster already exists, check for property changes.
 	if ar.Request.Operation == v1beta1.Update {
-		valErrors = validateGeneralChanges(&clusterCR, &prevClusterCR, valErrors)
-		valErrors = validateRoleChanges(&clusterCR, &prevClusterCR, valErrors)
+		var changeErrors []string
+		changeErrors = validateGeneralChanges(&clusterCR, &prevClusterCR, changeErrors)
+		changeErrors = validateRoleChanges(&clusterCR, &prevClusterCR, changeErrors)
+		// If un-change-able properties are being changed, ignore all other error
+		// messages in favor of those. (The reason we didn't just do this check
+		// first and then skip other validation is because this check depends on
+		// the defaulting logic that happens in those other functions.)
+		if len(changeErrors) != 0 {
+			valErrors = changeErrors
+		}
 	}
 
 	if len(valErrors) == 0 {

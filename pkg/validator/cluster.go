@@ -362,7 +362,7 @@ func addServiceType(
 			Op:   "add",
 			Path: "/spec/serviceType",
 			Value: clusterPatchValue{
-				ValueStr: &serviceType,
+				ValueStr: cr.Spec.ServiceType,
 			},
 		},
 	)
@@ -487,15 +487,6 @@ func admitClusterCR(
 	if ar.Request.Operation == v1beta1.Update {
 		valErrors = validateGeneralChanges(&clusterCR, &prevClusterCR, valErrors)
 		valErrors = validateRoleChanges(&clusterCR, &prevClusterCR, valErrors)
-		// We coooooould continue to do other validation at this point, but
-		// that could be misleading. Let's not do other validation unless we
-		// know that only change-able properties are being changed.
-		if len(valErrors) != 0 {
-			admitResponse.Result = &metav1.Status{
-				Message: "\n" + strings.Join(valErrors, "\n"),
-			}
-			return &admitResponse
-		}
 	}
 
 	if len(valErrors) == 0 {

@@ -30,6 +30,7 @@ const (
 	webhookHandlerName      = "validate-cr.kubedirector.bluedata.io"
 	validationPath          = "/validate"
 	defaultStorageClassName = "standard"
+	defaultServiceType      = "NodePort"
 
 	appCrt  = "app.crt"
 	appKey  = "app.pem"

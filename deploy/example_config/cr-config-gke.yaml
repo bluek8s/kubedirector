@@ -3,4 +3,5 @@ kind: "KubeDirectorConfig"
 metadata:
   name: "kd-global-config"
 spec:
-  defaultServiceType: "NodePort"
+  defaultStorageClassName: "standard"
+  defaultServiceType: "LoadBalancer"

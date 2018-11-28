@@ -97,13 +97,14 @@ func validateCardinality(
 				)
 			}
 		} else {
+			role.Members = &cardinality
 			patches = append(
 				patches,
 				clusterPatchSpec{
 					Op:   "add",
 					Path: "/spec/roles/" + strconv.Itoa(i) + "/members",
 					Value: clusterPatchValue{
-						ValueInt: &cardinality,
+						ValueInt: role.Members,
 					},
 				},
 			)
@@ -176,8 +177,8 @@ func validateClusterRoles(
 
 // validateGeneralChanges checks for modifications to any property that is
 // not ever allowed to change after initial deployment. Currently this covers
-// the top-level app and serviceType properties. Any generated error messages
-// will be added to the input list and returned.
+// the top-level app. Any generated error messages will be added to the input
+// list and returned.
 func validateGeneralChanges(
 	cr *kdv1.KubeDirectorCluster,
 	prevCr *kdv1.KubeDirectorCluster,
@@ -191,13 +192,7 @@ func validateGeneralChanges(
 		)
 		valErrors = append(valErrors, appModifiedMsg)
 	}
-	if cr.Spec.ServiceType != prevCr.Spec.ServiceType {
-		serviceTypeModifiedMsg := fmt.Sprintf(
-			modifiedProperty,
-			"serviceType",
-		)
-		valErrors = append(valErrors, serviceTypeModifiedMsg)
-	}
+
 	return valErrors
 }
 
@@ -297,6 +292,7 @@ func validateRoleStorageClass(
 		if storageClass == nil {
 			// Use the default storageClassName and also set the flag to
 			// validate the associated storageClass object
+			role.Storage.StorageClass = &globalStorageClass
 			validateDefault = true
 			patches = append(
 				patches,
@@ -304,7 +300,7 @@ func validateRoleStorageClass(
 					Op:   "add",
 					Path: "/spec/roles/" + strconv.Itoa(i) + "/storage/storageClassName",
 					Value: clusterPatchValue{
-						ValueStr: &globalStorageClass,
+						ValueStr: role.Storage.StorageClass,
 					},
 				},
 			)
@@ -337,6 +333,41 @@ func validateRoleStorageClass(
 	}
 
 	return valErrors, patches
+}
+
+// addServiceType function checks to see if serviceType is provided for a
+// cluster CR. If unspecified, check to see if there is a default serviceType
+// provided through kubedirector's config CR, otherwise use a global constant
+// for service type. In either of those cases add an entry to PATCH spec for mutating
+// cluster CR.
+func addServiceType(
+	cr *kdv1.KubeDirectorCluster,
+	kdConfig *kdv1.KubeDirectorConfig,
+	patches []clusterPatchSpec,
+) []clusterPatchSpec {
+
+	if cr.Spec.ServiceType != nil {
+		return patches
+	}
+
+	serviceType := defaultServiceType
+	if kdConfig.Spec.ServiceType != nil {
+		serviceType = *kdConfig.Spec.ServiceType
+	}
+	cr.Spec.ServiceType = &serviceType
+
+	patches = append(
+		patches,
+		clusterPatchSpec{
+			Op:   "add",
+			Path: "/spec/serviceType",
+			Value: clusterPatchValue{
+				ValueStr: cr.Spec.ServiceType,
+			},
+		},
+	)
+
+	return patches
 }
 
 // admitClusterCR is the top-level cluster validation function, which invokes
@@ -437,21 +468,6 @@ func admitClusterCR(
 	// Fetch global config CR (if present)
 	kdConfigCR, _ := observer.GetKDConfig(shared.KubeDirectorGlobalConfig)
 
-	// If cluster already exists, check for property changes.
-	if ar.Request.Operation == v1beta1.Update {
-		valErrors = validateGeneralChanges(&clusterCR, &prevClusterCR, valErrors)
-		valErrors = validateRoleChanges(&clusterCR, &prevClusterCR, valErrors)
-		// We coooooould continue to do other validation at this point, but
-		// that could be misleading. Let's not do other validation unless we
-		// know that only change-able properties are being changed.
-		if len(valErrors) != 0 {
-			admitResponse.Result = &metav1.Status{
-				Message: "\n" + strings.Join(valErrors, "\n"),
-			}
-			return &admitResponse
-		}
-	}
-
 	// Validate cardinality and generate patches for defaults members values.
 	valErrors, patches = validateCardinality(&clusterCR, appCR, valErrors)
 
@@ -464,6 +480,22 @@ func admitClusterCR(
 		kdConfigCR,
 		patches,
 	)
+
+	patches = addServiceType(&clusterCR, kdConfigCR, patches)
+
+	// If cluster already exists, check for property changes.
+	if ar.Request.Operation == v1beta1.Update {
+		var changeErrors []string
+		changeErrors = validateGeneralChanges(&clusterCR, &prevClusterCR, changeErrors)
+		changeErrors = validateRoleChanges(&clusterCR, &prevClusterCR, changeErrors)
+		// If un-change-able properties are being changed, ignore all other error
+		// messages in favor of those. (The reason we didn't just do this check
+		// first and then skip other validation is because this check depends on
+		// the defaulting logic that happens in those other functions.)
+		if len(changeErrors) != 0 {
+			valErrors = changeErrors
+		}
+	}
 
 	if len(valErrors) == 0 {
 		if len(patches) != 0 {

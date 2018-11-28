@@ -15,11 +15,15 @@
 package executor
 
 import (
+	"encoding/json"
+
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
+	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // CreateHeadlessService creates in k8s the "cluster service" used for
@@ -90,12 +94,8 @@ func CreatePodService(
 	podName string,
 ) (*v1.Service, error) {
 
-	var serviceType v1.ServiceType
-	if cr.Spec.ServiceType == "" || cr.Spec.ServiceType == string(v1.ServiceTypeNodePort) {
-		serviceType = v1.ServiceTypeNodePort
-	} else {
-		serviceType = v1.ServiceTypeLoadBalancer
-	}
+	serviceType := serviceType(*cr.Spec.ServiceType)
+
 	portInfoList, portsErr := catalog.PortsForRole(cr, role.Name)
 	if portsErr != nil {
 		return nil, portsErr
@@ -129,6 +129,7 @@ func CreatePodService(
 
 // UpdatePodService examines a current per-member service in k8s and may take
 // steps to reconcile it to the desired spec.
+// TBD: Currently this function handles changes only for serviceType
 func UpdatePodService(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
@@ -136,12 +137,42 @@ func UpdatePodService(
 	service *v1.Service,
 ) error {
 
-	// TBD: We could compare the service against the expected service
-	// (generated from the CR) and if there is a deviance in properties that
-	// we need/expect to be under our control, correct them here. Not going
-	// to tackle that at first.
+	reqServiceType := serviceType(*cr.Spec.ServiceType)
 
-	return nil
+	// Compare cluster CR's service type against created service
+	if reqServiceType == service.Spec.Type {
+		return nil
+	}
+
+	shared.LogInfof(
+		cr,
+		shared.EventReasonMember,
+		"modifying serviceType from %s to %s for service{%s}",
+		service.Spec.Type,
+		reqServiceType,
+		service.Name,
+	)
+	// serviceType has been updated. Create a patch to change the type
+	type patchSpec struct {
+		Op    string         `json:"op"`
+		Path  string         `json:"path"`
+		Value v1.ServiceType `json:"value"`
+	}
+
+	patch := []patchSpec{
+		{
+			Op:    "replace",
+			Path:  "/spec/type",
+			Value: reqServiceType,
+		},
+	}
+
+	patchBytes, patchErr := json.Marshal(patch)
+	if patchErr == nil {
+		patchErr = sdk.Patch(service, types.JSONPatchType, patchBytes)
+	}
+
+	return patchErr
 }
 
 // DeletePodService deletes a per-member service from k8s.
@@ -171,4 +202,17 @@ func serviceName(
 ) string {
 
 	return "svc-" + baseName
+}
+
+// serviceType is a utility function that converts serviceType string to
+// v1.ServiceType
+func serviceType(
+	crServicetype string,
+) v1.ServiceType {
+
+	if crServicetype == string(v1.ServiceTypeNodePort) {
+		return v1.ServiceTypeNodePort
+	}
+
+	return v1.ServiceTypeLoadBalancer
 }

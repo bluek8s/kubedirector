@@ -4,3 +4,4 @@ metadata:
   name: "kd-global-config"
 spec:
   defaultStorageClassName: "ssd"
+  defaultServiceType: "LoadBalancer"

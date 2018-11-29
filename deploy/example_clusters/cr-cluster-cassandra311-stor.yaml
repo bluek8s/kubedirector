@@ -1,10 +1,9 @@
 apiVersion: "kubedirector.bluedata.io/v1alpha1"
 kind: "KubeDirectorCluster"
 metadata:
-  name: "cassandra-lb-persistent"
+  name: "cassandra-persistent"
 spec:
   app: cassandra311
-  serviceType: LoadBalancer
   roles:
   - id: seed
     members: 2

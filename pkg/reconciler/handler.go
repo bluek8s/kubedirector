@@ -43,7 +43,6 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 	case *v1alpha1.KubeDirectorCluster:
 		return syncCluster(event, o, h)
 	case *v1alpha1.KubeDirectorConfig:
-		// Save config information in the handler structure.
 		return syncConfig(event, o, h)
 	}
 	return nil

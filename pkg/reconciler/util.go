@@ -112,12 +112,14 @@ func removeClusterAppReference(
 	delete(handler.clusterState.clusterAppTypes, clusterKey)
 }
 
+// removeGlobalConfig removes the globalConfig from handler structure
 func removeGlobalConfig(handler *Handler) {
 	handler.lock.Lock()
 	defer handler.lock.Unlock()
 	handler.globalConfig = nil
 }
 
+// addGlobalConfig adds the globalConfig CR data to handler structure
 func addGlobalConfig(
 	handler *Handler,
 	cr *kdv1.KubeDirectorConfig,

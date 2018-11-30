@@ -27,11 +27,12 @@ import (
 // resources that we are watching.
 func NewHandler() *Handler {
 	return &Handler{
+		lock: sync.RWMutex{},
 		ClusterState: handlerClusterState{
-			lock:              sync.RWMutex{},
 			clusterStatusGens: make(map[types.UID]StatusGen),
 			clusterAppTypes:   make(map[string]string),
 		},
+		GlobalConfig: nil,
 	}
 }
 
@@ -40,7 +41,10 @@ func NewHandler() *Handler {
 func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 	switch o := event.Object.(type) {
 	case *v1alpha1.KubeDirectorCluster:
-		return syncCluster(event, o, &(h.ClusterState))
+		return syncCluster(event, o, h)
+	case *v1alpha1.KubeDirectorConfig:
+		// Save config information in the handler structure.
+		return syncConfig(event, o, h)
 	}
 	return nil
 }

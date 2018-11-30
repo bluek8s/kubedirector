@@ -34,6 +34,7 @@ import (
 // can be referenced by the later syncs for other concerns.
 func syncRoles(
 	cr *kdv1.KubeDirectorCluster,
+	handler *Handler,
 ) ([]*roleInfo, clusterStateInternal, error) {
 
 	// Construct the role info slice. Bail out now if that fails.
@@ -61,14 +62,14 @@ func syncRoles(
 		switch {
 		case r.statefulSet == nil && r.roleStatus == nil:
 			// Role did not previously exist. Create it now.
-			createErr := handleRoleCreate(cr, r, &anyMembersChanged)
+			createErr := handleRoleCreate(cr, r, handler, &anyMembersChanged)
 			if createErr != nil {
 				return nil, clusterMembersUnknown, createErr
 			}
 		case r.statefulSet == nil && r.roleStatus != nil:
 			// Role exists but there is no statefulset for it in k8s.
 			// Hmm, weird. Statefulset was deleted out-of-band? Let's fix.
-			reCreateErr := handleRoleReCreate(cr, r, &anyMembersChanged)
+			reCreateErr := handleRoleReCreate(cr, r, handler, &anyMembersChanged)
 			if reCreateErr != nil {
 				return nil, clusterMembersUnknown, reCreateErr
 			}
@@ -244,6 +245,7 @@ func calcRoleMembersByState(
 func handleRoleCreate(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
+	handler *Handler,
 	anyMembersChanged *bool,
 ) error {
 
@@ -260,9 +262,15 @@ func handleRoleCreate(
 		role.roleSpec.Name,
 	)
 
+	nativeSystemdSupport := false
+	if handler.GlobalConfig != nil {
+		nativeSystemdSupport = handler.GlobalConfig.Spec.NativeSystemdSupport
+	}
+
 	// Create the associated statefulset.
 	statefulSet, createErr := executor.CreateStatefulSet(
 		cr,
+		nativeSystemdSupport,
 		role.roleSpec,
 	)
 	if createErr != nil {
@@ -304,6 +312,7 @@ func handleRoleCreate(
 func handleRoleReCreate(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
+	handler *Handler,
 	anyMembersChanged *bool,
 ) error {
 
@@ -314,7 +323,7 @@ func handleRoleReCreate(
 			role.roleStatus.StatefulSet = ""
 		} else {
 			// Create a new statefulset for the role.
-			return handleRoleCreate(cr, role, anyMembersChanged)
+			return handleRoleCreate(cr, role, handler, anyMembersChanged)
 		}
 	} else {
 		shared.LogInfof(

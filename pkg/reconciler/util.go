@@ -22,11 +22,11 @@ import (
 // validated flag.
 func ReadStatusGen(
 	cr *kdv1.KubeDirectorCluster,
-	handlerState *handlerClusterState,
+	handler *Handler,
 ) (StatusGen, bool) {
-	handlerState.lock.RLock()
-	defer handlerState.lock.RUnlock()
-	val, ok := handlerState.clusterStatusGens[cr.UID]
+	handler.lock.RLock()
+	defer handler.lock.RUnlock()
+	val, ok := handler.ClusterState.clusterStatusGens[cr.UID]
 	return val, ok
 }
 
@@ -34,46 +34,46 @@ func ReadStatusGen(
 // The validated flag will begin as false.
 func writeStatusGen(
 	cr *kdv1.KubeDirectorCluster,
-	handlerState *handlerClusterState,
+	handler *Handler,
 	newGenUid string,
 ) {
-	handlerState.lock.Lock()
-	defer handlerState.lock.Unlock()
-	handlerState.clusterStatusGens[cr.UID] = StatusGen{Uid: newGenUid}
+	handler.lock.Lock()
+	defer handler.lock.Unlock()
+	handler.ClusterState.clusterStatusGens[cr.UID] = StatusGen{Uid: newGenUid}
 }
 
 // ValidateStatusGen provides threadsafe mark-validated of a status gen.
 func ValidateStatusGen(
 	cr *kdv1.KubeDirectorCluster,
-	handlerState *handlerClusterState,
+	handler *Handler,
 ) {
-	handlerState.lock.Lock()
-	defer handlerState.lock.Unlock()
-	val, ok := handlerState.clusterStatusGens[cr.UID]
+	handler.lock.Lock()
+	defer handler.lock.Unlock()
+	val, ok := handler.ClusterState.clusterStatusGens[cr.UID]
 	if ok {
 		val.Validated = true
-		handlerState.clusterStatusGens[cr.UID] = val
+		handler.ClusterState.clusterStatusGens[cr.UID] = val
 	}
 }
 
 // deleteStatusGen provides threadsafe delete of a status gen.
 func deleteStatusGen(
 	cr *kdv1.KubeDirectorCluster,
-	handlerState *handlerClusterState,
+	handler *Handler,
 ) {
-	handlerState.lock.Lock()
-	defer handlerState.lock.Unlock()
-	delete(handlerState.clusterStatusGens, cr.UID)
+	handler.lock.Lock()
+	defer handler.lock.Unlock()
+	delete(handler.ClusterState.clusterStatusGens, cr.UID)
 }
 
 // ClustersUsingApp returns the list of cluster names referencing the given app.
 func ClustersUsingApp(
 	app string,
-	handlerState *handlerClusterState,
+	handler *Handler,
 ) []string {
 	var clusters []string
-	handlerState.lock.RLock()
-	defer handlerState.lock.RUnlock()
+	handler.lock.RLock()
+	defer handler.lock.RUnlock()
 	// This is a relationship that needs to be query-able given either ONLY
 	// the app name (in this function) or ONLY the cluster name (in
 	// removeClusterAppReference). Since the app CR deletion/update triggers
@@ -81,7 +81,7 @@ func ClustersUsingApp(
 	// check by just walking the list of associations. It's also nice to go
 	// ahead and gather all the offending cluster CR names to report back to
 	// the client.
-	for clusterKey, appName := range handlerState.clusterAppTypes {
+	for clusterKey, appName := range handler.ClusterState.clusterAppTypes {
 		if appName == app {
 			clusters = append(clusters, clusterKey)
 		}
@@ -92,22 +92,37 @@ func ClustersUsingApp(
 // ensureClusterAppReference notes that an app type is in use by this cluster.
 func ensureClusterAppReference(
 	cr *kdv1.KubeDirectorCluster,
-	handlerState *handlerClusterState,
+	handler *Handler,
 ) {
 	clusterKey := cr.Namespace + "/" + cr.Name
-	handlerState.lock.Lock()
-	defer handlerState.lock.Unlock()
-	handlerState.clusterAppTypes[clusterKey] = cr.Spec.AppID
+	handler.lock.Lock()
+	defer handler.lock.Unlock()
+	handler.ClusterState.clusterAppTypes[clusterKey] = cr.Spec.AppID
 }
 
 // removeClusterAppReference notes that an app type is no longer in use by
 // this cluster.
 func removeClusterAppReference(
 	cr *kdv1.KubeDirectorCluster,
-	handlerState *handlerClusterState,
+	handler *Handler,
 ) {
 	clusterKey := cr.Namespace + "/" + cr.Name
-	handlerState.lock.Lock()
-	defer handlerState.lock.Unlock()
-	delete(handlerState.clusterAppTypes, clusterKey)
+	handler.lock.Lock()
+	defer handler.lock.Unlock()
+	delete(handler.ClusterState.clusterAppTypes, clusterKey)
+}
+
+func removeGlobalConfig(handler *Handler) {
+	handler.lock.Lock()
+	defer handler.lock.Unlock()
+	handler.GlobalConfig = nil
+}
+
+func addGlobalConfig(
+	handler *Handler,
+	cr *kdv1.KubeDirectorConfig,
+) {
+	handler.lock.Lock()
+	defer handler.lock.Unlock()
+	handler.GlobalConfig = cr
 }

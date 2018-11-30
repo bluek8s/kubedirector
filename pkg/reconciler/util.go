@@ -26,7 +26,7 @@ func ReadStatusGen(
 ) (StatusGen, bool) {
 	handler.lock.RLock()
 	defer handler.lock.RUnlock()
-	val, ok := handler.ClusterState.clusterStatusGens[cr.UID]
+	val, ok := handler.clusterState.clusterStatusGens[cr.UID]
 	return val, ok
 }
 
@@ -39,7 +39,7 @@ func writeStatusGen(
 ) {
 	handler.lock.Lock()
 	defer handler.lock.Unlock()
-	handler.ClusterState.clusterStatusGens[cr.UID] = StatusGen{Uid: newGenUid}
+	handler.clusterState.clusterStatusGens[cr.UID] = StatusGen{Uid: newGenUid}
 }
 
 // ValidateStatusGen provides threadsafe mark-validated of a status gen.
@@ -49,10 +49,10 @@ func ValidateStatusGen(
 ) {
 	handler.lock.Lock()
 	defer handler.lock.Unlock()
-	val, ok := handler.ClusterState.clusterStatusGens[cr.UID]
+	val, ok := handler.clusterState.clusterStatusGens[cr.UID]
 	if ok {
 		val.Validated = true
-		handler.ClusterState.clusterStatusGens[cr.UID] = val
+		handler.clusterState.clusterStatusGens[cr.UID] = val
 	}
 }
 
@@ -63,7 +63,7 @@ func deleteStatusGen(
 ) {
 	handler.lock.Lock()
 	defer handler.lock.Unlock()
-	delete(handler.ClusterState.clusterStatusGens, cr.UID)
+	delete(handler.clusterState.clusterStatusGens, cr.UID)
 }
 
 // ClustersUsingApp returns the list of cluster names referencing the given app.
@@ -81,7 +81,7 @@ func ClustersUsingApp(
 	// check by just walking the list of associations. It's also nice to go
 	// ahead and gather all the offending cluster CR names to report back to
 	// the client.
-	for clusterKey, appName := range handler.ClusterState.clusterAppTypes {
+	for clusterKey, appName := range handler.clusterState.clusterAppTypes {
 		if appName == app {
 			clusters = append(clusters, clusterKey)
 		}
@@ -97,7 +97,7 @@ func ensureClusterAppReference(
 	clusterKey := cr.Namespace + "/" + cr.Name
 	handler.lock.Lock()
 	defer handler.lock.Unlock()
-	handler.ClusterState.clusterAppTypes[clusterKey] = cr.Spec.AppID
+	handler.clusterState.clusterAppTypes[clusterKey] = cr.Spec.AppID
 }
 
 // removeClusterAppReference notes that an app type is no longer in use by
@@ -109,13 +109,13 @@ func removeClusterAppReference(
 	clusterKey := cr.Namespace + "/" + cr.Name
 	handler.lock.Lock()
 	defer handler.lock.Unlock()
-	delete(handler.ClusterState.clusterAppTypes, clusterKey)
+	delete(handler.clusterState.clusterAppTypes, clusterKey)
 }
 
 func removeGlobalConfig(handler *Handler) {
 	handler.lock.Lock()
 	defer handler.lock.Unlock()
-	handler.GlobalConfig = nil
+	handler.globalConfig = nil
 }
 
 func addGlobalConfig(
@@ -124,5 +124,5 @@ func addGlobalConfig(
 ) {
 	handler.lock.Lock()
 	defer handler.lock.Unlock()
-	handler.GlobalConfig = cr
+	handler.globalConfig = cr
 }

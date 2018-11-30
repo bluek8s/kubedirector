@@ -35,8 +35,8 @@ type handlerClusterState struct {
 
 type Handler struct {
 	lock         sync.RWMutex
-	ClusterState handlerClusterState
-	GlobalConfig *v1alpha1.KubeDirectorConfig
+	clusterState handlerClusterState
+	globalConfig *v1alpha1.KubeDirectorConfig
 }
 
 type clusterState string

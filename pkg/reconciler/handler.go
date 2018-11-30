@@ -28,11 +28,11 @@ import (
 func NewHandler() *Handler {
 	return &Handler{
 		lock: sync.RWMutex{},
-		ClusterState: handlerClusterState{
+		clusterState: handlerClusterState{
 			clusterStatusGens: make(map[types.UID]StatusGen),
 			clusterAppTypes:   make(map[string]string),
 		},
-		GlobalConfig: nil,
+		globalConfig: nil,
 	}
 }
 

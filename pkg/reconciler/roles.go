@@ -262,10 +262,7 @@ func handleRoleCreate(
 		role.roleSpec.Name,
 	)
 
-	nativeSystemdSupport := false
-	if handler.globalConfig != nil {
-		nativeSystemdSupport = handler.globalConfig.Spec.NativeSystemdSupport
-	}
+	nativeSystemdSupport := getNativeSystemdSupport(handler)
 
 	// Create the associated statefulset.
 	statefulSet, createErr := executor.CreateStatefulSet(

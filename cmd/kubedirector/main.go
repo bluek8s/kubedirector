@@ -68,19 +68,32 @@ func main() {
 		validator.StartValidationServer(handler)
 	}()
 
-	// The resync period essentially determines how granularly we can detect
-	// the completion of cluster config changes. Making this too small can
-	// actually be bad in that there is benefit to batch-resolving changes,
-	// within KubeDirector but also especially with the cluster's app config
-	// scripts. Using same resyncPeriod for all kinds that we will watch.
-	resyncPeriod := time.Duration(30) * time.Second
-	resource := "kubedirector.bluedata.io/v1alpha1"
+	type watchInfo struct {
+		kind         string
+		resyncPeriod time.Duration
+	}
 
 	// Add all CR kinds that we want to watch.
-	kinds := []string{"KubeDirectorCluster", "KubeDirectorConfig"}
-	for _, kind := range kinds {
-		logrus.Infof("Watching %s, %s, %s, %d", resource, kind, namespace, resyncPeriod)
-		sdk.Watch(resource, kind, namespace, resyncPeriod)
+	watchParams := []watchInfo{
+		{
+			kind: "KubeDirectorCluster",
+			// The resync period essentially determines how granularly we can detect
+			// the completion of cluster config changes. Making this too small can
+			// actually be bad in that there is benefit to batch-resolving changes,
+			// within KubeDirector but also especially with the cluster's app config
+			// scripts.
+			resyncPeriod: time.Duration(30) * time.Second,
+		},
+		{
+			kind:         "KubeDirectorConfig",
+			resyncPeriod: 0,
+		},
+	}
+
+	resource := "kubedirector.bluedata.io/v1alpha1"
+	for _, w := range watchParams {
+		logrus.Infof("Watching %s, %s, %s, %d", resource, w.kind, namespace, w.resyncPeriod)
+		sdk.Watch(resource, w.kind, namespace, w.resyncPeriod)
 	}
 	sdk.Handle(handler)
 	sdk.Run(context.TODO())

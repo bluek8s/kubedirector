@@ -128,3 +128,16 @@ func addGlobalConfig(
 	defer handler.lock.Unlock()
 	handler.globalConfig = cr
 }
+
+// getNativeSystemdSupport extracts the flag definition from globalConfig CR data
+// if present, otherwise returns false
+func getNativeSystemdSupport(
+	handler *Handler,
+) bool {
+	handler.lock.Lock()
+	defer handler.lock.Unlock()
+	if handler.globalConfig != nil {
+		return handler.globalConfig.Spec.NativeSystemdSupport
+	}
+	return false
+}

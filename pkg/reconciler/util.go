@@ -134,8 +134,8 @@ func addGlobalConfig(
 func getNativeSystemdSupport(
 	handler *Handler,
 ) bool {
-	handler.lock.Lock()
-	defer handler.lock.Unlock()
+	handler.lock.RLock()
+	defer handler.lock.RUnlock()
 	if handler.globalConfig != nil {
 		return handler.globalConfig.Spec.NativeSystemdSupport
 	}

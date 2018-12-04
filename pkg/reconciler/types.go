@@ -17,6 +17,7 @@ package reconciler
 import (
 	"sync"
 
+	"github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,13 +29,14 @@ type StatusGen struct {
 }
 
 type handlerClusterState struct {
-	lock              sync.RWMutex
 	clusterStatusGens map[types.UID]StatusGen
 	clusterAppTypes   map[string]string
 }
 
 type Handler struct {
-	ClusterState handlerClusterState
+	lock         sync.RWMutex
+	clusterState handlerClusterState
+	globalConfig *v1alpha1.KubeDirectorConfig
 }
 
 type clusterState string

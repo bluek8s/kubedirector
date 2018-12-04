@@ -34,7 +34,7 @@ import (
 func syncCluster(
 	event sdk.Event,
 	cr *kdv1.KubeDirectorCluster,
-	handlerState *handlerClusterState,
+	handler *Handler,
 ) error {
 
 	// Exit early if deleting the resource.
@@ -44,13 +44,13 @@ func syncCluster(
 			shared.EventReasonCluster,
 			"deleted",
 		)
-		deleteStatusGen(cr, handlerState)
-		removeClusterAppReference(cr, handlerState)
+		deleteStatusGen(cr, handler)
+		removeClusterAppReference(cr, handler)
 		return nil
 	}
 
 	// Otherwise, make sure this cluster marks a reference to its app.
-	ensureClusterAppReference(cr, handlerState)
+	ensureClusterAppReference(cr, handler)
 
 	// Make sure we have a Status object to work with.
 	if cr.Status == nil {
@@ -68,7 +68,7 @@ func syncCluster(
 			maxWait := 4096 * time.Second
 			for {
 				cr.Status.GenerationUid = uuid.New().String()
-				writeStatusGen(cr, handlerState, cr.Status.GenerationUid)
+				writeStatusGen(cr, handler, cr.Status.GenerationUid)
 				updateErr := executor.UpdateStatus(cr)
 				if updateErr == nil {
 					return
@@ -105,7 +105,7 @@ func syncCluster(
 
 	// Ignore stale poll-driven handler for a resource we have since
 	// updated. Also for a new CR just update the status state/gen.
-	shouldProcessCR := handleStatusGen(cr, handlerState)
+	shouldProcessCR := handleStatusGen(cr, handler)
 
 	// Regardless of whether the status gen is as expected, make sure the CR
 	// finalizers are as we want them. We use a finalizer to prevent races
@@ -138,7 +138,7 @@ func syncCluster(
 		return clusterServiceErr
 	}
 
-	roles, state, rolesErr := syncRoles(cr)
+	roles, state, rolesErr := syncRoles(cr, handler)
 	if rolesErr != nil {
 		errLog("roles", rolesErr)
 		return rolesErr
@@ -199,11 +199,11 @@ func syncCluster(
 // reject old/stale versions of the CR.
 func handleStatusGen(
 	cr *kdv1.KubeDirectorCluster,
-	handlerState *handlerClusterState,
+	handler *Handler,
 ) bool {
 
 	incoming := cr.Status.GenerationUid
-	lastKnown, ok := ReadStatusGen(cr, handlerState)
+	lastKnown, ok := ReadStatusGen(cr, handler)
 	if !ok {
 		if incoming == "" {
 			shared.LogInfo(
@@ -220,9 +220,9 @@ func handleStatusGen(
 			"unknown with incoming gen uid %s",
 			incoming,
 		)
-		writeStatusGen(cr, handlerState, incoming)
-		ValidateStatusGen(cr, handlerState)
-		ensureClusterAppReference(cr, handlerState)
+		writeStatusGen(cr, handler, incoming)
+		ValidateStatusGen(cr, handler)
+		ensureClusterAppReference(cr, handler)
 		return true
 	}
 

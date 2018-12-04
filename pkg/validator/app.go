@@ -185,7 +185,7 @@ func admitAppCR(
 	if ar.Request.Operation == v1beta1.Update || ar.Request.Operation == v1beta1.Delete {
 		references := reconciler.ClustersUsingApp(
 			ar.Request.Name,
-			&(handlerState.ClusterState),
+			handlerState,
 		)
 		if len(references) != 0 {
 			referencesStr := strings.Join(references, ", ")

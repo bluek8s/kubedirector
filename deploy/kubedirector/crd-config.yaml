@@ -27,3 +27,5 @@ spec:
             defaultServiceType:
               type: string
               pattern: '^NodePort$|^LoadBalancer$'
+            nativeSystemdSupport:
+              type: boolean

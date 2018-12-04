@@ -42,20 +42,10 @@ func main() {
 
 	sdk.ExposeMetricsPort()
 
-	resource := "kubedirector.bluedata.io/v1alpha1"
-	kind := "KubeDirectorCluster"
 	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
 		logrus.Fatalf("failed to get watch namespace: %v", err)
 	}
-	// The resync period essentially determines how granularly we can detect
-	// the completion of cluster config changes. Making this too small can
-	// actually be bad in that there is benefit to batch-resolving changes,
-	// within KubeDirector but also especially with the cluster's app config
-	// scripts.
-	resyncPeriod := time.Duration(30) * time.Second
-	logrus.Infof("Watching %s, %s, %s, %d", resource, kind, namespace, resyncPeriod)
-
 	// Fetch our deployment object
 	kdName, err := k8sutil.GetOperatorName()
 	if err != nil {
@@ -78,7 +68,33 @@ func main() {
 		validator.StartValidationServer(handler)
 	}()
 
-	sdk.Watch(resource, kind, namespace, resyncPeriod)
+	type watchInfo struct {
+		kind         string
+		resyncPeriod time.Duration
+	}
+
+	// Add all CR kinds that we want to watch.
+	watchParams := []watchInfo{
+		{
+			kind: "KubeDirectorCluster",
+			// The resync period essentially determines how granularly we can detect
+			// the completion of cluster config changes. Making this too small can
+			// actually be bad in that there is benefit to batch-resolving changes,
+			// within KubeDirector but also especially with the cluster's app config
+			// scripts.
+			resyncPeriod: time.Duration(30) * time.Second,
+		},
+		{
+			kind:         "KubeDirectorConfig",
+			resyncPeriod: 0,
+		},
+	}
+
+	resource := "kubedirector.bluedata.io/v1alpha1"
+	for _, w := range watchParams {
+		logrus.Infof("Watching %s, %s, %s, %d", resource, w.kind, namespace, w.resyncPeriod)
+		sdk.Watch(resource, w.kind, namespace, w.resyncPeriod)
+	}
 	sdk.Handle(handler)
 	sdk.Run(context.TODO())
 }

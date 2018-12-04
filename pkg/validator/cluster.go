@@ -418,7 +418,7 @@ func admitClusterCR(
 	if clusterCR.Status != nil {
 		expectedStatusGen, ok := reconciler.ReadStatusGen(
 			&clusterCR,
-			&(handlerState.ClusterState),
+			handlerState,
 		)
 		// Reject this write if either of:
 		// - KubeDirector doesn't know about the cluster resource
@@ -443,7 +443,7 @@ func admitClusterCR(
 	}
 	reconciler.ValidateStatusGen(
 		&clusterCR,
-		&(handlerState.ClusterState),
+		handlerState,
 	)
 
 	// Shortcut out of here if the spec is not being changed. Among other

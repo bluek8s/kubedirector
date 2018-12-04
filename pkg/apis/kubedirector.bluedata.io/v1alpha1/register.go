@@ -43,6 +43,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&KubeDirectorCluster{},
 		&KubeDirectorClusterList{},
+		&KubeDirectorConfig{},
+		&KubeDirectorConfigList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

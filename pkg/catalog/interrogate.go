@@ -198,13 +198,13 @@ func AppSetupPackageUrl(
 	// Check to see if there is a role-specific setup package.
 	for _, nodeRole := range appCR.Spec.NodeRoles {
 		if nodeRole.ID == role {
-			appConfigUrl = nodeRole.SetupPackage.ImportUrl
+			appConfigUrl = nodeRole.JSONSetupPackage.SetupPackage.ImportUrl
 			break
 		}
 	}
 	// If role-specific package is not present, use the main one.
 	if appConfigUrl == "" {
-		appConfigUrl = cr.AppSpec.Spec.SetupPackage.ImportUrl
+		appConfigUrl = cr.AppSpec.Spec.JSONSetupPackage.SetupPackage.ImportUrl
 	}
 
 	return appConfigUrl, nil

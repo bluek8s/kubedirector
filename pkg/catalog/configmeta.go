@@ -185,7 +185,7 @@ func clusterBaseConfig(
 ) *configmeta {
 
 	return &configmeta{
-		Version:    strconv.Itoa(appCR.Spec.SetupPackage.ConfigAPIVersion),
+		Version:    strconv.Itoa(appCR.Spec.JSONSetupPackage.SetupPackage.ConfigAPIVersion),
 		Services:   getServices(appCR, membersForRole),
 		Nodegroups: nodegroups(cr, appCR, membersForRole, domain),
 		Distros: map[string]refkeysMap{

@@ -126,17 +126,17 @@ type KubeDirectorApp struct {
 
 // AppSpec is the spec provided for an app definition.
 type AppSpec struct {
-	Label           Label           `json:"label"`
-	DistroID        string          `json:"distro_id"`
-	Version         string          `json:"version"`
-	Image           Image           `json:"image,omitempty"`
-	SetupPackage    SetupPackage    `json:"setup_package,omitempty"`
-	Services        []Service       `json:"services"`
-	NodeRoles       []NodeRole      `json:"roles"`
-	Config          NodeGroupConfig `json:"config"`
-	PersistDirs     *[]string       `json:"persist_dirs"`
-	Capabilities    []v1.Capability `json:"capabilities"`
-	SystemdRequired bool            `json:"systemdRequired"`
+	Label            Label            `json:"label"`
+	DistroID         string           `json:"distro_id"`
+	Version          string           `json:"version"`
+	Image            Image            `json:"image,omitempty"`
+	JSONSetupPackage JSONSetupPackage `json:"setup_package,omitempty"`
+	Services         []Service        `json:"services"`
+	NodeRoles        []NodeRole       `json:"roles"`
+	Config           NodeGroupConfig  `json:"config"`
+	PersistDirs      *[]string        `json:"persist_dirs"`
+	Capabilities     []v1.Capability  `json:"capabilities"`
+	SystemdRequired  bool             `json:"systemdRequired"`
 }
 
 // Label is a short name and long description for the app definition.
@@ -158,6 +158,11 @@ type Image struct {
 type SetupPackage struct {
 	ConfigAPIVersion int    `json:"config_api_version"`
 	ImportUrl        string `json:"import_url"`
+}
+
+// JSONSetupPackage is a wrapper around SetupPackage
+type JSONSetupPackage struct {
+	SetupPackage *SetupPackage
 }
 
 // Service describes a network endpoint that should be exposed for external
@@ -182,11 +187,11 @@ type ServiceEndpoint struct {
 // the same services. At deployment time all role members will receive
 // identical resource assignments.
 type NodeRole struct {
-	ID           string       `json:"id"`
-	Cardinality  string       `json:"cardinality"`
-	Image        Image        `json:"image,omitempty"`
-	SetupPackage SetupPackage `json:"setup_package,omitempty"`
-	PersistDirs  *[]string    `json:"persist_dirs"`
+	ID               string           `json:"id"`
+	Cardinality      string           `json:"cardinality"`
+	Image            Image            `json:"image,omitempty"`
+	JSONSetupPackage JSONSetupPackage `json:"setup_package,omitempty"`
+	PersistDirs      *[]string        `json:"persist_dirs"`
 }
 
 // NodeGroupConfig identifies a set of roles, and the services on those roles.

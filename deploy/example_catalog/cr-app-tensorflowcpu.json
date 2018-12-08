@@ -34,6 +34,7 @@
         },
         "distro_id": "bluedata/tensorflow19cpu",
         "version": "1.8",
+        "schema_version": 7,
         "services": [
             {
                 "endpoint": {
@@ -59,7 +60,6 @@
             }
         ],
         "setup_package": {
-            "config_api_version": 7,
             "import_url": "https://s3.amazonaws.com/bluek8s/kubedirector/tensorflowcpu/appconfig-1.8.tgz"
         },
         "roles": [

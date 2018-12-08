@@ -78,6 +78,7 @@
         },
         "distro_id": "bluedata/cdh51427x",
         "version": "1.4",
+        "schema_version": 7,
         "services": [
             {
                 "endpoint": {
@@ -238,7 +239,6 @@
             }
         ],
         "setup_package": {
-            "config_api_version": 7,
             "import_url": "https://s3.amazonaws.com/bluek8s/kubedirector/cdh5142cm/cdh5-cm-setup-1.4.tgz"
         },
         "roles": [

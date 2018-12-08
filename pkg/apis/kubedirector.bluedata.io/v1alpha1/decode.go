@@ -16,17 +16,29 @@ package v1alpha1
 
 import "encoding/json"
 
-// UnmarshalJSON handles the unmarshalling of SetupPackage spec.
-// If the 'setup_package' key is omitted the
-func (jsonSetupPackage JSONSetupPackage) UnmarshalJSON(data []byte) error {
+// UnmarshalJSON for JSONSetupPackage handles the unmarshalling of three
+// scenarios wrt 'setup_package':
+//   1. omitted                 : IsSet==false
+//   2. explicitly set to null  : IsSet==true && IsNull==true
+//   3. Set to a valid object   : IsSet=true && IsNull==false
+func (jsonSetupPackage *JSONSetupPackage) UnmarshalJSON(
+	data []byte,
+) error {
+
+	// The fact that we entered this function means the filed is set oherwise,
+	// this field will be false by default.
+	jsonSetupPackage.IsSet = true
+
 	if string(data) == "null" {
+		// The field value is explicitly set to null
+		jsonSetupPackage.IsNull = true
 		return nil
 	}
 
-	jsonSetupPackage.SetupPackage = new(SetupPackage)
-	if err := json.Unmarshal(data, jsonSetupPackage.SetupPackage); err != nil {
+	if err := json.Unmarshal(data, &jsonSetupPackage.SetupPackage); err != nil {
 		return err
 	}
+	jsonSetupPackage.IsNull = false
 
 	return nil
 }

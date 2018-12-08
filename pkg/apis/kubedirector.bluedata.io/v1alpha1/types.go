@@ -129,6 +129,7 @@ type AppSpec struct {
 	Label            Label            `json:"label"`
 	DistroID         string           `json:"distro_id"`
 	Version          string           `json:"version"`
+	SchemaVersion    int              `json:"schema_version"`
 	Image            Image            `json:"image,omitempty"`
 	JSONSetupPackage JSONSetupPackage `json:"setup_package,omitempty"`
 	Services         []Service        `json:"services"`
@@ -156,13 +157,14 @@ type Image struct {
 // package can be specified, and/or a role-specific package that will override
 // any top-level package.
 type SetupPackage struct {
-	ConfigAPIVersion int    `json:"config_api_version"`
-	ImportUrl        string `json:"import_url"`
+	ImportUrl string `json:"import_url"`
 }
 
 // JSONSetupPackage is a wrapper around SetupPackage
 type JSONSetupPackage struct {
-	SetupPackage *SetupPackage
+	IsSet        bool
+	IsNull       bool
+	SetupPackage SetupPackage
 }
 
 // Service describes a network endpoint that should be exposed for external

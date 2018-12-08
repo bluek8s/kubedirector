@@ -207,6 +207,10 @@ func RoleHasAppconfig(
 					// Top level setup pacakge set.
 					return !crJSONSetup.IsNull
 				}
+
+				// The setup package was not specified at the top level too. But,
+				// we are done with the loop here.
+				break
 			}
 
 			// NodeRole's setup pacakge is explicitly set

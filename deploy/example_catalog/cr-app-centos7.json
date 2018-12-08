@@ -45,8 +45,7 @@
                     "repoTag": "docker.io/bluedata/centos7:4.1"
                 },
                 "cardinality": "1+",
-                "id": "utility",
-                "setup_package": null
+                "id": "utility"
             }
         ]
     }

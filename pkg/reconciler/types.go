@@ -98,4 +98,5 @@ type roleInfo struct {
 	roleStatus     *kdv1.RoleStatus
 	membersByState map[memberState][]*kdv1.MemberStatus
 	desiredPop     int
+	hasAppconfig   bool
 }

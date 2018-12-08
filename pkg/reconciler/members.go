@@ -214,6 +214,23 @@ func handleCreatingMembers(
 
 	creating := role.membersByState[memberCreating]
 
+	// Check if we can skip appconfig for this role.
+	if !role.hasAppconfig {
+		for _, member := range creating {
+			member.State = string(memberReady)
+
+			shared.LogInfof(
+				cr,
+				shared.EventReasonMember,
+				"initial config skipped as requested for member{%s} in role{%s}",
+				member.Pod,
+				role.roleStatus.Name,
+			)
+		}
+
+		return
+	}
+
 	// Fetch setup url package
 	setupUrl, setupUrlErr := catalog.AppSetupPackageUrl(cr, role.roleStatus.Name)
 	if setupUrlErr != nil {
@@ -225,19 +242,15 @@ func handleCreatingMembers(
 		)
 		return
 	}
+
 	// Perform setup on all of these members.
 	var wgSetup sync.WaitGroup
 	wgSetup.Add(len(creating))
 	for _, member := range creating {
 		go func(m *kdv1.MemberStatus) {
 			defer wgSetup.Done()
-			// If setup package is not present, skip doing any setup.
-			if setupUrl == "" {
-				// Set a temporary state used below so we won't send notifies
-				// to this member yet.
-				m.State = string(memberConfigured)
-				return
-			}
+			// setup package will always be present if we are entering here.
+
 			// Start or continue the initial configuration.
 			isFinal, configErr := appConfig(
 				cr,
@@ -602,6 +615,22 @@ func notifyReadyNodes(
 			for _, member := range ready {
 				go func(m *kdv1.MemberStatus, r *roleInfo) {
 					defer wgReady.Done()
+
+					if !r.hasAppconfig {
+						// No notification necessary for this role
+						return
+					}
+
+					if !role.hasAppconfig {
+						shared.LogInfof(
+							cr,
+							shared.EventReasonMember,
+							"skipping notify member{%s} in role{%s}",
+							m.Pod,
+							role.roleStatus.Name,
+						)
+						return
+					}
 					configErr := appReConfig(cr, m.Pod, r.roleStatus.Name, role)
 					if configErr != nil {
 						shared.LogWarnf(

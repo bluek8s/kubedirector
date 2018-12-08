@@ -20,6 +20,7 @@ import (
 	"sync/atomic"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
@@ -140,6 +141,7 @@ func initRoleInfo(
 			roleStatus:     nil,
 			membersByState: make(map[memberState][]*kdv1.MemberStatus),
 			desiredPop:     int(*(roleSpec.Members)),
+			hasAppconfig:   catalog.RoleHasAppconfig(cr, roleSpec.Name),
 		}
 	}
 
@@ -206,6 +208,7 @@ func initRoleInfo(
 				roleStatus:     roleStatus,
 				membersByState: make(map[memberState][]*kdv1.MemberStatus),
 				desiredPop:     0,
+				hasAppconfig:   false,
 			}
 		}
 	}

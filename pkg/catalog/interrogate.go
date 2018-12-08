@@ -180,7 +180,46 @@ func ImageForRole(
 	return repoTag, nil
 }
 
-// AppSetupPackageUrl returns the app setup package url for a given role.
+// RoleHasAppconfig returns whether the given role has an appconfig after
+// checking all possible scenarios.
+func RoleHasAppconfig(
+	cr *kdv1.KubeDirectorCluster,
+	role string,
+) bool {
+
+	// Fetch the app type definition if we haven't yet cached it in this
+	// handler pass.
+	appCR, err := GetApp(cr)
+	if err != nil {
+		return false
+	}
+
+	crJSONSetup := cr.AppSpec.Spec.JSONSetupPackage
+
+	// Check to see if there is a role-specific setup package.
+	for _, nodeRole := range appCR.Spec.NodeRoles {
+		if nodeRole.ID == role {
+			jsonSetupPackage := nodeRole.JSONSetupPackage
+
+			if jsonSetupPackage.IsSet == false {
+				// omitted from NodeRole so, check the top level spec
+				if crJSONSetup.IsSet == true {
+					// Top level setup pacakge set.
+					return !crJSONSetup.IsNull
+				}
+			}
+
+			// NodeRole's setup pacakge is explicitly set
+			return !jsonSetupPackage.IsNull
+		}
+	}
+
+	return false
+}
+
+// AppSetupPackageUrl returns the app setup package url for a given role. The
+// fact that this function is invoked means that setup package was specified
+// either for the node role or the application as a whole.
 func AppSetupPackageUrl(
 	cr *kdv1.KubeDirectorCluster,
 	role string,
@@ -198,13 +237,22 @@ func AppSetupPackageUrl(
 	// Check to see if there is a role-specific setup package.
 	for _, nodeRole := range appCR.Spec.NodeRoles {
 		if nodeRole.ID == role {
-			appConfigUrl = nodeRole.JSONSetupPackage.SetupPackage.ImportUrl
+			jsonSetupPackage := nodeRole.JSONSetupPackage
+
+			if (jsonSetupPackage.IsSet == true) && (jsonSetupPackage.IsNull == false) {
+				appConfigUrl = jsonSetupPackage.SetupPackage.ImportUrl
+			}
+
 			break
 		}
 	}
 	// If role-specific package is not present, use the main one.
 	if appConfigUrl == "" {
-		appConfigUrl = cr.AppSpec.Spec.JSONSetupPackage.SetupPackage.ImportUrl
+		crSetupPackage := cr.AppSpec.Spec.JSONSetupPackage
+
+		if (crSetupPackage.IsSet == true) && (crSetupPackage.IsNull == false) {
+			appConfigUrl = crSetupPackage.SetupPackage.ImportUrl
+		}
 	}
 
 	return appConfigUrl, nil

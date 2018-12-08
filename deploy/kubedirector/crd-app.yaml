@@ -45,7 +45,7 @@ spec:
               properties:
                 import_url:
                   type: string
-                  pattern: '^https?://.+\.tgz$'
+                  pattern: '^(file|http)s?://.+\.tgz$'
             services:
               type: array
               items:
@@ -100,7 +100,7 @@ spec:
                     properties:
                       import_url:
                         type: string
-                        pattern: '^https?://.+\.tgz$'
+                        pattern: '^(file|http)s?://.+\.tgz$'
                   persist_dirs:
                     type: array
                     items:

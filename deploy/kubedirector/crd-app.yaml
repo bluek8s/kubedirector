@@ -15,7 +15,7 @@ spec:
     openAPIV3Schema:
       properties:
         spec:
-          required: [label, distro_id, version, roles, config]
+          required: [label, distro_id, version, roles, config, schema_version]
           properties:
             label:
               required: [name]
@@ -31,6 +31,9 @@ spec:
             version:
               type: string
               minLength: 1
+            schema_version:
+              type: integer
+              minimum: 7
             image:
               required: [repoTag]
               properties:
@@ -38,11 +41,8 @@ spec:
                   type: string
                   minLength: 1
             setup_package:
-              required: [config_api_version, import_url]
+              required: [import_url]
               properties:
-                config_api_version:
-                  type: integer
-                  minimum: 7
                 import_url:
                   type: string
                   pattern: '^https?://.+\.tgz$'
@@ -96,11 +96,8 @@ spec:
                         type: string
                         minLength: 1
                   setup_package:
-                    required: [config_api_version, import_url]
+                    required: [import_url]
                     properties:
-                      config_api_version:
-                        type: integer
-                        minimum: 7
                       import_url:
                         type: string
                         pattern: '^https?://.+\.tgz$'

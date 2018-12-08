@@ -232,7 +232,7 @@ func AppSetupPackageUrl(
 		return "", err
 	}
 
-	var appConfigUrl string
+	appConfigUrl := ""
 
 	// Check to see if there is a role-specific setup package.
 	for _, nodeRole := range appCR.Spec.NodeRoles {
@@ -254,6 +254,8 @@ func AppSetupPackageUrl(
 			appConfigUrl = crSetupPackage.SetupPackage.ImportUrl
 		}
 	}
+
+	// appConfigUrl can still be empty if the app doesn't have any setup pacakge.
 
 	return appConfigUrl, nil
 }

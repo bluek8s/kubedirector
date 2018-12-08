@@ -214,23 +214,6 @@ func handleCreatingMembers(
 
 	creating := role.membersByState[memberCreating]
 
-	// Check if we can skip appconfig for this role.
-	if !role.hasAppconfig {
-		for _, member := range creating {
-			member.State = string(memberReady)
-
-			shared.LogInfof(
-				cr,
-				shared.EventReasonMember,
-				"initial config skipped as requested for member{%s} in role{%s}",
-				member.Pod,
-				role.roleStatus.Name,
-			)
-		}
-
-		return
-	}
-
 	// Fetch setup url package
 	setupUrl, setupUrlErr := catalog.AppSetupPackageUrl(cr, role.roleStatus.Name)
 	if setupUrlErr != nil {
@@ -249,7 +232,19 @@ func handleCreatingMembers(
 	for _, member := range creating {
 		go func(m *kdv1.MemberStatus) {
 			defer wgSetup.Done()
-			// setup package will always be present if we are entering here.
+
+			if !role.hasAppconfig {
+				m.State = string(memberReady)
+
+				shared.LogInfof(
+					cr,
+					shared.EventReasonMember,
+					"initial config skipped for member{%s} in role{%s}",
+					m.Pod,
+					role.roleStatus.Name,
+				)
+				return
+			}
 
 			// Start or continue the initial configuration.
 			isFinal, configErr := appConfig(
@@ -296,14 +291,12 @@ func handleCreatingMembers(
 	wgSetup.Wait()
 
 	// Now let any ready nodes know that some new nodes have appeared.
-	if setupUrl != "" {
-		if !notifyReadyNodes(cr, role, allRoles) {
-			shared.LogWarn(
-				cr,
-				shared.EventReasonCluster,
-				"failed to notify all ready nodes for addnodes event",
-			)
-		}
+	if !notifyReadyNodes(cr, role, allRoles) {
+		shared.LogWarn(
+			cr,
+			shared.EventReasonCluster,
+			"failed to notify all ready nodes for addnodes event",
+		)
 	}
 
 	// All done, change state for the ones that we configured. We don't need
@@ -326,25 +319,12 @@ func handleDeletePendingMembers(
 	allRoles []*roleInfo,
 ) {
 
-	// Let any ready nodes know that some nodes will disappear,
-	setupUrl, setupUrlErr := catalog.AppSetupPackageUrl(cr, role.roleStatus.Name)
-	if setupUrlErr != nil {
-		shared.LogWarnf(
+	if !notifyReadyNodes(cr, role, allRoles) {
+		shared.LogWarn(
 			cr,
-			shared.EventReasonRole,
-			"failed to fetch setup url for role{%s}",
-			role.roleStatus.Name,
+			shared.EventReasonCluster,
+			"failed to notify all ready nodes for delnodes event",
 		)
-		return
-	}
-	if setupUrl != "" {
-		if !notifyReadyNodes(cr, role, allRoles) {
-			shared.LogWarn(
-				cr,
-				shared.EventReasonCluster,
-				"failed to notify all ready nodes for delnodes event",
-			)
-		}
 	}
 
 	// All done, change state.
@@ -618,19 +598,16 @@ func notifyReadyNodes(
 
 					if !r.hasAppconfig {
 						// No notification necessary for this role
-						return
-					}
-
-					if !role.hasAppconfig {
 						shared.LogInfof(
 							cr,
 							shared.EventReasonMember,
-							"skipping notify member{%s} in role{%s}",
+							"notify skipped for member{%s} in role{%s}",
 							m.Pod,
 							role.roleStatus.Name,
 						)
 						return
 					}
+
 					configErr := appReConfig(cr, m.Pod, r.roleStatus.Name, role)
 					if configErr != nil {
 						shared.LogWarnf(

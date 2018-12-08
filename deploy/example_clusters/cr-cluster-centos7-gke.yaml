@@ -1,0 +1,20 @@
+apiVersion: "kubedirector.bluedata.io/v1alpha1"
+kind: "KubeDirectorCluster"
+metadata:
+  name: "centos7-lb-persistent"
+spec:
+  app: centos7x
+  serviceType: LoadBalancer
+  roles:
+  - id: utility
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "4Gi"
+        cpu: "2"
+    storage:
+      size: "40Gi"
+      storageClassName: standard

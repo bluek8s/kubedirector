@@ -15,7 +15,7 @@ spec:
     openAPIV3Schema:
       properties:
         spec:
-          required: [label, distro_id, version, roles, config, schema_version]
+          required: [label, distro_id, version, roles, config, config_schema_version]
           properties:
             label:
               required: [name]
@@ -31,21 +31,15 @@ spec:
             version:
               type: string
               minLength: 1
-            schema_version:
+            config_schema_version:
               type: integer
               minimum: 7
-            image:
-              required: [repoTag]
-              properties:
-                repoTag:
-                  type: string
-                  minLength: 1
-            setup_package:
-              required: [import_url]
-              properties:
-                import_url:
-                  type: string
-                  pattern: '^(file|http)s?://.+\.tgz$'
+            image_repo_tag:
+              type: string
+              minLength: 1
+            config_package_url:
+              type: string
+              pattern: '^(file|http)s?://.+\.tgz$'
             services:
               type: array
               items:
@@ -89,18 +83,12 @@ spec:
                   cardinality:
                     type: string
                     pattern: '^\d+\+?$'
-                  image:
-                    required: [repoTag]
-                    properties:
-                      repoTag:
-                        type: string
-                        minLength: 1
-                  setup_package:
-                    required: [import_url]
-                    properties:
-                      import_url:
-                        type: string
-                        pattern: '^(file|http)s?://.+\.tgz$'
+                  image_repo_tag:
+                    type: string
+                    minLength: 1
+                  config_package_url:
+                    type: string
+                    pattern: '^(file|http)s?://.+\.tgz$'
                   persist_dirs:
                     type: array
                     items:

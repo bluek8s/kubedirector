@@ -17,6 +17,7 @@ package validator
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
@@ -26,6 +27,20 @@ import (
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+type appPatchSpec struct {
+	Op    string        `json:"op"`
+	Path  string        `json:"path"`
+	Value appPatchValue `json:"value"`
+}
+
+type appPatchValue struct {
+	value *string
+}
+
+func (obj appPatchValue) MarshalJSON() ([]byte, error) {
+	return json.Marshal(obj.value)
+}
 
 // validateUniqueness checks the lists of roles and service IDs for duplicates.
 // Any generated error messages will be added to the input list and returned.
@@ -122,26 +137,74 @@ func validateSelectedRoles(
 }
 
 // validateRoles checks each role for property constraints not expressable
-// in the schema. Currently this just means checking that the role must
-// specify an image if there is no top-level default image. Any generated
-// error messages will be added to the input list and returned.
+// in the schema. If any overrideable properties are unspecified, the corresponding
+// global values are used. This will add an PATCH spec for mutation the app CR.
 func validateRoles(
 	appCR *kdv1.KubeDirectorApp,
+	patches []appPatchSpec,
 	valErrors []string,
-) []string {
+) ([]appPatchSpec, []string) {
 
-	for _, role := range appCR.Spec.NodeRoles {
-		if role.Image.RepoTag == "" {
-			if appCR.Spec.Image.RepoTag == "" {
-				invalidMsg := fmt.Sprintf(
-					noDefaultImage,
+	var globalImageRepoTag string
+	var globalSetupPackageURL string
+
+	if (appCR.Spec.Image.IsSet == false) || (appCR.Spec.Image.IsNull == true) {
+		globalImageRepoTag = ""
+	} else {
+		globalImageRepoTag = appCR.Spec.Image.RepoTag
+	}
+
+	if (appCR.Spec.SetupPackage.IsSet == false) || (appCR.Spec.SetupPackage.IsNull == true) {
+		globalSetupPackageURL = ""
+	} else {
+		globalSetupPackageURL = appCR.Spec.SetupPackage.PackageURL
+	}
+
+	for index, role := range appCR.Spec.NodeRoles {
+		if role.SetupPackage.IsSet == false {
+			// Nothing specified so, inherit the global specification
+			patches = append(
+				patches,
+				appPatchSpec{
+					Op:   "add",
+					Path: "/spec/roles/" + strconv.Itoa(index) + "/setup_package_url",
+					Value: appPatchValue{
+						value: &globalSetupPackageURL,
+					},
+				},
+			)
+		}
+
+		// We allow roles to have different container images but unlike the
+		// setup pacakge there cannot be a role with no image.
+		if (role.Image.IsSet && role.Image.IsNull) ||
+			(!role.Image.IsSet && globalImageRepoTag == "") {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					noImageForRole,
 					role.ID,
-				)
-				valErrors = append(valErrors, invalidMsg)
-			}
+				),
+			)
+			continue
+		}
+
+		if role.Image.IsSet == false {
+			// No special image specified so inherit from global.
+			patches = append(
+				patches,
+				appPatchSpec{
+					Op:   "add",
+					Path: "/spec/roles/" + strconv.Itoa(index) + "/image_repo_tag",
+					Value: appPatchValue{
+						value: &globalImageRepoTag,
+					},
+				},
+			)
 		}
 	}
-	return valErrors
+
+	return patches, valErrors
 }
 
 // validateServices checks each service for property constraints not
@@ -176,6 +239,7 @@ func admitAppCR(
 ) *v1beta1.AdmissionResponse {
 
 	var valErrors []string
+	var patches []appPatchSpec
 
 	var admitResponse = v1beta1.AdmissionResponse{
 		Allowed: false,
@@ -223,8 +287,24 @@ func admitAppCR(
 	valErrors = validateRefUniqueness(&appCR, valErrors)
 	valErrors = validateServiceRoles(&appCR, allRoleIDs, allServiceIDs, valErrors)
 	valErrors = validateSelectedRoles(&appCR, allRoleIDs, valErrors)
-	valErrors = validateRoles(&appCR, valErrors)
+	patches, valErrors = validateRoles(&appCR, patches, valErrors)
 	valErrors = validateServices(&appCR, valErrors)
+
+	if len(valErrors) == 0 {
+		if len(patches) != 0 {
+			patchResult, patchErr := json.Marshal(patches)
+			if patchErr == nil {
+				admitResponse.Patch = patchResult
+				patchType := v1beta1.PatchTypeJSONPatch
+				admitResponse.PatchType = &patchType
+			} else {
+				valErrors = append(
+					valErrors,
+					"Failed to marshal the patches.",
+				)
+			}
+		}
+	}
 
 	if len(valErrors) == 0 {
 		admitResponse.Allowed = true

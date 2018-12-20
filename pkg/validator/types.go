@@ -63,4 +63,6 @@ const (
 
 	invalidRoleStorageClass   = "Unable to fetch storageClassName(%s) for role(%s)."
 	undefinedRoleStorageClass = "storageClassName is not specified for one or more roles. Default storage class (%s) is not available on the system."
+
+	noImageForRole = "No container image is specified for role %s"
 )

@@ -233,7 +233,7 @@ func handleCreatingMembers(
 		go func(m *kdv1.MemberStatus) {
 			defer wgSetup.Done()
 
-			if !role.hasAppconfig {
+			if setupUrl == "" {
 				m.State = string(memberReady)
 
 				shared.LogInfof(
@@ -596,7 +596,18 @@ func notifyReadyNodes(
 				go func(m *kdv1.MemberStatus, r *roleInfo) {
 					defer wgReady.Done()
 
-					if !r.hasAppconfig {
+					setupURL, setupURLErr := catalog.AppSetupPackageUrl(cr, r.roleStatus.Name)
+					if setupURLErr != nil {
+						shared.LogWarnf(
+							cr,
+							shared.EventReasonRole,
+							"failed to fetch setup url for role{%s}",
+							role.roleStatus.Name,
+						)
+						setupURL = ""
+					}
+
+					if setupURL == "" {
 						// No notification necessary for this role
 						shared.LogInfof(
 							cr,

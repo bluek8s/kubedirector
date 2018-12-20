@@ -164,6 +164,7 @@ func ImageForRole(
 	}
 
 	var repoTag string
+	repoTag = ""
 
 	// Check to see if there is a role-specific image.
 	for _, nodeRole := range appCR.Spec.NodeRoles {
@@ -172,53 +173,8 @@ func ImageForRole(
 			break
 		}
 	}
-	// If role-specific image is not present, use the main one.
-	if repoTag == "" {
-		repoTag = appCR.Spec.Image.RepoTag
-	}
 
 	return repoTag, nil
-}
-
-// RoleHasAppconfig returns whether the given role has an appconfig after
-// checking all possible scenarios.
-func RoleHasAppconfig(
-	cr *kdv1.KubeDirectorCluster,
-	role string,
-) bool {
-
-	// Fetch the app type definition if we haven't yet cached it in this
-	// handler pass.
-	appCR, err := GetApp(cr)
-	if err != nil {
-		return false
-	}
-
-	crJSONSetup := cr.AppSpec.Spec.JSONSetupPackage
-
-	// Check to see if there is a role-specific setup package.
-	for _, nodeRole := range appCR.Spec.NodeRoles {
-		if nodeRole.ID == role {
-			jsonSetupPackage := nodeRole.JSONSetupPackage
-
-			if jsonSetupPackage.IsSet == false {
-				// omitted from NodeRole so, check the top level spec
-				if crJSONSetup.IsSet == true {
-					// Top level setup pacakge set.
-					return !crJSONSetup.IsNull
-				}
-
-				// The setup package was not specified at the top level too. But,
-				// we are done with the loop here.
-				break
-			}
-
-			// NodeRole's setup pacakge is explicitly set
-			return !jsonSetupPackage.IsNull
-		}
-	}
-
-	return false
 }
 
 // AppSetupPackageUrl returns the app setup package url for a given role. The
@@ -236,32 +192,23 @@ func AppSetupPackageUrl(
 		return "", err
 	}
 
-	appConfigUrl := ""
+	var appConfigURL string
+	appConfigURL = ""
 
 	// Check to see if there is a role-specific setup package.
 	for _, nodeRole := range appCR.Spec.NodeRoles {
 		if nodeRole.ID == role {
-			jsonSetupPackage := nodeRole.JSONSetupPackage
+			setupPackage := nodeRole.SetupPackage
 
-			if (jsonSetupPackage.IsSet == true) && (jsonSetupPackage.IsNull == false) {
-				appConfigUrl = jsonSetupPackage.SetupPackage.ImportUrl
+			if (setupPackage.IsSet == true) && (setupPackage.IsNull == false) {
+				appConfigURL = setupPackage.PackageURL
 			}
 
 			break
 		}
 	}
-	// If role-specific package is not present, use the main one.
-	if appConfigUrl == "" {
-		crSetupPackage := cr.AppSpec.Spec.JSONSetupPackage
 
-		if (crSetupPackage.IsSet == true) && (crSetupPackage.IsNull == false) {
-			appConfigUrl = crSetupPackage.SetupPackage.ImportUrl
-		}
-	}
-
-	// appConfigUrl can still be empty if the app doesn't have any setup pacakge.
-
-	return appConfigUrl, nil
+	return appConfigURL, nil
 }
 
 // SystemdRequired checks whether systemctl mounts are required for a given

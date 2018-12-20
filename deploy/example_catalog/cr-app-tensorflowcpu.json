@@ -34,7 +34,7 @@
         },
         "distro_id": "bluedata/tensorflow19cpu",
         "version": "1.8",
-        "schema_version": 7,
+        "config_schema_version": 7,
         "services": [
             {
                 "endpoint": {
@@ -59,21 +59,15 @@
                 }
             }
         ],
-        "setup_package": {
-            "import_url": "https://s3.amazonaws.com/bluek8s/kubedirector/tensorflowcpu/appconfig-1.8.tgz"
-        },
+        "config_package_url": "https://s3.amazonaws.com/bluek8s/kubedirector/tensorflowcpu/appconfig-1.8.tgz",
         "roles": [
             {
-                "image": {
-                    "repoTag": "docker.io/bluedata/tensorflowcpu-jupyter:2.0"
-                },
+                "image_repo_tag": "docker.io/bluedata/tensorflowcpu-jupyter:2.0",
                 "cardinality": "1",
                 "id": "controller"
             },
             {
-                "image": {
-                    "repoTag": "docker.io/bluedata/tensorflowcpu-jupyter:2.0"
-                },
+                "image_repo_tag": "docker.io/bluedata/tensorflowcpu-jupyter:2.0",
                 "cardinality": "0+",
                 "id": "worker"
             }

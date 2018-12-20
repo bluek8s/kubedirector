@@ -35,16 +35,14 @@
                 "worker"
             ]
         },
-        "image": {
-            "repoTag": "docker.io/bluedata/cassandra:3.0"
-        },
+        "image_repo_tag": "docker.io/bluedata/cassandra:3.0",
         "label": {
             "name": "Cassandra 3.11",
             "description": "Cassandra 3.11 on centos 7.x"
         },
         "distro_id": "bluedata/cassandra311",
         "version": "3.1",
-        "schema_version": 7,
+        "config_schema_version": 7,
         "services": [
             {
                 "endpoint": {
@@ -68,9 +66,7 @@
                 }
             }
         ],
-        "setup_package": {
-            "import_url": "https://s3.amazonaws.com/bluek8s/kubedirector/cassandra311/appconfig-3.1.tgz"
-        },
+        "config_package_url": "https://s3.amazonaws.com/bluek8s/kubedirector/cassandra311/appconfig-3.1.tgz",
         "roles": [
             {
                 "cardinality": "2+",

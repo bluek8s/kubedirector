@@ -38,9 +38,9 @@ spec:
               type: string
               minLength: 1
             config_package:
-                required: [pacakge_url]
+                required: [package_url]
                 properties:
-                    pacakge_url:
+                    package_url:
                         type: string
                         pattern: '^(file|http)s?://.+\.tgz$'
             services:
@@ -90,9 +90,9 @@ spec:
                     type: string
                     minLength: 1
                   config_package:
-                    required: [pacakge_url]
+                    required: [package_url]
                     properties:
-                      pacakge_url:
+                      package_url:
                         type: string
                         pattern: '^(file|http)s?://.+\.tgz$'
                   persist_dirs:

@@ -59,7 +59,9 @@
                 }
             }
         ],
-        "config_package_url": "https://s3.amazonaws.com/bluek8s/kubedirector/tensorflowcpu/appconfig-1.8.tgz",
+        "config_package_url": {
+            "package_url" : "https://s3.amazonaws.com/bluek8s/kubedirector/tensorflowcpu/appconfig-1.8.tgz"
+        },
         "roles": [
             {
                 "image_repo_tag": "docker.io/bluedata/tensorflowcpu-jupyter:2.0",

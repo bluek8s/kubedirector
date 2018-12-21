@@ -105,7 +105,9 @@
                 }
             }
         ],
-        "config_package_url":  "https://s3.amazonaws.com/bluek8s/kubedirector/spark221e2/appconfig-2.6.tgz",
+        "config_package_url":  {
+            "package_url": "https://s3.amazonaws.com/bluek8s/kubedirector/spark221e2/appconfig-2.6.tgz"
+        },
         "roles": [
             {
                 "image_repo_tag": "docker.io/bluedata/sparkbase:2.0",

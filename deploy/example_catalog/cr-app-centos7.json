@@ -14,10 +14,16 @@
                         "ssh"
                     ],
                     "role_id": "utility"
+                },
+                {
+                    "service_ids": [
+                        "ssh"
+                    ],
+                    "role_id": "extra"
                 }
             ],
             "selected_roles": [
-                "utility"
+                "utility", "extra"
             ]
         },
         "label": {
@@ -39,13 +45,20 @@
                 }
             }
         ],
+        "image_repo_tag": "docker.io/bluedata/centos7:4.1",
         "roles": [
             {
-                "image": {
-                    "repoTag": "docker.io/bluedata/centos7:4.1"
-                },
+                "image_repo_tag": "docker.io/bluedata/centos6:2.2",
                 "cardinality": "1+",
-                "id": "utility"
+                "id": "utility",
+                "config_package": {
+                    "package_url": "http://something/file.tgz"
+                }
+            },
+            {
+                "cardinality": "1+",
+                "id": "extra",
+                "config_package": null
             }
         ]
     }

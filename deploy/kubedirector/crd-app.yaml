@@ -15,7 +15,7 @@ spec:
     openAPIV3Schema:
       properties:
         spec:
-          required: [label, distro_id, version, roles, config, config_schema_version]
+          required: [label, distro_id, version, roles, config, config_package, config_schema_version]
           properties:
             label:
               required: [name]
@@ -38,11 +38,11 @@ spec:
               type: string
               minLength: 1
             config_package:
-                required: [package_url]
-                properties:
-                    package_url:
-                        type: string
-                        pattern: '^(file|http)s?://.+\.tgz$'
+              required: [package_url]
+              properties:
+                package_url:
+                  type: string
+                  pattern: '^(file|http)s?://.+\.tgz$'
             services:
               type: array
               items:

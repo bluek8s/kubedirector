@@ -602,7 +602,7 @@ func notifyReadyNodes(
 							cr,
 							shared.EventReasonRole,
 							"failed to fetch setup url for role{%s}",
-							role.roleStatus.Name,
+							r.roleStatus.Name,
 						)
 						setupURL = ""
 					}
@@ -614,7 +614,7 @@ func notifyReadyNodes(
 							shared.EventReasonMember,
 							"notify skipped for member{%s} in role{%s}",
 							m.Pod,
-							role.roleStatus.Name,
+							r.roleStatus.Name,
 						)
 						return
 					}

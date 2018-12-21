@@ -201,7 +201,7 @@ func AppSetupPackageUrl(
 			setupPackage := nodeRole.SetupPackage
 
 			if (setupPackage.IsSet == true) && (setupPackage.IsNull == false) {
-				appConfigURL = setupPackage.PackageURL
+				appConfigURL = setupPackage.PackageURL.PackageURL
 			}
 
 			break

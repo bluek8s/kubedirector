@@ -161,7 +161,12 @@ type Image struct {
 type SetupPackage struct {
 	IsSet      bool
 	IsNull     bool
-	PackageURL string `json:"package_url,omitempty"`
+	PackageURL SetupPacakgeURL
+}
+
+// SetupPacakgeURL is the URL of the setup package.
+type SetupPacakgeURL struct {
+	PackageURL string `json:"package_url"`
 }
 
 // Service describes a network endpoint that should be exposed for external
@@ -189,7 +194,7 @@ type NodeRole struct {
 	ID           string       `json:"id"`
 	Cardinality  string       `json:"cardinality"`
 	Image        Image        `json:"image_repo_tag,omitempty"`
-	SetupPackage SetupPackage `json:"config_package_url,omitempty"`
+	SetupPackage SetupPackage `json:"config_package,omitempty"`
 	PersistDirs  *[]string    `json:"persist_dirs"`
 }
 

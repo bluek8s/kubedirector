@@ -145,40 +145,61 @@ func validateRoles(
 	valErrors []string,
 ) ([]appPatchSpec, []string) {
 
-	var globalImageRepoTag string
-	var globalSetupPackageURL string
+	var globalImageRepoTag *string
+	var globalSetupPackageURL *string
 
 	if (appCR.Spec.Image.IsSet == false) || (appCR.Spec.Image.IsNull == true) {
-		globalImageRepoTag = ""
+		globalImageRepoTag = nil
 	} else {
-		globalImageRepoTag = appCR.Spec.Image.RepoTag
+		globalImageRepoTag = &appCR.Spec.Image.RepoTag
 	}
 
 	if (appCR.Spec.SetupPackage.IsSet == false) || (appCR.Spec.SetupPackage.IsNull == true) {
-		globalSetupPackageURL = ""
+		globalSetupPackageURL = nil
 	} else {
-		globalSetupPackageURL = appCR.Spec.SetupPackage.PackageURL
+		globalSetupPackageURL = &appCR.Spec.SetupPackage.PackageURL.PackageURL
 	}
 
+	configPackageKey := "config_pacakge"
 	for index, role := range appCR.Spec.NodeRoles {
 		if role.SetupPackage.IsSet == false {
 			// Nothing specified so, inherit the global specification
-			patches = append(
-				patches,
-				appPatchSpec{
-					Op:   "add",
-					Path: "/spec/roles/" + strconv.Itoa(index) + "/setup_package_url",
-					Value: appPatchValue{
-						value: &globalSetupPackageURL,
+			if globalSetupPackageURL == nil {
+				patches = append(
+					patches,
+					appPatchSpec{
+						Op:   "add",
+						Path: "/spec/roles/" + strconv.Itoa(index) + "/config_package",
+						Value: appPatchValue{
+							value: nil,
+						},
 					},
-				},
-			)
+				)
+			} else {
+				patches = append(
+					patches,
+					appPatchSpec{
+						Op:   "add",
+						Path: "/spec/roles/" + strconv.Itoa(index),
+						Value: appPatchValue{
+							value: &configPackageKey,
+						},
+					},
+					appPatchSpec{
+						Op:   "add",
+						Path: "/spec/roles/" + strconv.Itoa(index) + configPackageKey + "/package_url",
+						Value: appPatchValue{
+							value: globalSetupPackageURL,
+						},
+					},
+				)
+			}
 		}
 
 		// We allow roles to have different container images but unlike the
 		// setup pacakge there cannot be a role with no image.
 		if (role.Image.IsSet && role.Image.IsNull) ||
-			(!role.Image.IsSet && globalImageRepoTag == "") {
+			(!role.Image.IsSet && globalImageRepoTag == nil) {
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(
@@ -197,7 +218,7 @@ func validateRoles(
 					Op:   "add",
 					Path: "/spec/roles/" + strconv.Itoa(index) + "/image_repo_tag",
 					Value: appPatchValue{
-						value: &globalImageRepoTag,
+						value: globalImageRepoTag,
 					},
 				},
 			)

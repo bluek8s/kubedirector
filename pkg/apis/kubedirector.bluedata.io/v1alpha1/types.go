@@ -161,11 +161,11 @@ type Image struct {
 type SetupPackage struct {
 	IsSet      bool
 	IsNull     bool
-	PackageURL SetupPacakgeURL
+	PackageURL SetupPackageURL
 }
 
 // SetupPacakgeURL is the URL of the setup package.
-type SetupPacakgeURL struct {
+type SetupPackageURL struct {
 	PackageURL string `json:"package_url"`
 }
 

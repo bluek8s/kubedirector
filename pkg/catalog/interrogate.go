@@ -163,8 +163,7 @@ func ImageForRole(
 		return "", err
 	}
 
-	var repoTag string
-	repoTag = ""
+	var repoTag = ""
 
 	// Check to see if there is a role-specific image.
 	for _, nodeRole := range appCR.Spec.NodeRoles {

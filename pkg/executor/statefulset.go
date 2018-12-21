@@ -46,10 +46,11 @@ var defaultMountFolders = []string{"/usr", "/opt", "/var", "/etc"}
 // implementing the given role.
 func CreateStatefulSet(
 	cr *kdv1.KubeDirectorCluster,
+	nativeSystemdSupport bool,
 	role *kdv1.Role,
 ) (*appsv1.StatefulSet, error) {
 
-	statefulSet, err := getStatefulset(cr, role, 0)
+	statefulSet, err := getStatefulset(cr, nativeSystemdSupport, role, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +126,7 @@ func DeleteStatefulSet(
 // given role.
 func getStatefulset(
 	cr *kdv1.KubeDirectorCluster,
+	nativeSystemdSupport bool,
 	role *kdv1.Role,
 	replicas int32,
 ) (*appsv1.StatefulSet, error) {
@@ -197,6 +199,7 @@ func getStatefulset(
 	volumeMounts, volumes, volumesErr := generateVolumeMounts(
 		cr,
 		role,
+		nativeSystemdSupport,
 		persistDirs,
 	)
 
@@ -382,11 +385,13 @@ func generateInitContainerLaunch(persistDirs []string) string {
 }
 
 // generateVolumeMounts generates all of an app container's volume and mount
-// specs for persistent storage, tmpfs, and systemctl support that are
-// appropriate for members of the given role.
+// specs for persistent storage, tmpfs and systemctl support that are
+// appropriate for members of the given role. For systemctl support,
+// nativeSystemdSupport flag is examined along with the app requirement.
 func generateVolumeMounts(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
+	nativeSystemdSupport bool,
 	persistDirs []string,
 ) ([]v1.VolumeMount, []v1.Volume, error) {
 
@@ -407,7 +412,7 @@ func generateVolumeMounts(
 		return volumeMounts, volumes, err
 	}
 
-	if isSystemdReqd {
+	if isSystemdReqd && !nativeSystemdSupport {
 		cgroupVolMnts, cgroupVols := generateSystemdSupport(cr)
 		volumeMounts = append(volumeMounts, cgroupVolMnts...)
 		volumes = append(volumes, cgroupVols...)

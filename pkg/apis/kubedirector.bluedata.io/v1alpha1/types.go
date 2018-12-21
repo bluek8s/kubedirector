@@ -226,6 +226,7 @@ type KubeDirectorConfig struct {
 
 // ConfigSpec is the spec provided for an app definition.
 type ConfigSpec struct {
-	StorageClass *string `json:"defaultStorageClassName,omitempty"`
-	ServiceType  *string `json:"defaultServiceType,omitempty"`
+	StorageClass         *string `json:"defaultStorageClassName,omitempty"`
+	ServiceType          *string `json:"defaultServiceType,omitempty"`
+	NativeSystemdSupport bool    `json:"nativeSystemdSupport"`
 }

@@ -37,9 +37,12 @@ spec:
             image_repo_tag:
               type: string
               minLength: 1
-            config_package_url:
-              type: string
-              pattern: '^(file|http)s?://.+\.tgz$'
+            config_package:
+                required: [pacakge_url]
+                properties:
+                    pacakge_url:
+                        type: string
+                        pattern: '^(file|http)s?://.+\.tgz$'
             services:
               type: array
               items:
@@ -86,9 +89,12 @@ spec:
                   image_repo_tag:
                     type: string
                     minLength: 1
-                  config_package_url:
-                    type: string
-                    pattern: '^(file|http)s?://.+\.tgz$'
+                  config_package:
+                    required: [pacakge_url]
+                    properties:
+                      pacakge_url:
+                        type: string
+                        pattern: '^(file|http)s?://.+\.tgz$'
                   persist_dirs:
                     type: array
                     items:

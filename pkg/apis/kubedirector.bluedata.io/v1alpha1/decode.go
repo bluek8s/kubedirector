@@ -29,7 +29,8 @@ func (setupPackage *SetupPackage) UnmarshalJSON(
 	// this field will be false by default.
 	setupPackage.IsSet = true
 
-	if (string(data) == "null") || (string(data) == "") {
+	dataStr := string(data)
+	if (len(dataStr) == 0) || (dataStr == "null") {
 		// The field value is explicitly set to null
 		setupPackage.IsNull = true
 		return nil
@@ -56,7 +57,8 @@ func (image *Image) UnmarshalJSON(
 	// this field will be false by default.
 	image.IsSet = true
 
-	if (string(data) == "null") || (string(data) == "") {
+	dataStr := string(data)
+	if (len(dataStr) == 0) || (dataStr == "null") {
 		// The field value is explicitly set to null
 		image.IsNull = true
 		return nil

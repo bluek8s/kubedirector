@@ -131,7 +131,7 @@ type AppSpec struct {
 	Version         string          `json:"version"`
 	SchemaVersion   int             `json:"schema_version"`
 	Image           Image           `json:"image_repo_tag,omitempty"`
-	SetupPackage    SetupPackage    `json:"config_package_url",omitempty"`
+	SetupPackage    SetupPackage    `json:"config_package,omitempty"`
 	Services        []Service       `json:"services"`
 	NodeRoles       []NodeRole      `json:"roles"`
 	Config          NodeGroupConfig `json:"config"`
@@ -161,7 +161,7 @@ type Image struct {
 type SetupPackage struct {
 	IsSet      bool
 	IsNull     bool
-	PackageURL string
+	PackageURL string `json:"package_url,omitempty"`
 }
 
 // Service describes a network endpoint that should be exposed for external

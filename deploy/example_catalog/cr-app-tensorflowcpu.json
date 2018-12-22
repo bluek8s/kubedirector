@@ -59,7 +59,7 @@
                 }
             }
         ],
-        "config_package_url": {
+        "config_package": {
             "package_url" : "https://s3.amazonaws.com/bluek8s/kubedirector/tensorflowcpu/appconfig-1.8.tgz"
         },
         "roles": [

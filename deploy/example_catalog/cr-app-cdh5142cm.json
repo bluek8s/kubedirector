@@ -236,8 +236,8 @@
                 }
             }
         ],
-        "config_package_url":  {
-                "package_url": "https://s3.amazonaws.com/bluek8s/kubedirector/cdh5142cm/cdh5-cm-setup-1.4.tgz"
+        "config_package":  {
+            "package_url": "https://s3.amazonaws.com/bluek8s/kubedirector/cdh5142cm/cdh5-cm-setup-1.4.tgz"
         },
         "roles": [
             {

@@ -204,7 +204,7 @@ func validateRoles(
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(
-					noImageForRole,
+					noDefaultImage,
 					role.ID,
 				),
 			)

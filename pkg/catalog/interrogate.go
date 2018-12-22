@@ -191,8 +191,7 @@ func AppSetupPackageUrl(
 		return "", err
 	}
 
-	var appConfigURL string
-	appConfigURL = ""
+	var appConfigURL = ""
 
 	// Check to see if there is a role-specific setup package.
 	for _, nodeRole := range appCR.Spec.NodeRoles {

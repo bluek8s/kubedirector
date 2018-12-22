@@ -90,7 +90,6 @@ spec:
                     type: string
                     minLength: 1
                   config_package:
-                    required: [package_url]
                     properties:
                       package_url:
                         type: string

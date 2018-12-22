@@ -46,19 +46,11 @@
             }
         ],
         "image_repo_tag": "docker.io/bluedata/centos7:4.1",
+        "config_package": null,
         "roles": [
             {
-                "image_repo_tag": "docker.io/bluedata/centos6:2.2",
                 "cardinality": "1+",
-                "id": "utility",
-                "config_package": {
-                    "package_url": "http://something/file.tgz"
-                }
-            },
-            {
-                "cardinality": "1+",
-                "id": "extra",
-                "config_package": null
+                "id": "utility"
             }
         ]
     }

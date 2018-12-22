@@ -35,10 +35,19 @@ type appPatchSpec struct {
 }
 
 type appPatchValue struct {
-	value *string
+	value      *string
+	packageURL *packageURL
+}
+
+type packageURL struct {
+	URL string `json:"package_url"`
 }
 
 func (obj appPatchValue) MarshalJSON() ([]byte, error) {
+	if obj.packageURL != nil {
+		return json.Marshal(obj.packageURL)
+	}
+
 	return json.Marshal(obj.value)
 }
 
@@ -160,7 +169,6 @@ func validateRoles(
 		globalSetupPackageURL = &appCR.Spec.SetupPackage.PackageURL.PackageURL
 	}
 
-	configPackageKey := "config_pacakge"
 	for index, role := range appCR.Spec.NodeRoles {
 		if role.SetupPackage.IsSet == false {
 			// Nothing specified so, inherit the global specification
@@ -180,16 +188,9 @@ func validateRoles(
 					patches,
 					appPatchSpec{
 						Op:   "add",
-						Path: "/spec/roles/" + strconv.Itoa(index),
+						Path: "/spec/roles/" + strconv.Itoa(index) + "/config_package",
 						Value: appPatchValue{
-							value: &configPackageKey,
-						},
-					},
-					appPatchSpec{
-						Op:   "add",
-						Path: "/spec/roles/" + strconv.Itoa(index) + configPackageKey + "/package_url",
-						Value: appPatchValue{
-							value: globalSetupPackageURL,
+							packageURL: &packageURL{URL: *globalSetupPackageURL},
 						},
 					},
 				)

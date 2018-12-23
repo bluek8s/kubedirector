@@ -51,6 +51,10 @@
             {
                 "cardinality": "1+",
                 "id": "utility"
+            },
+            {
+                "cardinality": "0+",
+                "id": "extra"
             }
         ]
     }

@@ -591,21 +591,21 @@ func notifyReadyNodes(
 	var wgReady sync.WaitGroup
 	wgReady.Add(totalReady)
 	for _, otherRole := range allRoles {
+		setupURL, setupURLErr := catalog.AppSetupPackageUrl(cr, otherRole.roleStatus.Name)
+		if setupURLErr != nil {
+			shared.LogWarnf(
+				cr,
+				shared.EventReasonRole,
+				"failed to fetch setup url for role{%s}",
+				otherRole.roleStatus.Name,
+			)
+			setupURL = ""
+		}
+
 		if ready, ok := otherRole.membersByState[memberReady]; ok {
 			for _, member := range ready {
 				go func(m *kdv1.MemberStatus, r *roleInfo) {
 					defer wgReady.Done()
-
-					setupURL, setupURLErr := catalog.AppSetupPackageUrl(cr, r.roleStatus.Name)
-					if setupURLErr != nil {
-						shared.LogWarnf(
-							cr,
-							shared.EventReasonRole,
-							"failed to fetch setup url for role{%s}",
-							r.roleStatus.Name,
-						)
-						setupURL = ""
-					}
 
 					if setupURL == "" {
 						// No notification necessary for this role

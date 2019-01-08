@@ -25,7 +25,7 @@ func (setupPackage *SetupPackage) UnmarshalJSON(
 	data []byte,
 ) error {
 
-	// The fact that we entered this function means the filed is set otherwise,
+	// The fact that we entered this function means the field is set otherwise,
 	// this field will be false by default.
 	setupPackage.IsSet = true
 
@@ -48,12 +48,12 @@ func (setupPackage *SetupPackage) UnmarshalJSON(
 // scenarios wrt 'image_repo_tag':
 //   1. omitted                 : IsSet==false
 //   2. explicitly set to null  : IsSet==true && IsNull==true
-//   3. Set to a valid object   : IsSet=true && IsNull==false
+//   3. Set to a valid object   : IsSet==true && IsNull==false
 func (image *Image) UnmarshalJSON(
 	data []byte,
 ) error {
 
-	// The fact that we entered this function means the filed is set otherwise,
+	// The fact that we entered this function means the field is set otherwise,
 	// this field will be false by default.
 	image.IsSet = true
 
@@ -71,11 +71,3 @@ func (image *Image) UnmarshalJSON(
 
 	return nil
 }
-
-// // MarshalJSON is to handle encoding the Image into json.
-// func (image Image) MarshalJSON() ([]byte, error) {
-// 	if image.IsSet == false {
-// 		return json.Marshall(nil)
-// 	}
-// 	return
-// }

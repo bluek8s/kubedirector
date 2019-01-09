@@ -15,7 +15,7 @@ spec:
     openAPIV3Schema:
       properties:
         spec:
-          required: [label, distro_id, version, roles, config, config_package, config_schema_version]
+          required: [label, distro_id, version, roles, config, config_schema_version]
           properties:
             label:
               required: [name]

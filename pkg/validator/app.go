@@ -175,6 +175,14 @@ func validateRoles(
 		globalSetupPackageURL = nil
 	} else {
 		globalSetupPackageURL = &appCR.Spec.SetupPackage.PackageURL.PackageURL
+
+		patches = append(
+			patches,
+			appPatchSpec{
+				Op:   "remove",
+				Path: "/spec/config_package",
+			},
+		)
 	}
 
 	for index, role := range appCR.Spec.NodeRoles {

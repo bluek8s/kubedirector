@@ -47,8 +47,7 @@ func (setupPackage *SetupPackage) UnmarshalJSON(
 // UnmarshalJSON for Image handles the unmarshalling of three
 // scenarios wrt 'image_repo_tag':
 //   1. omitted                 : IsSet==false
-//   2. explicitly set to null  : IsSet==true && IsNull==true
-//   3. Set to a valid object   : IsSet==true && IsNull==false
+//   2. Set to a valid object   : IsSet==true
 func (image *Image) UnmarshalJSON(
 	data []byte,
 ) error {
@@ -57,17 +56,9 @@ func (image *Image) UnmarshalJSON(
 	// this field will be false by default.
 	image.IsSet = true
 
-	dataStr := string(data)
-	if (len(dataStr) == 0) || (dataStr == "null") {
-		// The field value is explicitly set to null
-		image.IsNull = true
-		return nil
-	}
-
 	if err := json.Unmarshal(data, &image.RepoTag); err != nil {
 		return err
 	}
-	image.IsNull = false
 
 	return nil
 }

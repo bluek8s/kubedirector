@@ -31,7 +31,7 @@ import (
 type appPatchSpec struct {
 	Op    string        `json:"op"`
 	Path  string        `json:"path"`
-	Value appPatchValue `json:"value"`
+	Value appPatchValue `json:"value,omitempty"`
 }
 
 type appPatchValue struct {
@@ -157,10 +157,18 @@ func validateRoles(
 	var globalImageRepoTag *string
 	var globalSetupPackageURL *string
 
-	if (appCR.Spec.Image.IsSet == false) || (appCR.Spec.Image.IsNull == true) {
+	if appCR.Spec.Image.IsSet == false {
 		globalImageRepoTag = nil
 	} else {
 		globalImageRepoTag = &appCR.Spec.Image.RepoTag
+
+		patches = append(
+			patches,
+			appPatchSpec{
+				Op:   "remove",
+				Path: "/spec/image_repo_tag",
+			},
+		)
 	}
 
 	if (appCR.Spec.SetupPackage.IsSet == false) || (appCR.Spec.SetupPackage.IsNull == true) {
@@ -199,8 +207,7 @@ func validateRoles(
 
 		// We allow roles to have different container images but unlike the
 		// setup pacakge there cannot be a role with no image.
-		if (role.Image.IsSet && role.Image.IsNull) ||
-			(!role.Image.IsSet && globalImageRepoTag == nil) {
+		if !role.Image.IsSet && globalImageRepoTag == nil {
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(

@@ -151,7 +151,6 @@ type Label struct {
 // image.
 type Image struct {
 	IsSet   bool
-	IsNull  bool
 	RepoTag string
 }
 

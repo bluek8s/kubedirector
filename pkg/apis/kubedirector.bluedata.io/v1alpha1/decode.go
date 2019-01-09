@@ -20,7 +20,7 @@ import "encoding/json"
 // scenarios wrt 'setup_package':
 //   1. omitted                 : IsSet==false
 //   2. explicitly set to null  : IsSet==true && IsNull==true
-//   3. Set to a valid object   : IsSet=true && IsNull==false
+//   3. Set to a valid object   : IsSet==true && IsNull==false
 func (setupPackage *SetupPackage) UnmarshalJSON(
 	data []byte,
 ) error {

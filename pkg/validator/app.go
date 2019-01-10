@@ -214,7 +214,7 @@ func validateRoles(
 		}
 
 		// We allow roles to have different container images but unlike the
-		// setup pacakge there cannot be a role with no image.
+		// setup package there cannot be a role with no image.
 		if !role.Image.IsSet && globalImageRepoTag == nil {
 			valErrors = append(
 				valErrors,

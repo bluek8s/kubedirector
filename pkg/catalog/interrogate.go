@@ -171,7 +171,7 @@ func ImageForRole(
 
 	// Should never reach here.
 	return "", fmt.Errorf(
-		"Role {%s} not found for app {%s}",
+		"Role {%s} not found for app {%s} when searching for image repo tag",
 		role,
 		cr.Spec.AppID,
 	)
@@ -192,26 +192,24 @@ func AppSetupPackageUrl(
 		return "", err
 	}
 
-	roleFound := false
 	for _, nodeRole := range appCR.Spec.NodeRoles {
 		if nodeRole.ID == role {
-			roleFound = true
 			setupPackage := nodeRole.SetupPackage
 
-			if (setupPackage.IsSet == true) && (setupPackage.IsNull == false) {
+			// setupPackage will always be set because we mutated the spec during
+			// validation.
+			if setupPackage.IsNull == false {
 				return setupPackage.PackageURL.PackageURL, nil
 			}
-		}
-	}
 
-	if roleFound {
-		// The role was found but did not have a config pacakge.
-		return "", nil
+			// No config pacakg for this role.
+			return "", nil
+		}
 	}
 
 	// Should never reach here.
 	return "", fmt.Errorf(
-		"Role {%s} not found for app {%s}",
+		"Role {%s} not found for app {%s} when searching for config package",
 		role,
 		cr.Spec.AppID,
 	)

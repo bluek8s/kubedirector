@@ -234,7 +234,10 @@ func handleCreatingMembers(
 			defer wgSetup.Done()
 
 			if setupUrl == "" {
-				m.State = string(memberReady)
+				// Leave this in memberConfigured state so, we don't send
+				// ready notifications to itself below. The next handler cycle
+				// will handle this appropriately.
+				m.State = string(memberConfigured)
 
 				shared.LogInfof(
 					cr,

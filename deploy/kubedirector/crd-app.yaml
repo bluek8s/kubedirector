@@ -15,7 +15,7 @@ spec:
     openAPIV3Schema:
       properties:
         spec:
-          required: [label, distro_id, version, roles, config]
+          required: [label, distro_id, version, roles, config, config_schema_version]
           properties:
             label:
               required: [name]
@@ -31,21 +31,18 @@ spec:
             version:
               type: string
               minLength: 1
-            image:
-              required: [repoTag]
+            config_schema_version:
+              type: integer
+              minimum: 7
+            image_repo_tag:
+              type: string
+              minLength: 1
+            config_package:
+              required: [package_url]
               properties:
-                repoTag:
+                package_url:
                   type: string
-                  minLength: 1
-            setup_package:
-              required: [config_api_version, import_url]
-              properties:
-                config_api_version:
-                  type: integer
-                  minimum: 7
-                import_url:
-                  type: string
-                  pattern: '^https?://.+\.tgz$'
+                  pattern: '^(file|http)s?://.+\.tgz$'
             services:
               type: array
               items:
@@ -89,21 +86,14 @@ spec:
                   cardinality:
                     type: string
                     pattern: '^\d+\+?$'
-                  image:
-                    required: [repoTag]
+                  image_repo_tag:
+                    type: string
+                    minLength: 1
+                  config_package:
                     properties:
-                      repoTag:
+                      package_url:
                         type: string
-                        minLength: 1
-                  setup_package:
-                    required: [config_api_version, import_url]
-                    properties:
-                      config_api_version:
-                        type: integer
-                        minimum: 7
-                      import_url:
-                        type: string
-                        pattern: '^https?://.+\.tgz$'
+                        pattern: '^(file|http)s?://.+\.tgz$'
                   persist_dirs:
                     type: array
                     items:

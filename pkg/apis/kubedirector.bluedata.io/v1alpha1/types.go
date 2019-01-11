@@ -129,8 +129,9 @@ type AppSpec struct {
 	Label           Label           `json:"label"`
 	DistroID        string          `json:"distro_id"`
 	Version         string          `json:"version"`
-	Image           Image           `json:"image,omitempty"`
-	SetupPackage    SetupPackage    `json:"setup_package,omitempty"`
+	SchemaVersion   int             `json:"schema_version"`
+	Image           Image           `json:"image_repo_tag,omitempty"`
+	SetupPackage    SetupPackage    `json:"config_package,omitempty"`
 	Services        []Service       `json:"services"`
 	NodeRoles       []NodeRole      `json:"roles"`
 	Config          NodeGroupConfig `json:"config"`
@@ -149,15 +150,22 @@ type Label struct {
 // specified, and/or a role-specific image that will override any top-level
 // image.
 type Image struct {
-	RepoTag string `json:"repoTag"`
+	IsSet   bool
+	RepoTag string
 }
 
 // SetupPackage describes the app setup package to be used. A top-level
 // package can be specified, and/or a role-specific package that will override
 // any top-level package.
 type SetupPackage struct {
-	ConfigAPIVersion int    `json:"config_api_version"`
-	ImportUrl        string `json:"import_url"`
+	IsSet      bool
+	IsNull     bool
+	PackageURL SetupPackageURL
+}
+
+// SetupPacakgeURL is the URL of the setup package.
+type SetupPackageURL struct {
+	PackageURL string `json:"package_url"`
 }
 
 // Service describes a network endpoint that should be exposed for external
@@ -184,8 +192,8 @@ type ServiceEndpoint struct {
 type NodeRole struct {
 	ID           string       `json:"id"`
 	Cardinality  string       `json:"cardinality"`
-	Image        Image        `json:"image,omitempty"`
-	SetupPackage SetupPackage `json:"setup_package,omitempty"`
+	Image        Image        `json:"image_repo_tag,omitempty"`
+	SetupPackage SetupPackage `json:"config_package,omitempty"`
 	PersistDirs  *[]string    `json:"persist_dirs"`
 }
 

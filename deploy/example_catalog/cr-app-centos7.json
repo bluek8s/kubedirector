@@ -1,0 +1,61 @@
+{
+    "apiVersion": "kubedirector.bluedata.io/v1alpha1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name" : "centos7x"
+    },
+
+    "spec" : {
+        "systemdRequired": true,
+        "config": {
+            "role_services": [
+                {
+                    "service_ids": [
+                        "ssh"
+                    ],
+                    "role_id": "utility"
+                },
+                {
+                    "service_ids": [
+                        "ssh"
+                    ],
+                    "role_id": "extra"
+                }
+            ],
+            "selected_roles": [
+                "utility", "extra"
+            ]
+        },
+        "label": {
+            "name": "CentOS 7.x utility.",
+            "description": "CentOS 7x utility with no preinstalled apps"
+        },
+        "distro_id": "bluedata/centos7x",
+        "version": "1.0",
+        "config_schema_version": 7,
+        "services": [
+            {
+                "endpoint": {
+                    "port": 22,
+                    "is_dashboard": false
+                },
+                "id": "ssh",
+                "label": {
+                    "name": "SSH"
+                }
+            }
+        ],
+        "image_repo_tag": "docker.io/bluedata/centos7:4.1",
+        "config_package": null,
+        "roles": [
+            {
+                "cardinality": "1+",
+                "id": "utility"
+            },
+            {
+                "cardinality": "0+",
+                "id": "extra"
+            }
+        ]
+    }
+}

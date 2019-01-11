@@ -45,6 +45,7 @@
         },
         "distro_id": "bluedata/spark221e2",
         "version": "2.6",
+        "config_schema_version": 7,
         "services": [
             {
                 "endpoint": {
@@ -104,29 +105,22 @@
                 }
             }
         ],
-        "setup_package": {
-            "config_api_version": 7,
-            "import_url": "https://s3.amazonaws.com/bluek8s/kubedirector/spark221e2/appconfig-2.6.tgz"
+        "config_package":  {
+            "package_url": "https://s3.amazonaws.com/bluek8s/kubedirector/spark221e2/appconfig-2.6.tgz"
         },
         "roles": [
             {
-                "image": {
-                    "repoTag": "docker.io/bluedata/sparkbase:2.0"
-                },
+                "image_repo_tag": "docker.io/bluedata/sparkbase:2.0",
                 "cardinality": "1",
                 "id": "controller"
             },
             {
-                "image": {
-                    "repoTag": "docker.io/bluedata/sparkbase:2.0"
-                },
+                "image_repo_tag": "docker.io/bluedata/sparkbase:2.0",
                 "cardinality": "0+",
                 "id": "worker"
             },
             {
-                "image": {
-                    "repoTag": "docker.io/bluedata/jupyter:2.2"
-                },
+                "image_repo_tag": "docker.io/bluedata/jupyter:2.2",
                 "cardinality": "0+",
                 "id": "jupyter"
             }

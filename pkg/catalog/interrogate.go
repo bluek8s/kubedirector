@@ -163,24 +163,23 @@ func ImageForRole(
 		return "", err
 	}
 
-	var repoTag string
-
-	// Check to see if there is a role-specific image.
 	for _, nodeRole := range appCR.Spec.NodeRoles {
 		if nodeRole.ID == role {
-			repoTag = nodeRole.Image.RepoTag
-			break
+			return nodeRole.Image.RepoTag, nil
 		}
 	}
-	// If role-specific image is not present, use the main one.
-	if repoTag == "" {
-		repoTag = appCR.Spec.Image.RepoTag
-	}
 
-	return repoTag, nil
+	// Should never reach here.
+	return "", fmt.Errorf(
+		"Role {%s} not found for app {%s} when searching for image repo tag",
+		role,
+		cr.Spec.AppID,
+	)
 }
 
-// AppSetupPackageUrl returns the app setup package url for a given role.
+// AppSetupPackageUrl returns the app setup package url for a given role. The
+// fact that this function is invoked means that setup package was specified
+// either for the node role or the application as a whole.
 func AppSetupPackageUrl(
 	cr *kdv1.KubeDirectorCluster,
 	role string,
@@ -193,21 +192,27 @@ func AppSetupPackageUrl(
 		return "", err
 	}
 
-	var appConfigUrl string
-
-	// Check to see if there is a role-specific setup package.
 	for _, nodeRole := range appCR.Spec.NodeRoles {
 		if nodeRole.ID == role {
-			appConfigUrl = nodeRole.SetupPackage.ImportUrl
-			break
+			setupPackage := nodeRole.SetupPackage
+
+			// setupPackage will always be set because we mutated the spec during
+			// validation.
+			if setupPackage.IsNull == false {
+				return setupPackage.PackageURL.PackageURL, nil
+			}
+
+			// No config pacakg for this role.
+			return "", nil
 		}
 	}
-	// If role-specific package is not present, use the main one.
-	if appConfigUrl == "" {
-		appConfigUrl = cr.AppSpec.Spec.SetupPackage.ImportUrl
-	}
 
-	return appConfigUrl, nil
+	// Should never reach here.
+	return "", fmt.Errorf(
+		"Role {%s} not found for app {%s} when searching for config package",
+		role,
+		cr.Spec.AppID,
+	)
 }
 
 // SystemdRequired checks whether systemctl mounts are required for a given

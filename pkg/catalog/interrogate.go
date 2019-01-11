@@ -163,17 +163,18 @@ func ImageForRole(
 		return "", err
 	}
 
-	var repoTag = ""
-
-	// Check to see if there is a role-specific image.
 	for _, nodeRole := range appCR.Spec.NodeRoles {
 		if nodeRole.ID == role {
-			repoTag = nodeRole.Image.RepoTag
-			break
+			return nodeRole.Image.RepoTag, nil
 		}
 	}
 
-	return repoTag, nil
+	// Should never reach here.
+	return "", fmt.Errorf(
+		"Role {%s} not found for app {%s}",
+		role,
+		cr.Spec.AppID,
+	)
 }
 
 // AppSetupPackageUrl returns the app setup package url for a given role. The
@@ -191,22 +192,29 @@ func AppSetupPackageUrl(
 		return "", err
 	}
 
-	var appConfigURL = ""
-
-	// Check to see if there is a role-specific setup package.
+	roleFound := false
 	for _, nodeRole := range appCR.Spec.NodeRoles {
 		if nodeRole.ID == role {
+			roleFound = true
 			setupPackage := nodeRole.SetupPackage
 
 			if (setupPackage.IsSet == true) && (setupPackage.IsNull == false) {
-				appConfigURL = setupPackage.PackageURL.PackageURL
+				return setupPackage.PackageURL.PackageURL, nil
 			}
-
-			break
 		}
 	}
 
-	return appConfigURL, nil
+	if roleFound {
+		// The role was found but did not have a config pacakge.
+		return "", nil
+	}
+
+	// Should never reach here.
+	return "", fmt.Errorf(
+		"Role {%s} not found for app {%s}",
+		role,
+		cr.Spec.AppID,
+	)
 }
 
 // SystemdRequired checks whether systemctl mounts are required for a given

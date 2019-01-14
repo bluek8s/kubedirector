@@ -13,17 +13,11 @@
                     "service_ids": [
                         "ssh"
                     ],
-                    "role_id": "utility"
-                },
-                {
-                    "service_ids": [
-                        "ssh"
-                    ],
-                    "role_id": "extra"
+                    "role_id": "vanilla_centos"
                 }
             ],
             "selected_roles": [
-                "utility", "extra"
+                "vanilla_centos"
             ]
         },
         "label": {
@@ -50,11 +44,7 @@
         "roles": [
             {
                 "cardinality": "1+",
-                "id": "utility"
-            },
-            {
-                "cardinality": "0+",
-                "id": "extra"
+                "id": "vanilla_centos"
             }
         ]
     }

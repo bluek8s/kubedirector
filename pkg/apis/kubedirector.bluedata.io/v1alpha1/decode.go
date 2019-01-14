@@ -17,7 +17,7 @@ package v1alpha1
 import "encoding/json"
 
 // UnmarshalJSON for SetupPackage handles the unmarshalling of three
-// scenarios wrt 'setup_package':
+// scenarios wrt 'default_config_package':
 //   1. omitted                 : IsSet==false
 //   2. explicitly set to null  : IsSet==true && IsNull==true
 //   3. Set to a valid object   : IsSet==true && IsNull==false
@@ -40,25 +40,6 @@ func (setupPackage *SetupPackage) UnmarshalJSON(
 		return err
 	}
 	setupPackage.IsNull = false
-
-	return nil
-}
-
-// UnmarshalJSON for Image handles the unmarshalling of three
-// scenarios wrt 'image_repo_tag':
-//   1. omitted                 : IsSet==false
-//   2. Set to a valid object   : IsSet==true
-func (image *Image) UnmarshalJSON(
-	data []byte,
-) error {
-
-	// The fact that we entered this function means the field is set otherwise,
-	// this field will be false by default.
-	image.IsSet = true
-
-	if err := json.Unmarshal(data, &image.RepoTag); err != nil {
-		return err
-	}
 
 	return nil
 }

@@ -7,7 +7,7 @@
 
     "spec" : {
         "systemdRequired" : true,
-        "persist_dirs" : ["/data"],
+        "default_persist_dirs" : ["/data"],
         "capabilities" : [
             "SYS_RESOURCE",
             "IPC_LOCK"

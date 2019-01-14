@@ -48,7 +48,18 @@ If you have set the repo to a commit tagged with a KubeDirector release version,
 
 Once KubeDirector is deployed, you may wish to observe its activity by using "kubectl logs -f" with the KubeDirector pod name (which is printed for you at the end of "make deploy"). This will continuously tail the KubeDirector log.
 
-KubeDirector is now running. You can create and manage virtual clusters as described in [virtual-clusters.md](virtual-clusters.md).
+KubeDirector is now running. You can create and manage virtual clusters as described in [virtual-clusters.md](virtual-clusters.md). But first you may want to set a default configuration for some cluster properties.
+
+#### CONFIGURING KUBEDIRECTOR
+
+Before creating any virtual clusters, you should configure KubeDirector to set some defaults. This is done by creating a [KubeDirectorConfig object](https://github.com/bluek8s/kubedirector/wiki/App-Definition-Authoring-for-KubeDirector). Example KubeDirectorConfig objects are provided in the "deploy/example_config" directory for GKE ("cr-config-gke.yaml"), for a generic local K8s installation ("cr-config.yaml"), and for OpenShift ("cr-config-okd.yaml"). (Note however that OpenShift deployments are not currently officially supported; cf. the [known issues](https://github.com/bluek8s/kubedirector/issues/1)). You can use one of these example configs or create one that is tailored to your environment.
+
+For example, typically for a GKE deployment you would execute this command:
+```bash
+    kubectl create -f deploy/example_config/cr-config-gke.yaml
+```
+
+If you want to change this configuration at any time, you can edit the config file and use "kubectl apply" to apply the changes. Keep in mind that the defaults specified in this config are only referenced at the time a virtual cluster is created; changing this config will not retroactively affect any existing virtual clusters.
 
 #### TEARDOWN
 

@@ -1,19 +1,17 @@
 #### DEPLOYING VIRTUAL CLUSTERS
 
+Before you deploy your first virtual cluster, make sure that appropriate defaults have been set as described in the "CONFIGURING KUBEDIRECTOR" section of [quickstart.md](quickstart.md).
+
 The "deploy/example_clusters" directory contains examples of YAML files that can be used to create virtual clusters that instantiate the defined app types. Currently these virtual clusters must be created in the same namespace as the KubeDirector deployment (a restriction that should be relaxed in later development).
 
 For example, this would create an instance of a virtual cluster from the spark221e2 app type:
 ```bash
     kubectl create -f deploy/example_clusters/cr-cluster-spark221e2.yaml
 ```
-or
-```bash
-    kubectl create -f deploy/example_clusters/cr-cluster-spark221e2-gke.yaml
-```
 
-Those two example files illustrate a couple of important differences in how you choose to deploy a cluster, depending on your K8s environment:
-1. The "serviceType" property at the top level of the virtual cluster spec, which defaults to "NodePort" if not specified. For GKE environments you should almost always include this property and set its value to "LoadBalancer". This indicates to KubeDirector that the member services of the virtual cluster should be exposed as LoadBalancer services rather than NodePort.
-2. Persistent storage for roles. If you choose to request this through the "storage" role property, make sure that the nested "storageClass" property is set to a persistent storage class that is valid in your K8s environment (verify using "kubectl get storageclasses").
+You will see that some of the YAML file basenames have the "-stor" suffix. This is just a convention used among these example files to indicate that the virtual cluster spec requests persistent storage. Several of the examples have both persistent and non-persistent variants.
+
+Note that if you are using persistent storage, you should declare a valid defaultStorageClassName when configuring KubeDirector; the example virtual cluster specs will use that default. Alternately you can declare a storageClassName in the persistent storage spec section of the virtual cluster spec.
 
 For more details, see the KubeDirector wiki for a [complete spec of the KubeDirectorCluster resource type](https://github.com/bluek8s/kubedirector/wiki/Type-Definitions-for-KubeDirectorCluster).
 
@@ -33,19 +31,20 @@ To get a report on all services related to a specific virtual cluster, you can u
     kubectl get services -l kubedirectorcluster=spark-instance
 ```
 
-Below is a line from the output of such a query. It shows that port 8080 (the Spark master Web dashboard) on the controller host of a virtual Spark cluster is available on port 30311 of any of the K8s nodes:
+Below is a line from the output of such a query, in a case where KubeDirector was configured to use LoadBalancer services (as on GKE). In this case the Spark master Web dashboard (port 8080) is available through the load-balancer IP 35.197.55.117. The port exposed on the load balancer will be the same as the native container port, 8080. The other information in this line is not relevant for access through the LoadBalancer.
 ```bash
-svc-kd-ggzpd-0   NodePort    10.107.133.249   <none>        22:31394/TCP,8080:30311/TCP,7077:30106/TCP,8081:30499/TCP   12m
+    svc-kd-rmh58-0  LoadBalancer   10.55.240.105   35.197.55.117    22:30892/TCP,8080:31786/TCP,7077:32194/TCP,8081:31026/TCP   2m48s
 ```
 
-As another example, below is a line associated with a different virtual cluster, running in GKE and configured to request a serviceType of LoadBalancer. In this case the Spark master Web dashboard is available through the load-balancer IP 35.197.55.117. The port exposed on the load balancer will be the same as the native container port, 8080.
+As another example, below is a line from a cluster in a different setup where KubeDirector was configured to use NodePort services. It shows that port 8080 on the controller host of a virtual Spark cluster is available on port 30311 of any of the K8s nodes:
 ```bash
-svc-kd-rmh58-0  LoadBalancer   10.55.240.105   35.197.55.117    22:30892/TCP,8080:31786/TCP,7077:32194/TCP,8081:31026/TCP   2m48s
+    svc-kd-ggzpd-0   NodePort    10.107.133.249   <none>        22:31394/TCP,8080:30311/TCP,7077:30106/TCP,8081:30499/TCP   12m
 ```
+
 
 You can use kubectl to examine a specific service resource in order to see more explicitly which ports are for service endpoints. Using "get -o yaml" or "get -o json", rather than "describe", will format the array of endpoints a little more clearly. For example, examining that LoadBalancer service above:
 ```bash
-kubectl get -o yaml service svc-kd-rmh58-0
+    kubectl get -o yaml service svc-kd-rmh58-0
 ```
 will result output that (among other things) contains an array that explicitly names the various endpoints, such as:
 ```
@@ -102,7 +101,7 @@ It may happen that a virtual cluster refuses to go away, either on explicit manu
 
 You can use "kubectl logs" on the KubeDirector pod to see if it stopped (and why). If you are working on KubeDirector development yourself, it may be possible to rescue KubeDirector at this point. However if you simply need to allow the virtual clusters to be deleted, without restoring KubeDirector, you need to remove the "finalizers" from each such cluster resource. Below is a kubectl command that could be used to clear the finalizers from a virtual cluster named "spark-instance":
 ```bash
-kubectl patch kubedirectorcluster spark-instance --type json --patch '[{"op": "remove", "path": "/metadata/finalizers"}]'
+    kubectl patch kubedirectorcluster spark-instance --type json --patch '[{"op": "remove", "path": "/metadata/finalizers"}]'
 ```
 
 Once the finalizers are removed, any already-requested deletion should then complete.

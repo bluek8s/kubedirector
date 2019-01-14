@@ -4,7 +4,7 @@ This doc assumes that you are familiar with the topics covered on the [KubeDirec
 
 You should also be familiar with the process of [creating and managing virtual clusters with KubeDirector](virtual-clusters.md).
 
-The "deploy/example_catalog" directory contains several KubeDirectorApp resources that are applied when you do "make deploy". These determine what kinds of virtual clusters can be deployed using KubeDirectorCluster resources. Each resource also identifies the Docker image(s) and app setup package(s) that it uses. Before authoring new app definitions, examine these current examples and the contents of each component. Currently the Cassandra example is the easiest to understand, with TensorFlow a close runner-up.
+The "deploy/example_catalog" directory contains several KubeDirectorApp resources that are applied when you do "make deploy". These determine what kinds of virtual clusters can be deployed using KubeDirectorCluster resources. Each resource also identifies the Docker image(s) and app setup package(s) that it uses. Before authoring new app definitions, examine these current examples and the contents of each component. Currently the Cassandra example is the easiest non-trivial example to understand, with TensorFlow a close runner-up.
 
 The simplest authoring task would involve making a modification to an existing image or setup package, and then making a modified KubeDirectorApp to reference the modified artifact (and possibly accomodate other roles or services). A modified version of an existing KubeDirectorApp should keep the same "distro_id" value but have a new "version" and a new metadata name; currently there is not a more sophisticated framework for KubeDirectorApp versioning.
 
@@ -18,9 +18,9 @@ The KubeDirectorApp resource is the only component that will be hosted by the K8
 
 A Docker image must be hosted at a registry that is accessible to the K8s nodes, since K8s will need to pull that image in order to deploy containers.
 
-An app setup package must be hosted on a webserver that is accessible to the container network, since a process within the container will download it. (The hosting and network-accessibility requirements for app setup packages are under discussion.)
+An app setup package will usually be hosted on a webserver that is accessible to the container network, since a process within the container will download it. (The hosting and network-accessibility requirements for app setup packages are under discussion.) Alternately this package can reside on the Docker image.
 
-Part of establishing a successful app definition authoring workflow is the ability to quickly revise these hosted components. For app setup package in particular, S3 bucket hosting has proven useful.
+Part of establishing a successful app definition authoring workflow is the ability to quickly revise these hosted components. For the app setup package in particular, S3 bucket hosting has proven useful. An app setup package stored on the Docker image is less amenable to quick revision. The examples later in this document will assume a web-hosted package.
 
 #### REGISTERING THE KUBEDIRECTORAPP
 

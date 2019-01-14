@@ -16,4 +16,3 @@ spec:
         cpu: "2"
     storage:
       size: "40Gi"
-      storageClassName: standard

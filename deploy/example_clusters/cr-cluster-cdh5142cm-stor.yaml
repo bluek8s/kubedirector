@@ -15,7 +15,6 @@ spec:
         cpu: "2"
     storage:
       size: "200Gi"
-      storageClassName: standard
   - id: worker
     members: 2
     resources:
@@ -27,4 +26,3 @@ spec:
         cpu: "2"
     storage:
       size: "200Gi"
-      storageClassName: standard

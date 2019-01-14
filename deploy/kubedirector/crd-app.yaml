@@ -34,10 +34,10 @@ spec:
             config_schema_version:
               type: integer
               minimum: 7
-            image_repo_tag:
+            default_image_repo_tag:
               type: string
               minLength: 1
-            config_package:
+            default_config_package:
               required: [package_url]
               properties:
                 package_url:

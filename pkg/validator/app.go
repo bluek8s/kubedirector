@@ -157,30 +157,30 @@ func validateRoles(
 	var globalImageRepoTag *string
 	var globalSetupPackageURL *string
 
-	if appCR.Spec.Image.IsSet == false {
+	if appCR.Spec.DefaultImage.IsSet == false {
 		globalImageRepoTag = nil
 	} else {
-		globalImageRepoTag = &appCR.Spec.Image.RepoTag
+		globalImageRepoTag = &appCR.Spec.DefaultImage.RepoTag
 
 		patches = append(
 			patches,
 			appPatchSpec{
 				Op:   "remove",
-				Path: "/spec/image_repo_tag",
+				Path: "/spec/default_image_repo_tag",
 			},
 		)
 	}
 
-	if (appCR.Spec.SetupPackage.IsSet == false) || (appCR.Spec.SetupPackage.IsNull == true) {
+	if (appCR.Spec.DefaultSetupPackage.IsSet == false) || (appCR.Spec.DefaultSetupPackage.IsNull == true) {
 		globalSetupPackageURL = nil
 	} else {
-		globalSetupPackageURL = &appCR.Spec.SetupPackage.PackageURL.PackageURL
+		globalSetupPackageURL = &appCR.Spec.DefaultSetupPackage.PackageURL.PackageURL
 
 		patches = append(
 			patches,
 			appPatchSpec{
 				Op:   "remove",
-				Path: "/spec/config_package",
+				Path: "/spec/default_config_package",
 			},
 		)
 	}

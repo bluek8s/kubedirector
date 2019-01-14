@@ -126,18 +126,18 @@ type KubeDirectorApp struct {
 
 // AppSpec is the spec provided for an app definition.
 type AppSpec struct {
-	Label           Label           `json:"label"`
-	DistroID        string          `json:"distro_id"`
-	Version         string          `json:"version"`
-	SchemaVersion   int             `json:"schema_version"`
-	Image           Image           `json:"image_repo_tag,omitempty"`
-	SetupPackage    SetupPackage    `json:"config_package,omitempty"`
-	Services        []Service       `json:"services"`
-	NodeRoles       []NodeRole      `json:"roles"`
-	Config          NodeGroupConfig `json:"config"`
-	PersistDirs     *[]string       `json:"persist_dirs"`
-	Capabilities    []v1.Capability `json:"capabilities"`
-	SystemdRequired bool            `json:"systemdRequired"`
+	Label               Label           `json:"label"`
+	DistroID            string          `json:"distro_id"`
+	Version             string          `json:"version"`
+	SchemaVersion       int             `json:"schema_version"`
+	DefaultImage        Image           `json:"default_image_repo_tag,omitempty"`
+	DefaultSetupPackage SetupPackage    `json:"default_config_package,omitempty"`
+	Services            []Service       `json:"services"`
+	NodeRoles           []NodeRole      `json:"roles"`
+	Config              NodeGroupConfig `json:"config"`
+	PersistDirs         *[]string       `json:"persist_dirs"`
+	Capabilities        []v1.Capability `json:"capabilities"`
+	SystemdRequired     bool            `json:"systemdRequired"`
 }
 
 // Label is a short name and long description for the app definition.
@@ -163,7 +163,7 @@ type SetupPackage struct {
 	PackageURL SetupPackageURL
 }
 
-// SetupPacakgeURL is the URL of the setup package.
+// SetupPackageURL is the URL of the setup package.
 type SetupPackageURL struct {
 	PackageURL string `json:"package_url"`
 }

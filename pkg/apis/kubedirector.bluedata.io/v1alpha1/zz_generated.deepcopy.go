@@ -13,8 +13,8 @@ import (
 func (in *AppSpec) DeepCopyInto(out *AppSpec) {
 	*out = *in
 	out.Label = in.Label
-	out.Image = in.Image
-	out.SetupPackage = in.SetupPackage
+	out.DefaultImage = in.DefaultImage
+	out.DefaultSetupPackage = in.DefaultSetupPackage
 	if in.Services != nil {
 		in, out := &in.Services, &out.Services
 		*out = make([]Service, len(*in))

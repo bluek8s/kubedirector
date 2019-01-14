@@ -69,7 +69,7 @@
                 "worker"
             ]
         },
-        "image_repo_tag": "docker.io/bluedata/cdh5142cm:3.0",
+        "default_image_repo_tag": "docker.io/bluedata/cdh5142cm:3.0",
         "label": {
             "name": "CDH 5.14.2 on 7x with Cloudera Manager",
             "description": "CDH 5.14.2 with YARN support. Includes Pig, Hive, and Hue."
@@ -236,7 +236,7 @@
                 }
             }
         ],
-        "config_package":  {
+        "default_config_package":  {
             "package_url": "https://s3.amazonaws.com/bluek8s/kubedirector/cdh5142cm/cdh5-cm-setup-1.4.tgz"
         },
         "roles": [

@@ -45,8 +45,8 @@
                 }
             }
         ],
-        "image_repo_tag": "docker.io/bluedata/centos7:4.1",
-        "config_package": null,
+        "default_image_repo_tag": "docker.io/bluedata/centos7:4.1",
+        "default_config_package": null,
         "roles": [
             {
                 "cardinality": "1+",

@@ -42,7 +42,7 @@ spec:
               properties:
                 package_url:
                   type: string
-                  pattern: '^(file|http)s?://.+\.tgz$'
+                  pattern: '^(file|https?)://.+\.tgz$'
             services:
               type: array
               items:
@@ -93,7 +93,7 @@ spec:
                     properties:
                       package_url:
                         type: string
-                        pattern: '^(file|http)s?://.+\.tgz$'
+                        pattern: '^(file|https?)://.+\.tgz$'
                   persist_dirs:
                     type: array
                     items:

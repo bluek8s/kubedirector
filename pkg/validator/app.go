@@ -35,8 +35,9 @@ type appPatchSpec struct {
 }
 
 type appPatchValue struct {
-	value      *string
-	packageURL *packageURL
+	packageURLValue  *packageURL
+	stringValue      *string
+	stringSliceValue *[]string
 }
 
 type packageURL struct {
@@ -44,11 +45,13 @@ type packageURL struct {
 }
 
 func (obj appPatchValue) MarshalJSON() ([]byte, error) {
-	if obj.packageURL != nil {
-		return json.Marshal(obj.packageURL)
+	if obj.packageURLValue != nil {
+		return json.Marshal(obj.packageURLValue)
 	}
-
-	return json.Marshal(obj.value)
+	if obj.stringValue != nil {
+		return json.Marshal(obj.stringValue)
+	}
+	return json.Marshal(obj.stringSliceValue)
 }
 
 // validateUniqueness checks the lists of roles and service IDs for duplicates.
@@ -156,12 +159,10 @@ func validateRoles(
 
 	var globalImageRepoTag *string
 	var globalSetupPackageURL *string
+	var globalPersistDirs *[]string
 
-	if appCR.Spec.DefaultImage.IsSet == false {
-		globalImageRepoTag = nil
-	} else {
-		globalImageRepoTag = &appCR.Spec.DefaultImage.RepoTag
-
+	globalImageRepoTag = appCR.Spec.DefaultImageRepoTag
+	if globalImageRepoTag != nil {
 		patches = append(
 			patches,
 			appPatchSpec{
@@ -185,6 +186,17 @@ func validateRoles(
 		)
 	}
 
+	globalPersistDirs = appCR.Spec.DefaultPersistDirs
+	if globalPersistDirs != nil {
+		patches = append(
+			patches,
+			appPatchSpec{
+				Op:   "remove",
+				Path: "/spec/default_persist_dirs",
+			},
+		)
+	}
+
 	for index, role := range appCR.Spec.NodeRoles {
 		if role.SetupPackage.IsSet == false {
 			// Nothing specified so, inherit the global specification
@@ -195,7 +207,7 @@ func validateRoles(
 						Op:   "add",
 						Path: "/spec/roles/" + strconv.Itoa(index) + "/config_package",
 						Value: appPatchValue{
-							value: nil,
+							stringValue: nil,
 						},
 					},
 				)
@@ -206,27 +218,26 @@ func validateRoles(
 						Op:   "add",
 						Path: "/spec/roles/" + strconv.Itoa(index) + "/config_package",
 						Value: appPatchValue{
-							packageURL: &packageURL{URL: *globalSetupPackageURL},
+							packageURLValue: &packageURL{URL: *globalSetupPackageURL},
 						},
 					},
 				)
 			}
 		}
 
-		// We allow roles to have different container images but unlike the
-		// setup package there cannot be a role with no image.
-		if !role.Image.IsSet && globalImageRepoTag == nil {
-			valErrors = append(
-				valErrors,
-				fmt.Sprintf(
-					noDefaultImage,
-					role.ID,
-				),
-			)
-			continue
-		}
-
-		if role.Image.IsSet == false {
+		if role.ImageRepoTag == nil {
+			// We allow roles to have different container images but unlike the
+			// setup package there cannot be a role with no image.
+			if globalImageRepoTag == nil {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						noDefaultImage,
+						role.ID,
+					),
+				)
+				continue
+			}
 			// No special image specified so inherit from global.
 			patches = append(
 				patches,
@@ -234,10 +245,26 @@ func validateRoles(
 					Op:   "add",
 					Path: "/spec/roles/" + strconv.Itoa(index) + "/image_repo_tag",
 					Value: appPatchValue{
-						value: globalImageRepoTag,
+						stringValue: globalImageRepoTag,
 					},
 				},
 			)
+		}
+
+		// If role didn't set persist dirs, take the default (if any).
+		if role.PersistDirs == nil {
+			if globalPersistDirs != nil {
+				patches = append(
+					patches,
+					appPatchSpec{
+						Op:   "add",
+						Path: "/spec/roles/" + strconv.Itoa(index) + "/persist_dirs",
+						Value: appPatchValue{
+							stringSliceValue: globalPersistDirs,
+						},
+					},
+				)
+			}
 		}
 	}
 

@@ -165,7 +165,15 @@ func ImageForRole(
 
 	for _, nodeRole := range appCR.Spec.NodeRoles {
 		if nodeRole.ID == role {
-			return nodeRole.Image.RepoTag, nil
+			if nodeRole.ImageRepoTag != nil {
+				return *(nodeRole.ImageRepoTag), nil
+			}
+			// Should never reach here.
+			return "", fmt.Errorf(
+				"Image repo tag not set for role {%s} in app {%s}",
+				role,
+				cr.Spec.AppID,
+			)
 		}
 	}
 
@@ -202,7 +210,7 @@ func AppSetupPackageUrl(
 				return setupPackage.PackageURL.PackageURL, nil
 			}
 
-			// No config pacakg for this role.
+			// No config package for this role.
 			return "", nil
 		}
 	}
@@ -255,14 +263,12 @@ func AppCapabilities(
 }
 
 // AppPersistDirs fetches the required directories for a given role that
-// has be persisted on a PVC. If the role doesn't have an explicit list, use
-// the top level list.
+// has be persisted on a PVC.
 func AppPersistDirs(
 	cr *kdv1.KubeDirectorCluster,
 	role string,
 ) (*[]string, error) {
 
-	var appPersistDirs *[]string
 	// Fetch the app type definition if we haven't yet cached it in this
 	// handler pass.
 	appCR, err := GetApp(cr)
@@ -270,20 +276,22 @@ func AppPersistDirs(
 		return nil, err
 	}
 
-	// Check to see if there is a role-specific setup package.
 	for _, nodeRole := range appCR.Spec.NodeRoles {
 		if nodeRole.ID == role {
-			appPersistDirs = nodeRole.PersistDirs
-			break
+			// Validation hook has already mutated the role's PersistDirs value
+			// to match the global default if it was unspecified. If neither
+			// were specified then it will be nil, which is an acceptable
+			// result for the caller too.
+			return nodeRole.PersistDirs, nil
 		}
 	}
 
-	// If role-specific persist_dirs is not present, use the main one.
-	if appPersistDirs == nil {
-		appPersistDirs = cr.AppSpec.Spec.PersistDirs
-	}
-
-	return appPersistDirs, nil
+	// Should never reach here.
+	return nil, fmt.Errorf(
+		"Role {%s} not found for app {%s} when searching for persist dirs",
+		role,
+		cr.Spec.AppID,
+	)
 }
 
 // GetApp returns the app type definition for the given virtual cluster. If

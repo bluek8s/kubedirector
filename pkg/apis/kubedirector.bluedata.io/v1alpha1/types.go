@@ -130,12 +130,12 @@ type AppSpec struct {
 	DistroID            string          `json:"distro_id"`
 	Version             string          `json:"version"`
 	SchemaVersion       int             `json:"schema_version"`
-	DefaultImage        Image           `json:"default_image_repo_tag,omitempty"`
+	DefaultImageRepoTag *string         `json:"default_image_repo_tag,omitempty"`
 	DefaultSetupPackage SetupPackage    `json:"default_config_package,omitempty"`
 	Services            []Service       `json:"services"`
 	NodeRoles           []NodeRole      `json:"roles"`
 	Config              NodeGroupConfig `json:"config"`
-	PersistDirs         *[]string       `json:"persist_dirs"`
+	DefaultPersistDirs  *[]string       `json:"default_persist_dirs"`
 	Capabilities        []v1.Capability `json:"capabilities"`
 	SystemdRequired     bool            `json:"systemdRequired"`
 }
@@ -144,14 +144,6 @@ type AppSpec struct {
 type Label struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
-}
-
-// Image is the Docker container image to be used. A top-level image can be
-// specified, and/or a role-specific image that will override any top-level
-// image.
-type Image struct {
-	IsSet   bool
-	RepoTag string
 }
 
 // SetupPackage describes the app setup package to be used. A top-level
@@ -192,7 +184,7 @@ type ServiceEndpoint struct {
 type NodeRole struct {
 	ID           string       `json:"id"`
 	Cardinality  string       `json:"cardinality"`
-	Image        Image        `json:"image_repo_tag,omitempty"`
+	ImageRepoTag *string      `json:"image_repo_tag,omitempty"`
 	SetupPackage SetupPackage `json:"config_package,omitempty"`
 	PersistDirs  *[]string    `json:"persist_dirs"`
 }

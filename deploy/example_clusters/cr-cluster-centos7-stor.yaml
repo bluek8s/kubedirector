@@ -5,7 +5,7 @@ metadata:
 spec:
   app: centos7x
   roles:
-  - id: singlehost
+  - id: vanilla_centos
     members: 1
     resources:
       requests:

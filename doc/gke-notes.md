@@ -26,7 +26,10 @@ And to deploy KubeDirector into this cluster, you will need for the user in that
     kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-admin --user=${ACCOUNT}
 ```
 
-From here you can proceed to deploy KubeDirector as described in [quickstart.md](quickstart.md).
+From here you can proceed to deploy KubeDirector as described in [quickstart.md](quickstart.md). Assuming that you are currently working from the home directory of the KubeDirector repo, the easiest approach is to deploy a prebuilt KubeDirector image, which can be done simply as:
+```bash
+    make deploy
+```
 
 Note that after deploying KubeDirector but before creating virtual clusters, you will want to apply a KubeDirector configuration suitable for GKE:
 ```bash
@@ -35,11 +38,16 @@ Note that after deploying KubeDirector but before creating virtual clusters, you
 
 Now you can deploy virtual clusters as described in [virtual-clusters.md](virtual-clusters.md).
 
-When you're finished working with KubeDirector, you can destroy the GKE cluster:
+When you're finished working with KubeDirector, you can tear down your KubeDirector deployment:
+```bash
+    make teardown
+```
+
+If you now want to completely delete your GKE cluster, you can. But be sure to do the KubeDirector teardown as described above before deleting the GKE cluster! Otherwise, some dangling resources may remain in your gcloud project, especially those related to implementing LoadBalancer services. If you are in a development situation where "make teardown" doesn't work for some reason, then use individual "kubectl delete" invocations to delete as many resources as possible (reference how the Makefile implements the teardown action).
+
+Once you have successfully completed the "make teardown" or done the individual resource deletions, you can delete your GKE cluster:
 ```bash
     gcloud container clusters delete my-gke
 ```
 
-This will also delete the related context from your kubectl config.
-
-If you have some other context that you wish to return to using at this point, you will want to run "kubectl config get-contexts" to see which contexts exist, and then use "kubectl config use-context" to select one.
+When you delete the GKE cluster, this will also delete the related context from your kubectl config. If you have some other context that you wish to return to using at this point, you will want to run "kubectl config get-contexts" to see which contexts exist, and then use "kubectl config use-context" to select one.

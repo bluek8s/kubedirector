@@ -1,6 +1,6 @@
 #### KUBERNETES SETUP
 
-You will need a K8s (Kubernetes) cluster for deploying KubeDirector and KubeDirector-managed virtual clusters. Currently we require using K8s version 1.9 or later. We have run KubeDirector both on GKE (see [gke-notes.md](gke-notes.md)) and also on K8s installed on our own datacenter hosts using RPMs from kubernetes.io. If you are installing K8s yourself instead of using GKE, note that you will need to ensure that [admission webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites) are enabled.
+You will need a K8s (Kubernetes) cluster for deploying KubeDirector and KubeDirector-managed virtual clusters. Currently we require using K8s version 1.9 or later. We have run KubeDirector both on GKE (see [gke-notes.md](gke-notes.md)), on K8s installed on our own datacenter hosts using RPMs from kubernetes.io, and experimentally on DigitalOcean Kubernetes. If you are installing K8s yourself instead of using GKE, note that you will need to ensure that [admission webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites) are enabled.
 
 You should have kubectl installed on your local workstation, with administrative privileges for deploying resources into some namespace in your K8s cluster (and specifically, setting RBACs there). This document does also assume that you have familiarity with using common kubectl commands.
 
@@ -52,7 +52,7 @@ KubeDirector is now running. You can create and manage virtual clusters as descr
 
 #### CONFIGURING KUBEDIRECTOR
 
-Before creating any virtual clusters, you should configure KubeDirector to set some defaults. This is done by creating a [KubeDirectorConfig object](https://github.com/bluek8s/kubedirector/wiki/App-Definition-Authoring-for-KubeDirector). Example KubeDirectorConfig objects are provided in the "deploy/example_config" directory for GKE ("cr-config-gke.yaml"), for a generic local K8s installation ("cr-config.yaml"), and for OpenShift ("cr-config-okd.yaml"). (Note however that OpenShift deployments are not currently officially supported; cf. the [known issues](https://github.com/bluek8s/kubedirector/issues/1)). You can use one of these example configs or create one that is tailored to your environment.
+Before creating any virtual clusters, you should configure KubeDirector to set some defaults. This is done by creating a [KubeDirectorConfig object](https://github.com/bluek8s/kubedirector/wiki/App-Definition-Authoring-for-KubeDirector). Example KubeDirectorConfig objects are provided in the "deploy/example_config" directory for Google Kubernetes Engine ("cr-config-gke.yaml"), for a generic local K8s installation ("cr-config.yaml"), for DigitalOcean Kubernetes ("cr-config-dok.yaml"), and for OpenShift ("cr-config-okd.yaml"). (Note however that OpenShift deployments are not currently officially supported; cf. the [known issues](https://github.com/bluek8s/kubedirector/issues/1)). You can use one of these example configs or create one that is tailored to your environment.
 
 For example, typically for a GKE deployment you would execute this command:
 ```bash

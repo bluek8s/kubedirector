@@ -279,7 +279,7 @@ func getInitContainer(
 	}
 
 	initVolumeMounts := generateInitVolumeMounts(pvcName)
-	cpus, _ := resource.ParseQuantity("2")
+	cpus, _ := resource.ParseQuantity("1")
 	mem, _ := resource.ParseQuantity("512Mi")
 	initContainer = []v1.Container{
 		{

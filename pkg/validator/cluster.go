@@ -320,13 +320,13 @@ func validateRoleStorageClass(
 	}
 
 	if validateDefault {
-		_, err := observer.GetStorageClass(defaultStorageClassName)
+		_, err := observer.GetStorageClass(globalStorageClass)
 		if err != nil {
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(
 					undefinedRoleStorageClass,
-					defaultStorageClassName,
+					globalStorageClass,
 				),
 			)
 		}

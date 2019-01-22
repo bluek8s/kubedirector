@@ -1,0 +1,7 @@
+apiVersion: "kubedirector.bluedata.io/v1alpha1"
+kind: "KubeDirectorConfig"
+metadata:
+  name: "kd-global-config"
+spec:
+  defaultStorageClassName: "gp2"
+  defaultServiceType: "LoadBalancer"

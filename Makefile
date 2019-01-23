@@ -105,7 +105,6 @@ deploy:
         fi; \
         echo; \
         echo -n \* Waiting for KubeDirector container startup...; \
-        echo; \
         sleep 3; \
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
         retries=20; \
@@ -115,6 +114,7 @@ deploy:
             else \
                 retries=`expr $$retries - 1`; \
                 if [ $$retries -le 0 ]; then \
+                    echo; \
                     echo KubeDirector container failed to start!; \
                     exit 1; \
                 fi; \
@@ -122,6 +122,7 @@ deploy:
                 sleep 3; \
             fi; \
         done
+	@echo
 	@echo
 	@echo \* Creating example application types...
 	kubectl create -f deploy/example_catalog/
@@ -199,6 +200,7 @@ undeploy:
             else \
                 retries=`expr $$retries - 1`; \
                 if [ $$retries -le 0 ]; then \
+                    echo; \
                     echo Some KubeDirector-managed resources seem to remain.; \
                     echo Use "kubectl get all -l kubedirectorcluster" to check and do manual cleanup.; \
                     exit 1; \

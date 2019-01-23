@@ -136,8 +136,8 @@ func getNativeSystemdSupport(
 ) bool {
 	handler.lock.RLock()
 	defer handler.lock.RUnlock()
-	if handler.globalConfig != nil {
-		return handler.globalConfig.Spec.NativeSystemdSupport
+	if handler.globalConfig != nil && handler.globalConfig.Spec.NativeSystemdSupport != nil {
+		return *(handler.globalConfig.Spec.NativeSystemdSupport)
 	}
 	return false
 }

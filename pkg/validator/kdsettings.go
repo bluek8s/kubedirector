@@ -72,7 +72,6 @@ func admitKDConfigCR(
 ) *v1beta1.AdmissionResponse {
 
 	var valErrors []string
-	var patches []configPatchSpec
 
 	var admitResponse = v1beta1.AdmissionResponse{
 		Allowed: false,
@@ -94,46 +93,9 @@ func admitKDConfigCR(
 		return &admitResponse
 	}
 
-	// Validate storage class name if present. If not, see if we can populate
-	// it with a default value.
-	storageClass := configCR.Spec.StorageClass
-	if storageClass != nil {
-		valErrors = validateConfigStorageClass(storageClass, valErrors)
-	} else {
-		storageClassList, scErr := observer.GetStorageClassList()
-		if scErr != nil {
-			admitResponse.Result = &metav1.Status{
-				Message: "\n" + scErr.Error(),
-			}
-			return &admitResponse
-		}
-		if len(storageClassList) != 0 {
-			// XXX Currently taking the first one; actually should cycle
-			// through and look for IsDefaultClass? Or should we leave it
-			// undefined here and instead look for the default class each time
-			// a cluster is created without specifying the classname?
-			patches = append(
-				patches,
-				configPatchSpec{
-					Op:    "add",
-					Path:  "/spec/defaultStorageClassName",
-					Value: storageClassList[0].Name,
-				},
-			)
-		}
-	}
-
-	if len(valErrors) == 0 {
-		if len(patches) != 0 {
-			patchResult, patchErr := json.Marshal(patches)
-			if patchErr == nil {
-				admitResponse.Patch = patchResult
-				patchType := v1beta1.PatchTypeJSONPatch
-				admitResponse.PatchType = &patchType
-			} else {
-				valErrors = append(valErrors, failedToPatch)
-			}
-		}
+	// Validate storage class name if present.
+	if configCR.Spec.StorageClass != nil {
+		valErrors = validateConfigStorageClass(configCR.Spec.StorageClass, valErrors)
 	}
 
 	if len(valErrors) == 0 {

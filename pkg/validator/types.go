@@ -60,7 +60,7 @@ const (
 
 	invalidStorageClass = "Unable to fetch storageClass object with the provided name(%s)."
 
-	invalidRoleStorageClass   = "Unable to fetch storageClassName(%s) for role(%s)."
-	undefinedRoleStorageClass = "storageClassName is not specified for role (%s), and no default storage class is configured."
-	badDefaultStorageClass    = "storageClassName is not specified for one or more roles. Default storage class (%s) is not available on the system."
+	invalidRoleStorageClass = "Unable to fetch storageClassName(%s) for role(%s)."
+	noDefaultStorageClass   = "storageClassName is not specified for one or more roles, and no default storage class is available."
+	badDefaultStorageClass  = "storageClassName is not specified for one or more roles, and default storage class (%s) is not available on the system."
 )

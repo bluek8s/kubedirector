@@ -260,8 +260,9 @@ func GetStorageClass(
 	return result, err
 }
 
-// GetStorageClassList fetches all storage class resources.
-func GetStorageClassList() ([]storagev1.StorageClass, error) {
+// GetDefaultStorageClass returns the default storage class, if any, as
+// defined by k8s.
+func GetDefaultStorageClass() (*storagev1.StorageClass, error) {
 
 	result := &storagev1.StorageClassList{
 		TypeMeta: metav1.TypeMeta{
@@ -272,5 +273,18 @@ func GetStorageClassList() ([]storagev1.StorageClass, error) {
 	// Namespace does not matter for this query; leave blank.
 	namespace := ""
 	err := sdk.List(namespace, result)
-	return result.Items, err
+	if err != nil {
+		return nil, err
+	}
+	numClasses := len(result.Items)
+	for i := 0; i < numClasses; i++ {
+		sc := &(result.Items[i])
+		if sc.Annotations["storageclass.kubernetes.io/is-default-class"] == "true" {
+			return sc, nil
+		}
+		if sc.Annotations["storageclass.beta.kubernetes.io/is-default-class"] == "true" {
+			return sc, nil
+		}
+	}
+	return nil, nil
 }

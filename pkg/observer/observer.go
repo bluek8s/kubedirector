@@ -241,7 +241,7 @@ func GetKDConfig(
 	return result, err
 }
 
-// GetStorageClass fetches storage class resource with a given name
+// GetStorageClass fetches the storage class resource with a given name.
 func GetStorageClass(
 	storageClassName string,
 ) (*storagev1.StorageClass, error) {
@@ -253,8 +253,24 @@ func GetStorageClass(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: storageClassName,
+			// Namespace does not matter for this query; leave blank.
 		},
 	}
 	err := sdk.Get(result)
 	return result, err
+}
+
+// GetStorageClassList fetches all storage class resources.
+func GetStorageClassList() ([]storagev1.StorageClass, error) {
+
+	result := &storagev1.StorageClassList{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "StorageClass",
+			APIVersion: "storage.k8s.io/v1",
+		},
+	}
+	// Namespace does not matter for this query; leave blank.
+	namespace := ""
+	err := sdk.List(namespace, result)
+	return result.Items, err
 }

@@ -26,6 +26,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// configPatchSpec is used to create the PATCH operation for populating
+// default values in the config as necessary.
+type configPatchSpec struct {
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value string `json:"value"`
+}
+
 // validateConfigStorageClass validates storageClassName by checking
 // for a valid storageClass k8s resource.
 func validateConfigStorageClass(
@@ -55,13 +63,16 @@ func validateConfigStorageClass(
 }
 
 // admitKDConfigCR is the top-level config validation function, which invokes
-// specific validation subroutines and composes the admission response.
+// specific validation subroutines and composes the admission response. The
+// admission response will include PATCH operations as necessary to populate
+// values for missing properties.
 func admitKDConfigCR(
 	ar *v1beta1.AdmissionReview,
 	handlerState *reconciler.Handler,
 ) *v1beta1.AdmissionResponse {
 
 	var valErrors []string
+	var patches []configPatchSpec
 
 	var admitResponse = v1beta1.AdmissionResponse{
 		Allowed: false,
@@ -76,15 +87,54 @@ func admitKDConfigCR(
 		return &admitResponse
 	}
 
-	if err := json.Unmarshal(raw, &configCR); err != nil {
+	if jsonErr := json.Unmarshal(raw, &configCR); jsonErr != nil {
 		admitResponse.Result = &metav1.Status{
-			Message: "\n" + err.Error(),
+			Message: "\n" + jsonErr.Error(),
 		}
 		return &admitResponse
 	}
 
-	// Validate storage class name if present
-	valErrors = validateConfigStorageClass(configCR.Spec.StorageClass, valErrors)
+	// Validate storage class name if present. If not, see if we can populate
+	// it with a default value.
+	storageClass := configCR.Spec.StorageClass
+	if storageClass != nil {
+		valErrors = validateConfigStorageClass(storageClass, valErrors)
+	} else {
+		storageClassList, scErr := observer.GetStorageClassList()
+		if scErr != nil {
+			admitResponse.Result = &metav1.Status{
+				Message: "\n" + scErr.Error(),
+			}
+			return &admitResponse
+		}
+		if len(storageClassList) != 0 {
+			// XXX Currently taking the first one; actually should cycle
+			// through and look for IsDefaultClass? Or should we leave it
+			// undefined here and instead look for the default class each time
+			// a cluster is created without specifying the classname?
+			patches = append(
+				patches,
+				configPatchSpec{
+					Op:    "add",
+					Path:  "/spec/defaultStorageClassName",
+					Value: storageClassList[0].Name,
+				},
+			)
+		}
+	}
+
+	if len(valErrors) == 0 {
+		if len(patches) != 0 {
+			patchResult, patchErr := json.Marshal(patches)
+			if patchErr == nil {
+				admitResponse.Patch = patchResult
+				patchType := v1beta1.PatchTypeJSONPatch
+				admitResponse.PatchType = &patchType
+			} else {
+				valErrors = append(valErrors, failedToPatch)
+			}
+		}
+	}
 
 	if len(valErrors) == 0 {
 		admitResponse.Allowed = true

@@ -271,40 +271,18 @@ func validateRoleStorageClass(
 	patches []clusterPatchSpec,
 ) ([]string, []clusterPatchSpec) {
 
-	var globalStorageClass = ""
 	var validateDefault = false
 
-	if kdConfig == nil || kdConfig.Spec.StorageClass == nil {
-		// storage class is not present in the config CR. Lets use the default one
-		globalStorageClass = defaultStorageClassName
-	} else {
-		globalStorageClass = *kdConfig.Spec.StorageClass
-	}
-
+	globalStorageClass := kdConfig.Spec.StorageClass
 	numRoles := len(cr.Spec.Roles)
 	for i := 0; i < numRoles; i++ {
 		role := &(cr.Spec.Roles[i])
 		if role.Storage.Size == "" {
 			continue
 		}
-
 		storageClass := role.Storage.StorageClass
-		if storageClass == nil {
-			// Use the default storageClassName and also set the flag to
-			// validate the associated storageClass object
-			role.Storage.StorageClass = &globalStorageClass
-			validateDefault = true
-			patches = append(
-				patches,
-				clusterPatchSpec{
-					Op:   "add",
-					Path: "/spec/roles/" + strconv.Itoa(i) + "/storage/storageClassName",
-					Value: clusterPatchValue{
-						ValueStr: role.Storage.StorageClass,
-					},
-				},
-			)
-		} else {
+		if storageClass != nil {
+			// Storage class is specified, so just validate it.
 			_, err := observer.GetStorageClass(*storageClass)
 			if err != nil {
 				valErrors = append(
@@ -316,16 +294,43 @@ func validateRoleStorageClass(
 					),
 				)
 			}
+			continue
 		}
-	}
-
-	if validateDefault {
-		_, err := observer.GetStorageClass(globalStorageClass)
-		if err != nil {
+		// No storage class specified, so let's see if we have a default.
+		if globalStorageClass == nil {
+			// Nope! This is bad.
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(
 					undefinedRoleStorageClass,
+					role.Name,
+				),
+			)
+			continue
+		}
+		// Use the default storageClassName and also set the flag to
+		// validate the associated storageClass object
+		role.Storage.StorageClass = globalStorageClass
+		validateDefault = true
+		patches = append(
+			patches,
+			clusterPatchSpec{
+				Op:   "add",
+				Path: "/spec/roles/" + strconv.Itoa(i) + "/storage/storageClassName",
+				Value: clusterPatchValue{
+					ValueStr: role.Storage.StorageClass,
+				},
+			},
+		)
+	}
+
+	if validateDefault {
+		_, err := observer.GetStorageClass(*globalStorageClass)
+		if err != nil {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					badDefaultStorageClass,
 					globalStorageClass,
 				),
 			)
@@ -505,7 +510,7 @@ func admitClusterCR(
 				patchType := v1beta1.PatchTypeJSONPatch
 				admitResponse.PatchType = &patchType
 			} else {
-				valErrors = append(valErrors, defaultMemberErr)
+				valErrors = append(valErrors, failedToPatch)
 			}
 		}
 	}

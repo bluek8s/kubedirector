@@ -24,13 +24,13 @@ type admitFunc func(*v1beta1.AdmissionReview, *reconciler.Handler) *v1beta1.Admi
 type checkFunc func() error
 
 const (
-	validatorServiceName    = "kubedirector-validator"
-	validatorWebhook        = "kubedirector-webhook"
-	validatorSecret         = "kubedirector-validator-secret"
-	webhookHandlerName      = "validate-cr.kubedirector.bluedata.io"
-	validationPath          = "/validate"
-	defaultStorageClassName = "standard"
-	defaultServiceType      = "NodePort"
+	validatorServiceName = "kubedirector-validator"
+	validatorWebhook     = "kubedirector-webhook"
+	validatorSecret      = "kubedirector-validator-secret"
+	webhookHandlerName   = "validate-cr.kubedirector.bluedata.io"
+	validationPath       = "/validate"
+	defaultServiceType   = "LoadBalancer"
+	defaultNativeSystemd = false
 
 	appCrt  = "app.crt"
 	appKey  = "app.pem"
@@ -57,10 +57,11 @@ const (
 
 	noUrlScheme = "The endpoint for service(%s) must include a url_scheme value because is_dashboard is true."
 
-	defaultMemberErr = "One or more role member counts are unspecified, but KubeDirector failed to apply the apptype-defined defaults."
+	failedToPatch = "Internal error: failed to populate default values for unspecified properties."
 
 	invalidStorageClass = "Unable to fetch storageClass object with the provided name(%s)."
 
-	invalidRoleStorageClass   = "Unable to fetch storageClassName(%s) for role(%s)."
-	undefinedRoleStorageClass = "storageClassName is not specified for one or more roles. Default storage class (%s) is not available on the system."
+	invalidRoleStorageClass = "Unable to fetch storageClassName(%s) for role(%s)."
+	noDefaultStorageClass   = "storageClassName is not specified for one or more roles, and no default storage class is available."
+	badDefaultStorageClass  = "storageClassName is not specified for one or more roles, and default storage class (%s) is not available on the system."
 )

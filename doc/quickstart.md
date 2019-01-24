@@ -2,19 +2,23 @@
 
 You will need a K8s (Kubernetes) cluster for deploying KubeDirector and KubeDirector-managed virtual clusters. Currently we require using K8s version 1.9 or later, with 1.11 or later recommended simply because our testing is focussed on the more recent versions. (It is likely that a near-future KubeDirector release will raise the minimum supported K8s version to 1.11.)
 
-We usually run KubeDirector on Google Kubernetes Engine (see [gke-notes.md](gke-notes.md)), and we have also run it on DigitalOcean Kubernetes without issues. Other K8s cloud providers may also work, although see the "CONFIGURING KUBEDIRECTOR" section below for a known issue with Amazon Elastic Container Service for Kubernetes.
+We usually run KubeDirector on Google Kubernetes Engine; see [gke-notes.md](gke-notes.md) for GKE-specific elaborations on the various steps in this document. We have also run it on DigitalOcean Kubernetes without issues. Other K8s cloud providers may also work, although Amazon Elastic Container Service for Kubernetes deployments have [known issues with using persistent storage](https://github.com/bluek8s/kubedirector/issues/132).
 
-We have also run KubeDirector locally using RPMs from kubernetes.io. If you are installing K8s yourself instead of using a cloud provider, note that you will need to ensure that [admission webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites) are enabled and that root-user containers are allowed.
+We have also run KubeDirector on a local K8s installation created with RPMs from kubernetes.io, so this is another possible approach. If you are installing K8s yourself instead of using a cloud provider, note that you will need to ensure that [admission webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites) are enabled and that root-user containers are allowed. Also note that we generally do not recommend KubeDirector deployment on OpenShift for new KubeDirector users/developers, because of a [variety of issues](https://github.com/bluek8s/kubedirector/issues/1).
 
-You should have kubectl installed on your local workstation, with administrative privileges for deploying resources into some namespace in your K8s cluster (and specifically, setting RBACs there). This document does also assume that you have familiarity with using common kubectl commands.
+### KUBECTL SETUP
+
+You should have kubectl installed on your local workstation, with administrative privileges for deploying resources into some namespace in your K8s cluster (and specifically, setting RBACs there).
+
+Some K8s platforms also provide other ways to run kubectl or manage K8s in other ways, but the standard KubeDirector deployment process uses a locally installed kubectl, and the examples in these docs are in terms of using kubectl locally as well. So a local kubectl is necessary. This document does also assume that you have a general familiarity with using common kubectl commands.
 
 We strongly recommend using a kubectl version at least as recent as that of your K8s cluster. You can use "kubectl version" to check this.
 
-That is the only setup necessary for deploying a pre-built version of KubeDirector, which will be described below. If you would rather build KubeDirector from source, you will want to read [kubedirector-development.md](kubedirector-development.md) after this doc.
-
 #### DEPLOYING KUBEDIRECTOR
 
-You can deploy a pre-built KubeDirector into your K8s cluster. First, you need to clone this repo.
+Once you have set up a K8s cluster and kubectl, you are ready to deploy a pre-built version of KubeDirector. If you would rather build KubeDirector from source, you will want to read [kubedirector-development.md](kubedirector-development.md) after this doc.
+
+To deploy a pre-built KubeDirector into your K8s cluster, the first step is to clone this repo.
 
 If you think you will eventually be interested in building KubeDirector from source, you need to have ["go"](https://golang.org/) installed and this repo needs to be placed appropriately under your GOPATH. If not however, then you can place this repo anywhere.
 
@@ -53,22 +57,26 @@ If you have set the repo to a commit tagged with a KubeDirector release version,
 
 Once KubeDirector is deployed, you may wish to observe its activity by using "kubectl logs -f" with the KubeDirector pod name (which is printed for you at the end of "make deploy"). This will continuously tail the KubeDirector log.
 
-KubeDirector is now running. You can create and manage virtual clusters as described in [virtual-clusters.md](virtual-clusters.md). But first you may want to set a default configuration for some cluster properties.
-
 #### CONFIGURING KUBEDIRECTOR
 
-Before creating any virtual clusters, you should configure KubeDirector to set some defaults. This is done by creating a [KubeDirectorConfig object](https://github.com/bluek8s/kubedirector/wiki/App-Definition-Authoring-for-KubeDirector). Example KubeDirectorConfig objects are provided in the "deploy/example_config" directory for Google Kubernetes Engine ("cr-config-gke.yaml"), DigitalOcean Kubernetes ("cr-config-dok.yaml"), Amazon Elastic Container Service for Kubernetes ("cr-config-eks.yaml"), a local OpenShift installation ("cr-config-openshift.yaml"), and a generic local K8s installation ("cr-config.yaml").
+Before creating any virtual clusters, you may wish to configure KubeDirector to change some defaults. If so, then you can create a [KubeDirectorConfig object](https://github.com/bluek8s/kubedirector/wiki/App-Definition-Authoring-for-KubeDirector).
 
-Note however that EKS deployments may have issues with persistent storage (cf. [EKS PV issues](https://github.com/bluek8s/kubedirector/issues/132)) and that OpenShift deployments are not recommended for new KubeDirector users/developers for a variety of issues (cf. the [known OpenShift issues](https://github.com/bluek8s/kubedirector/issues/1)).
+When using KubeDirector in a standard deployment of Google Kubernetes Engine, DigitalOcean Kubernetes, or Amazon Elastic Container Service for Kubernetes, then no change to the KubeDirector configuration should be necessary. You can still take a look at the [KubeDirectorConfig definition](https://github.com/bluek8s/kubedirector/wiki/App-Definition-Authoring-for-KubeDirector) to see what configuration properties are available.
 
-You can use one of the example configs or create one that is tailored to your environment.
+If the default KubeDirector config property values look correct for your purposes, then you do *not* need to create a config object.
 
-For example, typically for a GKE deployment you would execute this command:
+However if you are using KubeDirector on a local K8s installation, or some other arrangement where LoadBalancer services are not available, then you should change the KubeDirector configuration to use NodePort services instead of LoadBalancer. An example config file is provided for that purpose:
 ```bash
-    kubectl create -f deploy/example_config/cr-config-gke.yaml
+    kubectl create -f deploy/example_config/cr-config-nodeport.yaml
 ```
 
-If you want to change this configuration at any time, you can edit the config file and use "kubectl apply" to apply the changes. Keep in mind that the defaults specified in this config are only referenced at the time a virtual cluster is created; changing this config will not retroactively affect any existing virtual clusters.
+Another common reason you may wish to change the KubeDirector configuration is if you want your clusters to use a persistent storage class that is not the K8s default storage class.
+
+If you have created a KubeDirectorConfig object and later want to change it, you can edit the config file and use "kubectl apply" to apply the changes. Keep in mind that the values specified in this config are only referenced at the time a virtual cluster is created; changing this config will not retroactively affect any existing virtual clusters.
+
+#### WORKING WITH KUBEDIRECTOR
+
+The process of creating and managing virtual clusters is described in [virtual-clusters.md](virtual-clusters.md).
 
 #### TEARDOWN
 

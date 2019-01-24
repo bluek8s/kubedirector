@@ -228,5 +228,5 @@ type KubeDirectorConfig struct {
 type ConfigSpec struct {
 	StorageClass         *string `json:"defaultStorageClassName,omitempty"`
 	ServiceType          *string `json:"defaultServiceType,omitempty"`
-	NativeSystemdSupport bool    `json:"nativeSystemdSupport"`
+	NativeSystemdSupport *bool   `json:"nativeSystemdSupport"`
 }

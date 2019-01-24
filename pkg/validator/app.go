@@ -362,10 +362,7 @@ func admitAppCR(
 				patchType := v1beta1.PatchTypeJSONPatch
 				admitResponse.PatchType = &patchType
 			} else {
-				valErrors = append(
-					valErrors,
-					"Failed to marshal the patches.",
-				)
+				valErrors = append(valErrors, failedToPatch)
 			}
 		}
 	}

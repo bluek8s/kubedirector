@@ -170,6 +170,15 @@ func (in *ConfigSpec) DeepCopyInto(out *ConfigSpec) {
 			**out = **in
 		}
 	}
+	if in.NativeSystemdSupport != nil {
+		in, out := &in.NativeSystemdSupport, &out.NativeSystemdSupport
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(bool)
+			**out = **in
+		}
+	}
 	return
 }
 

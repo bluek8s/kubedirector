@@ -30,8 +30,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// clusterPatchSpec is used to create the PATCH operation for adding a default
-// member count to a role and setting up default storageClassName
+// clusterPatchSpec is used to create the PATCH operation for populating
+// default values for omitted properties.
 type clusterPatchSpec struct {
 	Op    string            `json:"op"`
 	Path  string            `json:"path"`
@@ -260,10 +260,10 @@ func validateRoleChanges(
 }
 
 // validateRoleStorageClass verifies storageClassName definition for a role
-// If storage section is defined for a role, a valid storageClassName must be
-// present or there must be one provided through kubedirector's config CR.
-// If neither are present, check to see if default storageClassName is valid, in
-// which case add entry in PATCH spec for mutating the cluster CR.
+// If storage section is defined for a role, see if a storageClassName is
+// also defined and if so validate it. If not, but a default is present in the
+// global config, validate and use that one. Final fallback is to check to see
+// if the underlying platform has a default storage class.
 func validateRoleStorageClass(
 	cr *kdv1.KubeDirectorCluster,
 	valErrors []string,
@@ -271,29 +271,51 @@ func validateRoleStorageClass(
 	patches []clusterPatchSpec,
 ) ([]string, []clusterPatchSpec) {
 
-	var globalStorageClass = ""
 	var validateDefault = false
+	var missingDefault = false
 
-	if kdConfig == nil || kdConfig.Spec.StorageClass == nil {
-		// storage class is not present in the config CR. Lets use the default one
-		globalStorageClass = defaultStorageClassName
-	} else {
-		globalStorageClass = *kdConfig.Spec.StorageClass
-	}
-
+	globalStorageClass := kdConfig.Spec.StorageClass
 	numRoles := len(cr.Spec.Roles)
 	for i := 0; i < numRoles; i++ {
 		role := &(cr.Spec.Roles[i])
 		if role.Storage.Size == "" {
+			// No storage section.
 			continue
 		}
-
 		storageClass := role.Storage.StorageClass
-		if storageClass == nil {
-			// Use the default storageClassName and also set the flag to
-			// validate the associated storageClass object
-			role.Storage.StorageClass = &globalStorageClass
+		if storageClass != nil {
+			// Storage class is specified, so validate it.
+			_, scErr := observer.GetStorageClass(*storageClass)
+			if scErr != nil {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidRoleStorageClass,
+						*storageClass,
+						role.Name,
+					),
+				)
+			}
+			continue
+		}
+		// No storage class specified. How we handle this depends on whether
+		// there is a KubeDirector config-specified default.
+		if globalStorageClass != nil {
+			// Yep. Use that, and remember to validate it when we're done
+			// looping.
 			validateDefault = true
+			role.Storage.StorageClass = globalStorageClass
+		} else {
+			// Nope. Let's see what K8s says is the default.
+			scK8sDefault, _ := observer.GetDefaultStorageClass()
+			if scK8sDefault == nil {
+				missingDefault = true
+				continue
+			}
+			role.Storage.StorageClass = &(scK8sDefault.Name)
+		}
+		// Patch in the defaulted value unless it is missing.
+		if !missingDefault {
 			patches = append(
 				patches,
 				clusterPatchSpec{
@@ -304,28 +326,21 @@ func validateRoleStorageClass(
 					},
 				},
 			)
-		} else {
-			_, err := observer.GetStorageClass(*storageClass)
-			if err != nil {
-				valErrors = append(
-					valErrors,
-					fmt.Sprintf(
-						invalidRoleStorageClass,
-						*storageClass,
-						role.Name,
-					),
-				)
-			}
 		}
 	}
 
-	if validateDefault {
-		_, err := observer.GetStorageClass(globalStorageClass)
+	if missingDefault {
+		valErrors = append(
+			valErrors,
+			noDefaultStorageClass,
+		)
+	} else if validateDefault {
+		_, err := observer.GetStorageClass(*globalStorageClass)
 		if err != nil {
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(
-					undefinedRoleStorageClass,
+					badDefaultStorageClass,
 					globalStorageClass,
 				),
 			)
@@ -505,7 +520,7 @@ func admitClusterCR(
 				patchType := v1beta1.PatchTypeJSONPatch
 				admitResponse.PatchType = &patchType
 			} else {
-				valErrors = append(valErrors, defaultMemberErr)
+				valErrors = append(valErrors, failedToPatch)
 			}
 		}
 	}

@@ -1,8 +1,6 @@
 #### DEPLOYING VIRTUAL CLUSTERS
 
-Before you deploy your first virtual cluster, make sure that appropriate defaults have been set as described in the "CONFIGURING KUBEDIRECTOR" section of [quickstart.md](quickstart.md).
-
-The "deploy/example_clusters" directory contains examples of YAML files that can be used to create virtual clusters that instantiate the defined app types. Currently these virtual clusters must be created in the same namespace as the KubeDirector deployment (a restriction that should be relaxed in later development).
+The "deploy/example_clusters" directory contains examples of YAML files that can be used to create virtual clusters that instantiate the defined app types. Currently these virtual clusters must be created in the same namespace as the KubeDirector deployment (a restriction that should be relaxed in some future release).
 
 For example, this would create an instance of a virtual cluster from the spark221e2 app type:
 ```bash
@@ -11,9 +9,9 @@ For example, this would create an instance of a virtual cluster from the spark22
 
 You will see that some of the YAML file basenames have the "-stor" suffix. This is just a convention used among these example files to indicate that the virtual cluster spec requests persistent storage. Several of the examples have both persistent and non-persistent variants.
 
-Note that if you are using persistent storage, you should declare a valid defaultStorageClassName when configuring KubeDirector; the example virtual cluster specs will use that default. Alternately you can declare a storageClassName in the persistent storage spec section of the virtual cluster spec.
+Note that if you are using persistent storage, you may wish to create a [KubeDirectorConfig object](https://github.com/bluek8s/kubedirector/wiki/App-Definition-Authoring-for-KubeDirector) (as described in [quickstart.md](quickstart.md)) that declares a specific defaultStorageClassName value. Alternately you can declare a storageClassName in the persistent storage spec section of each virtual cluster spec. If no storage class value is declared in either the KubeDirectorConfig or the virtual cluster, then the K8s default storage class will be used.
 
-For more details, see the KubeDirector wiki for a [complete spec of the KubeDirectorCluster resource type](https://github.com/bluek8s/kubedirector/wiki/Type-Definitions-for-KubeDirectorCluster).
+For more details about the available virtual cluster properties, see the KubeDirector wiki for a [complete spec of the KubeDirectorCluster resource type](https://github.com/bluek8s/kubedirector/wiki/Type-Definitions-for-KubeDirectorCluster).
 
 #### INSPECTING
 
@@ -31,7 +29,7 @@ To get a report on all services related to a specific virtual cluster, you can u
     kubectl get services -l kubedirectorcluster=spark-instance
 ```
 
-Below is a line from the output of such a query, in a case where KubeDirector was configured to use LoadBalancer services (as on GKE). In this case the Spark master Web dashboard (port 8080) is available through the load-balancer IP 35.197.55.117. The port exposed on the load balancer will be the same as the native container port, 8080. The other information in this line is not relevant for access through the LoadBalancer.
+Below is a line from the output of such a query, in a case where KubeDirector was configured to use LoadBalancer services (which is the default). In this case the Spark master Web dashboard (port 8080) is available through the load-balancer IP 35.197.55.117. The port exposed on the load balancer will be the same as the native container port, 8080. The other information in this line is not relevant for access through the LoadBalancer.
 ```bash
     svc-kd-rmh58-0  LoadBalancer   10.55.240.105   35.197.55.117    22:30892/TCP,8080:31786/TCP,7077:32194/TCP,8081:31026/TCP   2m48s
 ```
@@ -40,7 +38,6 @@ As another example, below is a line from a cluster in a different setup where Ku
 ```bash
     svc-kd-ggzpd-0   NodePort    10.107.133.249   <none>        22:31394/TCP,8080:30311/TCP,7077:30106/TCP,8081:30499/TCP   12m
 ```
-
 
 You can use kubectl to examine a specific service resource in order to see more explicitly which ports are for service endpoints. Using "get -o yaml" or "get -o json", rather than "describe", will format the array of endpoints a little more clearly. For example, examining that LoadBalancer service above:
 ```bash
@@ -70,8 +67,6 @@ You can edit the resource YAML file to add or remove a role, or increase/decreas
 Depending on the app definition, some resize operations may not be allowed for some roles. For example you will not be allowed to remove a Spark controller or have fewer than two Cassandra seeds. In these cases the resize attempt will be immediately rejected with an explanation.
 
 If a resize that grows the virtual cluster is accepted, but the status shows that some members are staying in create_pending state indefinitely, you may have requested more resources than your K8s nodes can provide. Use kubectl to examine the associated pods, see if they are stuck in Pending status, and what Events they are experiencing. If they appear to be permanently blocked without available resources, you will want to downsize or remove virtual cluster roles so that they no longer request as many members.
-
-Reconfigurations other than resizing are not yet supported.
 
 #### DELETING
 

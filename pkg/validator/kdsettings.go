@@ -26,6 +26,26 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// configPatchSpec is used to create the PATCH operation for populating
+// default values in the config as necessary.
+type configPatchSpec struct {
+	Op    string           `json:"op"`
+	Path  string           `json:"path"`
+	Value configPatchValue `json:"value"`
+}
+
+type configPatchValue struct {
+	ValueStr  *string
+	ValueBool *bool
+}
+
+func (obj configPatchValue) MarshalJSON() ([]byte, error) {
+	if obj.ValueStr != nil {
+		return json.Marshal(obj.ValueStr)
+	}
+	return json.Marshal(obj.ValueBool)
+}
+
 // validateConfigStorageClass validates storageClassName by checking
 // for a valid storageClass k8s resource.
 func validateConfigStorageClass(
@@ -55,13 +75,16 @@ func validateConfigStorageClass(
 }
 
 // admitKDConfigCR is the top-level config validation function, which invokes
-// specific validation subroutines and composes the admission response.
+// specific validation subroutines and composes the admission response. The
+// admission response will include PATCH operations as necessary to populate
+// values for missing properties.
 func admitKDConfigCR(
 	ar *v1beta1.AdmissionReview,
 	handlerState *reconciler.Handler,
 ) *v1beta1.AdmissionResponse {
 
 	var valErrors []string
+	var patches []configPatchSpec
 
 	var admitResponse = v1beta1.AdmissionResponse{
 		Allowed: false,
@@ -76,15 +99,58 @@ func admitKDConfigCR(
 		return &admitResponse
 	}
 
-	if err := json.Unmarshal(raw, &configCR); err != nil {
+	if jsonErr := json.Unmarshal(raw, &configCR); jsonErr != nil {
 		admitResponse.Result = &metav1.Status{
-			Message: "\n" + err.Error(),
+			Message: "\n" + jsonErr.Error(),
 		}
 		return &admitResponse
 	}
 
-	// Validate storage class name if present
+	// Validate storage class name if present.
 	valErrors = validateConfigStorageClass(configCR.Spec.StorageClass, valErrors)
+
+	// Populate default service type if necessary.
+	if configCR.Spec.ServiceType == nil {
+		serviceTypePatchVal := defaultServiceType
+		patches = append(
+			patches,
+			configPatchSpec{
+				Op:   "add",
+				Path: "/spec/defaultServiceType",
+				Value: configPatchValue{
+					ValueStr: &serviceTypePatchVal,
+				},
+			},
+		)
+	}
+
+	// Populate default systemd support if necessary.
+	if configCR.Spec.NativeSystemdSupport == nil {
+		systemdSupportPatchVal := defaultNativeSystemd
+		patches = append(
+			patches,
+			configPatchSpec{
+				Op:   "add",
+				Path: "/spec/nativeSystemdSupport",
+				Value: configPatchValue{
+					ValueBool: &systemdSupportPatchVal,
+				},
+			},
+		)
+	}
+
+	if len(valErrors) == 0 {
+		if len(patches) != 0 {
+			patchResult, patchErr := json.Marshal(patches)
+			if patchErr == nil {
+				admitResponse.Patch = patchResult
+				patchType := v1beta1.PatchTypeJSONPatch
+				admitResponse.PatchType = &patchType
+			} else {
+				valErrors = append(valErrors, failedToPatch)
+			}
+		}
+	}
 
 	if len(valErrors) == 0 {
 		admitResponse.Allowed = true

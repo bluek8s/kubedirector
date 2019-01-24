@@ -241,7 +241,7 @@ func GetKDConfig(
 	return result, err
 }
 
-// GetStorageClass fetches storage class resource with a given name
+// GetStorageClass fetches the storage class resource with a given name.
 func GetStorageClass(
 	storageClassName string,
 ) (*storagev1.StorageClass, error) {
@@ -253,8 +253,38 @@ func GetStorageClass(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: storageClassName,
+			// Namespace does not matter for this query; leave blank.
 		},
 	}
 	err := sdk.Get(result)
 	return result, err
+}
+
+// GetDefaultStorageClass returns the default storage class, if any, as
+// defined by k8s.
+func GetDefaultStorageClass() (*storagev1.StorageClass, error) {
+
+	result := &storagev1.StorageClassList{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "StorageClass",
+			APIVersion: "storage.k8s.io/v1",
+		},
+	}
+	// Namespace does not matter for this query; leave blank.
+	namespace := ""
+	err := sdk.List(namespace, result)
+	if err != nil {
+		return nil, err
+	}
+	numClasses := len(result.Items)
+	for i := 0; i < numClasses; i++ {
+		sc := &(result.Items[i])
+		if sc.Annotations["storageclass.kubernetes.io/is-default-class"] == "true" {
+			return sc, nil
+		}
+		if sc.Annotations["storageclass.beta.kubernetes.io/is-default-class"] == "true" {
+			return sc, nil
+		}
+	}
+	return nil, nil
 }

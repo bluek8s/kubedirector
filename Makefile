@@ -95,17 +95,16 @@ deploy:
 	@echo
 	@set -e; \
         if [[ -f deploy/kubedirector/deployment-localbuilt.yaml ]]; then \
-        	echo \* Deploying KubeDirector...; \
+            echo \* Deploying KubeDirector...; \
             kubectl create -f deploy/kubedirector/deployment-localbuilt.yaml; \
-        	echo kubectl create -f deploy/kubedirector/deployment-localbuilt.yaml; \
+            echo kubectl create -f deploy/kubedirector/deployment-localbuilt.yaml; \
         else \
-        	echo \* Deploying PRE-BUILT KubeDirector...; \
-        	echo kubectl create -f deploy/kubedirector/deployment-prebuilt.yaml; \
+            echo \* Deploying PRE-BUILT KubeDirector...; \
+            echo kubectl create -f deploy/kubedirector/deployment-prebuilt.yaml; \
             kubectl create -f deploy/kubedirector/deployment-prebuilt.yaml; \
         fi; \
         echo; \
-        echo \* Waiting for KubeDirector container startup...; \
-        echo; \
+        echo -n \* Waiting for KubeDirector container startup...; \
         sleep 3; \
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
         retries=20; \
@@ -113,14 +112,18 @@ deploy:
             if kubectl logs $$podname &> /dev/null; then \
                 exit 0; \
             else \
-            	retries=`expr $$retries - 1`; \
+                retries=`expr $$retries - 1`; \
                 if [ $$retries -le 0 ]; then \
+                    echo; \
                     echo KubeDirector container failed to start!; \
                     exit 1; \
                 fi; \
+                echo -n .; \
                 sleep 3; \
             fi; \
         done
+	@echo
+	@echo
 	@echo \* Creating example application types...
 	kubectl create -f deploy/example_catalog/
 	@echo
@@ -187,6 +190,25 @@ undeploy:
 	@echo
 	@echo \* Deleting headless service...
 	-kubectl delete svc/${project_name}
+	@echo
+	@echo -n \* Waiting for all resources to finish cleanup...
+	@set -e; \
+        retries=100; \
+        while [ $$retries ]; do \
+            if kubectl get all -l kubedirectorcluster 2>&1 >/dev/null | grep "No resources found." &> /dev/null; then \
+                exit 0; \
+            else \
+                retries=`expr $$retries - 1`; \
+                if [ $$retries -le 0 ]; then \
+                    echo; \
+                    echo Some KubeDirector-managed resources seem to remain.; \
+                    echo Use "kubectl get all -l kubedirectorcluster" to check and do manual cleanup.; \
+                    exit 1; \
+                fi; \
+                sleep 3; \
+                echo -n .; \
+            fi; \
+        done
 	@echo
 	@echo
 	@echo done

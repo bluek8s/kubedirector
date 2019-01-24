@@ -45,8 +45,9 @@ This will create, in the current namespace for your kubectl configuration:
 * an administratively-privileged service account used by KubeDirector
 * the custom resource definition for KubeDirector virtual clusters
 * the custom resource definition for KubeDirector app types
+* the custom resource definition for the KubeDirector configuration object
 * the KubeDirector deployment itself
-* custom app types
+* an example set of KubeDirector app types
 
 If you have set the repo to a commit tagged with a KubeDirector release version, then the pre-built KubeDirector deployed in this way will use an image tied to that exact commit. Otherwise the pre-built KubeDirector image will be an "unstable" version associated with the tip of the master branch. If using an "unstable" image you should keep your local copy of the repo close to the tip of master to prevent inconsistencies.
 

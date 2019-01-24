@@ -107,9 +107,7 @@ func admitKDConfigCR(
 	}
 
 	// Validate storage class name if present.
-	if configCR.Spec.StorageClass != nil {
-		valErrors = validateConfigStorageClass(configCR.Spec.StorageClass, valErrors)
-	}
+	valErrors = validateConfigStorageClass(configCR.Spec.StorageClass, valErrors)
 
 	// Populate default service type if necessary.
 	if configCR.Spec.ServiceType == nil {

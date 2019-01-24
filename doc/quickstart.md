@@ -6,7 +6,7 @@ We usually run KubeDirector on Google Kubernetes Engine; see [gke-notes.md](gke-
 
 We have also run KubeDirector on a local K8s installation created with RPMs from kubernetes.io, so this is another possible approach. If you are installing K8s yourself instead of using a cloud provider, note that you will need to ensure that [admission webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites) are enabled and that root-user containers are allowed. Also note that we generally do not recommend KubeDirector deployment on OpenShift for new KubeDirector users/developers, because of a [variety of issues](https://github.com/bluek8s/kubedirector/issues/1).
 
-### KUBECTL SETUP
+#### KUBECTL SETUP
 
 You should have kubectl installed on your local workstation, with administrative privileges for deploying resources into some namespace in your K8s cluster (and specifically, setting RBACs there).
 

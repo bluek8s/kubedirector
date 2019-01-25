@@ -46,7 +46,7 @@ That's far from the only user-visible change though! The entire list of improvem
 
 * We have tested using KubeDirector on DigitalOcean Kubernetes (DOK). We haven't done extensive work on DOK yet, but we haven't found any issues that would prevent running KubeDirector and its managed clusters there in a manner similar to doing so on GKE. We do recommend using K8s version 1.11 or later on this service.
 
-* We have also tested using KubeDirector on Amazon Elastic Container Service for Kubernetes (EKS). However we have identified an issue with using persistent storage on EKS, which we may be able to address once EKS supports K8s version 1.12. In the meantime, clusters that do *not* use persistent storage should work there.
+* We have also tested using KubeDirector on Amazon Elastic Container Service for Kubernetes (EKS). However we have identified [an issue with using persistent storage on EKS](https://github.com/bluek8s/kubedirector/issues/132), which we may be able to address once EKS supports K8s version 1.12. In the meantime, clusters that do *not* use persistent storage should work there.
 
 * All sorts of improvements and additions to the docs in this repo as well as on the wiki!
 

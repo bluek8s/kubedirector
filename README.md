@@ -23,8 +23,8 @@ Unlike some other custom controller implementations, KubeDirector does not tie a
 The [wiki](https://github.com/bluek8s/kubedirector/wiki) describes KubeDirector concepts, architecture, and data formats.
 
 See the files in the "doc" directory for information about deploying and using KubeDirector:
-* [gke-notes.md](doc/gke-notes.md): important information if you intend to deploy KubeDirector using Google Kubernetes Engine
 * [quickstart.md](doc/quickstart.md): deploying a pre-built KubeDirector image
+* [gke-notes.md](doc/gke-notes.md): important information if you intend to deploy KubeDirector using Google Kubernetes Engine
 * [virtual-clusters.md](doc/virtual-clusters.md): creating and managing virtual clusters with KubeDirector
 * [app-authoring.md](doc/app-authoring.md): creating app definitions for KubeDirector virtual clusters
 * [kubedirector-development.md](doc/kubedirector-development.md): building KubeDirector from source

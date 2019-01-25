@@ -10,7 +10,7 @@ We have also run KubeDirector on a local K8s installation created with RPMs from
 
 You should have kubectl installed on your local workstation, with administrative privileges for deploying resources into some namespace in your K8s cluster (and specifically, setting RBACs there).
 
-Some K8s platforms also provide other ways to run kubectl or manage K8s in other ways, but the standard KubeDirector deployment process uses a locally installed kubectl, and the examples in these docs are in terms of using kubectl locally as well. So a local kubectl is necessary. This document does also assume that you have a general familiarity with using common kubectl commands.
+Some K8s platforms also provide other ways to run kubectl or manage K8s, but the standard KubeDirector deployment process uses a locally installed kubectl, and the examples in these docs are in terms of using kubectl locally as well. So a local kubectl is necessary. This document does also assume that you have a general familiarity with using common kubectl commands.
 
 We strongly recommend using a kubectl version at least as recent as that of your K8s cluster. You can use "kubectl version" to check this.
 

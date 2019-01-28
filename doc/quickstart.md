@@ -65,12 +65,12 @@ When using KubeDirector in a standard deployment of Google Kubernetes Engine, Di
 
 If the default KubeDirectorConfig property values look correct for your purposes, then you do *not* need to create a config object.
 
-However if you are using KubeDirector on a local K8s installation, or some other arrangement where LoadBalancer services are not available, then you should change the KubeDirector configuration to use NodePort services instead of LoadBalancer. An example config file is provided for that purpose:
+However if you are using KubeDirector on a local K8s installation that you have installed on top of RHEL/CentOS, you may need to change the values for the defaultServiceType and/or nativeSystemdSupport config properties. See the "deploy/example_config/cr-config-onprem.yaml" file and particularly the comments at the top of that file. If you want to apply these config values to your deployment, you can use kubectl to create that config resource:
 ```bash
-    kubectl create -f deploy/example_config/cr-config-nodeport.yaml
+    kubectl create -f deploy/example_config/cr-config-onprem.yaml
 ```
 
-Another common reason you may wish to change the KubeDirector configuration is if you want your clusters to use a persistent storage class that is not the K8s default storage class.
+Another common reason you may wish to change the KubeDirector configuration is if you want your clusters to use a persistent storage class that is not the K8s default storage class. You can do this by specifying a value for the defaultStorageClassName property in the config resource.
 
 If you have created a KubeDirectorConfig object and later want to change it, you can edit the config file and use "kubectl apply" to apply the changes. Keep in mind that the values specified in this config are only referenced at the time a virtual cluster is created; changing this config will not retroactively affect any existing virtual clusters.
 

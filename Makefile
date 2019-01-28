@@ -104,18 +104,32 @@ deploy:
             kubectl create -f deploy/kubedirector/deployment-prebuilt.yaml; \
         fi; \
         echo; \
-        echo -n \* Waiting for KubeDirector container startup...; \
+        echo -n \* Waiting for KubeDirector to start...; \
         sleep 3; \
-        podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
         retries=20; \
         while [ $$retries ]; do \
-            if kubectl logs $$podname &> /dev/null; then \
+            if kubectl get pods -l name=${project_name} &> /dev/null; then \
+                break; \
+            else \
+                retries=`expr $$retries - 1`; \
+                if [ $$retries -le 0 ]; then \
+                    echo; \
+                    echo KubeDirector failed to start -- no pod created!; \
+                    exit 1; \
+                fi; \
+                echo -n .; \
+                sleep 3; \
+            fi; \
+        done; \
+        retries=20; \
+        while [ $$retries ]; do \
+            if kubectl get MutatingWebhookConfiguration ${project_name}-webhook &> /dev/null; then \
                 exit 0; \
             else \
                 retries=`expr $$retries - 1`; \
                 if [ $$retries -le 0 ]; then \
                     echo; \
-                    echo KubeDirector container failed to start!; \
+                    echo KubeDirector failed to start -- no admission control hook created!; \
                     exit 1; \
                 fi; \
                 echo -n .; \

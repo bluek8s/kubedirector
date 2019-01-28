@@ -59,11 +59,11 @@ Once KubeDirector is deployed, you may wish to observe its activity by using "ku
 
 #### CONFIGURING KUBEDIRECTOR
 
-Before creating any virtual clusters, you may wish to configure KubeDirector to change some defaults. If so, then you can create a [KubeDirectorConfig object](https://github.com/bluek8s/kubedirector/wiki/App-Definition-Authoring-for-KubeDirector).
+Before creating any virtual clusters, you may wish to configure KubeDirector to change some default settings. If so, then you can create (in the same K8s namespace as KubeDirector itself) a [KubeDirectorConfig object](https://github.com/bluek8s/kubedirector/wiki/Type-Definitions-for-KubeDirectorConfig) that has the name "kd-global-config".
 
-When using KubeDirector in a standard deployment of Google Kubernetes Engine, DigitalOcean Kubernetes, or Amazon Elastic Container Service for Kubernetes, then no change to the KubeDirector configuration should be necessary. You can still take a look at the [KubeDirectorConfig definition](https://github.com/bluek8s/kubedirector/wiki/App-Definition-Authoring-for-KubeDirector) to see what configuration properties are available.
+When using KubeDirector in a standard deployment of Google Kubernetes Engine, DigitalOcean Kubernetes, or Amazon Elastic Container Service for Kubernetes, then no change to the KubeDirector configuration should be necessary. You can still take a look at the [KubeDirectorConfig definition](https://github.com/bluek8s/kubedirector/wiki/Type-Definitions-for-KubeDirectorConfig) to see what configuration properties are available.
 
-If the default KubeDirector config property values look correct for your purposes, then you do *not* need to create a config object.
+If the default KubeDirectorConfig property values look correct for your purposes, then you do *not* need to create a config object.
 
 However if you are using KubeDirector on a local K8s installation, or some other arrangement where LoadBalancer services are not available, then you should change the KubeDirector configuration to use NodePort services instead of LoadBalancer. An example config file is provided for that purpose:
 ```bash

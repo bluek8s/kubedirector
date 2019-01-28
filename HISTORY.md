@@ -22,13 +22,13 @@ That's far from the only user-visible change though! The entire list of improvem
 
 * The persist_dirs list in an app CR (for persistent storage mounts) can now be specified at a per-role granularity if you like.
 
-* You can now edit the serviceType on existing cluster CR, and the type of its existing service resources will be changed accordingly.
+* You can now edit the serviceType of an existing cluster CR, and the type of its existing service resources will be changed accordingly.
 
 * Ports on service resources now have more useful names, taken from the service IDs specified in the app CR.
 
 ## Operational
 
-* The cluster member launch and configuration processes has been further parallelized. Things get done faster!
+* The cluster member launch and configuration processes have been further parallelized. Things get done faster!
 
 * If a cluster edit has requested X additional members but only some smaller number Y have come up so far, at the next polling interval KubeDirector will go ahead and handle those Y members as a complete resize operation in and of themselves. (It will of course keep working toward fulfilling the entire requested member count.) Essentially, big expansions may be implemented in phases to allow resources to come "online" in the cluster as soon as they are available.
 

@@ -1,0 +1,13 @@
+# This is an example of a KubeDirector global configuration object that may
+# be suitable for a local K8s installation on RHEL or CentOS. It sets the
+# service type to NodePort, assuming that LoadBalancer services are not
+# available. It also sets nativeSystemdSupport to true as this is the correct
+# value for RHEL/CentOS systems with OS version 7.2 or later.
+
+apiVersion: "kubedirector.bluedata.io/v1alpha1"
+kind: "KubeDirectorConfig"
+metadata:
+  name: "kd-global-config"
+spec:
+  defaultServiceType: "NodePort"
+  nativeSystemdSupport: true

@@ -9,7 +9,7 @@ For example, this would create an instance of a virtual cluster from the spark22
 
 You will see that some of the YAML file basenames have the "-stor" suffix. This is just a convention used among these example files to indicate that the virtual cluster spec requests persistent storage. Several of the examples have both persistent and non-persistent variants.
 
-Note that if you are using persistent storage, you may wish to create a [KubeDirectorConfig object](https://github.com/bluek8s/kubedirector/wiki/App-Definition-Authoring-for-KubeDirector) (as described in [quickstart.md](quickstart.md)) that declares a specific defaultStorageClassName value. Alternately you can declare a storageClassName in the persistent storage spec section of each virtual cluster spec. If no storage class value is declared in either the KubeDirectorConfig or the virtual cluster, then the K8s default storage class will be used.
+Note that if you are using persistent storage, you may wish to create a [KubeDirectorConfig object](https://github.com/bluek8s/kubedirector/wiki/Type-Definitions-for-KubeDirectorConfig) (as described in [quickstart.md](quickstart.md)), in this case for the purpose of declaring a specific defaultStorageClassName value. Alternately you can declare a storageClassName in the persistent storage spec section of each virtual cluster spec. If no storage class value is declared in either the KubeDirectorConfig or the virtual cluster, then the K8s default storage class will be used.
 
 For more details about the available virtual cluster properties, see the KubeDirector wiki for a [complete spec of the KubeDirectorCluster resource type](https://github.com/bluek8s/kubedirector/wiki/Type-Definitions-for-KubeDirectorCluster).
 

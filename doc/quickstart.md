@@ -42,6 +42,8 @@ If you want to work with a specific released version of KubeDirector (instead of
     git checkout v0.1.0
 ```
 
+If you have switched to a tagged version of KubeDirector in your local repo, make sure that when you read the doc files (like this one) you reference the files that are consistent with that version. The files in your local repo will be consistent; you could also reference the online files at a particular tag, for example the [doc files for v0.1.0](https://github.com/bluek8s/kubedirector/tree/v0.1.0/doc).
+
 Now you can deploy KubeDirector:
 ```bash
     make deploy

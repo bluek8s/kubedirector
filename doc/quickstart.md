@@ -4,7 +4,9 @@ You will need a K8s (Kubernetes) cluster for deploying KubeDirector and KubeDire
 
 We usually run KubeDirector on Google Kubernetes Engine; see [gke-notes.md](gke-notes.md) for GKE-specific elaborations on the various steps in this document. We have also run it on DigitalOcean Kubernetes without issues. Other K8s cloud providers may also work, although Amazon Elastic Container Service for Kubernetes deployments have [known issues with using persistent storage](https://github.com/bluek8s/kubedirector/issues/132).
 
-We have also run KubeDirector on a local K8s installation created with RPMs from kubernetes.io, so this is another possible approach. If you are installing K8s yourself instead of using a cloud provider, note that you will need to ensure that [admission webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites) are enabled and that root-user containers are allowed. Also note that we generally do not recommend KubeDirector deployment on OpenShift for new KubeDirector users/developers, because of a [variety of issues](https://github.com/bluek8s/kubedirector/issues/1).
+We have also run KubeDirector on a local K8s installation created with RPMs from kubernetes.io, so this is another possible approach. If you are going this route, you will need to ensure that [admission webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites) are enabled and that root-user containers are allowed. If you are using [kubeadm](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/) for setting up K8s version 1.10 or later, you shouldn't have to explicitly worry about those requirements -- its default configuration should be good.
+
+Note that we generally do not recommend KubeDirector deployment on OpenShift for new KubeDirector users/developers, because of a [variety of issues](https://github.com/bluek8s/kubedirector/issues/1).
 
 #### KUBECTL SETUP
 
@@ -39,6 +41,8 @@ If you want to work with a specific released version of KubeDirector (instead of
     cd kubedirector
     git checkout v0.1.0
 ```
+
+If you have switched to a tagged version of KubeDirector in your local repo, make sure that when you read the doc files (like this one) you reference the files that are consistent with that version. The files in your local repo will be consistent; you could also reference the online files at a particular tag, for example the [doc files for v0.1.0](https://github.com/bluek8s/kubedirector/tree/v0.1.0/doc).
 
 Now you can deploy KubeDirector:
 ```bash

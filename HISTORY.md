@@ -10,7 +10,7 @@ That's far from the only user-visible change though! The entire list of improvem
 
 ## App/cluster model
 
-* KubeDirector-related custom resource definitions (CRDs) have changed in various ways since the v0.1.0 release. The [wiki](https://github.com/bluek8s/kubedirector/wiki) documents the release-specific format of each CRD (as well as the format in use on the tip of the master branch). Use that documentation as a reference if you need to port old CR specs to v0.2.0. We can also provide porting assistance on our [Slack workspace](https://join.slack.com/t/bluek8s/shared_invite/enQtNDUwMzkwODY5OTM4LTRhYmRmZmE4YzY3OGUzMjA1NDg0MDVhNDQ2MGNkYjRhM2RlMDNjMTI1NDQyMjAzZGVlMDFkNThkNGFjZGZjMGY).
+* KubeDirector-related custom resource definitions (CRDs) have changed in various ways since the v0.1.0 release. The [wiki](https://github.com/bluek8s/kubedirector/wiki) documents the release-specific format of each CRD (as well as the format in use on the tip of the master branch). Use that documentation as a reference if you need to port old CR specs to v0.2.0. We can also provide porting assistance on our [Slack workspace](https://join.slack.com/t/bluek8s/shared_invite/enQtNTQzNDQzNjQwMDMyLTdjYjE0ZTg0OGJhZWUxMzhkZTZjNDg5ODIyNzZmNzZiYTk4ZjQxNDFjYzk4OWM0MjFlNmVkNWNlNmFjNzkzNjQ).
 
 * The CRD schemas and the dynamic validation perform even more validation on app and cluster CRs. It should be extremely unlikely now that an invalid app/cluster CR creation or edit will pass validation.
 

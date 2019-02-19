@@ -1,4 +1,4 @@
-# v0.2.0 - Feb 4, 2019
+# v0.2.0 - Feb 19, 2019
 
 Welcome to the first public update of KubeDirector! This release focuses on making the app and virtual cluster CRs more complete, consistent, and bulletproof to use. In the process other operational improvements have fallen into place, and of course bugfixing is always going on.
 

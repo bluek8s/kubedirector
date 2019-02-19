@@ -23,13 +23,12 @@ sedseparator = ''
 endif
 
 build_dir = 'tmp/_output'
-configcli_dest := $(build_dir)/configcli
+configcli_dest := $(build_dir)/configcli.tgz
 
 configcli:  | $(build_dir)
-	@
-	@if [ -e $(configcli_dest) ]; then exit 0; fi
-	@echo \* Downloading configcli package ...
-	@curl -o $(configcli_dest) https://github.com/bluek8s/configcli/archive/v$(configcli_version).tar.gz
+	@if [ -e $(configcli_dest) ]; then exit 0; fi;                             \
+echo "\* Downloading configcli package ...";                                   \
+curl -o $(configcli_dest) https://github.com/bluek8s/configcli/archive/v$(configcli_version).tar.gz
 
 build: configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go | $(build_dir)
 	@echo

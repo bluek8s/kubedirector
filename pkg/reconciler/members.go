@@ -500,7 +500,7 @@ func replicasSynced(
 	return true
 }
 
-// setupNodePrep injects the nodeprep package (configcli et al) into the member's
+// setupNodePrep injects the configcli package (configcli et al) into the member's
 // container and installs it.
 func setupNodePrep(
 	cr *kdv1.KubeDirectorCluster,
@@ -516,7 +516,7 @@ func setupNodePrep(
 		return nil
 	}
 
-	// Inject the nodeprep package, taken from the KubeDirector's container.
+	// Inject the configcli package, taken from the KubeDirector's container.
 	nodePrepFile, openErr := os.Open(nodePrepSrcFile)
 	if openErr != nil {
 		return fmt.Errorf(
@@ -540,7 +540,7 @@ func setupNodePrep(
 	return executor.RunScript(
 		cr,
 		podName,
-		"nodeprep setup",
+		"configcli setup",
 		strings.NewReader(nodePrepInstallCmd),
 	)
 }
@@ -698,7 +698,7 @@ func appConfig(
 	if configmetaErr != nil {
 		return true, configmetaErr
 	}
-	// Set up nodeprep package for this member (if not set up already).
+	// Set up configcli package for this member (if not set up already).
 	prepErr := setupNodePrep(cr, podName)
 	if prepErr != nil {
 		return true, prepErr

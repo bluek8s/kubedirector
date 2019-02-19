@@ -28,10 +28,10 @@ configcli_dest := $(build_dir)/configcli
 configcli:  | $(build_dir)
 	@
 	@if [ -e $(configcli_dest) ]; then exit 0; fi
-	@echo \* Downloading node prep package ...
+	@echo \* Downloading configcli package ...
 	@curl -o $(configcli_dest) https://github.com/bluek8s/configcli/archive/v$(configcli_version).tar.gz
 
-build: pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go | $(build_dir)
+build: configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go | $(build_dir)
 	@echo
 	@echo \* Creating KubeDirector deployment image and YAML...
 	@test -d vendor || dep ensure -v
@@ -159,11 +159,11 @@ redeploy:
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
         kubectl exec $$podname -- killall ${project_name} || true
 	@echo
-	@echo \* Injecting new node prep package...
+	@echo \* Injecting new configcli package...
 	@set -e; \
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
-        kubectl exec $$podname -- mv -f /root/nodeprep.tgz /root/nodeprep.tgz.bak || true; \
-        kubectl cp tmp/_output/nodeprep.tgz $$podname:/root/nodeprep.tgz
+        kubectl exec $$podname -- mv -f /root/configcli.tgz /root/configcli.tgz.bak || true; \
+        kubectl cp tmp/_output/configcli.tgz $$podname:/root/configcli.tgz
 	@echo
 	@echo \* Injecting and starting new KubeDirector binary...
 	@set -e; \

@@ -27,7 +27,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -594,6 +594,12 @@ func notifyReadyNodes(
 	var wgReady sync.WaitGroup
 	wgReady.Add(totalReady)
 	for _, otherRole := range allRoles {
+		if len(otherRole.membersByState[memberReady]) == 0 {
+			// This is not just an optimization; note also that in the case
+			// of a role with zero members (not just zero READY members)
+			// then otherRole.roleStatus referenced below will be nil.
+			continue
+		}
 		setupURL, setupURLErr := catalog.AppSetupPackageUrl(cr, otherRole.roleStatus.Name)
 		if setupURLErr != nil {
 			shared.LogWarnf(
@@ -604,7 +610,6 @@ func notifyReadyNodes(
 			)
 			setupURL = ""
 		}
-
 		if ready, ok := otherRole.membersByState[memberReady]; ok {
 			for _, member := range ready {
 				go func(m *kdv1.MemberStatus, r *roleInfo) {

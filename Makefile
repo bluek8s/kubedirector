@@ -11,6 +11,8 @@ app_resource_name := KubeDirectorApp
 
 project_name := kubedirector
 
+configcli_version := 0.5
+
 UNAME := $(shell uname)
 
 ifeq ($(UNAME), Linux)
@@ -21,11 +23,15 @@ sedseparator = ''
 endif
 
 build_dir = 'tmp/_output'
+configcli_dest := $(build_dir)/configcli
+
+configcli:  | $(build_dir)
+	@
+	@if [ -e $(configcli_dest) ]; then exit 0; fi
+	@echo \* Downloading node prep package ...
+	@curl -o $(configcli_dest) https://github.com/bluek8s/configcli/archive/v$(configcli_version).tar.gz
 
 build: pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go | $(build_dir)
-	@echo
-	@echo \* Creating node prep package...
-	tar cfzP tmp/_output/nodeprep.tgz nodeprep
 	@echo
 	@echo \* Creating KubeDirector deployment image and YAML...
 	@test -d vendor || dep ensure -v

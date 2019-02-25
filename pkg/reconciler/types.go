@@ -73,8 +73,8 @@ const (
 	nodePrepSrcFile    = "/root/configcli.tgz"
 	nodePrepDestFile   = "/tmp/configcli.tgz"
 	nodePrepInstallCmd = `cd /tmp;tar xzf configcli.tgz;
-	chmod +x /tmp/configcli/install;/tmp/configcli/install;
-	rm -rf /tmp/configcli;rm -f /tmp/configcli.tgz;
+	chmod +x /tmp/configcli-*/install;/tmp/configcli-*/install;
+	rm -rf /tmp/configcli-*;rm -f /tmp/configcli.tgz;
 	ln -sf /usr/bin/configcli /usr/bin/bdvcli;
 	ln -sf /usr/bin/configcli /usr/bin/bd_vcli;`
 	nodePrepTestFile   = "/usr/bin/configcli"

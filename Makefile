@@ -25,10 +25,7 @@ endif
 build_dir = 'tmp/_output'
 configcli_dest := $(build_dir)/configcli.tgz
 
-configcli:  | $(build_dir)
-	@if [ -e $(configcli_dest) ]; then exit 0; fi;                             \
-echo "\* Downloading configcli package ...";                                   \
-curl -L -o $(configcli_dest) https://github.com/bluek8s/configcli/archive/v$(configcli_version).tar.gz
+.DEFAULT_GOAL := build
 
 build: configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go | $(build_dir)
 	@echo
@@ -58,6 +55,11 @@ build: configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcop
 	@mv deploy/operator.yaml deploy/kubedirector/deployment-localbuilt.yaml
 	@echo done
 	@echo
+
+configcli:  | $(build_dir)
+	@if [ -e $(configcli_dest) ]; then exit 0; fi;                             \
+     echo "\* Downloading configcli package ...";                              \
+     curl -L -o $(configcli_dest) https://github.com/bluek8s/configcli/archive/v$(configcli_version).tar.gz
 
 pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go: pkg/apis/kubedirector.bluedata.io/v1alpha1/types.go
 	@test -d vendor || dep ensure -v

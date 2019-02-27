@@ -40,7 +40,7 @@ That's far from the only user-visible change though! The entire list of improvem
 
 * The "deploy/example_catalog" directory has gained a new very simple example app (vanilla CentOS 7) and a new complicated one (CDH 5.14.2 with Pig, Hive, and Hue support).
 
-* The "configcli" tool used in app setup is a separate git repository at https://github.com/bluek8s/configcli
+* The "configcli" tool used in app setup is now included in this repo, in the "nodeprep" directory.
 
 * Makefile improvements: KubeDirector can now be built and deployed from Ubuntu systems, "make deploy" now waits for deployment to succeed before returning, and "make teardown" now waits for teardown to finish before returning.
 

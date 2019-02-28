@@ -438,7 +438,7 @@ func admitClusterCR(
 		// Reject this write if either of:
 		// - KubeDirector doesn't know about the cluster resource
 		// - this status generation UID is not what we're expecting a write for
-		if !ok || clusterCR.Status.GenerationUid != expectedStatusGen.Uid {
+		if !ok || clusterCR.Status.GenerationUID != expectedStatusGen.UID {
 			admitResponse.Result = &metav1.Status{
 				Message: "\nKubeDirector-related status properties are read-only",
 			}

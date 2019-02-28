@@ -67,8 +67,8 @@ func syncCluster(
 			wait := time.Second
 			maxWait := 4096 * time.Second
 			for {
-				cr.Status.GenerationUid = uuid.New().String()
-				writeStatusGen(cr, handler, cr.Status.GenerationUid)
+				cr.Status.GenerationUID = uuid.New().String()
+				writeStatusGen(cr, handler, cr.Status.GenerationUID)
 				updateErr := executor.UpdateStatus(cr)
 				if updateErr == nil {
 					return
@@ -202,7 +202,7 @@ func handleStatusGen(
 	handler *Handler,
 ) bool {
 
-	incoming := cr.Status.GenerationUid
+	incoming := cr.Status.GenerationUID
 	lastKnown, ok := ReadStatusGen(cr, handler)
 	if !ok {
 		if incoming == "" {

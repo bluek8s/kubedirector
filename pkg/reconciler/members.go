@@ -215,7 +215,7 @@ func handleCreatingMembers(
 	creating := role.membersByState[memberCreating]
 
 	// Fetch setup url package
-	setupURL, setupURLErr := catalog.AppSetupPackageUrl(cr, role.roleStatus.Name)
+	setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, role.roleStatus.Name)
 	if setupURLErr != nil {
 		shared.LogWarnf(
 			cr,
@@ -600,7 +600,7 @@ func notifyReadyNodes(
 			// then otherRole.roleStatus referenced below will be nil.
 			continue
 		}
-		setupURL, setupURLErr := catalog.AppSetupPackageUrl(cr, otherRole.roleStatus.Name)
+		setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, otherRole.roleStatus.Name)
 		if setupURLErr != nil {
 			shared.LogWarnf(
 				cr,

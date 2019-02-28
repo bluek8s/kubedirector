@@ -237,7 +237,7 @@ func ConfigmetaGenerator(
 			perNodeConfig[memberName] = &node{
 				RoleID:      roleName,
 				NodegroupID: "1",
-				ID:          strconv.FormatInt(member.NodeId, 10),
+				ID:          strconv.FormatInt(member.NodeID, 10),
 				Hostname:    memberName + "." + domain,
 				FQDN:        memberName + "." + domain,
 				Domain:      domain,

@@ -17,3 +17,4 @@ before_install:
 
 script:
   - make compile
+  - make golint

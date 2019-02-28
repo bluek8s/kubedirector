@@ -160,10 +160,10 @@ func syncCluster(
 			cr.Status.State = string(clusterReady)
 		}
 		return nil
-	} else {
-		if cr.Status.State != string(clusterCreating) {
-			cr.Status.State = string(clusterUpdating)
-		}
+	}
+
+	if cr.Status.State != string(clusterCreating) {
+		cr.Status.State = string(clusterUpdating)
 	}
 
 	configmetaGen, configMetaErr := catalog.ConfigmetaGenerator(
@@ -226,7 +226,7 @@ func handleStatusGen(
 		return true
 	}
 
-	if lastKnown.Uid == incoming {
+	if lastKnown.UID == incoming {
 		return true
 	}
 
@@ -256,15 +256,15 @@ func handleFinalizers(
 			)
 		}
 		return true, removeErr
-	} else {
-		// If our finalizer doesn't exist on the CR, put it in there.
-		ensureErr := executor.EnsureFinalizer(cr)
-		if ensureErr != nil {
-			return true, ensureErr
-		} else {
-			return false, nil
-		}
 	}
+
+	// If our finalizer doesn't exist on the CR, put it in there.
+	ensureErr := executor.EnsureFinalizer(cr)
+	if ensureErr != nil {
+		return true, ensureErr
+	}
+
+	return false, nil
 }
 
 // calcMembersForRoles generates a map of role name to list of all member

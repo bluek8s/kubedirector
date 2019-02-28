@@ -23,8 +23,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// StatusGen informs whether the enclosed UID has been validated.
 type StatusGen struct {
-	Uid       string
+	UID       string
 	Validated bool
 }
 
@@ -33,6 +34,7 @@ type handlerClusterState struct {
 	clusterAppTypes   map[string]string
 }
 
+//Handler provides a lock, cluster state and config value for a given cluster
 type Handler struct {
 	lock         sync.RWMutex
 	clusterState handlerClusterState

@@ -420,9 +420,9 @@ func admitClusterCR(
 	prevClusterCR := kdv1.KubeDirectorCluster{}
 	if ar.Request.Operation == v1beta1.Update {
 		prevRaw := ar.Request.OldObject.Raw
-		if prevJsonErr := json.Unmarshal(prevRaw, &prevClusterCR); prevJsonErr != nil {
+		if prevJSONErr := json.Unmarshal(prevRaw, &prevClusterCR); prevJSONErr != nil {
 			admitResponse.Result = &metav1.Status{
-				Message: "\n" + prevJsonErr.Error(),
+				Message: "\n" + prevJSONErr.Error(),
 			}
 			return &admitResponse
 		}

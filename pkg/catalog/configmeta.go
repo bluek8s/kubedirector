@@ -97,12 +97,12 @@ func servicesForRole(
 				s := service{
 					Qualifiers: []string{}, // currently, always empty
 					Name:       serviceDef.Label.Name,
-					Id:         serviceDef.ID,
+					ID:         serviceDef.ID,
 					Hostnames: refkeys{
 						BdvlibRefKey: []string{"nodegroups", "1", "roles", roleName, "hostnames"},
 					},
-					GlobalId: "1_" + roleName + "_" + serviceDef.ID,
-					Fqdns: refkeys{
+					GlobalID: "1_" + roleName + "_" + serviceDef.ID,
+					FQDNs: refkeys{
 						BdvlibRefKey: []string{"nodegroups", "1", "roles", roleName, "fqdns"},
 					},
 					ExportedService: "", // currently, always empty
@@ -158,17 +158,17 @@ func nodegroups(
 		}
 		roles[roleName] = role{
 			Services:     servicesForRole(appCR, roleName, members),
-			NodeIds:      nodeIds,
+			NodeIDs:      nodeIds,
 			Hostnames:    fqdns,
-			Fqdns:        fqdns,
-			FqdnMappings: fqdnMappings,
+			FQDNs:        fqdns,
+			FQDNMappings: fqdnMappings,
 			Flavor:       roleFlavor,
 		}
 	}
 	return map[string]nodegroup{
 		"1": nodegroup{
 			Roles:               roles,
-			DistroId:            appCR.Spec.DistroID,
+			DistroID:            appCR.Spec.DistroID,
 			CatalogEntryVersion: appCR.Spec.Version,
 			ConfigMeta:          appCR.Spec.Config.ConfigMetadata,
 		},
@@ -198,7 +198,7 @@ func clusterBaseConfig(
 		Cluster: cluster{
 			Name:     cr.Name,
 			Isolated: false, // currently, always false
-			Id:       string(cr.UID),
+			ID:       string(cr.UID),
 			ConfigMeta: map[string]refkeys{
 				"1": refkeys{
 					BdvlibRefKey: []string{"nodegroups", "1", "config_metadata"},
@@ -235,13 +235,13 @@ func ConfigmetaGenerator(
 		for _, member := range members {
 			memberName := member.Pod
 			perNodeConfig[memberName] = &node{
-				RoleId:      roleName,
-				NodegroupId: "1",
-				Id:          strconv.FormatInt(member.NodeId, 10),
+				RoleID:      roleName,
+				NodegroupID: "1",
+				ID:          strconv.FormatInt(member.NodeId, 10),
 				Hostname:    memberName + "." + domain,
-				Fqdn:        memberName + "." + domain,
+				FQDN:        memberName + "." + domain,
 				Domain:      domain,
-				DistroId:    appCR.Spec.DistroID,
+				DistroID:    appCR.Spec.DistroID,
 				DependsOn:   make(refkeysMap), // currently, always empty
 			}
 		}

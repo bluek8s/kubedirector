@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package v1alpha1 is an initial release package
+package v1alpha1
+
 // +k8s:deepcopy-gen=package
 // +groupName=kubedirector.bluedata.io
-package v1alpha1

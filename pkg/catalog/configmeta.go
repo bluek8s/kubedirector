@@ -138,13 +138,13 @@ func nodegroups(
 		for _, m := range members {
 			nodeName := m.Pod
 			// ConfigCli expects this to be a string.
-			nodeIdStr := strconv.FormatInt(m.NodeId, 10)
+			nodeIDStr := strconv.FormatInt(m.NodeId, 10)
 
 			f := nodeName + "." + domain
-			fqdnMappings[f] = nodeIdStr
+			fqdnMappings[f] = nodeIDStr
 
 			fqdns = append(fqdns, f)
-			nodeIds = append(nodeIds, nodeIdStr)
+			nodeIds = append(nodeIds, nodeIDStr)
 		}
 		memoryQuant := roleSpec.Resources.Limits[v1.ResourceMemory]
 		memoryMb := memoryQuant.Value() / (1024 * 1024)

@@ -1,0 +1,16 @@
+apiVersion: "kubedirector.bluedata.io/v1alpha1"
+kind: "KubeDirectorCluster"
+metadata:
+  name: "tensorflow-gpu"
+spec:
+  app: tensorflowgpu-jupyter
+  roles:
+  - id: controller
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "4Gi"
+        cpu: "2"
+        nvidia.com/gpu: 1

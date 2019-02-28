@@ -138,7 +138,7 @@ func nodegroups(
 		for _, m := range members {
 			nodeName := m.Pod
 			// ConfigCli expects this to be a string.
-			nodeIDStr := strconv.FormatInt(m.NodeId, 10)
+			nodeIDStr := strconv.FormatInt(m.NodeID, 10)
 
 			f := nodeName + "." + domain
 			fqdnMappings[f] = nodeIDStr

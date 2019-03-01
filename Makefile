@@ -288,7 +288,6 @@ golint:
 
 check-format:
 	@make clean
-	@echo "$$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/gI')"
 	@if [ "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/gI'))" == "" ] ; then \
 	    echo "No formatting changes needed, good job!" ; \
     else \

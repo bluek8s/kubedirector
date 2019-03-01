@@ -509,7 +509,7 @@ func setupNodePrep(
 
 	// Check to see if the destination file exists already, in which case just
 	// return. Also bail out if we cannot manage to check file existence.
-	fileExists, fileError := executor.IsFileExists(cr, podName, nodePrepTestFile)
+	fileExists, fileError := executor.IsFileExists(cr, podName, configcliTestFile)
 	if fileError != nil {
 		return fileError
 	} else if fileExists {
@@ -517,11 +517,11 @@ func setupNodePrep(
 	}
 
 	// Inject the configcli package, taken from the KubeDirector's container.
-	nodePrepFile, openErr := os.Open(nodePrepSrcFile)
+	nodePrepFile, openErr := os.Open(configcliSrcFile)
 	if openErr != nil {
 		return fmt.Errorf(
 			"failed to open file %s: %v",
-			nodePrepSrcFile,
+			configcliSrcFile,
 			openErr,
 		)
 	}
@@ -529,7 +529,7 @@ func setupNodePrep(
 	createErr := executor.CreateFile(
 		cr,
 		podName,
-		nodePrepDestFile,
+		configcliDestFile,
 		bufio.NewReader(nodePrepFile),
 	)
 	if createErr != nil {
@@ -541,7 +541,7 @@ func setupNodePrep(
 		cr,
 		podName,
 		"configcli setup",
-		strings.NewReader(nodePrepInstallCmd),
+		strings.NewReader(configcliInstallCmd),
 	)
 }
 

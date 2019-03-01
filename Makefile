@@ -288,12 +288,12 @@ golint:
 
 check-format:
 	@make clean
-	@echo "$$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g')"
-	@if [ "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g'))" == "" ] ; then \
+	@echo "$$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/gI')"
+	@if [ "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/gI'))" == "" ] ; then \
 	    echo "No formatting changes needed, good job!" ; \
     else \
 	    echo "Formatting changes necessary, please run make format and resubmit" ; \
-	    echo "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g'))" ; \
+	    echo "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/gI'))" ; \
         exit 2 ; \
     fi
 

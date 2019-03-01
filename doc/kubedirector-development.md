@@ -43,7 +43,7 @@ To build KubeDirector for the first time:
 
 When rebuilding KubeDirector subsequently, only "make build" should be necessary, unless you have changed the set of packages that the code imports.
 
-The build process creates the YAML for the KubeDirector deployment, the kubedirector binary, and a "node prep" package of utility Python code. It then creates a Docker image (based on Alpine Linux) that contains the kubedirector binary at /root/kubedirector, and has the node prep package stored at /root/nodeprep.tgz.
+The build process creates the YAML for the KubeDirector deployment, the kubedirector binary, and a "configcli" package of utility Python code. It then creates a Docker image (based on Alpine Linux) that contains the kubedirector binary at /root/kubedirector, and has the configcli package stored at /root/configcli.tgz.
 
 The Docker image will have some default name associated with the KubeDirector version (shown in the "make build" output), unless you have redefined the image name using a Local.mk file as described above.
 
@@ -66,7 +66,7 @@ If you *have* set a custom image name, then one possible clean/rigorous cycle of
 
 If you haven't set a custom image name and established credentials for pushing it to a remote registry, that flow will not work for you. Even if you have or could, however, you still may not wish to use that flow. It's somewhat tedious and it removes any existing virtual clusters (unless you follow a more elaborate sequence). Also, if you are not changing the image tag for each cycle, it can cause issues for anyone else using that same image.
 
-A different option that is suitable for quick tests of intermediate builds is to use "make redeploy". This leaves all K8s resources in place, injecting your locally built kubedirector binary and node prep package into the existing KubeDirector deployment. (In a "make redeploy" the locally built Docker image is not used, but there is not currently an easy way to skip building it.)
+A different option that is suitable for quick tests of intermediate builds is to use "make redeploy". This leaves all K8s resources in place, injecting your locally built kubedirector binary and configcli package into the existing KubeDirector deployment. (In a "make redeploy" the locally built Docker image is not used, but there is not currently an easy way to skip building it.)
 
 Before starting a "redeploy" cycle, you do need an initial deployment. If you don't have a custom image name, this initial deployment will use a public KubeDirector image:
 * "make deploy"

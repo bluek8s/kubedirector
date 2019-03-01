@@ -273,14 +273,14 @@ verify-modules:
 
 golint:
 	@if [ $$(golint \
-            $$(ls -d */ | grep -v "vendor/" | sed -e "s/^\(.*\)$$/\1.../g") | \
+            $$(go list ./... | sed -e "s/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g") | \
         grep -v "generated.deepcopy.go:" | \
         wc -l) -eq 0 ] ; then \
         echo "No new golint issues, good job!" ; \
     else \
         echo "There were some new golint issues:" ; \
         golint_out=$$(golint \
-            $$(ls -d */ | grep -v "vendor/" | sed -e "s/^\(.*\)$$/\1.../g") | \
+            $$(go list ./... | sed -e "s/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g") | \
         grep -v "generated.deepcopy.go:") ; \
         echo $$golint_out ; \
         exit 1 ; \

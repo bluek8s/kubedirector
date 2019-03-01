@@ -26,7 +26,8 @@ type K8sClient struct {
 }
 
 const (
-	// DomainBase is a terminating string for log messages?
+	// DomainBase contains the initial segments used to build FQDNs
+	// for cluster members
 	DomainBase = ".svc.cluster.local"
 
 	// KubeDirectorNamespaceEnvVar is the constant for env variable MY_NAMESPACE

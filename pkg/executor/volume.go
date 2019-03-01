@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DeletePVC delete a persistent volume claim from k8s.
+// DeletePVC deletes a persistent volume claim from k8s.
 func DeletePVC(
 	namespace string,
 	pvcName string,

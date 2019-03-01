@@ -17,9 +17,11 @@ UNAME := $(shell uname)
 
 ifeq ($(UNAME), Linux)
 sedseparator =
+sedignorecase = 'I'
 else
 # macOS sed syntax
 sedseparator = ''
+sedignorecase =
 endif
 
 build_dir = 'tmp/_output'
@@ -295,11 +297,11 @@ golint:
 
 check-format:
 	@make clean
-	@if [ "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/gI'))" == "" ] ; then \
+	@if [ "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g${sedignorecase}'))" == "" ] ; then \
 	    echo "No formatting changes needed, good job!" ; \
     else \
 	    echo "Formatting changes necessary, please run make format and resubmit" ; \
-	    echo "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/gI'))" ; \
+	    echo "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g${sedignorecase}'))" ; \
         exit 2 ; \
     fi
 

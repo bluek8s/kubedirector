@@ -19,12 +19,15 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// K8sClient encloses a kubernetes interface and a pointer to a client config
 type K8sClient struct {
 	Clientset    kubernetes.Interface
 	ClientConfig *rest.Config
 }
 
 const (
+	// DomainBase contains the initial segments used to build FQDNs
+	// for cluster members
 	DomainBase = ".svc.cluster.local"
 
 	// KubeDirectorNamespaceEnvVar is the constant for env variable MY_NAMESPACE

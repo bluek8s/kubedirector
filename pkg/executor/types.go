@@ -28,10 +28,10 @@ const (
 	initContainerName    = "init"
 	execShell            = "bash"
 	configMetaFile       = "/etc/guestconfig/configmeta.json"
-	cgroupFsVolume       = "/sys/fs/cgroup"
-	systemdFsVolume      = "/sys/fs/cgroup/systemd"
-	tmpFsVolSize         = "20Gi"
-	finalizerId          = "kubedirector.bluedata.io/cleanup"
+	cgroupFSVolume       = "/sys/fs/cgroup"
+	systemdFSVolume      = "/sys/fs/cgroup/systemd"
+	tmpFSVolSize         = "20Gi"
+	finalizerID          = "kubedirector.bluedata.io/cleanup"
 )
 
 type streams struct {

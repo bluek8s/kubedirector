@@ -80,7 +80,7 @@ func UpdateStatefulSetReplicas(
 	return patchErr
 }
 
-// UpdateHeadlessService examines a current statefulset in k8s and may take
+// UpdateStatefulSetNonReplicas examines a current statefulset in k8s and may take
 // steps to reconcile it to the desired spec, for properties other than the
 // replicas count.
 func UpdateStatefulSetNonReplicas(
@@ -468,12 +468,12 @@ func generateSystemdSupport(
 	volumeMounts := []v1.VolumeMount{
 		v1.VolumeMount{
 			Name:      cgroupFsName,
-			MountPath: cgroupFsVolume,
+			MountPath: cgroupFSVolume,
 			ReadOnly:  true,
 		},
 		v1.VolumeMount{
 			Name:      systemdFsName,
-			MountPath: systemdFsVolume,
+			MountPath: systemdFSVolume,
 		},
 	}
 	volumes := []v1.Volume{
@@ -481,7 +481,7 @@ func generateSystemdSupport(
 			Name: cgroupFsName,
 			VolumeSource: v1.VolumeSource{
 				HostPath: &v1.HostPathVolumeSource{
-					Path: cgroupFsVolume,
+					Path: cgroupFSVolume,
 				},
 			},
 		},
@@ -489,7 +489,7 @@ func generateSystemdSupport(
 			Name: systemdFsName,
 			VolumeSource: v1.VolumeSource{
 				HostPath: &v1.HostPathVolumeSource{
-					Path: systemdFsVolume,
+					Path: systemdFSVolume,
 				},
 			},
 		},
@@ -514,7 +514,7 @@ func generateTmpfsSupport(
 			MountPath: "/run",
 		},
 	}
-	maxTmpSize, _ := resource.ParseQuantity(tmpFsVolSize)
+	maxTmpSize, _ := resource.ParseQuantity(tmpFSVolSize)
 	volumes := []v1.Volume{
 		v1.Volume{
 			Name: "tmpfs-tmp",

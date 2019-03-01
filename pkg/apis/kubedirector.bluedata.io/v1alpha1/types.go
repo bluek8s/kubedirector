@@ -82,9 +82,9 @@ type ClusterStorage struct {
 // indicates ongoing operations of cluster creation or reconfiguration.
 type ClusterStatus struct {
 	State          string       `json:"state"`
-	GenerationUid  string       `json:"generation_uid"`
+	GenerationUID  string       `json:"generation_uid"`
 	ClusterService string       `json:"cluster_service"`
-	LastNodeId     int64        `json:"last_node_id"`
+	LastNodeID     int64        `json:"last_node_id"`
 	Roles          []RoleStatus `json:"roles"`
 }
 
@@ -101,7 +101,7 @@ type MemberStatus struct {
 	Service string `json:"service"`
 	PVC     string `json:"pvc,omitempty"`
 	State   string `json:"state"`
-	NodeId  int64  `json:"node_id"`
+	NodeID  int64  `json:"node_id"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

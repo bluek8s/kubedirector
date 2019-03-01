@@ -26,6 +26,7 @@ import (
 )
 
 var (
+	// Client is a pointer to the Kubernetes client used for these operations
 	Client        *K8sClient
 	eventRecorder record.EventRecorder
 )

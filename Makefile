@@ -278,7 +278,33 @@ verify-modules:
         exit 1 ; \
     fi
 
+golint:
+	@if [ $$(golint \
+            $$(go list ./... | sed -e "s/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g") | \
+        grep -v "generated.deepcopy.go:" | \
+        wc -l) -eq 0 ] ; then \
+        echo "No new golint issues, good job!" ; \
+    else \
+        echo "There were some new golint issues:" ; \
+        golint_out=$$(golint \
+            $$(go list ./... | sed -e "s/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g") | \
+        grep -v "generated.deepcopy.go:") ; \
+        echo $$golint_out ; \
+        exit 1 ; \
+    fi
+
+check-format:
+	@make clean
+	@if [ "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/gI'))" == "" ] ; then \
+	    echo "No formatting changes needed, good job!" ; \
+    else \
+	    echo "Formatting changes necessary, please run make format and resubmit" ; \
+	    echo "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/gI'))" ; \
+        exit 2 ; \
+    fi
+
+
 $(build_dir):
 	@mkdir -p $@
 
-.PHONY: build push deploy redeploy undeploy teardown format dep clean distclean compile verify-modules modules
+.PHONY: build push deploy redeploy undeploy teardown format dep clean distclean compile verify-modules modules golint check-format

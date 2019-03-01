@@ -465,7 +465,7 @@ func addMemberStatuses(
 	role *roleInfo,
 ) {
 
-	lastNodeId := &cr.Status.LastNodeId
+	lastNodeID := &cr.Status.LastNodeID
 	currentPop := len(role.roleStatus.Members)
 	for i := currentPop; i < role.desiredPop; i++ {
 		indexString := strconv.Itoa(i)
@@ -485,7 +485,7 @@ func addMemberStatuses(
 				Pod:     memberName,
 				Service: "",
 				PVC:     pvcName,
-				NodeId:  atomic.AddInt64(lastNodeId, 1),
+				NodeID:  atomic.AddInt64(lastNodeID, 1),
 				State:   string(memberCreatePending),
 			},
 		)
@@ -519,21 +519,21 @@ func deleteMemberStatuses(
 				role.membersByState[memberDeleting],
 				member,
 			)
-			createPendingPop -= 1
+			createPendingPop--
 		case memberReady:
 			member.State = string(memberDeletePending)
 			role.membersByState[memberDeletePending] = append(
 				role.membersByState[memberDeletePending],
 				member,
 			)
-			readyPop -= 1
+			readyPop--
 		case memberConfigError:
 			member.State = string(memberDeletePending)
 			role.membersByState[memberDeletePending] = append(
 				role.membersByState[memberDeletePending],
 				member,
 			)
-			errorPop -= 1
+			errorPop--
 		default:
 		}
 	}

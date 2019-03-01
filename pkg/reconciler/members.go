@@ -215,8 +215,8 @@ func handleCreatingMembers(
 	creating := role.membersByState[memberCreating]
 
 	// Fetch setup url package
-	setupUrl, setupUrlErr := catalog.AppSetupPackageUrl(cr, role.roleStatus.Name)
-	if setupUrlErr != nil {
+	setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, role.roleStatus.Name)
+	if setupURLErr != nil {
 		shared.LogWarnf(
 			cr,
 			shared.EventReasonRole,
@@ -233,7 +233,7 @@ func handleCreatingMembers(
 		go func(m *kdv1.MemberStatus) {
 			defer wgSetup.Done()
 
-			if setupUrl == "" {
+			if setupURL == "" {
 				// Leave this in memberConfigured state so, we don't send
 				// ready notifications to itself below. The next handler cycle
 				// will handle this appropriately.
@@ -252,7 +252,7 @@ func handleCreatingMembers(
 			// Start or continue the initial configuration.
 			isFinal, configErr := appConfig(
 				cr,
-				setupUrl,
+				setupURL,
 				m.Pod,
 				role.roleStatus.Name,
 				configmetaGenerator,
@@ -549,7 +549,7 @@ func setupNodePrep(
 // container and installs it.
 func setupAppConfig(
 	cr *kdv1.KubeDirectorCluster,
-	setupUrl string,
+	setupURL string,
 	podName string,
 	roleName string,
 ) error {
@@ -564,7 +564,7 @@ func setupAppConfig(
 	}
 
 	// Fetch and install it.
-	cmd := strings.Replace(appPrepInitCmd, "{{APP_CONFIG_URL}}", setupUrl, -1)
+	cmd := strings.Replace(appPrepInitCmd, "{{APP_CONFIG_URL}}", setupURL, -1)
 	return executor.RunScript(
 		cr,
 		podName,
@@ -600,7 +600,7 @@ func notifyReadyNodes(
 			// then otherRole.roleStatus referenced below will be nil.
 			continue
 		}
-		setupURL, setupURLErr := catalog.AppSetupPackageUrl(cr, otherRole.roleStatus.Name)
+		setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, otherRole.roleStatus.Name)
 		if setupURLErr != nil {
 			shared.LogWarnf(
 				cr,
@@ -654,7 +654,7 @@ func notifyReadyNodes(
 // handler pass.
 func appConfig(
 	cr *kdv1.KubeDirectorCluster,
-	setupUrl string,
+	setupURL string,
 	podName string,
 	roleName string,
 	configmetaGenerator func(string) string,
@@ -709,7 +709,7 @@ func appConfig(
 		return true, prepErr
 	}
 	// Make sure the necessary app-specific materials are in place.
-	setupErr := setupAppConfig(cr, setupUrl, podName, roleName)
+	setupErr := setupAppConfig(cr, setupURL, podName, roleName)
 	if setupErr != nil {
 		return true, setupErr
 	}

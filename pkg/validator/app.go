@@ -284,7 +284,7 @@ func validateServices(
 		if service.Endpoint.IsDashboard {
 			if service.Endpoint.URLScheme == "" {
 				invalidMsg := fmt.Sprintf(
-					noUrlScheme,
+					noURLScheme,
 					service.ID,
 				)
 				valErrors = append(valErrors, invalidMsg)

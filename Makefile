@@ -11,6 +11,8 @@ app_resource_name := KubeDirectorApp
 
 project_name := kubedirector
 
+configcli_version := 0.5
+
 UNAME := $(shell uname)
 
 ifeq ($(UNAME), Linux)
@@ -21,11 +23,11 @@ sedseparator = ''
 endif
 
 build_dir = 'tmp/_output'
+configcli_dest := $(build_dir)/configcli.tgz
 
-build: pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go | $(build_dir)
-	@echo
-	@echo \* Creating node prep package...
-	tar cfzP tmp/_output/nodeprep.tgz nodeprep
+.DEFAULT_GOAL := build
+
+build: configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go | $(build_dir)
 	@echo
 	@echo \* Creating KubeDirector deployment image and YAML...
 	@test -d vendor || dep ensure -v
@@ -53,6 +55,11 @@ build: pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go | $(b
 	@mv deploy/operator.yaml deploy/kubedirector/deployment-localbuilt.yaml
 	@echo done
 	@echo
+
+configcli:  | $(build_dir)
+	@if [ -e $(configcli_dest) ]; then exit 0; fi;                             \
+     echo "\* Downloading configcli package ...";                              \
+     curl -L -o $(configcli_dest) https://github.com/bluek8s/configcli/archive/v$(configcli_version).tar.gz
 
 pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go: pkg/apis/kubedirector.bluedata.io/v1alpha1/types.go
 	@test -d vendor || dep ensure -v
@@ -153,11 +160,11 @@ redeploy:
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
         kubectl exec $$podname -- killall ${project_name} || true
 	@echo
-	@echo \* Injecting new node prep package...
+	@echo \* Injecting new configcli package...
 	@set -e; \
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
-        kubectl exec $$podname -- mv -f /root/nodeprep.tgz /root/nodeprep.tgz.bak || true; \
-        kubectl cp tmp/_output/nodeprep.tgz $$podname:/root/nodeprep.tgz
+        kubectl exec $$podname -- mv -f /root/configcli.tgz /root/configcli.tgz.bak || true; \
+        kubectl cp tmp/_output/configcli.tgz $$podname:/root/configcli.tgz
 	@echo
 	@echo \* Injecting and starting new KubeDirector binary...
 	@set -e; \
@@ -271,7 +278,33 @@ verify-modules:
         exit 1 ; \
     fi
 
+golint:
+	@if [ $$(golint \
+            $$(go list ./... | sed -e "s/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g") | \
+        grep -v "generated.deepcopy.go:" | \
+        wc -l) -eq 0 ] ; then \
+        echo "No new golint issues, good job!" ; \
+    else \
+        echo "There were some new golint issues:" ; \
+        golint_out=$$(golint \
+            $$(go list ./... | sed -e "s/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g") | \
+        grep -v "generated.deepcopy.go:") ; \
+        echo $$golint_out ; \
+        exit 1 ; \
+    fi
+
+check-format:
+	@make clean
+	@if [ "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/gI'))" == "" ] ; then \
+	    echo "No formatting changes needed, good job!" ; \
+    else \
+	    echo "Formatting changes necessary, please run make format and resubmit" ; \
+	    echo "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/gI'))" ; \
+        exit 2 ; \
+    fi
+
+
 $(build_dir):
 	@mkdir -p $@
 
-.PHONY: build push deploy redeploy undeploy teardown format dep clean distclean compile verify-modules modules
+.PHONY: build push deploy redeploy undeploy teardown format dep clean distclean compile verify-modules modules golint check-format

@@ -37,7 +37,7 @@ type refkeys struct {
 
 type nodegroup struct {
 	Roles               map[string]role   `json:"roles"`
-	DistroId            string            `json:"distro_id"`
+	DistroID            string            `json:"distro_id"`
 	CatalogEntryVersion string            `json:"catalog_entry_version"`
 	ConfigMeta          map[string]string `json:"config_metadata"`
 }
@@ -45,37 +45,37 @@ type nodegroup struct {
 type cluster struct {
 	Name       string             `json:"name"`
 	Isolated   bool               `json:"isolated"`
-	Id         string             `json:"id"`
+	ID         string             `json:"id"`
 	ConfigMeta map[string]refkeys `json:"config_metadata"`
 }
 
 type node struct {
-	RoleId      string     `json:"role_id"`
-	NodegroupId string     `json:"nodegroup_id"`
-	Id          string     `json:"id"`
+	RoleID      string     `json:"role_id"`
+	NodegroupID string     `json:"nodegroup_id"`
+	ID          string     `json:"id"`
 	Hostname    string     `json:"hostname"`
-	Fqdn        string     `json:"fqdn"`
+	FQDN        string     `json:"fqdn"`
 	Domain      string     `json:"domain"`
-	DistroId    string     `json:"distro_id"`
+	DistroID    string     `json:"distro_id"`
 	DependsOn   refkeysMap `json:"depends_on"`
 }
 
 type role struct {
 	Services     map[string]service `json:"services"`
-	NodeIds      []string           `json:"node_ids"`
+	NodeIDs      []string           `json:"node_ids"`
 	Hostnames    []string           `json:"hostnames"`
-	Fqdns        []string           `json:"fqdns"`
-	FqdnMappings map[string]string  `json:"fqdn_mappings"`
+	FQDNs        []string           `json:"fqdns"`
+	FQDNMappings map[string]string  `json:"fqdn_mappings"`
 	Flavor       flavor             `json:"flavor"`
 }
 
 type service struct {
 	Qualifiers      []string `json:"qualifiers"`
 	Name            string   `json:"name"`
-	Id              string   `json:"id"`
+	ID              string   `json:"id"`
 	Hostnames       refkeys  `json:"hostnames"`
-	GlobalId        string   `json:"global_id"`
-	Fqdns           refkeys  `json:"fqdns"`
+	GlobalID        string   `json:"global_id"`
+	FQDNs           refkeys  `json:"fqdns"`
 	ExportedService string   `json:"exported_service"`
 	Endpoints       []string `json:"endpoints"`
 }
@@ -88,6 +88,7 @@ type flavor struct {
 	Cores       string `json:"cores"`
 }
 
+// ServicePortInfo - A mapping between a Service Port ID and the port number
 type ServicePortInfo struct {
 	ID   string
 	Port int32

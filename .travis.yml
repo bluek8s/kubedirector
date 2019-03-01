@@ -19,3 +19,4 @@ before_install:
 script:
   - make compile
   - make golint
+  - make check-format

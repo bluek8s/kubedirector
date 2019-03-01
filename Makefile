@@ -286,7 +286,18 @@ golint:
         exit 1 ; \
     fi
 
+check-format:
+	@make clean
+	@if [ "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g'))" == "" ] ; then \
+	    echo "No formatting changes needed, good job!" ; \
+    else \
+	    echo "Formatting changes necessary, please run make format and resubmit" ; \
+	    echo "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g'))" ; \
+        exit 2 ; \
+    fi
+
+
 $(build_dir):
 	@mkdir -p $@
 
-.PHONY: build push deploy redeploy undeploy teardown format dep clean distclean compile verify-modules modules golint
+.PHONY: build push deploy redeploy undeploy teardown format dep clean distclean compile verify-modules modules golint check-format

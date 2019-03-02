@@ -282,14 +282,14 @@ verify-modules:
 
 golint:
 	@if [ $$(golint \
-            $$(go list ./... | sed -e "s/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g") | \
+            $$(go list -f '{{.Dir}}' ./...) | \
         grep -v "generated.deepcopy.go:" | \
         wc -l) -eq 0 ] ; then \
         echo "No new golint issues, good job!" ; \
     else \
         echo "There were some new golint issues:" ; \
         golint_out=$$(golint \
-            $$(go list ./... | sed -e "s/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g") | \
+            $$(go list -f '{{.Dir}}' ./...) | \
         grep -v "generated.deepcopy.go:") ; \
         echo $$golint_out ; \
         exit 1 ; \
@@ -297,11 +297,11 @@ golint:
 
 check-format:
 	@make clean
-	@if [ "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g${sedignorecase}'))" == "" ] ; then \
+	@if [ "$$(gofmt -d $$(go list -f '{{.Dir}}' ./...))" == "" ] ; then \
 	    echo "No formatting changes needed, good job!" ; \
     else \
 	    echo "Formatting changes necessary, please run make format and resubmit" ; \
-	    echo "$$(gofmt -d $$(go list ./... | sed -e 's/github.com\/BlueK8s\/kubedirector\/\(.*\)/\1/g${sedignorecase}'))" ; \
+	    echo "$$(gofmt -d $$(go list -f '{{.Dir}}' ./...))" ; \
         exit 2 ; \
     fi
 

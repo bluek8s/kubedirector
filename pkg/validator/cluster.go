@@ -350,6 +350,67 @@ func validateRoleStorageClass(
 	return valErrors, patches
 }
 
+// validateMinResources function checks to see if minimum resource requiements
+// are specified for each role, by checking against associated app roles' minimum
+// requirement
+func validateMinResources(
+	cr *kdv1.KubeDirectorCluster,
+	appCR *kdv1.KubeDirectorApp,
+	valErrors []string,
+) []string {
+
+	numRoles := len(cr.Spec.Roles)
+	for i := 0; i < numRoles; i++ {
+		role := &(cr.Spec.Roles[i])
+		appRole := catalog.GetRoleFromID(appCR, role.Name)
+		if appRole == nil {
+			// Do nothing; this error will be reported from validateRoles.
+			continue
+		}
+
+		minResources := catalog.GetRoleMinResources(appRole)
+		if minResources == nil {
+			// No minimum requirements for this role.
+			continue
+		}
+
+		logError := func(
+			resName string,
+			resValue string,
+			roleName string,
+			expValue string,
+			valErrors []string) []string {
+
+			return append(
+				valErrors,
+				fmt.Sprintf(
+					invalidResource,
+					resName,
+					resValue,
+					roleName,
+					expValue,
+				),
+			)
+		}
+
+		for resKey, resVal := range *minResources {
+			if resVal.IsZero() {
+				continue
+			}
+
+			if limit, ok := role.Resources.Requests[resKey]; ok {
+				if limit.Value() < resVal.Value() {
+					valErrors = logError(resKey.String(), limit.String(), role.Name, resVal.String(), valErrors)
+				}
+			} else {
+				valErrors = logError(resKey.String(), "0", role.Name, resVal.String(), valErrors)
+			}
+		}
+	}
+
+	return valErrors
+}
+
 // addServiceType function checks to see if serviceType is provided for a
 // cluster CR. If unspecified, check to see if there is a default serviceType
 // provided through kubedirector's config CR, otherwise use a global constant
@@ -488,6 +549,9 @@ func admitClusterCR(
 
 	// Validate that roles are known & sufficient.
 	valErrors = validateClusterRoles(&clusterCR, appCR, valErrors)
+
+	// Validate minimum resources for all roles
+	valErrors = validateMinResources(&clusterCR, appCR, valErrors)
 
 	valErrors, patches = validateRoleStorageClass(
 		&clusterCR,

@@ -178,15 +178,24 @@ type ServiceEndpoint struct {
 	IsDashboard bool   `json:"is_dashboard,omitempty"`
 }
 
+const (
+	// ResourceNvidiaGpu - Resource tag for nvidia gpu
+	ResourceNvidiaGpu = "nvidia.com/gpu"
+
+	// ResourceAmdGpu - Resource tag for amd gpu
+	ResourceAmdGpu = "amd.com/gpu"
+)
+
 // NodeRole describes a subset of virtual cluster members that will provide
 // the same services. At deployment time all role members will receive
 // identical resource assignments.
 type NodeRole struct {
-	ID           string       `json:"id"`
-	Cardinality  string       `json:"cardinality"`
-	ImageRepoTag *string      `json:"image_repo_tag,omitempty"`
-	SetupPackage SetupPackage `json:"config_package,omitempty"`
-	PersistDirs  *[]string    `json:"persist_dirs"`
+	ID           string           `json:"id"`
+	Cardinality  string           `json:"cardinality"`
+	ImageRepoTag *string          `json:"image_repo_tag,omitempty"`
+	SetupPackage SetupPackage     `json:"config_package,omitempty"`
+	PersistDirs  *[]string        `json:"persist_dirs"`
+	MinResources *v1.ResourceList `json:"min_resources"`
 }
 
 // NodeGroupConfig identifies a set of roles, and the services on those roles.

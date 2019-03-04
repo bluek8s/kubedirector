@@ -296,7 +296,7 @@ golint:
     fi
 
 check-format:
-	@make clean
+	@make clean > /dev/null
 	@if [ "$$(gofmt -d $$(go list -f '{{.Dir}}' ./...))" == "" ] ; then \
 	    echo "No formatting changes needed, good job!" ; \
     else \

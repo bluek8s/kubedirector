@@ -185,10 +185,9 @@ undeploy:
 	@echo \* Deleting any managed virtual clusters...
 	@set -e; \
 		all_namespaces=`kubectl get ns --no-headers| awk '{print $$1}'`; \
-		echo $$all_namespaces; \
 		for ns in $$all_namespaces; do \
 			echo kubectl -n $$ns delete ${cluster_resource_name} --all --now; \
-			kubectl -n $$ns delete ${cluster_resource_name} --all --now; \
+			kubectl -n $$ns delete ${cluster_resource_name} --all --now || true; \
 		done;
 	@echo
 	@echo \* Deleting application types...

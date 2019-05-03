@@ -39,21 +39,13 @@ func createWebhookService(
 	namespace string,
 ) error {
 
-	var createService = false
 	_, err := observer.GetService(namespace, serviceName)
 	if err == nil {
 		// service already present, no need to do anything
-		createService = false
-	} else {
-		if errors.IsNotFound(err) {
-			createService = true
-		} else {
-			return err
-		}
-	}
-
-	if !createService {
 		return nil
+	}
+	if !errors.IsNotFound(err) {
+		return err
 	}
 
 	// create service resource that refers to KubeDirector pod
@@ -94,21 +86,13 @@ func createAdmissionService(
 	signingCert []byte,
 ) error {
 
-	var createValidator = false
 	_, err := observer.GetValidatorWebhook(validatorWebhook)
 	if err == nil {
 		// validator object already present, no need to do anything
-		createValidator = false
-	} else {
-		if errors.IsNotFound(err) {
-			createValidator = true
-		} else {
-			return err
-		}
-	}
-
-	if !createValidator {
 		return nil
+	}
+	if !errors.IsNotFound(err) {
+		return err
 	}
 
 	webhookHandler := v1beta1.Webhook{

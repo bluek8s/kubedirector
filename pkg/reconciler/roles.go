@@ -465,7 +465,7 @@ func addMemberStatuses(
 	role *roleInfo,
 ) {
 
-	lastNodeID := &cr.Status.LastNodeID
+	lastNodeID := &cr.Status.LastNodeId
 	currentPop := len(role.roleStatus.Members)
 	for i := currentPop; i < role.desiredPop; i++ {
 		indexString := strconv.Itoa(i)
@@ -485,7 +485,7 @@ func addMemberStatuses(
 				Pod:     memberName,
 				Service: "",
 				PVC:     pvcName,
-				NodeID:  atomic.AddInt64(lastNodeID, 1),
+				NodeId:  atomic.AddInt64(lastNodeID, 1),
 				State:   string(memberCreatePending),
 			},
 		)

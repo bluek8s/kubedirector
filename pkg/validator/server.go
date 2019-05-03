@@ -136,31 +136,24 @@ func StartValidationServer(
 		)
 	}
 
+	formatReturn := func(valString string) error {
+		fmtString := "%s value not found in %s secret"
+		return fmt.Errorf(fmtString, valString, validatorSecret)
+	}
+
 	// extract cert information from the secret object
 	certBytes, ok := certSecret.Data[appCrt]
 	if !ok {
-		return fmt.Errorf(
-			"%s value not found in %s secret",
-			appCrt,
-			validatorSecret,
-		)
+		return formatReturn(appCrt)
 	}
 	keyBytes, ok := certSecret.Data[appKey]
 	if !ok {
-		return fmt.Errorf(
-			"%s value not found in %s secret",
-			appKey,
-			validatorSecret,
-		)
+		return formatReturn(appKey)
 	}
 
 	signingCertBytes, ok := certSecret.Data[rootCrt]
 	if !ok {
-		return fmt.Errorf(
-			"%s value not found in %s secret",
-			rootCrt,
-			validatorSecret,
-		)
+		return formatReturn(rootCrt)
 	}
 
 	certPool := x509.NewCertPool()

@@ -25,9 +25,8 @@ import (
 	sdk "github.com/operator-framework/operator-sdk/pkg/sdk"
 	k8sutil "github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
@@ -71,6 +70,7 @@ func main() {
 	type watchInfo struct {
 		kind         string
 		resyncPeriod time.Duration
+		namespace    string
 	}
 
 	// Add all CR kinds that we want to watch.
@@ -83,17 +83,19 @@ func main() {
 			// within KubeDirector but also especially with the cluster's app config
 			// scripts.
 			resyncPeriod: time.Duration(30) * time.Second,
+			namespace:    "",
 		},
 		{
 			kind:         "KubeDirectorConfig",
 			resyncPeriod: 0,
+			namespace:    namespace,
 		},
 	}
 
 	resource := "kubedirector.bluedata.io/v1alpha1"
 	for _, w := range watchParams {
-		logrus.Infof("Watching %s, %s, %s, %d", resource, w.kind, namespace, w.resyncPeriod)
-		sdk.Watch(resource, w.kind, namespace, w.resyncPeriod)
+		logrus.Infof("Watching %s, %s, %s, %d", resource, w.kind, w.namespace, w.resyncPeriod)
+		sdk.Watch(resource, w.kind, w.namespace, w.resyncPeriod)
 	}
 	sdk.Handle(handler)
 	sdk.Run(context.TODO())

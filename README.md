@@ -31,7 +31,7 @@ See the files in the "doc" directory for information about deploying and using K
 
 # Contributing
 
-You’re welcome to join the [BlueK8s Slack workspace](https://join.slack.com/t/bluek8s/shared_invite/enQtNTQzNDQzNjQwMDMyLTdjYjE0ZTg0OGJhZWUxMzhkZTZjNDg5ODIyNzZmNzZiYTk4ZjQxNDFjYzk4OWM0MjFlNmVkNWNlNmFjNzkzNjQ) for feedback and discussion.
+You’re welcome to join the [BlueK8s Slack workspace](https://join.slack.com/t/bluek8s/shared_invite/enQtNTkyNzYxODk3ODQ1LWFlODExOWM0OTJlZjU0NDUyNjY5MTBjMzQzMTU1M2Y2N2Q4NTMzZTg1NTM1OTAzMzg2NDdlOTc1YTY0YTE4MjU) for feedback and discussion.
 
 Please read through the [CONTRIBUTING](CONTRIBUTING.md) guide before making a pull request. If you run into an issue with the contributing guide, please send a pull request to fix the contributing guide.
 

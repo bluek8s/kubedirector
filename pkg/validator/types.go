@@ -55,7 +55,7 @@ const (
 
 	noDefaultImage = "Role(%s) has no specified image, and no top-level default image is specified."
 
-	noUrlScheme = "The endpoint for service(%s) must include a url_scheme value because is_dashboard is true."
+	noURLScheme = "The endpoint for service(%s) must include a url_scheme value because is_dashboard is true."
 
 	failedToPatch = "Internal error: failed to populate default values for unspecified properties."
 

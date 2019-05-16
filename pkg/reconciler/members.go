@@ -215,8 +215,8 @@ func handleCreatingMembers(
 	creating := role.membersByState[memberCreating]
 
 	// Fetch setup url package
-	setupUrl, setupUrlErr := catalog.AppSetupPackageUrl(cr, role.roleStatus.Name)
-	if setupUrlErr != nil {
+	setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, role.roleStatus.Name)
+	if setupURLErr != nil {
 		shared.LogWarnf(
 			cr,
 			shared.EventReasonRole,
@@ -233,7 +233,7 @@ func handleCreatingMembers(
 		go func(m *kdv1.MemberStatus) {
 			defer wgSetup.Done()
 
-			if setupUrl == "" {
+			if setupURL == "" {
 				// Leave this in memberConfigured state so, we don't send
 				// ready notifications to itself below. The next handler cycle
 				// will handle this appropriately.
@@ -252,7 +252,7 @@ func handleCreatingMembers(
 			// Start or continue the initial configuration.
 			isFinal, configErr := appConfig(
 				cr,
-				setupUrl,
+				setupURL,
 				m.Pod,
 				role.roleStatus.Name,
 				configmetaGenerator,
@@ -500,7 +500,7 @@ func replicasSynced(
 	return true
 }
 
-// setupNodePrep injects the nodeprep package (configcli et al) into the member's
+// setupNodePrep injects the configcli package (configcli et al) into the member's
 // container and installs it.
 func setupNodePrep(
 	cr *kdv1.KubeDirectorCluster,
@@ -509,19 +509,19 @@ func setupNodePrep(
 
 	// Check to see if the destination file exists already, in which case just
 	// return. Also bail out if we cannot manage to check file existence.
-	fileExists, fileError := executor.IsFileExists(cr, podName, nodePrepTestFile)
+	fileExists, fileError := executor.IsFileExists(cr, podName, configcliTestFile)
 	if fileError != nil {
 		return fileError
 	} else if fileExists {
 		return nil
 	}
 
-	// Inject the nodeprep package, taken from the KubeDirector's container.
-	nodePrepFile, openErr := os.Open(nodePrepSrcFile)
+	// Inject the configcli package, taken from the KubeDirector's container.
+	nodePrepFile, openErr := os.Open(configcliSrcFile)
 	if openErr != nil {
 		return fmt.Errorf(
 			"failed to open file %s: %v",
-			nodePrepSrcFile,
+			configcliSrcFile,
 			openErr,
 		)
 	}
@@ -529,7 +529,7 @@ func setupNodePrep(
 	createErr := executor.CreateFile(
 		cr,
 		podName,
-		nodePrepDestFile,
+		configcliDestFile,
 		bufio.NewReader(nodePrepFile),
 	)
 	if createErr != nil {
@@ -540,8 +540,8 @@ func setupNodePrep(
 	return executor.RunScript(
 		cr,
 		podName,
-		"nodeprep setup",
-		strings.NewReader(nodePrepInstallCmd),
+		"configcli setup",
+		strings.NewReader(configcliInstallCmd),
 	)
 }
 
@@ -549,7 +549,7 @@ func setupNodePrep(
 // container and installs it.
 func setupAppConfig(
 	cr *kdv1.KubeDirectorCluster,
-	setupUrl string,
+	setupURL string,
 	podName string,
 	roleName string,
 ) error {
@@ -564,7 +564,7 @@ func setupAppConfig(
 	}
 
 	// Fetch and install it.
-	cmd := strings.Replace(appPrepInitCmd, "{{APP_CONFIG_URL}}", setupUrl, -1)
+	cmd := strings.Replace(appPrepInitCmd, "{{APP_CONFIG_URL}}", setupURL, -1)
 	return executor.RunScript(
 		cr,
 		podName,
@@ -600,7 +600,7 @@ func notifyReadyNodes(
 			// then otherRole.roleStatus referenced below will be nil.
 			continue
 		}
-		setupURL, setupURLErr := catalog.AppSetupPackageUrl(cr, otherRole.roleStatus.Name)
+		setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, otherRole.roleStatus.Name)
 		if setupURLErr != nil {
 			shared.LogWarnf(
 				cr,
@@ -654,7 +654,7 @@ func notifyReadyNodes(
 // handler pass.
 func appConfig(
 	cr *kdv1.KubeDirectorCluster,
-	setupUrl string,
+	setupURL string,
 	podName string,
 	roleName string,
 	configmetaGenerator func(string) string,
@@ -703,13 +703,13 @@ func appConfig(
 	if configmetaErr != nil {
 		return true, configmetaErr
 	}
-	// Set up nodeprep package for this member (if not set up already).
+	// Set up configcli package for this member (if not set up already).
 	prepErr := setupNodePrep(cr, podName)
 	if prepErr != nil {
 		return true, prepErr
 	}
 	// Make sure the necessary app-specific materials are in place.
-	setupErr := setupAppConfig(cr, setupUrl, podName, roleName)
+	setupErr := setupAppConfig(cr, setupURL, podName, roleName)
 	if setupErr != nil {
 		return true, setupErr
 	}

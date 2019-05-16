@@ -92,7 +92,7 @@ func RemoveFinalizer(
 
 	found := false
 	for i, f := range cr.Finalizers {
-		if f == finalizerId {
+		if f == finalizerID {
 			cr.Finalizers = append(cr.Finalizers[:i], cr.Finalizers[i+1:]...)
 			found = true
 			break
@@ -132,7 +132,7 @@ func EnsureFinalizer(
 
 	found := false
 	for _, f := range cr.Finalizers {
-		if f == finalizerId {
+		if f == finalizerID {
 			found = true
 			break
 		}
@@ -140,7 +140,7 @@ func EnsureFinalizer(
 	if found {
 		return nil
 	}
-	cr.Finalizers = append(cr.Finalizers, finalizerId)
+	cr.Finalizers = append(cr.Finalizers, finalizerID)
 
 	var finalizersPatch []finalizersPatchSpec
 	if len(cr.Finalizers) == 1 {

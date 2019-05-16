@@ -420,9 +420,9 @@ func admitClusterCR(
 	prevClusterCR := kdv1.KubeDirectorCluster{}
 	if ar.Request.Operation == v1beta1.Update {
 		prevRaw := ar.Request.OldObject.Raw
-		if prevJsonErr := json.Unmarshal(prevRaw, &prevClusterCR); prevJsonErr != nil {
+		if prevJSONErr := json.Unmarshal(prevRaw, &prevClusterCR); prevJSONErr != nil {
 			admitResponse.Result = &metav1.Status{
-				Message: "\n" + prevJsonErr.Error(),
+				Message: "\n" + prevJSONErr.Error(),
 			}
 			return &admitResponse
 		}
@@ -438,7 +438,7 @@ func admitClusterCR(
 		// Reject this write if either of:
 		// - KubeDirector doesn't know about the cluster resource
 		// - this status generation UID is not what we're expecting a write for
-		if !ok || clusterCR.Status.GenerationUid != expectedStatusGen.Uid {
+		if !ok || clusterCR.Status.GenerationUID != expectedStatusGen.UID {
 			admitResponse.Result = &metav1.Status{
 				Message: "\nKubeDirector-related status properties are read-only",
 			}

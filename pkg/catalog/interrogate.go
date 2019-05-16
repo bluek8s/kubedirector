@@ -185,10 +185,10 @@ func ImageForRole(
 	)
 }
 
-// AppSetupPackageUrl returns the app setup package url for a given role. The
+// AppSetupPackageURL returns the app setup package url for a given role. The
 // fact that this function is invoked means that setup package was specified
 // either for the node role or the application as a whole.
-func AppSetupPackageUrl(
+func AppSetupPackageURL(
 	cr *kdv1.KubeDirectorCluster,
 	role string,
 ) (string, error) {

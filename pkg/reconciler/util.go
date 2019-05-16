@@ -35,11 +35,11 @@ func ReadStatusGen(
 func writeStatusGen(
 	cr *kdv1.KubeDirectorCluster,
 	handler *Handler,
-	newGenUid string,
+	newGenUID string,
 ) {
 	handler.lock.Lock()
 	defer handler.lock.Unlock()
-	handler.clusterState.clusterStatusGens[cr.UID] = StatusGen{Uid: newGenUid}
+	handler.clusterState.clusterStatusGens[cr.UID] = StatusGen{UID: newGenUID}
 }
 
 // ValidateStatusGen provides threadsafe mark-validated of a status gen.

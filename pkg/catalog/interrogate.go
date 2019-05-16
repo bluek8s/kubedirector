@@ -111,6 +111,15 @@ func GetRoleCardinality(
 	return int32(count), isScaleOut
 }
 
+// GetRoleMinResources is a utility function that fetching the minimum resources
+// for a given app role
+func GetRoleMinResources(
+	appRole *kdv1.NodeRole,
+) *v1.ResourceList {
+
+	return appRole.MinResources
+}
+
 // PortsForRole returns list of service port info (id and port num) for a given role.
 // This will be used to export those ports as NodePort/LoadBalancer
 func PortsForRole(

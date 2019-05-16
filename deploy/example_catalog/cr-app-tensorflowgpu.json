@@ -1,0 +1,58 @@
+{
+    "apiVersion": "kubedirector.bluedata.io/v1alpha1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name": "tensorflowgpu-jupyter"
+    },
+
+    "spec": {
+        "systemdRequired": true,
+        "config": {
+            "config_meta": {},
+            "config_choices": [],
+            "role_services": [
+                {
+                    "service_ids": [
+                        "jupyter-nb"
+                    ],
+                    "role_id": "controller"
+                }
+            ],
+            "selected_roles": [
+                "controller"
+            ]
+        },
+        "label": {
+            "name": "Tensorflow GPU with jupyter notebook",
+            "description": "TensorFlow GPU with jupyter notebook"
+        },
+        "default_image_repo_tag": "tensorflow/tensorflow:latest-gpu-jupyter",
+        "distro_id": "tensorflow/tensorflow:latest-gpu-jupyter",
+        "version": "latest-gpu-jupyter",
+        "config_schema_version": 7,
+        "services": [
+            {
+                "endpoint": {
+                    "url_scheme": "http",
+                    "path": "/",
+                    "is_dashboard": true,
+                    "port": 8888
+                },
+                "id": "jupyter-nb",
+                "label": {
+                    "name": "Jupyter Notebook"
+                }
+            }
+        ],
+        "default_config_package": null,
+        "roles": [
+            {
+                "cardinality": "1",
+                "id": "controller",
+                "min_resources" : {
+                    "nvidia.com/gpu" : 1
+                }
+            }
+        ]
+    }
+}

@@ -505,6 +505,15 @@ func (in *NodeRole) DeepCopyInto(out *NodeRole) {
 			}
 		}
 	}
+	if in.MinResources != nil {
+		in, out := &in.MinResources, &out.MinResources
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(v1.ResourceList)
+			(*in).DeepCopyInto(*out)
+		}
+	}
 	return
 }
 

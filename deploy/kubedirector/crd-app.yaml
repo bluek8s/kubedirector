@@ -99,6 +99,20 @@ spec:
                     items:
                       type: string
                       pattern: '^/.*[^/]$'
+                  min_resources:
+                    memory:
+                      type: string
+                      pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                    cpu:
+                      type: string
+                      pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                    ephemeral-storage:
+                      type: string
+                      pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                    nvidia.com/gpu:
+                      type: integer
+                    amd.com/gpu:
+                      type: integer
             config:
               required: [selected_roles, role_services]
               properties:

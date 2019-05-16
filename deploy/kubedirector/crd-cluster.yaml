@@ -50,12 +50,18 @@ spec:
                             type: integer
                           amd.com/gpu:
                             type: integer
+                          ephemeral-storage:
+                            type: string
+                            pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                       requests:
                         properties:
                           memory:
                             type: string
                             pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           cpu:
+                            type: string
+                            pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          ephemeral-storage:
                             type: string
                             pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                   env:

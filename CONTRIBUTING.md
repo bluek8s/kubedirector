@@ -7,7 +7,7 @@ First - thank you for taking the time to look up how to contribute to KubeDirect
 Most of the developers working on KubeDirector use MacOS, so there may be some unforseen issues in Linux and Windows development. Please make a Pull Request against this file if something here is out of date or inaccurate. Currently, we use the following tools and versions:
 
 * go version 1.12
-* dep version 0.5.0
+* dep version 0.5.2
 
 Many people have also set up travis-ci on their personal forks. To set up travis-ci on your personal fork, follow these instructions:
 

@@ -65,5 +65,5 @@ const (
 	noDefaultStorageClass   = "storageClassName is not specified for one or more roles, and no default storage class is available."
 	badDefaultStorageClass  = "storageClassName is not specified for one or more roles, and default storage class (%s) is not available on the system."
 
-	invalidResource = "Specified resource(\"%s\") value(\"%s\") for role(\"%s\") is invalid. Minimum value must be \"%s\""
+	invalidResource = "Specified resource(\"%s\") value(\"%s\") for role(\"%s\") is invalid. Minimum value must be \"%s\"."
 )

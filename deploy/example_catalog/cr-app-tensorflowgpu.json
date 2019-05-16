@@ -48,7 +48,10 @@
         "roles": [
             {
                 "cardinality": "1",
-                "id": "controller"
+                "id": "controller",
+                "min_resources" : {
+                    "nvidia.com/gpu" : 1
+                }
             }
         ]
     }

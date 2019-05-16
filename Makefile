@@ -183,7 +183,12 @@ redeploy:
 undeploy:
 	@echo
 	@echo \* Deleting any managed virtual clusters...
-	-kubectl delete ${cluster_resource_name} --all --now
+	@set -e; \
+		all_namespaces=`kubectl get ns --no-headers| awk '{print $$1}'`; \
+		for ns in $$all_namespaces; do \
+			echo kubectl -n $$ns delete ${cluster_resource_name} --all --now; \
+			kubectl -n $$ns delete ${cluster_resource_name} --all --now || true; \
+		done;
 	@echo
 	@echo \* Deleting application types...
 	-kubectl delete ${app_resource_name} --all --now
@@ -218,14 +223,14 @@ undeploy:
 	@set -e; \
         retries=100; \
         while [ $$retries ]; do \
-            if kubectl get all -l kubedirectorcluster 2>&1 >/dev/null | grep "No resources found." &> /dev/null; then \
+            if kubectl get all -l kubedirectorcluster --all-namespaces 2>&1 >/dev/null | grep "No resources found." &> /dev/null; then \
                 exit 0; \
             else \
                 retries=`expr $$retries - 1`; \
                 if [ $$retries -le 0 ]; then \
                     echo; \
                     echo Some KubeDirector-managed resources seem to remain.; \
-                    echo Use "kubectl get all -l kubedirectorcluster" to check and do manual cleanup.; \
+                    echo Use "kubectl get all -l kubedirectorcluster --all-namespaces" to check and do manual cleanup.; \
                     exit 1; \
                 fi; \
                 sleep 3; \
@@ -296,7 +301,7 @@ golint:
     fi
 
 check-format:
-	@make clean
+	@make clean > /dev/null
 	@if [ "$$(gofmt -d $$(go list -f '{{.Dir}}' ./...))" == "" ] ; then \
 	    echo "No formatting changes needed, good job!" ; \
     else \

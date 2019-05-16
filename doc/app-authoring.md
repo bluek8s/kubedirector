@@ -31,7 +31,7 @@ Given a KubeDirectorApp resource "another_app.yaml" that points to valid image(s
     kubectl create -f another_app.yaml
 ```
 
-Note that you must create this resource in the same K8s namespace where KubeDirector is deployed. The metadata name of this new resource must be different from the names of all currently registered KubeDirectorApp resources.
+Note that it can matter which namespace you choose as the home for this resource. When a new KubeDirectorCluster is created and references some KubeDirectorApp name, KubeDirector first looks in the namespace of that KubeDirectorCluster to find the referenced KubeDirectorApp. If no KubeDirectorApp by that name is found there, then KubeDirector will next look in its own namespace.
 
 #### MODIFYING THE KUBEDIRECTORAPP
 

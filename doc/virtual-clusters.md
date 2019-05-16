@@ -1,6 +1,6 @@
 #### DEPLOYING VIRTUAL CLUSTERS
 
-The "deploy/example_clusters" directory contains examples of YAML files that can be used to create virtual clusters that instantiate the defined app types. Currently these virtual clusters must be created in the same namespace as the KubeDirector deployment (a restriction that should be relaxed in some future release).
+The "deploy/example_clusters" directory contains examples of YAML files that can be used to create virtual clusters that instantiate the defined app types. Currently these virtual clusters can be created in any namespace of the K8s platform where KubeDirector is running.
 
 For example, this would create an instance of a virtual cluster from the spark221e2 app type:
 ```bash

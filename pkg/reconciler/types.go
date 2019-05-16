@@ -96,6 +96,10 @@ const (
 	echo -n $? > /opt/guestconfig/configure.status" &`
 )
 
+const (
+	zeroPortsService = "n/a"
+)
+
 type roleInfo struct {
 	statefulSet    *appsv1.StatefulSet
 	roleSpec       *kdv1.Role

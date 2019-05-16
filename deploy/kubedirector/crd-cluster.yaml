@@ -46,6 +46,10 @@ spec:
                           cpu:
                             type: string
                             pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                          nvidia.com/gpu:
+                            type: integer
+                          amd.com/gpu:
+                            type: integer
                       requests:
                         properties:
                           memory:

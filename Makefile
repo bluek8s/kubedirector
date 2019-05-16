@@ -182,16 +182,18 @@ redeploy:
 
 undeploy:
 	@echo
-	@echo \* Deleting any managed virtual clusters...
 	@set -e; \
 		all_namespaces=`kubectl get ns --no-headers| awk '{print $$1}'`; \
+		echo Deleting any managed virtual clusters...; \
 		for ns in $$all_namespaces; do \
 			echo kubectl -n $$ns delete ${cluster_resource_name} --all --now; \
 			kubectl -n $$ns delete ${cluster_resource_name} --all --now || true; \
+		done; \
+		echo Deleting application types...; \
+		for ns in $$all_namespaces; do \
+			echo kubectl -n $$ns delete ${app_resource_name} --all --now; \
+			kubectl -n $$ns delete ${app_resource_name} --all --now || true; \
 		done;
-	@echo
-	@echo \* Deleting application types...
-	-kubectl delete ${app_resource_name} --all --now
 	@echo
 	@echo \* Deleting KubeDirector deployment...
 	-@if [[ -f deploy/kubedirector/deployment-localbuilt.yaml ]]; then \

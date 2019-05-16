@@ -130,25 +130,38 @@ func GetPVC(
 
 // GetApp fetches the k8s KubeDirectorApp resource in KubeDirector's namespace.
 func GetApp(
+	clusterNamespace string,
 	appID string,
 ) (*kdv1.KubeDirectorApp, error) {
 
-	kdNamespace, err := shared.GetKubeDirectorNamespace()
-	if err != nil {
-		return nil, err
-	}
-	result := &kdv1.KubeDirectorApp{
+	var appErr error
+
+	appSpec := &kdv1.KubeDirectorApp{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KubeDirectorApp",
 			APIVersion: "kubedirector.bluedata.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      appID,
-			Namespace: kdNamespace,
+			Name: appID,
 		},
 	}
-	err = sdk.Get(result)
-	return result, err
+
+	// Check to see if this app exists in the cluster namespace
+	appSpec.ObjectMeta.Namespace = clusterNamespace
+	appErr = sdk.Get(appSpec)
+
+	if appErr != nil {
+		// Check to see if it is present in our namespace
+		kdNamespace, nsErr := shared.GetKubeDirectorNamespace()
+		if nsErr != nil {
+			return nil, nsErr
+		}
+
+		appSpec.ObjectMeta.Namespace = kdNamespace
+		appErr = sdk.Get(appSpec)
+	}
+
+	return appSpec, appErr
 }
 
 // GetValidatorWebhook fetches the webhook validator resource in

@@ -19,13 +19,13 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
-// serviceShouldExist captures whether members in a given state should have
-// an associated individual service.
-var serviceShouldExist = map[memberState]bool{
+// serviceShouldBeReconciled captures whether members in a given state should
+// have their associated individual service processed.
+var serviceShouldBeReconciled = map[memberState]bool{
 	memberCreatePending: true,
 	memberCreating:      true,
 	memberReady:         true,
@@ -155,7 +155,13 @@ func handleMemberService(
 	member *kdv1.MemberStatus,
 ) error {
 
-	if serviceShouldExist[memberState(member.State)] {
+	if serviceShouldBeReconciled[memberState(member.State)] {
+		if member.Service == zeroPortsService {
+			// TBD: Currently nothing to do if no ports on the service. This
+			// will change in the future if/when handleMemberServiceConfig
+			// supports modification of an existing service's ports.
+			return nil
+		}
 		memberService, queryErr := queryService(
 			cr,
 			member.Service,
@@ -164,7 +170,7 @@ func handleMemberService(
 			return queryErr
 		}
 		if memberService == nil {
-			if member.Service != "" {
+			if member.Service != "" && member.Service != zeroPortsService {
 				shared.LogWarnf(
 					cr,
 					shared.EventReasonMember,
@@ -197,7 +203,9 @@ func handleMemberService(
 
 // handleMemberServiceCreate will create a per-member service and store its
 // name in the member status. Failure to create this service will be a
-// handler-stopping error.
+// handler-stopping error. In the special case of having no ports to configure,
+// no service object will be created, and the service element of the member
+// status will be assigned the special constant defined by zeroPortsService.
 func handleMemberServiceCreate(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
@@ -221,7 +229,11 @@ func handleMemberServiceCreate(
 		member.Service = ""
 		return createErr
 	}
-	member.Service = memberService.Name
+	if memberService == nil {
+		member.Service = zeroPortsService
+	} else {
+		member.Service = memberService.Name
+	}
 	return nil
 }
 
@@ -262,7 +274,7 @@ func queryService(
 ) (*v1.Service, error) {
 
 	var service *v1.Service
-	if serviceName == "" {
+	if serviceName == "" || serviceName == zeroPortsService {
 		service = nil
 	} else {
 		serviceFound, queryErr := observer.GetService(

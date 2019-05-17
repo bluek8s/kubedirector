@@ -21,7 +21,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -87,7 +87,8 @@ func UpdateHeadlessService(
 // CreatePodService creates in k8s a service that exposes the designated
 // service endpoints of a virtual cluster member. Depending on the app type
 // definition, this will be either a NodePort service (default) or a
-// LoadBalancer service.
+// LoadBalancer service. If there are no ports to configure for this service,
+// no service object will be created and the function will return (nil, nil).
 func CreatePodService(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
@@ -99,6 +100,9 @@ func CreatePodService(
 	portInfoList, portsErr := catalog.PortsForRole(cr, role.Name)
 	if portsErr != nil {
 		return nil, portsErr
+	}
+	if len(portInfoList) == 0 {
+		return nil, nil
 	}
 	service := &v1.Service{
 		TypeMeta: metav1.TypeMeta{
@@ -129,7 +133,11 @@ func CreatePodService(
 
 // UpdatePodService examines a current per-member service in k8s and may take
 // steps to reconcile it to the desired spec.
-// TBD: Currently this function handles changes only for serviceType
+// TBD: Currently this function handles changes only for serviceType, and is
+// only called if the service is known to already exist. If port-changing is
+// supported in the future, either this function or its caller must take care
+// of possibly transitioning to and from the "no ports" state which will
+// involve deleting or creating the service object rather than just modifying.
 func UpdatePodService(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,

@@ -28,7 +28,7 @@ After deploying KubeDirector but before creating virtual clusters, you may wish 
 
 This is particularly useful to address [an issue with storage classes](https://github.com/kubernetes/kubernetes/issues/34583) that is peculiar to EKS. In EKS, a storage class that will be used for container persistent storage must have its volumeBindingMode property set to the value "WaitForFirstConsumer". However, the "gp2" storage class that is the default in EKS clusters is not currently configured this way.
 
-The volumeBindingMode property of an existing storage class cannot be modified, so to deal with this issue you must create another storage class and then either set it as the default or else explicitly configure KubeDirector to use it.
+The volumeBindingMode property of an existing storage class cannot be modified, so to deal with this issue you must create another storage class and then either set it as the K8s default or else explicitly configure KubeDirector to use it.
 
 A YAML file is available in the "deploy/example_config" subdirectory to address this issue. It creates a storage class with the necessary property, and also creates a KubeDirectorConfig to direct KubeDirector to use that storage class. You can use kubectl to apply this solution:
 ```

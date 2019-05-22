@@ -25,6 +25,7 @@ The [wiki](https://github.com/bluek8s/kubedirector/wiki) describes KubeDirector 
 See the files in the "doc" directory for information about deploying and using KubeDirector:
 * [quickstart.md](doc/quickstart.md): deploying a pre-built KubeDirector image
 * [gke-notes.md](doc/gke-notes.md): important information if you intend to deploy KubeDirector using Google Kubernetes Engine
+* [eks-notes.md](doc/eks-notes.md): important information if you intend to deploy KubeDirector using Amazon Elastic Container Service for Kubernetes
 * [virtual-clusters.md](doc/virtual-clusters.md): creating and managing virtual clusters with KubeDirector
 * [app-authoring.md](doc/app-authoring.md): creating app definitions for KubeDirector virtual clusters
 * [kubedirector-development.md](doc/kubedirector-development.md): building KubeDirector from source

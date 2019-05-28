@@ -1,0 +1,31 @@
+# This is an example of one solution for the default StorageClass on EKS
+# not setting its volumeBindingMode to WaitForFirstConsumer. It creates
+# another storage class, which is identical to the "gp2" class except with
+# the necessary setting for volumeBindingMode, and then configures KD to use
+# that storage class (even though it is not the K8s default storage class).
+
+# The kubedirector-support label ensures that this storage class will be
+# removed by "make teardown". This is purely a behavior of the Makefile in
+# this repo and is not a fundamental KubeDirector functionality.
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp2-for-kd
+  labels:
+    kubedirector-support: "true"
+parameters:
+  fsType: ext4
+  type: gp2
+provisioner: kubernetes.io/aws-ebs
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+
+---
+
+apiVersion: "kubedirector.bluedata.io/v1alpha1"
+kind: "KubeDirectorConfig"
+metadata:
+  name: "kd-global-config"
+spec:
+  defaultStorageClassName: "gp2-for-kd"

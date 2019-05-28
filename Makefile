@@ -221,7 +221,7 @@ undeploy:
 	@echo \* Deleting headless service...
 	-kubectl delete svc/${project_name}
 	@echo
-	@echo -n \* Waiting for all resources to finish cleanup...
+	@echo -n \* Waiting for all cluster resources to finish cleanup...
 	@set -e; \
         retries=100; \
         while [ $$retries ]; do \
@@ -240,6 +240,9 @@ undeploy:
             fi; \
         done
 	@echo
+	@echo
+	@echo \* Deleting any storage class labelled kubedirector-support...
+	-kubectl delete storageclass -l kubedirector-support=true
 	@echo
 	@echo done
 	@echo

@@ -36,10 +36,11 @@ const (
 	appKey  = "app.pem"
 	rootCrt = "ca.crt"
 
-	invalidAppMessage  = "Invalid app(%s). This app resource ID has not been registered."
-	invalidCardinality = "Invalid member count for role(%s). Specified member count:%d Role cardinality:%s"
-	invalidRole        = "Invalid role(%s) in app(%s) specified. Valid roles: \"%s\""
-	unconfiguredRole   = "Active role(%s) in app(%s) must have its configuration included in the roles array."
+	invalidAppMessage   = "Invalid app(%s). This app resource ID has not been registered."
+	invalidAppNamespace = "Invalid app_namespace(%s). Namespace (if present) must be either cluster's namespace or kubedirector's namespace."
+	invalidCardinality  = "Invalid member count for role(%s). Specified member count:%d Role cardinality:%s"
+	invalidRole         = "Invalid role(%s) in app(%s) specified. Valid roles: \"%s\""
+	unconfiguredRole    = "Active role(%s) in app(%s) must have its configuration included in the roles array."
 
 	modifiedProperty = "The %s property is read-only."
 	modifiedRole     = "Role(%s) properties other than the members count cannot be modified while role members exist."

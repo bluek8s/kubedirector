@@ -22,7 +22,7 @@ import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 // GetServiceFromID is a utility function that returns the service definition for
@@ -313,7 +313,7 @@ func GetApp(
 	if cr.AppSpec != nil {
 		return cr.AppSpec, nil
 	}
-	appCR, appErr := observer.GetApp(cr.Namespace, cr.Spec.AppID)
+	appCR, appErr := observer.GetApp(cr.Namespace, cr.Spec.AppNamespace, cr.Spec.AppID)
 	if appErr != nil {
 		return nil, fmt.Errorf(
 			"failed to fetch CR for the App : %s error %v",

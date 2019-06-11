@@ -15,7 +15,7 @@
 package v1alpha1
 
 import (
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -47,9 +47,10 @@ type KubeDirectorCluster struct {
 // LoadBalancer services. The Roles field describes the requested cluster roles,
 // each of which will be implemented (by KubeDirector) using a StatefulSet.
 type ClusterSpec struct {
-	AppID       string  `json:"app"`
-	ServiceType *string `json:"serviceType"`
-	Roles       []Role  `json:"roles"`
+	AppID        string  `json:"app"`
+	AppNamespace *string `json:"app_namespace"`
+	ServiceType  *string `json:"serviceType"`
+	Roles        []Role  `json:"roles"`
 }
 
 // EnvVar specifies environment variables for the start script in a

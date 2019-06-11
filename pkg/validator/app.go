@@ -313,6 +313,7 @@ func admitAppCR(
 	if ar.Request.Operation == v1beta1.Update || ar.Request.Operation == v1beta1.Delete {
 		references := reconciler.ClustersUsingApp(
 			ar.Request.Name,
+			ar.Request.Namespace,
 			handlerState,
 		)
 		if len(references) != 0 {

@@ -20,7 +20,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -128,9 +128,14 @@ func GetPVC(
 	return result, err
 }
 
-// GetApp fetches the k8s KubeDirectorApp resource in KubeDirector's namespace.
+// GetApp fetches the k8s KubeDirectorApp resource.
+// Namespace is determined by the argument passed in
+// - If appNamespace is not empty, it is used for fetching the resource
+// - If empty, then resource is first checked in the cluster namespace
+//     and if not found, it will be checked in the kubedirector's namespace
 func GetApp(
 	clusterNamespace string,
+	appNamespace *string,
 	appID string,
 ) (*kdv1.KubeDirectorApp, error) {
 
@@ -146,18 +151,25 @@ func GetApp(
 		},
 	}
 
-	// Check to see if this app exists in the cluster namespace
-	appSpec.ObjectMeta.Namespace = clusterNamespace
-	appErr = sdk.Get(appSpec)
+	if appNamespace == nil {
+		// app namespace is not spcified. check to see if this app exists
+		// in the cluster namespace
+		appSpec.ObjectMeta.Namespace = clusterNamespace
+		appErr = sdk.Get(appSpec)
 
-	if appErr != nil {
 		// Check to see if it is present in our namespace
-		kdNamespace, nsErr := shared.GetKubeDirectorNamespace()
-		if nsErr != nil {
-			return nil, nsErr
-		}
+		if appErr != nil {
+			kdNamespace, nsErr := shared.GetKubeDirectorNamespace()
+			if nsErr != nil {
+				return nil, nsErr
+			}
 
-		appSpec.ObjectMeta.Namespace = kdNamespace
+			appSpec.ObjectMeta.Namespace = kdNamespace
+			appErr = sdk.Get(appSpec)
+		}
+	} else {
+		// Check to see if this app exists in the cluster namespace
+		appSpec.ObjectMeta.Namespace = *appNamespace
 		appErr = sdk.Get(appSpec)
 	}
 

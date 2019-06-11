@@ -20,6 +20,9 @@ spec:
             app:
               type: string
               minLength: 1
+            app_namespace:
+              type: string
+              minLength: 1
             serviceType:
               type: string
               pattern: '^NodePort$|^LoadBalancer$'

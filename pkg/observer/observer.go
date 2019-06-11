@@ -152,7 +152,7 @@ func GetApp(
 	}
 
 	if appNamespace == nil {
-		// app namespace is not spcified. check to see if this app exists
+		// app namespace is not specified. check to see if this app exists
 		// in the cluster namespace
 		appSpec.ObjectMeta.Namespace = clusterNamespace
 		appErr = sdk.Get(appSpec)

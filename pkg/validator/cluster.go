@@ -15,8 +15,10 @@
 package validator
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
@@ -39,13 +41,16 @@ type clusterPatchSpec struct {
 }
 
 type clusterPatchValue struct {
-	ValueInt *int32
-	ValueStr *string
+	ValueInt            *int32
+	ValueStr            *string
+	ValueFileInjections *kdv1.FilePermissions
 }
 
 func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
 	if obj.ValueInt != nil {
 		return json.Marshal(obj.ValueInt)
+	} else if obj.ValueFileInjections != nil {
+		return json.Marshal(obj.ValueFileInjections)
 	}
 	return json.Marshal(obj.ValueStr)
 }
@@ -411,6 +416,107 @@ func validateMinResources(
 	return valErrors
 }
 
+//
+func validateFileInjections(
+	cr *kdv1.KubeDirectorCluster,
+	valErrors []string,
+	patches []clusterPatchSpec,
+) ([]string, []clusterPatchSpec) {
+
+	// Patch function that will be used to patch various permission fields
+	patchFunc := func(
+		patches []clusterPatchSpec,
+		roleIndex int,
+		injectIndex int,
+		patchPath string,
+		patchValue *string,
+	) []clusterPatchSpec {
+
+		patches = append(
+			patches,
+			clusterPatchSpec{
+				Op:   "add",
+				Path: "/spec/roles/" + strconv.Itoa(roleIndex) + "/fileInjections/" + strconv.Itoa(injectIndex) + "/permissions/" + patchPath,
+				Value: clusterPatchValue{
+					ValueStr: patchValue,
+				},
+			},
+		)
+		return patches
+	}
+
+	numRoles := len(cr.Spec.Roles)
+	for i := 0; i < numRoles; i++ {
+		role := &(cr.Spec.Roles[i])
+		if len(role.FileInjections) == 0 {
+			// No file injections
+			continue
+		}
+		numInjections := len(role.FileInjections)
+		for j := 0; j < numInjections; j++ {
+			fileInjection := role.FileInjections[j]
+			srcURL := fileInjection.SrcURL
+
+			// Validate to make sure srcURL is valid by doing a http head
+			// we want to support insecure https. may be kdconfig can disallow
+			// this in the future?
+			tr := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			}
+			client := &http.Client{Transport: tr}
+			_, headErr := client.Head(srcURL)
+			if headErr != nil {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidSrcURL,
+						srcURL,
+						role.Name,
+						headErr,
+					),
+				)
+				continue
+			}
+
+			// Create patches if default values are not found
+			fileModePatch := defaultFileInjectionMode
+			fileOwnerPatch := defaultFileInjectionOwner
+			fileGroupPatch := defaultFileInjectionGroup
+			if fileInjection.Permissions == nil {
+				perms := &kdv1.FilePermissions{
+					FileMode:  &fileModePatch,
+					FileOwner: &fileOwnerPatch,
+					FileGroup: &fileGroupPatch,
+				}
+				patches = append(
+					patches,
+					clusterPatchSpec{
+						Op:   "add",
+						Path: "/spec/roles/" + strconv.Itoa(i) + "/fileInjections/" + strconv.Itoa(j) + "/permissions",
+						Value: clusterPatchValue{
+							ValueFileInjections: perms,
+						},
+					},
+				)
+			} else {
+				if fileInjection.Permissions.FileMode == nil {
+					patches = patchFunc(patches, i, j, "fileMode", &fileModePatch)
+				}
+
+				if fileInjection.Permissions.FileOwner == nil {
+					patches = patchFunc(patches, i, j, "fileOwner", &fileOwnerPatch)
+				}
+
+				if fileInjection.Permissions.FileGroup == nil {
+					patches = patchFunc(patches, i, j, "fileGroup", &fileGroupPatch)
+				}
+			}
+		}
+	}
+
+	return valErrors, patches
+}
+
 // addServiceType function checks to see if serviceType is provided for a
 // cluster CR. If unspecified, check to see if there is a default serviceType
 // provided through kubedirector's config CR, otherwise use a global constant
@@ -561,6 +667,9 @@ func admitClusterCR(
 	)
 
 	patches = addServiceType(&clusterCR, kdConfigCR, patches)
+
+	// Validate file injections and generate patches for default values
+	valErrors, patches = validateFileInjections(&clusterCR, valErrors, patches)
 
 	// If cluster already exists, check for property changes.
 	if ar.Request.Operation == v1beta1.Update {

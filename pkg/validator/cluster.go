@@ -341,7 +341,7 @@ func validateRoleStorageClass(
 				valErrors,
 				fmt.Sprintf(
 					badDefaultStorageClass,
-					globalStorageClass,
+					*globalStorageClass,
 				),
 			)
 		}

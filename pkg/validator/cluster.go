@@ -416,7 +416,9 @@ func validateMinResources(
 	return valErrors
 }
 
-//
+// validateFileInjections validates fileInjection spec defined for each role. Creates one or
+// more patches as needed if permissions object is not setup for each fileInjection. Validation
+// is done for the srcURL field by doing a HTTP HEAD on the url.
 func validateFileInjections(
 	cr *kdv1.KubeDirectorCluster,
 	valErrors []string,
@@ -668,7 +670,7 @@ func admitClusterCR(
 
 	patches = addServiceType(&clusterCR, kdConfigCR, patches)
 
-	// Validate file injections and generate patches for default values
+	// Validate file injections and generate patches for default values (if any)
 	valErrors, patches = validateFileInjections(&clusterCR, valErrors, patches)
 
 	// If cluster already exists, check for property changes.

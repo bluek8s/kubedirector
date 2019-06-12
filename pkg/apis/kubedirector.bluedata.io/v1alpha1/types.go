@@ -72,7 +72,7 @@ type FilePermissions struct {
 type FileInjections struct {
 	SrcURL      string           `json:"srcUrl"`
 	DestDir     string           `json:"destDir"`
-	Permissions *FilePermissions `json:"permissions"`
+	Permissions *FilePermissions `json:"permissions,omitempty"`
 }
 
 // Role describes a subset of the virtual cluster members that shares a common

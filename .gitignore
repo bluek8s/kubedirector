@@ -4,7 +4,6 @@
 /vendor
 
 # generated
-/deploy/operator.yaml
 /deploy/kubedirector/deployment-localbuilt.yaml
 /deploy/kubedirector/rbac.yaml
 

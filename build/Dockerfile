@@ -1,8 +1,14 @@
 FROM alpine:3.6
 
-ADD tmp/_output/bin/kubedirector /root/kubedirector
+# Allow delve to run on Alpine based containers.
+RUN apk add --no-cache libc6-compat
+
+COPY build/bin/dlv /root/
+RUN chmod +x /root/dlv
+
+COPY build/_output/bin/kubedirector /root/kubedirector
 RUN chmod +x /root/kubedirector
 
-COPY tmp/_output/configcli.tgz /root/configcli.tgz
+COPY build/_output/configcli.tgz /root/configcli.tgz
 
 USER root

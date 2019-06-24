@@ -15,14 +15,15 @@
 package observer
 
 import (
+	"context"
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // GetCluster finds the k8s KubeDirectorCluster with the given name in the
@@ -30,19 +31,15 @@ import (
 func GetCluster(
 	namespace string,
 	clusterName string,
+	client k8sclient.Client,
 ) (*kdv1.KubeDirectorCluster, error) {
 
-	result := &kdv1.KubeDirectorCluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeDirectorCluster",
-			APIVersion: "kubedirector.bluedata.io/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
-			Namespace: namespace,
-		},
-	}
-	err := sdk.Get(result)
+	result := &kdv1.KubeDirectorCluster{}
+	err := client.Get(
+			context.TODO(),
+			types.NamespacedName{Namespace: namespace, Name: clusterName},
+			result,
+		)
 	return result, err
 }
 
@@ -51,19 +48,15 @@ func GetCluster(
 func GetStatefulSet(
 	namespace string,
 	statefulSetName string,
+	client k8sclient.Client,
 ) (*appsv1.StatefulSet, error) {
 
-	result := &appsv1.StatefulSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "StatefulSet",
-			APIVersion: "apps/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      statefulSetName,
-			Namespace: namespace,
-		},
-	}
-	err := sdk.Get(result)
+	result := &appsv1.StatefulSet{}
+	err := client.Get(
+			context.TODO(),
+			types.NamespacedName{Namespace: namespace, Name: statefulSetName},
+			result,
+		)
 	return result, err
 }
 
@@ -71,19 +64,15 @@ func GetStatefulSet(
 func GetService(
 	namespace string,
 	serviceName string,
+	client k8sclient.Client,
 ) (*v1.Service, error) {
 
-	result := &v1.Service{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Service",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName,
-			Namespace: namespace,
-		},
-	}
-	err := sdk.Get(result)
+	result := &v1.Service{}
+	err := client.Get(
+			context.TODO(),
+			types.NamespacedName{Namespace: namespace, Name: serviceName},
+			result,
+		)
 	return result, err
 }
 
@@ -91,19 +80,15 @@ func GetService(
 func GetPod(
 	namespace string,
 	podName string,
+	client k8sclient.Client,
 ) (*v1.Pod, error) {
 
-	result := &v1.Pod{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Pod",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      podName,
-			Namespace: namespace,
-		},
-	}
-	err := sdk.Get(result)
+	result := &v1.Pod{}
+	err := client.Get(
+			context.TODO(),
+			types.NamespacedName{Namespace: namespace, Name: podName},
+			result,
+		)
 	return result, err
 }
 
@@ -112,19 +97,15 @@ func GetPod(
 func GetPVC(
 	namespace string,
 	pvcName string,
+	client k8sclient.Client,
 ) (*v1.PersistentVolumeClaim, error) {
 
-	result := &v1.PersistentVolumeClaim{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PersistentVolumeClaim",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      pvcName,
-			Namespace: namespace,
-		},
-	}
-	err := sdk.Get(result)
+	result := &v1.PersistentVolumeClaim{}
+	err := client.Get(
+			context.TODO(),
+			types.NamespacedName{Namespace: namespace, Name: pvcName},
+			result,
+		)
 	return result, err
 }
 
@@ -132,35 +113,33 @@ func GetPVC(
 func GetApp(
 	clusterNamespace string,
 	appID string,
+	client k8sclient.Client,
 ) (*kdv1.KubeDirectorApp, error) {
 
-	var appErr error
-
-	appSpec := &kdv1.KubeDirectorApp{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeDirectorApp",
-			APIVersion: "kubedirector.bluedata.io/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: appID,
-		},
-	}
+	appSpec := &kdv1.KubeDirectorApp{}
 
 	// Check to see if this app exists in the cluster namespace
-	appSpec.ObjectMeta.Namespace = clusterNamespace
-	appErr = sdk.Get(appSpec)
+	appErr := client.Get(
+		context.TODO(),
+		types.NamespacedName{Namespace: clusterNamespace, Name: appID},
+		appSpec,
+	)
 
-	if appErr != nil {
-		// Check to see if it is present in our namespace
-		kdNamespace, nsErr := shared.GetKubeDirectorNamespace()
-		if nsErr != nil {
-			return nil, nsErr
-		}
-
-		appSpec.ObjectMeta.Namespace = kdNamespace
-		appErr = sdk.Get(appSpec)
+	if appErr == nil {
+		return appSpec, appErr
 	}
 
+	// Check to see if it is present in our namespace
+	kdNamespace, nsErr := shared.GetKubeDirectorNamespace()
+	if nsErr != nil {
+		return nil, nsErr
+	}
+
+	appErr = client.Get(
+			context.TODO(),
+			types.NamespacedName{Namespace: kdNamespace, Name: appID},
+			appSpec,
+		)
 	return appSpec, appErr
 }
 
@@ -168,23 +147,19 @@ func GetApp(
 // KubeDirector's namespace.
 func GetValidatorWebhook(
 	validator string,
+	client k8sclient.Client,
 ) (*v1beta1.MutatingWebhookConfiguration, error) {
 
 	kdNamespace, err := shared.GetKubeDirectorNamespace()
 	if err != nil {
 		return nil, err
 	}
-	result := &v1beta1.MutatingWebhookConfiguration{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "MutatingWebhookConfiguration",
-			APIVersion: "admissionregistration.k8s.io/v1beta1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      validator,
-			Namespace: kdNamespace,
-		},
-	}
-	err = sdk.Get(result)
+	result := &v1beta1.MutatingWebhookConfiguration{}
+	err = client.Get(
+			context.TODO(),
+			types.NamespacedName{Namespace: kdNamespace, Name: validator},
+			result,
+		)
 	return result, err
 }
 
@@ -192,100 +167,79 @@ func GetValidatorWebhook(
 func GetSecret(
 	secretName string,
 	namespace string,
+	client k8sclient.Client,
 ) (*v1.Secret, error) {
 
-	result := &v1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: namespace,
-		},
-	}
-	err := sdk.Get(result)
+	result := &v1.Secret{}
+	err := client.Get(
+			context.TODO(),
+			types.NamespacedName{Namespace: namespace, Name: secretName},
+			result,
+		)
 	return result, err
 }
 
 // GetDeployment fetches the deployment resource in KubeDirector's namespace.
 func GetDeployment(
 	deploymentName string,
+	client k8sclient.Client,
 ) (*appsv1.Deployment, error) {
 
 	kdNamespace, err := shared.GetKubeDirectorNamespace()
 	if err != nil {
 		return nil, err
 	}
-	result := &appsv1.Deployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploymentName,
-			Namespace: kdNamespace,
-		},
-	}
-	err = sdk.Get(result)
+	result := &appsv1.Deployment{}
+	err = client.Get(
+			context.TODO(),
+			types.NamespacedName{Namespace: kdNamespace, Name: deploymentName},
+			result,
+		)
 	return result, err
 }
 
 // GetKDConfig fetches kubedirector config CR in KubeDirector's namespace.
 func GetKDConfig(
 	kdConfigName string,
+	client k8sclient.Client,
 ) (*kdv1.KubeDirectorConfig, error) {
 
 	kdNamespace, err := shared.GetKubeDirectorNamespace()
 	if err != nil {
 		return nil, err
 	}
-	result := &kdv1.KubeDirectorConfig{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeDirectorConfig",
-			APIVersion: "kubedirector.bluedata.io/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      kdConfigName,
-			Namespace: kdNamespace,
-		},
-	}
-	err = sdk.Get(result)
+
+	result := &kdv1.KubeDirectorConfig{}
+	err = client.Get(
+			context.TODO(),
+			types.NamespacedName{Namespace: kdNamespace, Name: kdConfigName},
+			result,
+		)
 	return result, err
 }
 
 // GetStorageClass fetches the storage class resource with a given name.
 func GetStorageClass(
 	storageClassName string,
+	client k8sclient.Client,
 ) (*storagev1.StorageClass, error) {
 
-	result := &storagev1.StorageClass{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "StorageClass",
-			APIVersion: "storage.k8s.io/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: storageClassName,
-			// Namespace does not matter for this query; leave blank.
-		},
-	}
-	err := sdk.Get(result)
+	result := &storagev1.StorageClass{}
+	err := client.Get(
+			context.TODO(),
+			types.NamespacedName{Name: storageClassName},
+			result,
+		)
 	return result, err
 }
 
 // GetDefaultStorageClass returns the default storage class, if any, as
 // defined by k8s.
-func GetDefaultStorageClass() (*storagev1.StorageClass, error) {
+func GetDefaultStorageClass(client k8sclient.Client) (*storagev1.StorageClass, error) {
 
-	result := &storagev1.StorageClassList{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "StorageClass",
-			APIVersion: "storage.k8s.io/v1",
-		},
-	}
 	// Namespace does not matter for this query; leave blank.
-	namespace := ""
-	err := sdk.List(namespace, result)
+	result := &storagev1.StorageClassList{}
+	err := client.List(context.TODO(), &k8sclient.ListOptions{}, result)
 	if err != nil {
 		return nil, err
 	}

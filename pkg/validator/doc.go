@@ -19,4 +19,5 @@
 // field validation requests. Then, when resources in kubedirector.bluedata.io
 // (KubeDirectorCluster and KubeDirectorApp) are created/changed/deleted,
 // the validation function will be invoked to check the proposed operation.
+
 package validator

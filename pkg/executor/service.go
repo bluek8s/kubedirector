@@ -15,15 +15,14 @@
 package executor
 
 import (
-	"encoding/json"
-
+	"context"
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"github.com/operator-framework/operator-sdk/pkg/sdk"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // CreateHeadlessService creates in k8s the "cluster service" used for
@@ -33,6 +32,7 @@ import (
 // re-use that same name instead of generating a new one.
 func CreateHeadlessService(
 	cr *kdv1.KubeDirectorCluster,
+	client k8sclient.Client,
 ) (*v1.Service, error) {
 
 	name := headlessServiceName
@@ -64,7 +64,7 @@ func CreateHeadlessService(
 	} else {
 		service.ObjectMeta.Name = cr.Status.ClusterService
 	}
-	err := sdk.Create(service)
+	err := client.Create(context.TODO(), service)
 
 	return service, err
 }
@@ -74,6 +74,7 @@ func CreateHeadlessService(
 func UpdateHeadlessService(
 	cr *kdv1.KubeDirectorCluster,
 	service *v1.Service,
+	client k8sclient.Client,
 ) error {
 
 	// TBD: We could compare the service against the expected service
@@ -93,17 +94,18 @@ func CreatePodService(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
 	podName string,
+	client k8sclient.Client,
 ) (*v1.Service, error) {
 
 	serviceType := serviceType(*cr.Spec.ServiceType)
 
-	portInfoList, portsErr := catalog.PortsForRole(cr, role.Name)
+	portInfoList, portsErr := catalog.PortsForRole(cr, role.Name, client)
 	if portsErr != nil {
 		return nil, portsErr
 	}
-	if len(portInfoList) == 0 {
-		return nil, nil
-	}
+    if len(portInfoList) == 0 {
+        return nil, nil
+    }
 	service := &v1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
@@ -127,7 +129,7 @@ func CreatePodService(
 		}
 		service.Spec.Ports = append(service.Spec.Ports, servicePort)
 	}
-	createErr := sdk.Create(service)
+	createErr := client.Create(context.TODO(), service)
 	return service, createErr
 }
 
@@ -143,6 +145,7 @@ func UpdatePodService(
 	role *kdv1.Role,
 	podName string,
 	service *v1.Service,
+	client k8sclient.Client,
 ) error {
 
 	reqServiceType := serviceType(*cr.Spec.ServiceType)
@@ -160,33 +163,47 @@ func UpdatePodService(
 		reqServiceType,
 		service.Name,
 	)
-	// serviceType has been updated. Create a patch to change the type
-	type patchSpec struct {
-		Op    string         `json:"op"`
-		Path  string         `json:"path"`
-		Value v1.ServiceType `json:"value"`
-	}
 
-	patch := []patchSpec{
-		{
-			Op:    "replace",
-			Path:  "/spec/type",
-			Value: reqServiceType,
+	// TODO: See if we can just use the service that was passed in.
+	prevService := &v1.Service{}
+	err := client.Get(
+		context.TODO(),
+		types.NamespacedName{
+			Namespace: service.Namespace,
+			Name: service.Name,
 		},
+		prevService,
+	)
+	if err != nil {
+		shared.LogErrorf(
+			cr,
+			shared.EventReasonMember,
+			"failed to retrieve service{%s}: %v",
+			service.Spec.Type,
+			err,
+		)
+		return err
 	}
 
-	patchBytes, patchErr := json.Marshal(patch)
-	if patchErr == nil {
-		patchErr = sdk.Patch(service, types.JSONPatchType, patchBytes)
+	prevService.Spec.Type = reqServiceType
+	err = client.Status().Update(context.TODO(), prevService)
+	if err != nil {
+		shared.LogErrorf(
+			cr,
+			shared.EventReasonMember,
+			"failed to update service{%s}: %v",
+			service.Spec.Type,
+			err,
+		)
 	}
-
-	return patchErr
+	return err
 }
 
 // DeletePodService deletes a per-member service from k8s.
 func DeletePodService(
 	namespace string,
 	serviceName string,
+	client k8sclient.Client,
 ) error {
 
 	toDelete := &v1.Service{
@@ -200,7 +217,7 @@ func DeletePodService(
 		},
 	}
 
-	return sdk.Delete(toDelete)
+	return client.Delete(context.TODO(), toDelete)
 }
 
 // serviceName is a utility function for generating the name of a service

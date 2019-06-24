@@ -15,12 +15,13 @@
 package validator
 
 import (
-	"github.com/bluek8s/kubedirector/pkg/reconciler"
 	"k8s.io/api/admission/v1beta1"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // admitFunc is used as the type for all the callback validators
-type admitFunc func(*v1beta1.AdmissionReview, *reconciler.Handler) *v1beta1.AdmissionResponse
+type admitFunc func(*v1beta1.AdmissionReview, k8sclient.Client) *v1beta1.AdmissionResponse
+
 type checkFunc func() error
 
 const (
@@ -64,6 +65,5 @@ const (
 	invalidRoleStorageClass = "Unable to fetch storageClassName(%s) for role(%s)."
 	noDefaultStorageClass   = "storageClassName is not specified for one or more roles, and no default storage class is available."
 	badDefaultStorageClass  = "storageClassName is not specified for one or more roles, and default storage class (%s) is not available on the system."
-
 	invalidResource = "Specified resource(\"%s\") value(\"%s\") for role(\"%s\") is invalid. Minimum value must be \"%s\"."
 )

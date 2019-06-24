@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package reconciler
+package kubedirectorcluster
 
 import (
 	"reflect"
@@ -24,52 +24,39 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/google/uuid"
-	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"k8s.io/apimachinery/pkg/api/errors"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // syncCluster runs the reconciliation logic. It is invoked because of a
 // change in or addition of a KubeDirectorCluster instance, or a periodic
 // polling to check on such a resource.
 func syncCluster(
-	event sdk.Event,
 	cr *kdv1.KubeDirectorCluster,
-	handler *Handler,
+	reconciler *ReconcileKubeDirectorCluster,
 ) error {
 
-	// Exit early if deleting the resource.
-	if event.Deleted {
-		shared.LogInfo(
-			cr,
-			shared.EventReasonCluster,
-			"deleted",
-		)
-		deleteStatusGen(cr, handler)
-		removeClusterAppReference(cr, handler)
-		return nil
-	}
-
-	// Otherwise, make sure this cluster marks a reference to its app.
-	ensureClusterAppReference(cr, handler)
+	// Make sure this cluster marks a reference to its app.
+	ensureClusterAppReference(cr, reconciler)
 
 	// Make sure we have a Status object to work with.
 	if cr.Status == nil {
-		cr.Status = &kdv1.ClusterStatus{}
+		cr.Status = &kdv1.KubeDirectorClusterStatus{}
 		cr.Status.Roles = make([]kdv1.RoleStatus, 0)
 	}
 
-	// Set up logic to update status as necessary when handler exits.
+	// Set up logic to update status as necessary when reconciler exits.
 	oldStatus := cr.Status.DeepCopy()
 	defer func() {
 		if !reflect.DeepEqual(cr.Status, oldStatus) {
-			// Write back the status. Don't exit this handler until we
-			// succeed (will block other handlers for this resource).
+			// Write back the status. Don't exit this reconciler until we
+			// succeed (will block other reconcilers for this resource).
 			wait := time.Second
 			maxWait := 4096 * time.Second
 			for {
 				cr.Status.GenerationUID = uuid.New().String()
-				writeStatusGen(cr, handler, cr.Status.GenerationUID)
-				updateErr := executor.UpdateStatus(cr)
+				writeStatusGen(cr, reconciler, cr.Status.GenerationUID)
+				updateErr := executor.UpdateStatus(cr, reconciler.Client)
 				if updateErr == nil {
 					return
 				}
@@ -78,6 +65,7 @@ func syncCluster(
 				currentCluster, currentClusterErr := observer.GetCluster(
 					cr.Namespace,
 					cr.Name,
+					reconciler.Client,
 				)
 				if currentClusterErr != nil {
 					if errors.IsNotFound(currentClusterErr) {
@@ -103,14 +91,14 @@ func syncCluster(
 		}
 	}()
 
-	// Ignore stale poll-driven handler for a resource we have since
+	// Ignore stale poll-driven reconciler for a resource we have since
 	// updated. Also for a new CR just update the status state/gen.
-	shouldProcessCR := handleStatusGen(cr, handler)
+	shouldProcessCR := handleStatusGen(cr, reconciler)
 
 	// Regardless of whether the status gen is as expected, make sure the CR
 	// finalizers are as we want them. We use a finalizer to prevent races
 	// between polled CR updates and CR deletion.
-	doExit, finalizerErr := handleFinalizers(cr)
+	doExit, finalizerErr := handleFinalizers(cr, reconciler.Client)
 	if finalizerErr != nil {
 		return finalizerErr
 	}
@@ -132,19 +120,19 @@ func syncCluster(
 		)
 	}
 
-	clusterServiceErr := syncClusterService(cr)
+	clusterServiceErr := syncClusterService(cr, reconciler.Client)
 	if clusterServiceErr != nil {
 		errLog("cluster service", clusterServiceErr)
 		return clusterServiceErr
 	}
 
-	roles, state, rolesErr := syncRoles(cr, handler)
+	roles, state, rolesErr := syncRoles(cr, reconciler)
 	if rolesErr != nil {
 		errLog("roles", rolesErr)
 		return rolesErr
 	}
 
-	memberServicesErr := syncMemberServices(cr, roles)
+	memberServicesErr := syncMemberServices(cr, roles, reconciler.Client)
 	if memberServicesErr != nil {
 		errLog("member services", memberServicesErr)
 		return memberServicesErr
@@ -169,6 +157,7 @@ func syncCluster(
 	configmetaGen, configMetaErr := catalog.ConfigmetaGenerator(
 		cr,
 		calcMembersForRoles(roles),
+		reconciler.Client,
 	)
 	if configMetaErr != nil {
 		shared.LogErrorf(
@@ -181,7 +170,7 @@ func syncCluster(
 	}
 
 	membersHaveChanged := (state == clusterMembersChangedUnready)
-	membersErr := syncMembers(cr, roles, membersHaveChanged, configmetaGen)
+	membersErr := syncMembers(cr, roles, membersHaveChanged, configmetaGen, reconciler.Client)
 	if membersErr != nil {
 		errLog("members", membersErr)
 		return membersErr
@@ -199,11 +188,11 @@ func syncCluster(
 // reject old/stale versions of the CR.
 func handleStatusGen(
 	cr *kdv1.KubeDirectorCluster,
-	handler *Handler,
+	reconciler *ReconcileKubeDirectorCluster,
 ) bool {
 
 	incoming := cr.Status.GenerationUID
-	lastKnown, ok := ReadStatusGen(cr, handler)
+	lastKnown, ok := ReadStatusGen(cr, reconciler)
 	if !ok {
 		if incoming == "" {
 			shared.LogInfo(
@@ -220,9 +209,9 @@ func handleStatusGen(
 			"unknown with incoming gen uid %s",
 			incoming,
 		)
-		writeStatusGen(cr, handler, incoming)
-		ValidateStatusGen(cr, handler)
-		ensureClusterAppReference(cr, handler)
+		writeStatusGen(cr, reconciler, incoming)
+		ValidateStatusGen(cr, reconciler)
+		ensureClusterAppReference(cr, reconciler)
 		return true
 	}
 
@@ -242,12 +231,13 @@ func handleStatusGen(
 // Otherwise it will add our finalizer if it is absent.
 func handleFinalizers(
 	cr *kdv1.KubeDirectorCluster,
+	client k8sclient.Client,
 ) (bool, error) {
 
 	if cr.DeletionTimestamp != nil {
 		// If a deletion has been requested, while ours (or other) finalizers
 		// existed on the CR, go ahead and remove our finalizer.
-		removeErr := executor.RemoveFinalizer(cr)
+		removeErr := executor.RemoveFinalizer(cr, client)
 		if removeErr == nil {
 			shared.LogInfo(
 				cr,
@@ -259,7 +249,7 @@ func handleFinalizers(
 	}
 
 	// If our finalizer doesn't exist on the CR, put it in there.
-	ensureErr := executor.EnsureFinalizer(cr)
+	ensureErr := executor.EnsureFinalizer(cr, client)
 	if ensureErr != nil {
 		return true, ensureErr
 	}

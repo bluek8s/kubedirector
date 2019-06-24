@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package v1alpha1 contains API Schema definitions for the kubedirector v1alpha1 API group
-package v1alpha1
-
-// +k8s:deepcopy-gen=package,register
-// +groupName=kubedirector.bluedata.io
+// Package kubedirectorcluster implements the reconciler.
+//
+// The reconciler logic will make use of the other packages (observer, catalog,
+// executor, etc.) to determine the current state of the relevant resources
+// and adjust them to match the provided spec.
+package kubedirectorcluster

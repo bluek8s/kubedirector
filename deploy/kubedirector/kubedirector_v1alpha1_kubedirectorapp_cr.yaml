@@ -1,0 +1,7 @@
+apiVersion: kubedirector.bluedata.io/v1alpha1
+kind: KubeDirectorApp
+metadata:
+  name: example-kubedirectorapp
+spec:
+  # Add fields here
+  size: 3

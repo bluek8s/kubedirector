@@ -21,9 +21,9 @@ import (
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
-	"github.com/bluek8s/kubedirector/pkg/reconciler"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // configPatchSpec is used to create the PATCH operation for populating
@@ -51,13 +51,14 @@ func (obj configPatchValue) MarshalJSON() ([]byte, error) {
 func validateConfigStorageClass(
 	storageClassName *string,
 	valErrors []string,
+	client k8sclient.Client,
 ) []string {
 
 	if storageClassName == nil {
 		return valErrors
 	}
 
-	_, err := observer.GetStorageClass(*storageClassName)
+	_, err := observer.GetStorageClass(*storageClassName, client)
 
 	if err == nil {
 		return valErrors
@@ -80,7 +81,7 @@ func validateConfigStorageClass(
 // values for missing properties.
 func admitKDConfigCR(
 	ar *v1beta1.AdmissionReview,
-	handlerState *reconciler.Handler,
+	client k8sclient.Client,
 ) *v1beta1.AdmissionResponse {
 
 	var valErrors []string
@@ -107,7 +108,7 @@ func admitKDConfigCR(
 	}
 
 	// Validate storage class name if present.
-	valErrors = validateConfigStorageClass(configCR.Spec.StorageClass, valErrors)
+	valErrors = validateConfigStorageClass(configCR.Spec.StorageClass, valErrors, client)
 
 	// Populate default service type if necessary.
 	if configCR.Spec.ServiceType == nil {

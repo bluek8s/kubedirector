@@ -1,0 +1,128 @@
+// Copyright 2018 BlueData Software, Inc.
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+//     http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package v1alpha1
+
+import (
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// KubeDirectorAppSpec is the spec provided for an app definition.
+// +k8s:openapi-gen=true
+type KubeDirectorAppSpec struct {
+	Label               Label           `json:"label"`
+	DistroID            string          `json:"distro_id"`
+	Version             string          `json:"version"`
+	SchemaVersion       int             `json:"schema_version"`
+	DefaultImageRepoTag *string         `json:"default_image_repo_tag,omitempty"`
+	DefaultSetupPackage SetupPackage    `json:"default_config_package,omitempty"`
+	Services            []Service       `json:"services"`
+	NodeRoles           []NodeRole      `json:"roles"`
+	Config              NodeGroupConfig `json:"config"`
+	DefaultPersistDirs  *[]string       `json:"default_persist_dirs"`
+	Capabilities        []v1.Capability `json:"capabilities"`
+	SystemdRequired     bool            `json:"systemdRequired"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// KubeDirectorApp is the Schema for the kubedirectorapps API
+// +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
+type KubeDirectorApp struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   KubeDirectorAppSpec   `json:"spec,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// KubeDirectorAppList contains a list of KubeDirectorApp
+type KubeDirectorAppList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []KubeDirectorApp `json:"items"`
+}
+
+// Label is a short name and long description for the app definition.
+type Label struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+}
+
+// SetupPackage describes the app setup package to be used. A top-level
+// package can be specified, and/or a role-specific package that will override
+// any top-level package.
+type SetupPackage struct {
+	IsSet      bool
+	IsNull     bool
+	PackageURL SetupPackageURL
+}
+
+// SetupPackageURL is the URL of the setup package.
+type SetupPackageURL struct {
+	PackageURL string `json:"package_url"`
+}
+
+// Service describes a network endpoint that should be exposed for external
+// access, and/or identified for other use by API clients or consumers
+// internal to the virtual cluster (e.g. app setup packages).
+type Service struct {
+	ID       string          `json:"id"`
+	Label    Label           `json:"label,omitempty"`
+	Endpoint ServiceEndpoint `json:"endpoint,omitempty"`
+}
+
+// ServiceEndpoint describes the service network address and protocol, and
+// whether it should be displayed through a web browser.
+type ServiceEndpoint struct {
+	URLScheme   string `json:"url_scheme,omitempty"`
+	Port        *int32 `json:"port"`
+	Path        string `json:"path,omitempty"`
+	IsDashboard bool   `json:"is_dashboard,omitempty"`
+}
+
+// NodeRole describes a subset of virtual cluster members that will provide
+// the same services. At deployment time all role members will receive
+// identical resource assignments.
+type NodeRole struct {
+	ID           string       `json:"id"`
+	Cardinality  string       `json:"cardinality"`
+	ImageRepoTag *string      `json:"image_repo_tag,omitempty"`
+	SetupPackage SetupPackage `json:"config_package,omitempty"`
+	PersistDirs  *[]string    `json:"persist_dirs"`
+	MinResources *v1.ResourceList `json:"min_resources"`
+}
+
+// NodeGroupConfig identifies a set of roles, and the services on those roles.
+// The top-level config indicates which roles and services will always be
+// active. Implementation of "config choices" will introduce other conditional
+// configs.
+type NodeGroupConfig struct {
+	RoleServices   []RoleService     `json:"role_services"`
+	SelectedRoles  []string          `json:"selected_roles"`
+	ConfigMetadata map[string]string `json:"config_meta"`
+}
+
+// RoleService associates a service with a role.
+type RoleService struct {
+	ServiceIDs []string `json:"service_ids"`
+	RoleID     string   `json:"role_id"`
+}
+
+func init() {
+	SchemeBuilder.Register(&KubeDirectorApp{}, &KubeDirectorAppList{})
+}

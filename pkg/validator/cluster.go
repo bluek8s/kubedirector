@@ -17,6 +17,7 @@ package validator
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/bluek8s/kubedirector/pkg/controller/kubedirectorcluster"
 	"reflect"
 	"strconv"
 	"strings"
@@ -24,10 +25,10 @@ import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/observer"
-	"github.com/bluek8s/kubedirector/pkg/reconciler"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // clusterPatchSpec is used to create the PATCH operation for populating
@@ -269,6 +270,7 @@ func validateRoleStorageClass(
 	valErrors []string,
 	kdConfig *kdv1.KubeDirectorConfig,
 	patches []clusterPatchSpec,
+	client k8sclient.Client,
 ) ([]string, []clusterPatchSpec) {
 
 	var validateDefault = false
@@ -285,7 +287,7 @@ func validateRoleStorageClass(
 		storageClass := role.Storage.StorageClass
 		if storageClass != nil {
 			// Storage class is specified, so validate it.
-			_, scErr := observer.GetStorageClass(*storageClass)
+			_, scErr := observer.GetStorageClass(*storageClass, client)
 			if scErr != nil {
 				valErrors = append(
 					valErrors,
@@ -307,7 +309,7 @@ func validateRoleStorageClass(
 			role.Storage.StorageClass = globalStorageClass
 		} else {
 			// Nope. Let's see what K8s says is the default.
-			scK8sDefault, _ := observer.GetDefaultStorageClass()
+			scK8sDefault, _ := observer.GetDefaultStorageClass(client)
 			if scK8sDefault == nil {
 				missingDefault = true
 				continue
@@ -335,7 +337,7 @@ func validateRoleStorageClass(
 			noDefaultStorageClass,
 		)
 	} else if validateDefault {
-		_, err := observer.GetStorageClass(*globalStorageClass)
+		_, err := observer.GetStorageClass(*globalStorageClass, client)
 		if err != nil {
 			valErrors = append(
 				valErrors,
@@ -350,7 +352,7 @@ func validateRoleStorageClass(
 	return valErrors, patches
 }
 
-// validateMinResources function checks to see if minimum resource requiements
+// validateMinResources function checks to see if minimum resource requirements
 // are specified for each role, by checking against associated app roles' minimum
 // requirement
 func validateMinResources(
@@ -451,7 +453,7 @@ func addServiceType(
 // response.
 func admitClusterCR(
 	ar *v1beta1.AdmissionReview,
-	handlerState *reconciler.Handler,
+	client k8sclient.Client,
 ) *v1beta1.AdmissionResponse {
 
 	var valErrors []string
@@ -492,9 +494,10 @@ func admitClusterCR(
 	// Don't allow Status to be updated except by KubeDirector. Do this by
 	// using one-time codes known by KubeDirector.
 	if clusterCR.Status != nil {
-		expectedStatusGen, ok := reconciler.ReadStatusGen(
+		// TODO: undo this KDCReconciler hack
+		expectedStatusGen, ok := kubedirectorcluster.ReadStatusGen(
 			&clusterCR,
-			handlerState,
+			kubedirectorcluster.KDCReconciler,
 		)
 		// Reject this write if either of:
 		// - KubeDirector doesn't know about the cluster resource
@@ -517,9 +520,11 @@ func admitClusterCR(
 			}
 		}
 	}
-	reconciler.ValidateStatusGen(
+
+	// TODO: undo this KDCReconciler hack
+	kubedirectorcluster.ValidateStatusGen(
 		&clusterCR,
-		handlerState,
+		kubedirectorcluster.KDCReconciler,
 	)
 
 	// Shortcut out of here if the spec is not being changed. Among other
@@ -533,7 +538,7 @@ func admitClusterCR(
 	}
 
 	// At this point, if app is bad, no need to continue with validation.
-	appCR, err := catalog.GetApp(&clusterCR)
+	appCR, err := catalog.GetApp(&clusterCR, client)
 	if err != nil {
 		admitResponse.Result = &metav1.Status{
 			Message: "\n" + fmt.Sprintf(invalidAppMessage, clusterCR.Spec.AppID),
@@ -542,7 +547,7 @@ func admitClusterCR(
 	}
 
 	// Fetch global config CR (if present)
-	kdConfigCR, _ := observer.GetKDConfig(shared.KubeDirectorGlobalConfig)
+	kdConfigCR, _ := observer.GetKDConfig(shared.KubeDirectorGlobalConfig, client)
 
 	// Validate cardinality and generate patches for defaults members values.
 	valErrors, patches = validateCardinality(&clusterCR, appCR, valErrors)
@@ -558,6 +563,7 @@ func admitClusterCR(
 		valErrors,
 		kdConfigCR,
 		patches,
+		client,
 	)
 
 	patches = addServiceType(&clusterCR, kdConfigCR, patches)

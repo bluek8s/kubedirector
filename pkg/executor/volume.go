@@ -15,15 +15,18 @@
 package executor
 
 import (
-	"github.com/operator-framework/operator-sdk/pkg/sdk"
+	"context"
+
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // DeletePVC deletes a persistent volume claim from k8s.
 func DeletePVC(
 	namespace string,
 	pvcName string,
+	client k8sclient.Client,
 ) error {
 
 	toDelete := &v1.PersistentVolumeClaim{
@@ -36,5 +39,5 @@ func DeletePVC(
 			Namespace: namespace,
 		},
 	}
-	return sdk.Delete(toDelete)
+	return client.Delete(context.TODO(), toDelete)
 }

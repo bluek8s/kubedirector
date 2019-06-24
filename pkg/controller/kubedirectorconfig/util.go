@@ -12,30 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package reconciler
+package kubedirectorconfig
 
 import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
-	"github.com/operator-framework/operator-sdk/pkg/sdk"
 )
 
-// syncConfig runs the reconciliation logic for config cr. It is invoked because of a
-// change in or addition of a KubeDirectorConfig resource, or a periodic
-// polling to check on such a resource. Currently all we do is set the config data
-// in handler structure on add/change and on deletes set config data to be nil
-func syncConfig(
-	event sdk.Event,
+// removeGlobalConfig removes the globalConfig from handler structure
+func removeGlobalConfig(r *ReconcileKubeDirectorConfig) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.globalConfig = nil
+}
+
+// addGlobalConfig adds the globalConfig CR data to handler structure
+func addGlobalConfig(
+	r *ReconcileKubeDirectorConfig,
 	cr *kdv1.KubeDirectorConfig,
-	handler *Handler,
-) error {
-
-	// Exit early if deleting the resource.
-	if event.Deleted {
-		removeGlobalConfig(handler)
-		return nil
-	}
-
-	addGlobalConfig(handler, cr)
-
-	return nil
+) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.globalConfig = cr
 }

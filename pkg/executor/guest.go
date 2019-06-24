@@ -28,6 +28,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/exec"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // IsFileExists probes whether the given pod's filesystem contains something
@@ -38,6 +39,7 @@ func IsFileExists(
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
 	filePath string,
+	client k8sclient.Client,
 ) (bool, error) {
 
 	command := []string{"test", "-f", filePath}
@@ -45,7 +47,7 @@ func IsFileExists(
 	// stream to avoid an error.
 	var stdOut bytes.Buffer
 	ioStreams := &streams{out: &stdOut}
-	execErr := execCommand(cr, podName, command, ioStreams)
+	execErr := execCommand(cr, podName, command, ioStreams, client)
 	if execErr != nil {
 		// Determine which type of error occured
 		coe, iscoe := execErr.(exec.CodeExitError)
@@ -70,6 +72,7 @@ func CreateDir(
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
 	dirName string,
+	client k8sclient.Client,
 ) error {
 
 	command := []string{"mkdir", "-p", dirName}
@@ -77,7 +80,7 @@ func CreateDir(
 	// stream to avoid an error.
 	var stdOut bytes.Buffer
 	ioStreams := &streams{out: &stdOut}
-	return execCommand(cr, podName, command, ioStreams)
+	return execCommand(cr, podName, command, ioStreams, client)
 }
 
 // CreateFile takes the stream from the given reader, and writes it to the
@@ -87,9 +90,10 @@ func CreateFile(
 	podName string,
 	filePath string,
 	reader io.Reader,
+	client k8sclient.Client,
 ) error {
 
-	createDirErr := CreateDir(cr, podName, filepath.Dir(filePath))
+	createDirErr := CreateDir(cr, podName, filepath.Dir(filePath), client)
 
 	if createDirErr != nil {
 		return createDirErr
@@ -106,7 +110,7 @@ func CreateFile(
 		filePath,
 		podName,
 	)
-	execErr := execCommand(cr, podName, command, ioStreams)
+	execErr := execCommand(cr, podName, command, ioStreams, client)
 	if execErr != nil {
 		return execErr
 	}
@@ -122,6 +126,7 @@ func ReadFile(
 	podName string,
 	filePath string,
 	writer io.Writer,
+	client k8sclient.Client,
 ) (bool, error) {
 
 	command := []string{"cat", filePath}
@@ -135,7 +140,7 @@ func ReadFile(
 		filePath,
 		podName,
 	)
-	execErr := execCommand(cr, podName, command, ioStreams)
+	execErr := execCommand(cr, podName, command, ioStreams, client)
 	if execErr != nil {
 		coe, iscoe := execErr.(exec.CodeExitError)
 		if iscoe {
@@ -155,6 +160,7 @@ func RunScript(
 	podName string,
 	description string,
 	reader io.Reader,
+	client k8sclient.Client,
 ) error {
 
 	command := []string{execShell}
@@ -168,7 +174,7 @@ func RunScript(
 		description,
 		podName,
 	)
-	execErr := execCommand(cr, podName, command, ioStreams)
+	execErr := execCommand(cr, podName, command, ioStreams, client)
 	if execErr != nil {
 		return execErr
 	}
@@ -183,9 +189,10 @@ func execCommand(
 	podName string,
 	command []string,
 	ioStreams *streams,
+	client k8sclient.Client,
 ) error {
 
-	pod, podErr := observer.GetPod(cr.Namespace, podName)
+	pod, podErr := observer.GetPod(cr.Namespace, podName, client)
 	if podErr != nil {
 		shared.LogErrorf(
 			cr,

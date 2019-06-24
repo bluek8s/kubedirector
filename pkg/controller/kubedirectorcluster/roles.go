@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package reconciler
+package kubedirectorcluster
 
 import (
 	"fmt"
@@ -24,6 +24,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/apimachinery/pkg/api/errors"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // syncRoles is responsible for dealing with roles being changed, added, or
@@ -34,11 +35,11 @@ import (
 // can be referenced by the later syncs for other concerns.
 func syncRoles(
 	cr *kdv1.KubeDirectorCluster,
-	handler *Handler,
+	reconciler *ReconcileKubeDirectorCluster,
 ) ([]*roleInfo, clusterStateInternal, error) {
 
 	// Construct the role info slice. Bail out now if that fails.
-	roles, rolesErr := initRoleInfo(cr)
+	roles, rolesErr := initRoleInfo(cr, reconciler.Client)
 	if rolesErr != nil {
 		return nil, clusterMembersUnknown, rolesErr
 	}
@@ -62,14 +63,14 @@ func syncRoles(
 		switch {
 		case r.statefulSet == nil && r.roleStatus == nil:
 			// Role did not previously exist. Create it now.
-			createErr := handleRoleCreate(cr, r, handler, &anyMembersChanged)
+			createErr := handleRoleCreate(cr, r, &anyMembersChanged, reconciler)
 			if createErr != nil {
 				return nil, clusterMembersUnknown, createErr
 			}
 		case r.statefulSet == nil && r.roleStatus != nil:
 			// Role exists but there is no statefulset for it in k8s.
 			// Hmm, weird. Statefulset was deleted out-of-band? Let's fix.
-			reCreateErr := handleRoleReCreate(cr, r, handler, &anyMembersChanged)
+			reCreateErr := handleRoleReCreate(cr, r, reconciler, &anyMembersChanged)
 			if reCreateErr != nil {
 				return nil, clusterMembersUnknown, reCreateErr
 			}
@@ -81,7 +82,7 @@ func syncRoles(
 			// Now check for desired changes in role population.
 			if len(r.roleStatus.Members) == 0 && r.desiredPop == 0 {
 				// Role is going away and we have finished removing pods.
-				handleRoleDelete(cr, r)
+				handleRoleDelete(cr, r, reconciler.Client)
 			} else {
 				// Might need to change role population.
 				handleRoleResize(cr, r, &anyMembersChanged)
@@ -123,6 +124,7 @@ func syncRoles(
 // sync logic for other concerns.
 func initRoleInfo(
 	cr *kdv1.KubeDirectorCluster,
+	client k8sclient.Client,
 ) ([]*roleInfo, error) {
 
 	roles := make(map[string]*roleInfo)
@@ -162,6 +164,7 @@ func initRoleInfo(
 		statefulSet, statefulSetErr := observer.GetStatefulSet(
 			cr.Namespace,
 			roleStatus.StatefulSet,
+			client,
 		)
 		if statefulSetErr != nil {
 			if errors.IsNotFound(statefulSetErr) {
@@ -241,12 +244,12 @@ func calcRoleMembersByState(
 // handleRoleCreate deals with a newly specified role. If the desired population
 // is nonzero then it will create an associated statefulset and create the
 // role status and its member statuses (initially as create_pending). Failure
-// to create a statefulset will be a handler-stopping error.
+// to create a statefulset will be a reconciler-stopping error.
 func handleRoleCreate(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
-	handler *Handler,
 	anyMembersChanged *bool,
+	reconciler *ReconcileKubeDirectorCluster,
 ) error {
 
 	if role.desiredPop == 0 {
@@ -262,17 +265,18 @@ func handleRoleCreate(
 		role.roleSpec.Name,
 	)
 
-	nativeSystemdSupport := getNativeSystemdSupport(handler)
+	nativeSystemdSupport := getNativeSystemdSupport(reconciler)
 
 	// Create the associated statefulset.
 	statefulSet, createErr := executor.CreateStatefulSet(
 		cr,
 		nativeSystemdSupport,
 		role.roleSpec,
+		reconciler.Client,
 	)
 	if createErr != nil {
 		// Not much to do if we can't create it... we'll just keep trying
-		// on every run through the handler.
+		// on every run through the reconciler.
 		shared.LogErrorf(
 			cr,
 			shared.EventReasonRole,
@@ -305,11 +309,11 @@ func handleRoleCreate(
 // handleRoleCreate deals with the unusual-but-possible case of the role
 // status existing but the statefulset gone missing. It may need to clean up
 // the role status or re-create the statefulset. Failure to create a
-// statefulset will be a handler-stopping error.
+// statefulset will be a reconciler-stopping error.
 func handleRoleReCreate(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
-	handler *Handler,
+	reconciler *ReconcileKubeDirectorCluster,
 	anyMembersChanged *bool,
 ) error {
 
@@ -320,7 +324,7 @@ func handleRoleReCreate(
 			role.roleStatus.StatefulSet = ""
 		} else {
 			// Create a new statefulset for the role.
-			return handleRoleCreate(cr, role, handler, anyMembersChanged)
+			return handleRoleCreate(cr, role, anyMembersChanged, reconciler)
 		}
 	} else {
 		shared.LogInfof(
@@ -357,7 +361,7 @@ func handleRoleReCreate(
 
 // handleRoleConfig checks an existing statefulset to see if any of its
 // important properties (other than replicas count) need to be reconciled.
-// Failure to reconcile will not be treated as a handler-stopping error; we'll
+// Failure to reconcile will not be treated as a reconciler-stopping error; we'll
 // just try again next time.
 func handleRoleConfig(
 	cr *kdv1.KubeDirectorCluster,
@@ -381,10 +385,11 @@ func handleRoleConfig(
 
 // handleRoleDelete takes care of deleting the associated statefulset after
 // the role members have been cleaned up. Failure to delete will not be
-// treated as a handler-stopping error; we'll just try again next time.
+// treated as a reconciler-stopping error; we'll just try again next time.
 func handleRoleDelete(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
+	client k8sclient.Client,
 ) {
 
 	shared.LogInfof(
@@ -393,7 +398,7 @@ func handleRoleDelete(
 		"finishing cleanup on role{%s}",
 		role.roleStatus.Name,
 	)
-	deleteErr := executor.DeleteStatefulSet(cr.Namespace, role.statefulSet.Name)
+	deleteErr := executor.DeleteStatefulSet(cr.Namespace, role.statefulSet.Name, client)
 	if deleteErr == nil || errors.IsNotFound(deleteErr) {
 		// Mark the role status for removal.
 		role.roleStatus.StatefulSet = ""

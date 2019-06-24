@@ -12,12 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package reconciler
+package kubedirectorcluster
 
 import (
-	"sync"
-
-	"github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -29,16 +26,9 @@ type StatusGen struct {
 	Validated bool
 }
 
-type handlerClusterState struct {
+type reconcilerClusterState struct {
 	clusterStatusGens map[types.UID]StatusGen
 	clusterAppTypes   map[string]string
-}
-
-//Handler provides a lock, cluster state and config value for a given cluster
-type Handler struct {
-	lock         sync.RWMutex
-	clusterState handlerClusterState
-	globalConfig *v1alpha1.KubeDirectorConfig
 }
 
 type clusterState string
@@ -94,9 +84,6 @@ const (
 	2> /opt/guestconfig/configure.stderr
 	1> /opt/guestconfig/configure.stdout;
 	echo -n $? > /opt/guestconfig/configure.status" &`
-)
-
-const (
 	zeroPortsService = "n/a"
 )
 

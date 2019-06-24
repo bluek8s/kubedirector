@@ -15,28 +15,20 @@
 package executor
 
 import (
-	"encoding/json"
+	"context"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 	"strings"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-// replicasPatchSpec is used to create PATCH operation input for modifying a
-// statefulset's replicas count.
-type replicasPatchSpec struct {
-	Op    string `json:"op"`
-	Path  string `json:"path"`
-	Value int32  `json:"value"`
-}
 
 // defaultMountFolders identifies the set of member filesystems directories
 // that will always be placed on shared persistent storage (when available).
@@ -48,13 +40,14 @@ func CreateStatefulSet(
 	cr *kdv1.KubeDirectorCluster,
 	nativeSystemdSupport bool,
 	role *kdv1.Role,
+	client k8sclient.Client,
 ) (*appsv1.StatefulSet, error) {
 
-	statefulSet, err := getStatefulset(cr, nativeSystemdSupport, role, 0)
+	statefulSet, err := getStatefulset(cr, nativeSystemdSupport, role, 0, client)
 	if err != nil {
 		return nil, err
 	}
-	return statefulSet, sdk.Create(statefulSet)
+	return statefulSet, client.Create(context.TODO(), statefulSet)
 }
 
 // UpdateStatefulSetReplicas modifies an existing statefulset in k8s to have
@@ -63,21 +56,25 @@ func UpdateStatefulSetReplicas(
 	cr *kdv1.KubeDirectorCluster,
 	replicas int32,
 	statefulSet *appsv1.StatefulSet,
+	client k8sclient.Client,
 ) error {
 
-	replicasPatch := []replicasPatchSpec{
-		{
-			Op:    "replace",
-			Path:  "/spec/replicas",
-			Value: replicas,
-		},
-	}
-	replicasPatchBytes, patchErr := json.Marshal(replicasPatch)
-	if patchErr == nil {
-		patchErr = sdk.Patch(statefulSet, types.JSONPatchType, replicasPatchBytes)
+	prevStatefulSet := &appsv1.StatefulSet{}
+	err := client.Get(
+			context.TODO(),
+			types.NamespacedName{
+				Namespace: statefulSet.Namespace,
+				Name: statefulSet.Name,
+			},
+			prevStatefulSet,
+		)
+	if err != nil {
+		return err
 	}
 
-	return patchErr
+	*prevStatefulSet.Spec.Replicas = replicas
+	err = client.Update(context.TODO(), prevStatefulSet)
+	return err
 }
 
 // UpdateStatefulSetNonReplicas examines a current statefulset in k8s and may take
@@ -106,6 +103,7 @@ func UpdateStatefulSetNonReplicas(
 func DeleteStatefulSet(
 	namespace string,
 	statefulSetName string,
+	client k8sclient.Client,
 ) error {
 
 	toDelete := &appsv1.StatefulSet{
@@ -118,7 +116,7 @@ func DeleteStatefulSet(
 			Namespace: namespace,
 		},
 	}
-	return sdk.Delete(toDelete)
+	return client.Delete(context.TODO(), toDelete)
 }
 
 // getStatefulset composes the spec for creating a statefulset in k8s, based
@@ -129,12 +127,13 @@ func getStatefulset(
 	nativeSystemdSupport bool,
 	role *kdv1.Role,
 	replicas int32,
+	client k8sclient.Client,
 ) (*appsv1.StatefulSet, error) {
 
 	labels := labelsForRole(cr, role)
 	startupScript := getStartupScript(cr)
 
-	portInfoList, portsErr := catalog.PortsForRole(cr, role.Name)
+	portInfoList, portsErr := catalog.PortsForRole(cr, role.Name, client)
 	if portsErr != nil {
 		return nil, portsErr
 	}
@@ -149,7 +148,7 @@ func getStatefulset(
 	}
 
 	// Check to see if app has requested additional directories to be persisted
-	appPersistDirs, persistErr := catalog.AppPersistDirs(cr, role.Name)
+	appPersistDirs, persistErr := catalog.AppPersistDirs(cr, role.Name, client)
 	if persistErr != nil {
 		return nil, persistErr
 	}
@@ -201,18 +200,19 @@ func getStatefulset(
 		role,
 		nativeSystemdSupport,
 		persistDirs,
+		client,
 	)
 
 	if volumesErr != nil {
 		return nil, volumesErr
 	}
 
-	imageID, imageErr := catalog.ImageForRole(cr, role.Name)
+	imageID, imageErr := catalog.ImageForRole(cr, role.Name, client)
 	if imageErr != nil {
 		return nil, imageErr
 	}
 
-	securityContext, securityErr := generateSecurityContext(cr)
+	securityContext, securityErr := generateSecurityContext(cr, client)
 	if securityErr != nil {
 		return nil, securityErr
 	}
@@ -393,6 +393,7 @@ func generateVolumeMounts(
 	role *kdv1.Role,
 	nativeSystemdSupport bool,
 	persistDirs []string,
+	client k8sclient.Client,
 ) ([]v1.VolumeMount, []v1.Volume, error) {
 
 	var volumeMounts []v1.VolumeMount
@@ -406,7 +407,7 @@ func generateVolumeMounts(
 	volumeMounts = append(volumeMounts, tmpfsVolMnts...)
 	volumes = append(volumes, tmpfsVols...)
 
-	isSystemdReqd, err := catalog.SystemdRequired(cr)
+	isSystemdReqd, err := catalog.SystemdRequired(cr, client)
 
 	if err != nil {
 		return volumeMounts, volumes, err
@@ -543,9 +544,10 @@ func generateTmpfsSupport(
 // return nil
 func generateSecurityContext(
 	cr *kdv1.KubeDirectorCluster,
+	client k8sclient.Client,
 ) (*v1.SecurityContext, error) {
 
-	appCapabilities, err := catalog.AppCapabilities(cr)
+	appCapabilities, err := catalog.AppCapabilities(cr, client)
 	if err != nil {
 		return nil, err
 	}

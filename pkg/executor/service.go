@@ -164,7 +164,7 @@ func UpdatePodService(
 		service.Name,
 	)
 
-	// TODO: See if we can just use the service that was passed in.
+	// TODO: should we just use the service that was passed in?
 	prevService := &v1.Service{}
 	err := client.Get(
 		context.TODO(),
@@ -185,6 +185,7 @@ func UpdatePodService(
 		return err
 	}
 
+	service.Spec.Type = reqServiceType
 	prevService.Spec.Type = reqServiceType
 	err = client.Status().Update(context.TODO(), prevService)
 	if err != nil {

@@ -108,9 +108,9 @@ func (r *ReconcileKubeDirectorCluster) Reconcile(request reconcile.Request) (rec
 		// resource has been deleted, so there is nothing left
 		// to do.
 		if apierrors.IsNotFound(err) {
-			// TODO: I put this code here to make the behaviour of the
-			//  existing code, but we don't have kdCluster's UID at this
-			//  point because the cluster has been deleted.
+			// TODO: I put this code here temporarily to make the behaviour
+			//  of the existing code, but we don't have kdCluster's UID at
+			//  this point because the cluster has been deleted.
 			//  deleteStatusGen() needs to be called or we will leak entries
 			//  in the map.
 			// deleteStatusGen(kdCluster, r)

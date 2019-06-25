@@ -46,8 +46,8 @@ func syncClusterService(
 	client k8sclient.Client,
 ) error {
 
-	// If we already have the cluster service name stored, look it up to see
-	// if it still exists.
+	// If we already have the cluster service name stored,
+	// look it up to see if it still exists.
 	clusterService, queryErr := queryService(
 		cr,
 		cr.Status.ClusterService,

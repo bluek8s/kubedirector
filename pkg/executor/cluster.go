@@ -56,7 +56,9 @@ func UpdateStatus(
 
 	// TBD: We should probably write to the status sub-resource. That's only
 	// available in 1.11 (beta feature) and later though. So for now let's
-	// just modify the status property of the CR.EnsureFinalizer
+	// just modify the status property of the CR.
+
+	// TODO: Can just use the cr that was passed in?
 	prevCr.Status = cr.Status
 	err = client.Status().Update(context.TODO(), prevCr)
 	if err != nil {
@@ -89,7 +91,7 @@ func RemoveFinalizer(
 		return nil
 	}
 
-	// TODO: See if we can just use the cr that was passed in.
+	// TODO: Can just use the cr that was passed in?
 	prevCr := &kdv1.KubeDirectorCluster{}
 	err := client.Get(
 		context.TODO(),
@@ -142,7 +144,7 @@ func EnsureFinalizer(
 
 	cr.Finalizers = append(cr.Finalizers, finalizerID)
 
-	// TODO: See if we can just use the cr that was passed in.
+	// TODO: Can just use the cr that was passed in.
 	prevCr := &kdv1.KubeDirectorCluster{}
 	err := client.Get(
 		context.TODO(),

@@ -59,6 +59,7 @@ func UpdateStatefulSetReplicas(
 	client k8sclient.Client,
 ) error {
 
+	// TODO: can we just use the statefulset that was passed in?
 	prevStatefulSet := &appsv1.StatefulSet{}
 	err := client.Get(
 			context.TODO(),
@@ -72,6 +73,7 @@ func UpdateStatefulSetReplicas(
 		return err
 	}
 
+	*statefulSet.Spec.Replicas = replicas
 	*prevStatefulSet.Spec.Replicas = replicas
 	err = client.Update(context.TODO(), prevStatefulSet)
 	return err

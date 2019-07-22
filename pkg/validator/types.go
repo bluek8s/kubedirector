@@ -32,6 +32,10 @@ const (
 	defaultServiceType   = "LoadBalancer"
 	defaultNativeSystemd = false
 
+	defaultFileInjectionMode  = "644"
+	defaultFileInjectionOwner = "root"
+	defaultFileInjectionGroup = "root"
+
 	appCrt  = "app.crt"
 	appKey  = "app.pem"
 	rootCrt = "ca.crt"
@@ -66,4 +70,5 @@ const (
 	badDefaultStorageClass  = "storageClassName is not specified for one or more roles, and default storage class (%s) is not available on the system."
 
 	invalidResource = "Specified resource(\"%s\") value(\"%s\") for role(\"%s\") is invalid. Minimum value must be \"%s\"."
+	invalidSrcURL   = "Unable to access the specified URL(\"%s\") in file injection spec for the role (%s). error: %s."
 )

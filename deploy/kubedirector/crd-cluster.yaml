@@ -83,6 +83,26 @@ spec:
                         storageClassName:
                           type: string
                           minLength: 1
+                  fileInjections:
+                    type: array
+                    items:
+                      required: [srcUrl, destDir]
+                      properties:
+                        srcUrl:
+                          type: string
+                          pattern: '^https?://.+$'
+                        destDir:
+                          type: string
+                          pattern: '^/.*$'
+                          minLength: 1
+                        permissions:
+                          properties:
+                            fileMode:
+                              type: string
+                            fileOwner:
+                              type: string
+                            fileGroup:
+                              type: string
         status:
           properties:
             state:

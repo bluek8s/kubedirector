@@ -129,13 +129,10 @@ func GetPVC(
 }
 
 // GetApp fetches the k8s KubeDirectorApp resource.
-// Namespace is determined by the argument passed in
-// - If appNamespace is not empty, it is used for fetching the resource
-// - If empty, then resource is first checked in the cluster namespace
-//     and if not found, it will be checked in the kubedirector's namespace
+// First check if the app exists in the cluster cr's namespace,
+// if not found check in kubedirector's namespace
 func GetApp(
 	clusterNamespace string,
-	appNamespace *string,
 	appID string,
 ) (*kdv1.KubeDirectorApp, error) {
 
@@ -151,25 +148,18 @@ func GetApp(
 		},
 	}
 
-	if appNamespace == nil {
-		// app namespace is not specified. check to see if this app exists
-		// in the cluster namespace
-		appSpec.ObjectMeta.Namespace = clusterNamespace
-		appErr = sdk.Get(appSpec)
+	// Check to see if this app exists in the cluster namespace
+	appSpec.ObjectMeta.Namespace = clusterNamespace
+	appErr = sdk.Get(appSpec)
 
-		// Check to see if it is present in our namespace
-		if appErr != nil {
-			kdNamespace, nsErr := shared.GetKubeDirectorNamespace()
-			if nsErr != nil {
-				return nil, nsErr
-			}
-
-			appSpec.ObjectMeta.Namespace = kdNamespace
-			appErr = sdk.Get(appSpec)
+	// Check to see if it is present in our namespace
+	if appErr != nil {
+		kdNamespace, nsErr := shared.GetKubeDirectorNamespace()
+		if nsErr != nil {
+			return nil, nsErr
 		}
-	} else {
-		// Check to see if this app exists in the cluster namespace
-		appSpec.ObjectMeta.Namespace = *appNamespace
+
+		appSpec.ObjectMeta.Namespace = kdNamespace
 		appErr = sdk.Get(appSpec)
 	}
 

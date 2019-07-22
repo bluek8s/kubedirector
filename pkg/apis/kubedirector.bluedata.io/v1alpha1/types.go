@@ -47,10 +47,9 @@ type KubeDirectorCluster struct {
 // LoadBalancer services. The Roles field describes the requested cluster roles,
 // each of which will be implemented (by KubeDirector) using a StatefulSet.
 type ClusterSpec struct {
-	AppID        string  `json:"app"`
-	AppNamespace *string `json:"app_namespace"`
-	ServiceType  *string `json:"serviceType"`
-	Roles        []Role  `json:"roles"`
+	AppID       string  `json:"app"`
+	ServiceType *string `json:"serviceType"`
+	Roles       []Role  `json:"roles"`
 }
 
 // EnvVar specifies environment variables for the start script in a
@@ -87,6 +86,7 @@ type ClusterStatus struct {
 	ClusterService string       `json:"cluster_service"`
 	LastNodeID     int64        `json:"last_node_id"`
 	Roles          []RoleStatus `json:"roles"`
+	AppNamespace   string       `json:"app_namespace"`
 }
 
 // RoleStatus describes the component objects of a virtual cluster role.

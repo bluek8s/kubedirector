@@ -39,13 +39,17 @@ type clusterPatchSpec struct {
 }
 
 type clusterPatchValue struct {
-	ValueInt *int32
-	ValueStr *string
+	ValueInt           *int32
+	ValueStr           *string
+	ValueClusterStatus *kdv1.ClusterStatus
 }
 
 func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
 	if obj.ValueInt != nil {
 		return json.Marshal(obj.ValueInt)
+	}
+	if obj.ValueClusterStatus != nil {
+		return json.Marshal(obj.ValueClusterStatus)
 	}
 	return json.Marshal(obj.ValueStr)
 }
@@ -88,6 +92,7 @@ func validateCardinality(
 				anyError = true
 				valErrors = append(
 					valErrors,
+
 					fmt.Sprintf(
 						invalidCardinality,
 						role.Name,
@@ -191,14 +196,6 @@ func validateGeneralChanges(
 			"app",
 		)
 		valErrors = append(valErrors, appModifiedMsg)
-	}
-
-	if cr.Spec.AppNamespace != prevCr.Spec.AppNamespace {
-		appNSModifiedMsg := fmt.Sprintf(
-			modifiedProperty,
-			"app_namespace",
-		)
-		valErrors = append(valErrors, appNSModifiedMsg)
 	}
 
 	return valErrors
@@ -358,23 +355,13 @@ func validateRoleStorageClass(
 	return valErrors, patches
 }
 
+// validateApp function checks for valid app and also
+// creates a patch to setup app_namespace field in
+// status resource
 func validateApp(
 	cr *kdv1.KubeDirectorCluster,
 	patches []clusterPatchSpec,
 ) (*kdv1.KubeDirectorApp, []clusterPatchSpec, string) {
-
-	kdNamespace, nsErr := shared.GetKubeDirectorNamespace()
-	if nsErr != nil {
-		return nil, patches, "unable to fetch namespace of kubedirector"
-	}
-
-	var appNamespace = cr.Spec.AppNamespace
-	if appNamespace != nil {
-		if *appNamespace != cr.Namespace && *appNamespace != kdNamespace {
-			return nil, patches,
-				"\n" + fmt.Sprintf(invalidAppNamespace, *appNamespace)
-		}
-	}
 
 	appCR, err := catalog.GetApp(cr)
 
@@ -383,19 +370,21 @@ func validateApp(
 			"\n" + fmt.Sprintf(invalidAppMessage, cr.Spec.AppID)
 	}
 
-	// Generate a patch object if user had not specified app namespace
-	if appNamespace == nil {
-		patches = append(
-			patches,
-			clusterPatchSpec{
-				Op:   "add",
-				Path: "/spec/app_namespace",
-				Value: clusterPatchValue{
-					ValueStr: &appCR.Namespace,
-				},
-			},
-		)
+	cr.Status = &kdv1.ClusterStatus{
+		AppNamespace: appCR.Namespace,
 	}
+	cr.Status.Roles = make([]kdv1.RoleStatus, 0)
+	// Generate a patch object to add app namespace to the status resource
+	patches = append(
+		patches,
+		clusterPatchSpec{
+			Op:   "add",
+			Path: "/status",
+			Value: clusterPatchValue{
+				ValueClusterStatus: cr.Status,
+			},
+		},
+	)
 
 	return appCR, patches, ""
 }

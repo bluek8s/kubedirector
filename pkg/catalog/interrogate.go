@@ -313,7 +313,7 @@ func GetApp(
 	if cr.AppSpec != nil {
 		return cr.AppSpec, nil
 	}
-	appCR, appErr := observer.GetApp(cr.Namespace, cr.Spec.AppNamespace, cr.Spec.AppID)
+	appCR, appErr := observer.GetApp(cr.Namespace, cr.Spec.AppID)
 	if appErr != nil {
 		return nil, fmt.Errorf(
 			"failed to fetch CR for the App : %s error %v",

@@ -101,7 +101,7 @@ func ensureClusterAppReference(
 	cr *kdv1.KubeDirectorCluster,
 	handler *Handler,
 ) {
-	clusterKey := *cr.Spec.AppNamespace + "/" + cr.Namespace + "/" + cr.Name
+	clusterKey := cr.Status.AppNamespace + "/" + cr.Namespace + "/" + cr.Name
 	handler.lock.Lock()
 	defer handler.lock.Unlock()
 	handler.clusterState.clusterAppTypes[clusterKey] = cr.Spec.AppID
@@ -113,7 +113,7 @@ func removeClusterAppReference(
 	cr *kdv1.KubeDirectorCluster,
 	handler *Handler,
 ) {
-	clusterKey := *cr.Spec.AppNamespace + "/" + cr.Namespace + "/" + cr.Name
+	clusterKey := cr.Status.AppNamespace + "/" + cr.Namespace + "/" + cr.Name
 	handler.lock.Lock()
 	defer handler.lock.Unlock()
 	delete(handler.clusterState.clusterAppTypes, clusterKey)

@@ -20,9 +20,6 @@ spec:
             app:
               type: string
               minLength: 1
-            app_namespace:
-              type: string
-              minLength: 1
             serviceType:
               type: string
               pattern: '^NodePort$|^LoadBalancer$'
@@ -96,6 +93,8 @@ spec:
               type: string
             last_node_id:
               type: integer
+            app_namespace:
+              type: string
             roles:
               type: array
               items:

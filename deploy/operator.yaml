@@ -18,9 +18,16 @@ spec:
           # Replace this with the built image name
           image: REPLACE_IMAGE
           command:
-          - kubedirector
+          - "/bin/sh"
+          args:
+          - "-c"
+          - "mkfifo /tmp/fifo; (/usr/local/bin/kubedirector &> /tmp/fifo) & while true; do cat /tmp/fifo; done"
           imagePullPolicy: Always
           env:
+            - name: MY_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             - name: WATCH_NAMESPACE
               valueFrom:
                 fieldRef:

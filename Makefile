@@ -9,11 +9,13 @@ image ?= ${default_image}
 cluster_resource_name := KubeDirectorCluster
 app_resource_name := KubeDirectorApp
 
+bin_dir := /usr/local/bin
 project_name := kubedirector
 
-local_deploy_yaml := deploy/kubedirector/deployment-localbuilt.yaml
-
+configcli_dir := /root
 configcli_version := 0.5
+
+local_deploy_yaml := deploy/kubedirector/deployment-localbuilt.yaml
 
 UNAME := $(shell uname)
 
@@ -28,6 +30,8 @@ endif
 
 build_dir := build/_output
 configcli_dest := $(build_dir)/configcli.tgz
+goarch := amd64
+cgo_enabled := 0 
 
 .DEFAULT_GOAL := build
 
@@ -36,21 +40,7 @@ build: configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcop
 	@test -d vendor || dep ensure -v
 	operator-sdk build ${image}
 	@docker image prune -f > /dev/null
-	@sed ${sedseparator} \
-        -e '/command:/ { n; ' \
-        -e 's~.*~          - "/bin/sh"~; ' \
-        -e 'a\          args:' \
-        -e 'a\          - "-c"' \
-        -e 'a\          - "mkfifo /tmp/fifo; (/root/${project_name} \&> /tmp/fifo) \& while true; do cat /tmp/fifo; done"' \
-        -e '}' \
-        -e '/env:/ {' \
-        -e 'a\            - name: MY_NAMESPACE' \
-        -e 'a\              valueFrom:' \
-        -e 'a\                fieldRef:' \
-        -e 'a\                  fieldPath: metadata.namespace' \
-        -e '}' \
-        -e 's~REPLACE_IMAGE~${image}~' \
-        deploy/operator.yaml >${local_deploy_yaml}
+	@sed ${sedseparator} -e 's~REPLACE_IMAGE~${image}~' deploy/operator.yaml >${local_deploy_yaml}
 	@echo done
 	@echo
 
@@ -59,14 +49,14 @@ debug: build
 debug:
 	@echo \* Applying debug settings to KubeDirector deployment YAML...
 	@sed -i ${sedseparator} \
-        -e '/\/root\/${project_name}/s~~/root/dlv --listen=:40000 --headless --api-version=2 exec &~' \
-        -e '/template:/,/metadata:/ {' \
-        -e '/metadata:/ {' \
+        -e '\~${bin_dir}/${project_name}~s~~${bin_dir}/dlv --listen=:40000 --headless --api-version=2 exec &~' \
+        -e '\~template:~,\~metadata:~ {' \
+        -e '\~metadata:~ {' \
         -e 'a\      annotations:' \
         -e 'a\        container.apparmor.security.beta.kubernetes.io/${project_name}: unconfined' \
         -e '}' \
         -e '}' \
-        -e '/image:/ {' \
+        -e '\~image:~ {' \
         -e 'a\          ports:' \
         -e 'a\          - containerPort: 40000' \
         -e 'a\            hostPort: 40000' \
@@ -191,17 +181,17 @@ redeploy:
 	@echo \* Injecting new configcli package...
 	@set -e; \
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
-        kubectl exec $$podname -- mv -f /root/configcli.tgz /root/configcli.tgz.bak || true; \
-        kubectl cp ${build_dir}/configcli.tgz $$podname:/root/configcli.tgz
+        kubectl exec $$podname -- mv -f ${configcli_dir}/configcli.tgz ${configcli_dir}/configcli.tgz.bak || true; \
+        kubectl cp ${build_dir}/configcli.tgz $$podname:${configcli_dir}/configcli.tgz
 	@echo
 	@echo \* Injecting and starting new KubeDirector binary...
 	@set -e; \
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
         kubectl exec $$podname -- /bin/sh -c "echo REDEPLOYING > /tmp/fifo"; \
-        kubectl exec $$podname -- mv -f /root/${project_name} /root/${project_name}.bak || true; \
-        kubectl cp ${build_dir}/bin/${project_name} $$podname:/root/${project_name}; \
-        kubectl exec $$podname -- chmod +x /root/${project_name}; \
-        kubectl exec -t $$podname -- /bin/sh -c "/root/${project_name} &> /tmp/fifo &"; \
+        kubectl exec $$podname -- mv -f ${bin_dir}/${project_name} ${bin_dir}/${project_name}.bak || true; \
+        kubectl cp ${build_dir}/bin/${project_name} $$podname:${bin_dir}/${project_name}; \
+        kubectl exec $$podname -- chmod +x ${bin_dir}/${project_name}; \
+        kubectl exec -t $$podname -- /bin/sh -c "${bin_dir}/${project_name} &> /tmp/fifo &"; \
         echo; \
         echo KubeDirector pod name is $$podname
 	@echo
@@ -277,7 +267,8 @@ teardown: undeploy
 
 compile:
 	make clean
-	go build -o ${build_dir}/bin ./cmd/manager
+	GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
+		go build -o ${build_dir}/bin/${project_name} ./cmd/manager
 
 format:
 	go fmt $(shell go list ./... | grep -v /vendor/)

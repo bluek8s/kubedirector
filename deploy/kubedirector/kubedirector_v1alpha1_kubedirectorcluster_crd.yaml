@@ -10,8 +10,6 @@ spec:
     plural: kubedirectorclusters
     singular: kubedirectorcluster
   scope: Namespaced
-  subresources:
-    status: {}
   validation:
     openAPIV3Schema:
       properties:

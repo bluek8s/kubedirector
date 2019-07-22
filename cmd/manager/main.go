@@ -49,9 +49,9 @@ import (
 // Change below variables to serve metrics on different host or port.
 var (
 	metricsHost       = "0.0.0.0"
-	metricsPort int32 = 8383
+	metricsPort int32 = 60000
 )
-var log = logf.Log.WithName("cmd")
+var log = logf.Log.WithName("kubedirector")
 
 func printVersion() {
 	log.Info(fmt.Sprintf("Go Version: %s", runtime.Version()))
@@ -60,8 +60,6 @@ func printVersion() {
 }
 
 func main() {
-	// TODO: the operator-sdk switched to a new log implementation.
-	//       should we migrate the shared logger code?
 
 	// Add the zap logger flag set to the CLI. The flag set must
 	// be added before calling pflag.Parse().

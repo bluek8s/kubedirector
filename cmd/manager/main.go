@@ -155,8 +155,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// TODO: migrate the current webhook code to the controllers and using the
-	//       new framework; i.e. mgr.Add(hookServer) and hookServer.Register()
 	err = validator.InitValidationServer(
 		*metav1.NewControllerRef(kd,
 			// kd.GroupVersionKind()),

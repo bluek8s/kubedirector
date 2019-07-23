@@ -30,6 +30,7 @@ import (
 
 	"github.com/bluek8s/kubedirector/pkg/apis"
 	"github.com/bluek8s/kubedirector/pkg/controller"
+	"github.com/bluek8s/kubedirector/version"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
@@ -56,7 +57,8 @@ var log = logf.Log.WithName("kubedirector")
 func printVersion() {
 	log.Info(fmt.Sprintf("Go Version: %s", runtime.Version()))
 	log.Info(fmt.Sprintf("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH))
-	log.Info(fmt.Sprintf("Version of operator-sdk: %v", sdkVersion.Version))
+	log.Info(fmt.Sprintf("Operator-sdk Version: %v", sdkVersion.Version))
+	log.Info(fmt.Sprintf("KubeDirector Version: %v", version.Version))
 }
 
 func main() {

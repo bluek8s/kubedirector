@@ -234,9 +234,6 @@ undeploy:
         kubectl delete -f deploy/kubedirector/rbac-default.yaml --now; \
     fi
 	@echo
-	@echo \* Deleting headless service...
-	-kubectl delete svc/${project_name}
-	@echo
 	@echo -n \* Waiting for all cluster resources to finish cleanup...
 	@set -e; \
         retries=100; \

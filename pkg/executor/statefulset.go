@@ -16,6 +16,7 @@ package executor
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 	"strings"
@@ -59,23 +60,52 @@ func UpdateStatefulSetReplicas(
 	client k8sclient.Client,
 ) error {
 
-	// TODO: can we just use the statefulset that was passed in?
-	prevStatefulSet := &appsv1.StatefulSet{}
-	err := client.Get(
+	*statefulSet.Spec.Replicas = replicas
+	err := client.Update(context.TODO(), statefulSet)
+	if err == nil {
+		return nil
+	}
+	if !errors.IsConflict(err) {
+		shared.LogErrorf(
+			cr,
+			shared.EventReasonNoEvent,
+			"failed to update statefulset: %v",
+			err,
+		)
+		return err
+	}
+
+	// If there was a resourceVersion conflict then fetch a more
+	// recent version of the object and attempt to update that.
+	currentStatefulSet := &appsv1.StatefulSet{}
+	err = client.Get(
 			context.TODO(),
 			types.NamespacedName{
 				Namespace: statefulSet.Namespace,
 				Name: statefulSet.Name,
 			},
-			prevStatefulSet,
+		currentStatefulSet,
 		)
 	if err != nil {
+		shared.LogErrorf(
+			cr,
+			shared.EventReasonNoEvent,
+			"failed to retrieve statefulset: %v",
+			err,
+		)
 		return err
 	}
 
-	*statefulSet.Spec.Replicas = replicas
-	*prevStatefulSet.Spec.Replicas = replicas
-	err = client.Update(context.TODO(), prevStatefulSet)
+	*currentStatefulSet.Spec.Replicas = replicas
+	err = client.Update(context.TODO(), currentStatefulSet)
+	if err != nil {
+		shared.LogErrorf(
+			cr,
+			shared.EventReasonNoEvent,
+			"failed to update statefulset: %v",
+			err,
+		)
+	}
 	return err
 }
 

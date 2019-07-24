@@ -121,7 +121,6 @@ func (r *ReconcileKubeDirectorCluster) Reconcile(request reconcile.Request) (rec
 		return reconcileResult,
 			fmt.Errorf("could not fetch KubeDirectorCluster instance: %s", err)
 	}
-
 	err = syncCluster(kdCluster, r)
 	return reconcileResult, err
 }

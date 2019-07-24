@@ -20,6 +20,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -164,15 +165,31 @@ func UpdatePodService(
 		service.Name,
 	)
 
-	// TODO: should we just use the service that was passed in?
-	prevService := &v1.Service{}
-	err := client.Get(
+	service.Spec.Type = reqServiceType
+	err := client.Status().Update(context.TODO(), service)
+	if err == nil {
+		return nil
+	}
+	if !errors.IsConflict(err) {
+		shared.LogErrorf(
+			cr,
+			shared.EventReasonCluster,
+			"FOO: failed to remove finalizer: %v",
+			err,
+		)
+		return err
+	}
+
+	// If there was a resourceVersion conflict then fetch a more
+	// recent version of the object and attempt to update that.
+	currentService := &v1.Service{}
+	err = client.Get(
 		context.TODO(),
 		types.NamespacedName{
 			Namespace: service.Namespace,
 			Name: service.Name,
 		},
-		prevService,
+		currentService,
 	)
 	if err != nil {
 		shared.LogErrorf(
@@ -185,9 +202,8 @@ func UpdatePodService(
 		return err
 	}
 
-	service.Spec.Type = reqServiceType
-	prevService.Spec.Type = reqServiceType
-	err = client.Status().Update(context.TODO(), prevService)
+	currentService.Spec.Type = reqServiceType
+	err = client.Status().Update(context.TODO(), currentService)
 	if err != nil {
 		shared.LogErrorf(
 			cr,

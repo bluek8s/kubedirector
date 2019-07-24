@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,7 +55,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource KubeDirectorConfig
-	err = c.Watch(&source.Kind{Type: &v1alpha1.KubeDirectorConfig{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &kdv1.KubeDirectorConfig{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ type ReconcileKubeDirectorConfig struct {
 	Client client.Client
 	scheme *runtime.Scheme
 	lock         sync.RWMutex
-	globalConfig *v1alpha1.KubeDirectorConfig
+	globalConfig *kdv1.KubeDirectorConfig
 }
 
 // Reconcile reads that state of the cluster for a KubeDirectorConfig object and makes changes based on the state read
@@ -93,7 +93,7 @@ func (r *ReconcileKubeDirectorConfig) Reconcile(request reconcile.Request) (reco
 	reconcileResult := reconcile.Result{RequeueAfter: reconcilePeriod}
 
 	// Fetch the KubeDirectorConfig instance
-	kdConfig := &v1alpha1.KubeDirectorConfig{}
+	kdConfig := &kdv1.KubeDirectorConfig{}
 	err := r.Client.Get(context.TODO(), request.NamespacedName, kdConfig)
 	if err != nil {
 		if errors.IsNotFound(err) {

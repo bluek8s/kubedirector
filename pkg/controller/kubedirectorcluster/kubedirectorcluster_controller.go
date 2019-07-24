@@ -17,7 +17,7 @@ package kubedirectorcluster
 import (
 	"context"
 	"fmt"
-	"github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sync"
@@ -70,7 +70,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource KubeDirectorCluster
-	err = c.Watch(&source.Kind{Type: &v1alpha1.KubeDirectorCluster{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &kdv1.KubeDirectorCluster{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (r *ReconcileKubeDirectorCluster) Reconcile(request reconcile.Request) (rec
 	reconcileResult := reconcile.Result{RequeueAfter: reconcilePeriod}
 
 	// Fetch the KubeDirectorCluster instance
-	kdCluster := &v1alpha1.KubeDirectorCluster{}
+	kdCluster := &kdv1.KubeDirectorCluster{}
 	err := r.Client.Get(context.TODO(), request.NamespacedName, kdCluster)
 	if err != nil {
 		// If the resource is not found, that means all of

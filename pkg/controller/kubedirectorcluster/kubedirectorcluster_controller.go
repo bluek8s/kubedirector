@@ -21,6 +21,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sync"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -80,6 +81,12 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // blank assignment to verify that ReconcileKubeDirectorCluster implements reconcile.Reconciler
 var _ reconcile.Reconciler = &ReconcileKubeDirectorCluster{}
 
+const (
+	// Period between the time when the controller requeues a request
+	// and it's scheduled again for reconciliation
+	reconcilePeriod = 30 * time.Second
+)
+
 // ReconcileKubeDirectorCluster reconciles a KubeDirectorCluster object
 type ReconcileKubeDirectorCluster struct {
 	// This client, initialized using mgr.Client() above, is a split client
@@ -98,6 +105,7 @@ type ReconcileKubeDirectorCluster struct {
 func (r *ReconcileKubeDirectorCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling KubeDirectorCluster")
+	reconcileResult := reconcile.Result{RequeueAfter: reconcilePeriod}
 
 	// Fetch the KubeDirectorCluster instance
 	kdCluster := &v1alpha1.KubeDirectorCluster{}
@@ -110,10 +118,10 @@ func (r *ReconcileKubeDirectorCluster) Reconcile(request reconcile.Request) (rec
 		if apierrors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
-		return reconcile.Result{},
+		return reconcileResult,
 			fmt.Errorf("could not fetch KubeDirectorCluster instance: %s", err)
 	}
 
 	err = syncCluster(kdCluster, r)
-	return reconcile.Result{}, err
+	return reconcileResult, err
 }

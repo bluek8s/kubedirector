@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 
@@ -65,6 +66,12 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // blank assignment to verify that ReconcileKubeDirectorConfig implements reconcile.Reconciler
 var _ reconcile.Reconciler = &ReconcileKubeDirectorConfig{}
 
+const (
+	// Period between the time when the controller requeues a request
+	// and it's scheduled again for reconciliation
+	reconcilePeriod = 30 * time.Second
+)
+
 // ReconcileKubeDirectorConfig reconciles a KubeDirectorConfig object
 type ReconcileKubeDirectorConfig struct {
 	// This client, initialized using mgr.Client() above, is a split client
@@ -83,6 +90,7 @@ type ReconcileKubeDirectorConfig struct {
 func (r *ReconcileKubeDirectorConfig) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling KubeDirectorConfig")
+	reconcileResult := reconcile.Result{RequeueAfter: reconcilePeriod}
 
 	// Fetch the KubeDirectorConfig instance
 	kdConfig := &v1alpha1.KubeDirectorConfig{}
@@ -97,10 +105,10 @@ func (r *ReconcileKubeDirectorConfig) Reconcile(request reconcile.Request) (reco
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		return reconcile.Result{},
+		return reconcileResult,
 			fmt.Errorf("could not fetch KubeDirectorConfig instance: %s", err)
 	}
 
 	addGlobalConfig(r, kdConfig)
-	return reconcile.Result{}, nil
+	return reconcileResult, nil
 }

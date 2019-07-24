@@ -36,10 +36,10 @@ func GetCluster(
 
 	result := &kdv1.KubeDirectorCluster{}
 	err := client.Get(
-			context.TODO(),
-			types.NamespacedName{Namespace: namespace, Name: clusterName},
-			result,
-		)
+		context.TODO(),
+		types.NamespacedName{Namespace: namespace, Name: clusterName},
+		result,
+	)
 	return result, err
 }
 
@@ -53,10 +53,10 @@ func GetStatefulSet(
 
 	result := &appsv1.StatefulSet{}
 	err := client.Get(
-			context.TODO(),
-			types.NamespacedName{Namespace: namespace, Name: statefulSetName},
-			result,
-		)
+		context.TODO(),
+		types.NamespacedName{Namespace: namespace, Name: statefulSetName},
+		result,
+	)
 	return result, err
 }
 
@@ -69,10 +69,10 @@ func GetService(
 
 	result := &v1.Service{}
 	err := client.Get(
-			context.TODO(),
-			types.NamespacedName{Namespace: namespace, Name: serviceName},
-			result,
-		)
+		context.TODO(),
+		types.NamespacedName{Namespace: namespace, Name: serviceName},
+		result,
+	)
 	return result, err
 }
 
@@ -85,10 +85,10 @@ func GetPod(
 
 	result := &v1.Pod{}
 	err := client.Get(
-			context.TODO(),
-			types.NamespacedName{Namespace: namespace, Name: podName},
-			result,
-		)
+		context.TODO(),
+		types.NamespacedName{Namespace: namespace, Name: podName},
+		result,
+	)
 	return result, err
 }
 
@@ -102,10 +102,10 @@ func GetPVC(
 
 	result := &v1.PersistentVolumeClaim{}
 	err := client.Get(
-			context.TODO(),
-			types.NamespacedName{Namespace: namespace, Name: pvcName},
-			result,
-		)
+		context.TODO(),
+		types.NamespacedName{Namespace: namespace, Name: pvcName},
+		result,
+	)
 	return result, err
 }
 
@@ -136,10 +136,10 @@ func GetApp(
 	}
 
 	appErr = client.Get(
-			context.TODO(),
-			types.NamespacedName{Namespace: kdNamespace, Name: appID},
-			appSpec,
-		)
+		context.TODO(),
+		types.NamespacedName{Namespace: kdNamespace, Name: appID},
+		appSpec,
+	)
 	return appSpec, appErr
 }
 
@@ -156,10 +156,10 @@ func GetValidatorWebhook(
 	}
 	result := &v1beta1.MutatingWebhookConfiguration{}
 	err = client.Get(
-			context.TODO(),
-			types.NamespacedName{Namespace: kdNamespace, Name: validator},
-			result,
-		)
+		context.TODO(),
+		types.NamespacedName{Namespace: kdNamespace, Name: validator},
+		result,
+	)
 	return result, err
 }
 
@@ -172,10 +172,10 @@ func GetSecret(
 
 	result := &v1.Secret{}
 	err := client.Get(
-			context.TODO(),
-			types.NamespacedName{Namespace: namespace, Name: secretName},
-			result,
-		)
+		context.TODO(),
+		types.NamespacedName{Namespace: namespace, Name: secretName},
+		result,
+	)
 	return result, err
 }
 
@@ -191,10 +191,10 @@ func GetDeployment(
 	}
 	result := &appsv1.Deployment{}
 	err = client.Get(
-			context.TODO(),
-			types.NamespacedName{Namespace: kdNamespace, Name: deploymentName},
-			result,
-		)
+		context.TODO(),
+		types.NamespacedName{Namespace: kdNamespace, Name: deploymentName},
+		result,
+	)
 	return result, err
 }
 
@@ -211,10 +211,10 @@ func GetKDConfig(
 
 	result := &kdv1.KubeDirectorConfig{}
 	err = client.Get(
-			context.TODO(),
-			types.NamespacedName{Namespace: kdNamespace, Name: kdConfigName},
-			result,
-		)
+		context.TODO(),
+		types.NamespacedName{Namespace: kdNamespace, Name: kdConfigName},
+		result,
+	)
 	return result, err
 }
 
@@ -226,10 +226,10 @@ func GetStorageClass(
 
 	result := &storagev1.StorageClass{}
 	err := client.Get(
-			context.TODO(),
-			types.NamespacedName{Name: storageClassName},
-			result,
-		)
+		context.TODO(),
+		types.NamespacedName{Name: storageClassName},
+		result,
+	)
 	return result, err
 }
 

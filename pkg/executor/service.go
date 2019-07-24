@@ -104,9 +104,9 @@ func CreatePodService(
 	if portsErr != nil {
 		return nil, portsErr
 	}
-    if len(portInfoList) == 0 {
-        return nil, nil
-    }
+	if len(portInfoList) == 0 {
+		return nil, nil
+	}
 	service := &v1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
@@ -187,7 +187,7 @@ func UpdatePodService(
 		context.TODO(),
 		types.NamespacedName{
 			Namespace: service.Namespace,
-			Name: service.Name,
+			Name:      service.Name,
 		},
 		currentService,
 	)

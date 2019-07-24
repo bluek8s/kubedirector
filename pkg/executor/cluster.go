@@ -59,7 +59,7 @@ func UpdateStatus(
 		context.TODO(),
 		types.NamespacedName{
 			Namespace: cr.Namespace,
-			Name: cr.Name,
+			Name:      cr.Name,
 		},
 		currentCluster,
 	)
@@ -117,7 +117,7 @@ func RemoveFinalizer(
 		context.TODO(),
 		types.NamespacedName{
 			Namespace: cr.Namespace,
-			Name: cr.Name,
+			Name:      cr.Name,
 		},
 		currentCluster,
 	)
@@ -168,7 +168,7 @@ func EnsureFinalizer(
 		context.TODO(),
 		types.NamespacedName{
 			Namespace: cr.Namespace,
-			Name: cr.Name,
+			Name:      cr.Name,
 		},
 		currentCluster,
 	)

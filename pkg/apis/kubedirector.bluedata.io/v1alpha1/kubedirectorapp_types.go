@@ -45,7 +45,7 @@ type KubeDirectorApp struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   KubeDirectorAppSpec   `json:"spec,omitempty"`
+	Spec KubeDirectorAppSpec `json:"spec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -99,11 +99,11 @@ type ServiceEndpoint struct {
 // the same services. At deployment time all role members will receive
 // identical resource assignments.
 type NodeRole struct {
-	ID           string       `json:"id"`
-	Cardinality  string       `json:"cardinality"`
-	ImageRepoTag *string      `json:"image_repo_tag,omitempty"`
-	SetupPackage SetupPackage `json:"config_package,omitempty"`
-	PersistDirs  *[]string    `json:"persist_dirs"`
+	ID           string           `json:"id"`
+	Cardinality  string           `json:"cardinality"`
+	ImageRepoTag *string          `json:"image_repo_tag,omitempty"`
+	SetupPackage SetupPackage     `json:"config_package,omitempty"`
+	PersistDirs  *[]string        `json:"persist_dirs"`
 	MinResources *v1.ResourceList `json:"min_resources"`
 }
 

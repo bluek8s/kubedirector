@@ -79,13 +79,13 @@ func UpdateStatefulSetReplicas(
 	// recent version of the object and attempt to update that.
 	currentStatefulSet := &appsv1.StatefulSet{}
 	err = client.Get(
-			context.TODO(),
-			types.NamespacedName{
-				Namespace: statefulSet.Namespace,
-				Name: statefulSet.Name,
-			},
+		context.TODO(),
+		types.NamespacedName{
+			Namespace: statefulSet.Namespace,
+			Name:      statefulSet.Name,
+		},
 		currentStatefulSet,
-		)
+	)
 	if err != nil {
 		shared.LogErrorf(
 			cr,

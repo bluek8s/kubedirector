@@ -240,8 +240,8 @@ func handleFinalizers(
 		deleteStatusGen(cr, r)
 		removeClusterAppReference(
 			types.NamespacedName{
-				Namespace:cr.Namespace,
-				Name: cr.Name,
+				Namespace: cr.Namespace,
+				Name:      cr.Name,
 			},
 			r,
 		)

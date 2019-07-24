@@ -472,11 +472,11 @@ func checkMemberCount(
 			replicas,
 		)
 		updateErr := executor.UpdateStatefulSetReplicas(
-				cr,
-				replicas,
-				role.statefulSet,
-				client,
-			)
+			cr,
+			replicas,
+			role.statefulSet,
+			client,
+		)
 		if updateErr != nil {
 			shared.LogWarnf(
 				cr,

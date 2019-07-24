@@ -51,10 +51,10 @@ type KubeDirectorClusterStatus struct {
 // not persisted to k8s.
 // +k8s:openapi-gen=true
 type KubeDirectorCluster struct {
-	metav1.TypeMeta                    `json:",inline"`
-	metav1.ObjectMeta                  `json:"metadata,omitempty"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec     KubeDirectorClusterSpec   `json:"spec,omitempty"`
+	Spec    KubeDirectorClusterSpec    `json:"spec,omitempty"`
 	Status  *KubeDirectorClusterStatus `json:"status,omitempty"`
 	AppSpec *KubeDirectorApp           `json:"-"`
 }

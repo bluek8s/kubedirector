@@ -19,6 +19,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
+	"github.com/go-logr/logr"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,6 +43,7 @@ var serviceShouldBeReconciled = map[memberState]bool{
 // function will also modify the status data structures to record the service
 // name.
 func syncClusterService(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	client k8sclient.Client,
 ) error {
@@ -49,6 +51,7 @@ func syncClusterService(
 	// If we already have the cluster service name stored,
 	// look it up to see if it still exists.
 	clusterService, queryErr := queryService(
+		reqLogger,
 		cr,
 		cr.Status.ClusterService,
 		client,
@@ -59,19 +62,20 @@ func syncClusterService(
 	if clusterService == nil {
 		// We don't have an existing service, and we do need one.
 		if cr.Status.ClusterService != "" {
-			shared.LogWarn(
+			shared.LogInfo(
+				reqLogger,
 				cr,
 				shared.EventReasonCluster,
 				"re-creating missing cluster service",
 			)
 		}
-		createErr := handleClusterServiceCreate(cr, client)
+		createErr := handleClusterServiceCreate(reqLogger, cr, client)
 		if createErr != nil {
 			return createErr
 		}
 	} else {
 		// We have an existing service so just reconcile its config.
-		handleClusterServiceConfig(cr, clusterService, client)
+		handleClusterServiceConfig(reqLogger, cr, clusterService, client)
 	}
 	return nil
 }
@@ -82,6 +86,7 @@ func syncClusterService(
 // service changes may result in operations on k8s services. This function
 // will also modify the status data structures to record the service names.
 func syncMemberServices(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	roles []*roleInfo,
 	client k8sclient.Client,
@@ -91,6 +96,7 @@ func syncMemberServices(
 		if role.roleStatus != nil {
 			for i := 0; i < len(role.roleStatus.Members); i++ {
 				serviceErr := handleMemberService(
+					reqLogger,
 					cr,
 					role,
 					&(role.roleStatus.Members[i]),
@@ -110,6 +116,7 @@ func syncMemberServices(
 // store its name in the cluster status. Failure to create this service will
 // be a reconciler-stopping error.
 func handleClusterServiceCreate(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	client k8sclient.Client,
 ) error {
@@ -117,11 +124,12 @@ func handleClusterServiceCreate(
 	if createErr != nil {
 		// Not much to do if we can't create it... we'll just keep trying
 		// on every run through the reconciler.
-		shared.LogErrorf(
+		shared.LogError(
+			reqLogger,
+			createErr,
 			cr,
 			shared.EventReasonCluster,
-			"failed to create cluster service: %v",
-			createErr,
+			"failed to create cluster service",
 		)
 		cr.Status.ClusterService = ""
 		return createErr
@@ -135,6 +143,7 @@ func handleClusterServiceCreate(
 // reconcile will not be treated as a reconciler-stopping error; we'll just try
 // again next time.
 func handleClusterServiceConfig(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	clusterService *v1.Service,
 	client k8sclient.Client,
@@ -142,12 +151,13 @@ func handleClusterServiceConfig(
 
 	updateErr := executor.UpdateHeadlessService(cr, clusterService, client)
 	if updateErr != nil {
-		shared.LogWarnf(
+		shared.LogErrorf(
+			reqLogger,
+			updateErr,
 			cr,
 			shared.EventReasonCluster,
-			"failed to update Service{%s}: %v",
+			"failed to update Service{%s}",
 			cr.Status.ClusterService,
-			updateErr,
 		)
 	}
 }
@@ -158,6 +168,7 @@ func handleClusterServiceConfig(
 // name in the member status. Failure to create a service as needed will be a
 // reconciler-stopping error.
 func handleMemberService(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 	member *kdv1.MemberStatus,
@@ -172,6 +183,7 @@ func handleMemberService(
 			return nil
 		}
 		memberService, queryErr := queryService(
+			reqLogger,
 			cr,
 			member.Service,
 			client,
@@ -181,7 +193,8 @@ func handleMemberService(
 		}
 		if memberService == nil {
 			if member.Service != "" && member.Service != zeroPortsService {
-				shared.LogWarnf(
+				shared.LogInfof(
+					reqLogger,
 					cr,
 					shared.EventReasonMember,
 					"re-creating missing service for member{%s} in role{%s}",
@@ -191,6 +204,7 @@ func handleMemberService(
 			}
 			// Need to create a service.
 			createErr := handleMemberServiceCreate(
+				reqLogger,
 				cr,
 				role,
 				member,
@@ -202,6 +216,7 @@ func handleMemberService(
 		} else {
 			// We have an existing service so just reconcile its config.
 			handleMemberServiceConfig(
+				reqLogger,
 				cr,
 				role,
 				member,
@@ -219,6 +234,7 @@ func handleMemberService(
 // no service object will be created, and the service element of the member
 // status will be assigned the special constant defined by zeroPortsService.
 func handleMemberServiceCreate(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 	member *kdv1.MemberStatus,
@@ -234,12 +250,13 @@ func handleMemberServiceCreate(
 		// Not much to do if we can't create it... we'll just keep trying
 		// on every run through the reconciler.
 		shared.LogErrorf(
+			reqLogger,
+			createErr,
 			cr,
 			shared.EventReasonMember,
-			"failed to create member service for member{%s} in role{%s}: %v",
+			"failed to create member service for member{%s} in role{%s}",
 			member.Pod,
 			role.roleStatus.Name,
-			createErr,
 		)
 		member.Service = ""
 		return createErr
@@ -257,6 +274,7 @@ func handleMemberServiceCreate(
 // will not be treated as a reconciler-stopping error; we'll just try again next
 // time.
 func handleMemberServiceConfig(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 	member *kdv1.MemberStatus,
@@ -265,6 +283,7 @@ func handleMemberServiceConfig(
 ) {
 
 	updateErr := executor.UpdatePodService(
+		reqLogger,
 		cr,
 		role.roleSpec,
 		member.Pod,
@@ -272,12 +291,13 @@ func handleMemberServiceConfig(
 		client,
 	)
 	if updateErr != nil {
-		shared.LogWarnf(
+		shared.LogErrorf(
+			reqLogger,
+			updateErr,
 			cr,
 			shared.EventReasonMember,
-			"failed to update Service{%s}: %v",
+			"failed to update Service{%s}",
 			member.Service,
-			updateErr,
 		)
 	}
 }
@@ -286,6 +306,7 @@ func handleMemberServiceConfig(
 // a cluster "headless" service or a per-member service. It will return
 // nil for the Service pointer if the object does not exist.
 func queryService(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	serviceName string,
 	client k8sclient.Client,
@@ -307,11 +328,12 @@ func queryService(
 				service = nil
 			} else {
 				shared.LogErrorf(
+					reqLogger,
+					queryErr,
 					cr,
 					shared.EventReasonNoEvent,
-					"failed to query Service{%s}: %v",
+					"failed to query Service{%s}",
 					serviceName,
-					queryErr,
 				)
 				return nil, queryErr
 			}

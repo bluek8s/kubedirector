@@ -19,17 +19,18 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ReadStatusGen provides threadsafe read of a status gen UID string and
 // validated flag.
 func ReadStatusGen(
 	cr *kdv1.KubeDirectorCluster,
-	reconciler *ReconcileKubeDirectorCluster,
+	r *ReconcileKubeDirectorCluster,
 ) (StatusGen, bool) {
-	reconciler.lock.RLock()
-	defer reconciler.lock.RUnlock()
-	val, ok := reconciler.clusterState.clusterStatusGens[cr.UID]
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+	val, ok := r.clusterState.clusterStatusGens[cr.UID]
 	return val, ok
 }
 
@@ -37,46 +38,46 @@ func ReadStatusGen(
 // The validated flag will begin as false.
 func writeStatusGen(
 	cr *kdv1.KubeDirectorCluster,
-	reconciler *ReconcileKubeDirectorCluster,
 	newGenUID string,
+	r *ReconcileKubeDirectorCluster,
 ) {
-	reconciler.lock.Lock()
-	defer reconciler.lock.Unlock()
-	reconciler.clusterState.clusterStatusGens[cr.UID] = StatusGen{UID: newGenUID}
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.clusterState.clusterStatusGens[cr.UID] = StatusGen{UID: newGenUID}
 }
 
 // ValidateStatusGen provides threadsafe mark-validated of a status gen.
 func ValidateStatusGen(
 	cr *kdv1.KubeDirectorCluster,
-	reconciler *ReconcileKubeDirectorCluster,
+	r *ReconcileKubeDirectorCluster,
 ) {
-	reconciler.lock.Lock()
-	defer reconciler.lock.Unlock()
-	val, ok := reconciler.clusterState.clusterStatusGens[cr.UID]
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	val, ok := r.clusterState.clusterStatusGens[cr.UID]
 	if ok {
 		val.Validated = true
-		reconciler.clusterState.clusterStatusGens[cr.UID] = val
+		r.clusterState.clusterStatusGens[cr.UID] = val
 	}
 }
 
 // deleteStatusGen provides threadsafe delete of a status gen.
 func deleteStatusGen(
 	cr *kdv1.KubeDirectorCluster,
-	reconciler *ReconcileKubeDirectorCluster,
+	r *ReconcileKubeDirectorCluster,
 ) {
-	reconciler.lock.Lock()
-	defer reconciler.lock.Unlock()
-	delete(reconciler.clusterState.clusterStatusGens, cr.UID)
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	delete(r.clusterState.clusterStatusGens, cr.UID)
 }
 
 // ClustersUsingApp returns the list of cluster names referencing the given app.
 func ClustersUsingApp(
 	app string,
-	reconciler *ReconcileKubeDirectorCluster,
+	r *ReconcileKubeDirectorCluster,
 ) []string {
 	var clusters []string
-	reconciler.lock.RLock()
-	defer reconciler.lock.RUnlock()
+	r.lock.RLock()
+	defer r.lock.RUnlock()
 	// This is a relationship that needs to be query-able given either ONLY
 	// the app name (in this function) or ONLY the cluster name (in
 	// removeClusterAppReference). Since the app CR deletion/update triggers
@@ -84,7 +85,7 @@ func ClustersUsingApp(
 	// check by just walking the list of associations. It's also nice to go
 	// ahead and gather all the offending cluster CR names to report back to
 	// the client.
-	for clusterKey, appName := range reconciler.clusterState.clusterAppTypes {
+	for clusterKey, appName := range r.clusterState.clusterAppTypes {
 		if appName == app {
 			clusters = append(clusters, clusterKey)
 		}
@@ -95,33 +96,31 @@ func ClustersUsingApp(
 // ensureClusterAppReference notes that an app type is in use by this cluster.
 func ensureClusterAppReference(
 	cr *kdv1.KubeDirectorCluster,
-	reconciler *ReconcileKubeDirectorCluster,
+	r *ReconcileKubeDirectorCluster,
 ) {
 	clusterKey := cr.Namespace + "/" + cr.Name
-	reconciler.lock.Lock()
-	defer reconciler.lock.Unlock()
-	reconciler.clusterState.clusterAppTypes[clusterKey] = cr.Spec.AppID
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.clusterState.clusterAppTypes[clusterKey] = cr.Spec.AppID
 }
 
 // removeClusterAppReference notes that an app type is no longer in use by
 // this cluster.
 func removeClusterAppReference(
 	namespacedName types.NamespacedName,
-	reconciler *ReconcileKubeDirectorCluster,
+	r *ReconcileKubeDirectorCluster,
 ) {
 	clusterKey := namespacedName.Namespace + "/" + namespacedName.Name
-	reconciler.lock.Lock()
-	defer reconciler.lock.Unlock()
-	delete(reconciler.clusterState.clusterAppTypes, clusterKey)
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	delete(r.clusterState.clusterAppTypes, clusterKey)
 }
 
 // getNativeSystemdSupport extracts the flag definition from globalConfig CR data
 // if present, otherwise returns false
-func getNativeSystemdSupport(
-	reconciler *ReconcileKubeDirectorCluster,
-) bool {
+func getNativeSystemdSupport(client client.Client) bool {
 	// Fetch global config CR (if present)
-	kdConfigCR, _ := observer.GetKDConfig(shared.KubeDirectorGlobalConfig, reconciler.Client)
+	kdConfigCR, _ := observer.GetKDConfig(shared.KubeDirectorGlobalConfig, client)
 
 	if kdConfigCR != nil && kdConfigCR.Spec.NativeSystemdSupport != nil {
 		return *kdConfigCR.Spec.NativeSystemdSupport

@@ -19,6 +19,7 @@ import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
+	"github.com/go-logr/logr"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -142,6 +143,7 @@ func CreatePodService(
 // of possibly transitioning to and from the "no ports" state which will
 // involve deleting or creating the service object rather than just modifying.
 func UpdatePodService(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
 	podName string,
@@ -157,6 +159,7 @@ func UpdatePodService(
 	}
 
 	shared.LogInfof(
+		reqLogger,
 		cr,
 		shared.EventReasonMember,
 		"modifying serviceType from %s to %s for service{%s}",
@@ -171,11 +174,12 @@ func UpdatePodService(
 		return nil
 	}
 	if !errors.IsConflict(err) {
-		shared.LogErrorf(
+		shared.LogError(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonCluster,
-			"FOO: failed to remove finalizer: %v",
-			err,
+			"failed to remove finalizer",
 		)
 		return err
 	}
@@ -193,11 +197,12 @@ func UpdatePodService(
 	)
 	if err != nil {
 		shared.LogErrorf(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonMember,
-			"failed to retrieve service{%s}: %v",
+			"failed to retrieve service{%s}",
 			service.Spec.Type,
-			err,
 		)
 		return err
 	}
@@ -206,11 +211,12 @@ func UpdatePodService(
 	err = client.Status().Update(context.TODO(), currentService)
 	if err != nil {
 		shared.LogErrorf(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonMember,
-			"failed to update service{%s}: %v",
+			"failed to update service{%s}",
 			service.Spec.Type,
-			err,
 		)
 	}
 	return err

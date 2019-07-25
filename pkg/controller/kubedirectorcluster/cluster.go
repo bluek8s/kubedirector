@@ -15,6 +15,7 @@
 package kubedirectorcluster
 
 import (
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/types"
 	"reflect"
 	"time"
@@ -31,9 +32,9 @@ import (
 // syncCluster runs the reconciliation logic. It is invoked because of a
 // change in or addition of a KubeDirectorCluster instance, or a periodic
 // polling to check on such a resource.
-func syncCluster(
+func (r *ReconcileKubeDirectorCluster) syncCluster(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	r *ReconcileKubeDirectorCluster,
 ) error {
 
 	// Make sure this cluster marks a reference to its app.
@@ -55,8 +56,8 @@ func syncCluster(
 			maxWait := 4096 * time.Second
 			for {
 				cr.Status.GenerationUID = uuid.New().String()
-				writeStatusGen(cr, r, cr.Status.GenerationUID)
-				updateErr := executor.UpdateStatus(cr, r.Client)
+				writeStatusGen(cr, cr.Status.GenerationUID, r)
+				updateErr := executor.UpdateStatus(reqLogger, cr, r.Client)
 				if updateErr == nil {
 					return
 				}
@@ -79,12 +80,13 @@ func syncCluster(
 				if wait < maxWait {
 					wait = wait * 2
 				}
-				shared.LogWarnf(
+				shared.LogErrorf(
+					reqLogger,
+					updateErr,
 					cr,
 					shared.EventReasonCluster,
-					"trying status update again in %v; failed because: %v",
+					"trying status update again in %v; failed",
 					wait,
-					updateErr,
 				)
 				time.Sleep(wait)
 			}
@@ -94,7 +96,7 @@ func syncCluster(
 	// Regardless of whether the status gen is as expected, make sure the CR
 	// finalizers are as we want them. We use a finalizer to prevent races
 	// between polled CR updates and CR deletion.
-	doExit, finalizerErr := handleFinalizers(cr, r)
+	doExit, finalizerErr := r.handleFinalizers(reqLogger, cr)
 	if finalizerErr != nil {
 		return finalizerErr
 	}
@@ -103,34 +105,35 @@ func syncCluster(
 	}
 
 	// For a new CR just update the status state/gen.
-	shouldProcessCR := handleNewCluster(cr, r)
+	shouldProcessCR := r.handleNewCluster(reqLogger, cr)
 	if !shouldProcessCR {
 		return nil
 	}
 
 	errLog := func(domain string, err error) {
 		shared.LogErrorf(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonCluster,
-			"failed to sync %s: %v",
+			"failed to sync %s",
 			domain,
-			err,
 		)
 	}
 
-	clusterServiceErr := syncClusterService(cr, r.Client)
+	clusterServiceErr := syncClusterService(reqLogger, cr, r.Client)
 	if clusterServiceErr != nil {
 		errLog("cluster service", clusterServiceErr)
 		return clusterServiceErr
 	}
 
-	roles, state, rolesErr := syncRoles(cr, r)
+	roles, state, rolesErr := syncRoles(reqLogger, cr, r.Client)
 	if rolesErr != nil {
 		errLog("roles", rolesErr)
 		return rolesErr
 	}
 
-	memberServicesErr := syncMemberServices(cr, roles, r.Client)
+	memberServicesErr := syncMemberServices(reqLogger, cr, roles, r.Client)
 	if memberServicesErr != nil {
 		errLog("member services", memberServicesErr)
 		return memberServicesErr
@@ -139,6 +142,7 @@ func syncCluster(
 	if state == clusterMembersStableReady {
 		if cr.Status.State != string(clusterReady) {
 			shared.LogInfo(
+				reqLogger,
 				cr,
 				shared.EventReasonCluster,
 				"stable",
@@ -158,17 +162,18 @@ func syncCluster(
 		r.Client,
 	)
 	if configMetaErr != nil {
-		shared.LogErrorf(
+		shared.LogError(
+			reqLogger,
+			configMetaErr,
 			cr,
 			shared.EventReasonCluster,
-			"failed to generate cluster config: %v",
-			configMetaErr,
+			"failed to generate cluster config",
 		)
 		return configMetaErr
 	}
 
 	membersHaveChanged := (state == clusterMembersChangedUnready)
-	membersErr := syncMembers(cr, roles, membersHaveChanged, configmetaGen, r.Client)
+	membersErr := syncMembers(reqLogger, cr, roles, membersHaveChanged, configmetaGen, r.Client)
 	if membersErr != nil {
 		errLog("members", membersErr)
 		return membersErr
@@ -186,9 +191,9 @@ func syncCluster(
 // this handler to exit; we'll pick up further processing in the next handler.
 // In the latter case, sync up our internal state with the visible state of
 // the CR and return true to continue processing.
-func handleNewCluster(
+func (r *ReconcileKubeDirectorCluster) handleNewCluster(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	r *ReconcileKubeDirectorCluster,
 ) bool {
 
 	_, ok := ReadStatusGen(cr, r)
@@ -198,6 +203,7 @@ func handleNewCluster(
 	incoming := cr.Status.GenerationUID
 	if incoming == "" {
 		shared.LogInfo(
+			reqLogger,
 			cr,
 			shared.EventReasonCluster,
 			"new",
@@ -205,13 +211,14 @@ func handleNewCluster(
 		cr.Status.State = string(clusterCreating)
 		return false
 	}
-	shared.LogWarnf(
+	shared.LogInfof(
+		reqLogger,
 		cr,
 		shared.EventReasonNoEvent,
 		"unknown with incoming gen uid %s",
 		incoming,
 	)
-	writeStatusGen(cr, r, incoming)
+	writeStatusGen(cr, incoming, r)
 	ValidateStatusGen(cr, r)
 	ensureClusterAppReference(cr, r)
 	return true
@@ -219,17 +226,18 @@ func handleNewCluster(
 
 // handleFinalizers will remove our finalizer if deletion has been requested.
 // Otherwise it will add our finalizer if it is absent.
-func handleFinalizers(
+func (r *ReconcileKubeDirectorCluster) handleFinalizers(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	r *ReconcileKubeDirectorCluster,
 ) (bool, error) {
 
 	if cr.DeletionTimestamp != nil {
 		// If a deletion has been requested, while ours (or other) finalizers
 		// existed on the CR, go ahead and remove our finalizer.
-		removeErr := executor.RemoveFinalizer(cr, r.Client)
+		removeErr := executor.RemoveFinalizer(reqLogger, cr, r.Client)
 		if removeErr == nil {
 			shared.LogInfo(
+				reqLogger,
 				cr,
 				shared.EventReasonCluster,
 				"greenlighting for deletion",
@@ -249,7 +257,7 @@ func handleFinalizers(
 	}
 
 	// If our finalizer doesn't exist on the CR, put it in there.
-	ensureErr := executor.EnsureFinalizer(cr, r.Client)
+	ensureErr := executor.EnsureFinalizer(reqLogger, cr, r.Client)
 	if ensureErr != nil {
 		return true, ensureErr
 	}

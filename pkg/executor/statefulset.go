@@ -16,6 +16,7 @@ package executor
 
 import (
 	"context"
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
@@ -38,13 +39,14 @@ var defaultMountFolders = []string{"/usr", "/opt", "/var", "/etc"}
 // CreateStatefulSet creates in k8s a zero-replicas statefulset for
 // implementing the given role.
 func CreateStatefulSet(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	nativeSystemdSupport bool,
 	role *kdv1.Role,
 	client k8sclient.Client,
 ) (*appsv1.StatefulSet, error) {
 
-	statefulSet, err := getStatefulset(cr, nativeSystemdSupport, role, 0, client)
+	statefulSet, err := getStatefulset(reqLogger, cr, nativeSystemdSupport, role, 0, client)
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +56,7 @@ func CreateStatefulSet(
 // UpdateStatefulSetReplicas modifies an existing statefulset in k8s to have
 // the given number of replicas.
 func UpdateStatefulSetReplicas(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	replicas int32,
 	statefulSet *appsv1.StatefulSet,
@@ -66,11 +69,12 @@ func UpdateStatefulSetReplicas(
 		return nil
 	}
 	if !errors.IsConflict(err) {
-		shared.LogErrorf(
+		shared.LogError(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonNoEvent,
-			"failed to update statefulset: %v",
-			err,
+			"failed to update statefulset",
 		)
 		return err
 	}
@@ -87,11 +91,12 @@ func UpdateStatefulSetReplicas(
 		currentStatefulSet,
 	)
 	if err != nil {
-		shared.LogErrorf(
+		shared.LogError(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonNoEvent,
-			"failed to retrieve statefulset: %v",
-			err,
+			"failed to retrieve statefulset",
 		)
 		return err
 	}
@@ -99,11 +104,12 @@ func UpdateStatefulSetReplicas(
 	*currentStatefulSet.Spec.Replicas = replicas
 	err = client.Update(context.TODO(), currentStatefulSet)
 	if err != nil {
-		shared.LogErrorf(
+		shared.LogError(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonNoEvent,
-			"failed to update statefulset: %v",
-			err,
+			"failed to update statefulset",
 		)
 	}
 	return err
@@ -155,6 +161,7 @@ func DeleteStatefulSet(
 // on the given virtual cluster CR and for the purposes of implementing the
 // given role.
 func getStatefulset(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	nativeSystemdSupport bool,
 	role *kdv1.Role,
@@ -207,6 +214,7 @@ func getStatefulset(
 				// If rel path doesn't start with "..", it is a subdir
 				if !strings.HasPrefix(rel, "..") {
 					shared.LogInfof(
+						reqLogger,
 						cr,
 						shared.EventReasonNoEvent,
 						"skipping {%s} from volume claim mounts. dir {%s} covers it",

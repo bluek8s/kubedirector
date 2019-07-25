@@ -16,6 +16,7 @@ package executor
 
 import (
 	"context"
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
@@ -28,6 +29,7 @@ import (
 // the status that have been marked for deletion (by having certain fields
 // set to emptystring) will be removed before the writeback.
 func UpdateStatus(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	client k8sclient.Client,
 ) error {
@@ -44,11 +46,12 @@ func UpdateStatus(
 		return nil
 	}
 	if !errors.IsConflict(err) {
-		shared.LogErrorf(
+		shared.LogError(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonCluster,
-			"failed to update status: %v",
-			err,
+			"failed to update status",
 		)
 	}
 
@@ -64,11 +67,12 @@ func UpdateStatus(
 		currentCluster,
 	)
 	if err != nil {
-		shared.LogErrorf(
+		shared.LogError(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonCluster,
-			"failed to retrieve cluster: %v",
-			err,
+			"failed to retrieve cluster",
 		)
 		return err
 	}
@@ -76,11 +80,12 @@ func UpdateStatus(
 	currentCluster.Status = cr.Status
 	err = client.Status().Update(context.TODO(), currentCluster)
 	if err != nil {
-		shared.LogErrorf(
+		shared.LogError(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonCluster,
-			"failed to update status: %v",
-			err,
+			"failed to update status",
 		)
 	}
 	return err
@@ -89,6 +94,7 @@ func UpdateStatus(
 // RemoveFinalizer removes the KubeDirector finalizer from the CR's finalizers
 // list (if it is in there).
 func RemoveFinalizer(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	client k8sclient.Client,
 ) error {
@@ -101,11 +107,12 @@ func RemoveFinalizer(
 		return nil
 	}
 	if !errors.IsConflict(err) {
-		shared.LogErrorf(
+		shared.LogError(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonCluster,
-			"FOO: failed to remove finalizer: %v",
-			err,
+			"failed to remove finalizer",
 		)
 		return err
 	}
@@ -122,22 +129,24 @@ func RemoveFinalizer(
 		currentCluster,
 	)
 	if err != nil {
-		shared.LogErrorf(
+		shared.LogError(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonCluster,
-			"failed to retrieve cluster: %v",
-			err,
+			"failed to retrieve cluster",
 		)
 		return err
 	}
 	if removeFinalizer(currentCluster) {
 		err = client.Update(context.TODO(), currentCluster)
 		if err != nil {
-			shared.LogErrorf(
+			shared.LogError(
+				reqLogger,
+				err,
 				cr,
 				shared.EventReasonCluster,
-				"failed to remove finalizer: %v",
-				err,
+				"failed to remove finalizer",
 			)
 		}
 	}
@@ -147,6 +156,7 @@ func RemoveFinalizer(
 // EnsureFinalizer adds the KubeDirector finalizer into the CR's finalizers
 // list (if it is not in there).
 func EnsureFinalizer(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	client k8sclient.Client,
 ) error {
@@ -173,11 +183,12 @@ func EnsureFinalizer(
 		currentCluster,
 	)
 	if err != nil {
-		shared.LogErrorf(
+		shared.LogError(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonCluster,
-			"failed to retrieve cluster: %v",
-			err,
+			"failed to retrieve cluster",
 		)
 		return err
 	}
@@ -185,11 +196,12 @@ func EnsureFinalizer(
 	if addFinalizer(currentCluster) {
 		err = client.Update(context.TODO(), currentCluster)
 		if err != nil {
-			shared.LogErrorf(
+			shared.LogError(
+				reqLogger,
+				err,
 				cr,
 				shared.EventReasonCluster,
-				"failed to add finalizer: %v",
-				err,
+				"failed to add finalizer",
 			)
 		}
 	}

@@ -92,9 +92,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		}
 	}()
 
-	// Regardless of whether the status gen is as expected, make sure the CR
-	// finalizers are as we want them. We use a finalizer to prevent races
-	// between polled CR updates and CR deletion.
+	// We use a finalizer to ensure that only KubeDirector updates status
 	doExit, finalizerErr := r.handleFinalizers(reqLogger, cr)
 	if finalizerErr != nil {
 		return finalizerErr

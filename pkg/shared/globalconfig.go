@@ -27,8 +27,8 @@ var (
 // getNativeSystemdSupport extracts the flag definition from the
 // globalConfig CR data if present, otherwise returns false
 func GetNativeSystemdSupport() bool {
-	globalConfigLock.Lock()
-	defer globalConfigLock.Unlock()
+	globalConfigLock.RLock()
+	defer globalConfigLock.RUnlock()
 	if globalConfig != nil && globalConfig.Spec.NativeSystemdSupport != nil {
 		return *globalConfig.Spec.NativeSystemdSupport
 	}
@@ -36,25 +36,25 @@ func GetNativeSystemdSupport() bool {
 }
 
 // GetDefaultStorageClass extracts the default storage class from the
-// globalConfig CR data if present, otherwise returns nil
-func GetDefaultStorageClass() *string {
-	globalConfigLock.Lock()
-	defer globalConfigLock.Unlock()
+// globalConfig CR data if present, otherwise returns an empty string
+func GetDefaultStorageClass() string {
+	globalConfigLock.RLock()
+	defer globalConfigLock.RUnlock()
 	if globalConfig != nil && globalConfig.Spec.StorageClass != nil {
-		return globalConfig.Spec.StorageClass
+		return *globalConfig.Spec.StorageClass
 	}
-	return nil
+	return ""
 }
 
 // GetDefaultStorageClass extracts the default storage class from the
-// globalConfig CR data if present, otherwise returns nil.
-func GetDefaultServiceType() *string {
-	globalConfigLock.Lock()
-	defer globalConfigLock.Unlock()
+// globalConfig CR data if present, otherwise returns an empty string.
+func GetDefaultServiceType() string {
+	globalConfigLock.RLock()
+	defer globalConfigLock.RUnlock()
 	if globalConfig != nil && globalConfig.Spec.ServiceType != nil {
-		return globalConfig.Spec.ServiceType
+		return *globalConfig.Spec.ServiceType
 	}
-	return nil
+	return ""
 }
 
 // removeGlobalConfig removes the current globalConfig

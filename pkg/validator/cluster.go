@@ -300,11 +300,11 @@ func validateRoleStorageClass(
 		}
 		// No storage class specified. How we handle this depends on whether
 		// there is a KubeDirector config-specified default.
-		if globalStorageClass != nil {
+		if len(globalStorageClass) > 0 {
 			// Yep. Use that, and remember to validate it when we're done
 			// looping.
 			validateDefault = true
-			role.Storage.StorageClass = globalStorageClass
+			role.Storage.StorageClass = &globalStorageClass
 		} else {
 			// Nope. Let's see what K8s says is the default.
 			scK8sDefault, _ := observer.GetDefaultStorageClass(client)
@@ -335,13 +335,13 @@ func validateRoleStorageClass(
 			noDefaultStorageClass,
 		)
 	} else if validateDefault {
-		_, err := observer.GetStorageClass(*globalStorageClass, client)
+		_, err := observer.GetStorageClass(globalStorageClass, client)
 		if err != nil {
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(
 					badDefaultStorageClass,
-					*globalStorageClass,
+					globalStorageClass,
 				),
 			)
 		}
@@ -425,10 +425,9 @@ func addServiceType(
 		return patches
 	}
 
-	serviceType := defaultServiceType
-	globalDefault := shared.GetDefaultServiceType()
-	if globalDefault != nil {
-		serviceType = *globalDefault
+	serviceType := shared.GetDefaultServiceType()
+	if len(serviceType) == 0 {
+		serviceType = defaultServiceType
 	}
 	cr.Spec.ServiceType = &serviceType
 

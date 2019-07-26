@@ -17,7 +17,7 @@ package kubedirectorconfig
 import (
 	"context"
 	"fmt"
-	"sync"
+	"github.com/bluek8s/kubedirector/pkg/shared"
 	"time"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
@@ -76,10 +76,8 @@ const (
 type ReconcileKubeDirectorConfig struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	Client       client.Client
-	scheme       *runtime.Scheme
-	lock         sync.RWMutex
-	globalConfig *kdv1.KubeDirectorConfig
+	Client client.Client
+	scheme *runtime.Scheme
 }
 
 // Reconcile reads that state of the cluster for a KubeDirectorConfig object and makes changes based on the state read
@@ -101,7 +99,7 @@ func (r *ReconcileKubeDirectorConfig) Reconcile(request reconcile.Request) (reco
 			// Owned objects are automatically garbage collected. For additional cleanup
 			// logic use finalizers.
 			// Return and don't requeue
-			removeGlobalConfig(r)
+			shared.RemoveGlobalConfig()
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
@@ -109,6 +107,6 @@ func (r *ReconcileKubeDirectorConfig) Reconcile(request reconcile.Request) (reco
 			fmt.Errorf("could not fetch KubeDirectorConfig instance: %s", err)
 	}
 
-	addGlobalConfig(r, kdConfig)
+	shared.AddGlobalConfig(kdConfig)
 	return reconcileResult, nil
 }

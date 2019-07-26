@@ -17,7 +17,6 @@ package validator
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/bluek8s/kubedirector/pkg/controller/kubedirectorcluster"
 	"reflect"
 	"strconv"
 	"strings"
@@ -268,7 +267,6 @@ func validateRoleChanges(
 func validateRoleStorageClass(
 	cr *kdv1.KubeDirectorCluster,
 	valErrors []string,
-	kdConfig *kdv1.KubeDirectorConfig,
 	patches []clusterPatchSpec,
 	client k8sclient.Client,
 ) ([]string, []clusterPatchSpec) {
@@ -276,7 +274,7 @@ func validateRoleStorageClass(
 	var validateDefault = false
 	var missingDefault = false
 
-	globalStorageClass := kdConfig.Spec.StorageClass
+	globalStorageClass := shared.GetDefaultStorageClass()
 	numRoles := len(cr.Spec.Roles)
 	for i := 0; i < numRoles; i++ {
 		role := &(cr.Spec.Roles[i])
@@ -420,7 +418,6 @@ func validateMinResources(
 // cluster CR.
 func addServiceType(
 	cr *kdv1.KubeDirectorCluster,
-	kdConfig *kdv1.KubeDirectorConfig,
 	patches []clusterPatchSpec,
 ) []clusterPatchSpec {
 
@@ -429,8 +426,9 @@ func addServiceType(
 	}
 
 	serviceType := defaultServiceType
-	if kdConfig.Spec.ServiceType != nil {
-		serviceType = *kdConfig.Spec.ServiceType
+	globalDefault := shared.GetDefaultServiceType()
+	if globalDefault != nil {
+		serviceType = *globalDefault
 	}
 	cr.Spec.ServiceType = &serviceType
 
@@ -494,11 +492,7 @@ func admitClusterCR(
 	// Don't allow Status to be updated except by KubeDirector. Do this by
 	// using one-time codes known by KubeDirector.
 	if clusterCR.Status != nil {
-		// TODO: undo this KDCReconciler hack
-		expectedStatusGen, ok := kubedirectorcluster.ReadStatusGen(
-			&clusterCR,
-			kubedirectorcluster.KDCReconciler,
-		)
+		expectedStatusGen, ok := shared.ReadStatusGen(clusterCR.UID)
 		// Reject this write if either of:
 		// - KubeDirector doesn't know about the cluster resource
 		// - this status generation UID is not what we're expecting a write for
@@ -521,11 +515,7 @@ func admitClusterCR(
 		}
 	}
 
-	// TODO: undo this KDCReconciler hack
-	kubedirectorcluster.ValidateStatusGen(
-		&clusterCR,
-		kubedirectorcluster.KDCReconciler,
-	)
+	shared.ValidateStatusGen(clusterCR.UID)
 
 	// Shortcut out of here if the spec is not being changed. Among other
 	// things this allows KD to update status or metadata even if the
@@ -546,9 +536,6 @@ func admitClusterCR(
 		return &admitResponse
 	}
 
-	// Fetch global config CR (if present)
-	kdConfigCR, _ := observer.GetKDConfig(shared.KubeDirectorGlobalConfig, client)
-
 	// Validate cardinality and generate patches for defaults members values.
 	valErrors, patches = validateCardinality(&clusterCR, appCR, valErrors)
 
@@ -561,12 +548,11 @@ func admitClusterCR(
 	valErrors, patches = validateRoleStorageClass(
 		&clusterCR,
 		valErrors,
-		kdConfigCR,
 		patches,
 		client,
 	)
 
-	patches = addServiceType(&clusterCR, kdConfigCR, patches)
+	patches = addServiceType(&clusterCR, patches)
 
 	// If cluster already exists, check for property changes.
 	if ar.Request.Operation == v1beta1.Update {

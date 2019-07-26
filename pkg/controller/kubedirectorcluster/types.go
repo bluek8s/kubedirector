@@ -17,19 +17,7 @@ package kubedirectorcluster
 import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
-
-// StatusGen informs whether the enclosed UID has been validated.
-type StatusGen struct {
-	UID       string
-	Validated bool
-}
-
-type reconcilerClusterState struct {
-	clusterStatusGens map[types.UID]StatusGen
-	clusterAppTypes   map[string]string
-}
 
 type clusterState string
 

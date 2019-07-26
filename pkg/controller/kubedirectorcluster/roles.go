@@ -272,7 +272,7 @@ func handleRoleCreate(
 		role.roleSpec.Name,
 	)
 
-	nativeSystemdSupport := getNativeSystemdSupport(client)
+	nativeSystemdSupport := shared.GetNativeSystemdSupport()
 
 	// Create the associated statefulset.
 	statefulSet, createErr := executor.CreateStatefulSet(

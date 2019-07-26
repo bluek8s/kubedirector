@@ -17,7 +17,6 @@ package validator
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/bluek8s/kubedirector/pkg/controller/kubedirectorcluster"
 	"strconv"
 	"strings"
 
@@ -312,12 +311,7 @@ func admitAppCR(
 
 	// Reject an update or delete if the app CR is currently in use.
 	if ar.Request.Operation == v1beta1.Update || ar.Request.Operation == v1beta1.Delete {
-		// TODO: undo this KDCReconciler hack
-		references := kubedirectorcluster.ClustersUsingApp(
-			ar.Request.Name,
-			kubedirectorcluster.KDCReconciler,
-		)
-
+		references := shared.ClustersUsingApp(ar.Request.Name)
 		if len(references) != 0 {
 			referencesStr := strings.Join(references, ", ")
 			admitResponse.Result = &metav1.Status{

@@ -16,7 +16,6 @@ package kubedirectorcluster
 
 import (
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/types"
 	"reflect"
 	"time"
 
@@ -38,7 +37,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 ) error {
 
 	// Make sure this cluster marks a reference to its app.
-	ensureClusterAppReference(cr, r)
+	shared.EnsureClusterAppReference(cr.Namespace, cr.Name, cr.Spec.AppID)
 
 	// Make sure we have a Status object to work with.
 	if cr.Status == nil {
@@ -56,7 +55,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			maxWait := 4096 * time.Second
 			for {
 				cr.Status.GenerationUID = uuid.New().String()
-				writeStatusGen(cr, cr.Status.GenerationUID, r)
+				shared.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
 				updateErr := executor.UpdateStatus(reqLogger, cr, r.Client)
 				if updateErr == nil {
 					return
@@ -196,7 +195,7 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 	cr *kdv1.KubeDirectorCluster,
 ) bool {
 
-	_, ok := ReadStatusGen(cr, r)
+	_, ok := shared.ReadStatusGen(cr.UID)
 	if ok {
 		return true
 	}
@@ -218,9 +217,9 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 		"unknown with incoming gen uid %s",
 		incoming,
 	)
-	writeStatusGen(cr, incoming, r)
-	ValidateStatusGen(cr, r)
-	ensureClusterAppReference(cr, r)
+	shared.WriteStatusGen(cr.UID, incoming)
+	shared.ValidateStatusGen(cr.UID)
+	shared.EnsureClusterAppReference(cr.Namespace, cr.Name, cr.Spec.AppID)
 	return true
 }
 
@@ -245,14 +244,8 @@ func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 		}
 		// Also clear the status gen from our cache, regardless of whether
 		// finalizer modification succeeded.
-		deleteStatusGen(cr, r)
-		removeClusterAppReference(
-			types.NamespacedName{
-				Namespace: cr.Namespace,
-				Name:      cr.Name,
-			},
-			r,
-		)
+		shared.DeleteStatusGen(cr.UID)
+		shared.RemoveClusterAppReference(cr.Namespace, cr.Name)
 		return true, removeErr
 	}
 

@@ -19,8 +19,6 @@ import (
 	"fmt"
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-	"sync"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,24 +39,9 @@ func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
 
-// TODO: this is a hack to make the cluster state info available
-//  to the validator. We need to figure out a better way.
-var KDCReconciler *ReconcileKubeDirectorCluster
-
 // newReconciler returns a new reconcile.Reconciler .
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	if KDCReconciler == nil {
-		KDCReconciler = &ReconcileKubeDirectorCluster{
-			Client: mgr.GetClient(),
-			scheme: mgr.GetScheme(),
-			lock:   sync.RWMutex{},
-			clusterState: reconcilerClusterState{
-				clusterStatusGens: make(map[types.UID]StatusGen),
-				clusterAppTypes:   make(map[string]string),
-			},
-		}
-	}
-	return KDCReconciler
+	return &ReconcileKubeDirectorCluster{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -91,10 +74,8 @@ const (
 type ReconcileKubeDirectorCluster struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	Client       client.Client
-	scheme       *runtime.Scheme
-	lock         sync.RWMutex
-	clusterState reconcilerClusterState
+	Client client.Client
+	scheme *runtime.Scheme
 }
 
 // Reconcile reads that state of the cluster for a KubeDirectorCluster object and makes changes based

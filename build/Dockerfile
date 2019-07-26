@@ -1,4 +1,4 @@
-FROM alpine:3.6
+FROM registry.access.redhat.com/ubi7/ubi-minimal:latest
 ENV OPERATOR=/usr/local/bin/kubedirector
 
 # Allow delve to run on Alpine based containers.

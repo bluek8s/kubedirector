@@ -27,6 +27,8 @@ var (
 // getNativeSystemdSupport extracts the flag definition from the
 // globalConfig CR data if present, otherwise returns false
 func GetNativeSystemdSupport() bool {
+	globalConfigLock.Lock()
+	defer globalConfigLock.Unlock()
 	if globalConfig != nil && globalConfig.Spec.NativeSystemdSupport != nil {
 		return *globalConfig.Spec.NativeSystemdSupport
 	}
@@ -36,6 +38,8 @@ func GetNativeSystemdSupport() bool {
 // GetDefaultStorageClass extracts the default storage class from the
 // globalConfig CR data if present, otherwise returns nil
 func GetDefaultStorageClass() *string {
+	globalConfigLock.Lock()
+	defer globalConfigLock.Unlock()
 	if globalConfig != nil && globalConfig.Spec.StorageClass != nil {
 		return globalConfig.Spec.StorageClass
 	}
@@ -45,6 +49,8 @@ func GetDefaultStorageClass() *string {
 // GetDefaultStorageClass extracts the default storage class from the
 // globalConfig CR data if present, otherwise returns nil.
 func GetDefaultServiceType() *string {
+	globalConfigLock.Lock()
+	defer globalConfigLock.Unlock()
 	if globalConfig != nil && globalConfig.Spec.ServiceType != nil {
 		return globalConfig.Spec.ServiceType
 	}

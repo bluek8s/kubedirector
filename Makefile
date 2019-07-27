@@ -46,7 +46,6 @@ build: configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcop
 
 debug: export GOFLAGS += -gcflags=all=-N -gcflags=-l
 debug: build
-debug:
 	@echo \* Applying debug settings to KubeDirector deployment YAML...
 	@sed -i ${sedseparator} \
         -e '\~${bin_dir}/${project_name}~s~~${bin_dir}/dlv --listen=:40000 --headless --api-version=2 exec &~' \
@@ -262,8 +261,7 @@ undeploy:
 
 teardown: undeploy
 
-compile:
-	make clean
+compile: clean
 	GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
 		go build -o ${build_dir}/bin/${project_name} ./cmd/manager
 

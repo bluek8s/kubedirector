@@ -24,10 +24,10 @@ import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/observer"
-	"github.com/bluek8s/kubedirector/pkg/reconciler"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // clusterPatchSpec is used to create the PATCH operation for populating
@@ -267,14 +267,14 @@ func validateRoleChanges(
 func validateRoleStorageClass(
 	cr *kdv1.KubeDirectorCluster,
 	valErrors []string,
-	kdConfig *kdv1.KubeDirectorConfig,
 	patches []clusterPatchSpec,
+	client k8sclient.Client,
 ) ([]string, []clusterPatchSpec) {
 
 	var validateDefault = false
 	var missingDefault = false
 
-	globalStorageClass := kdConfig.Spec.StorageClass
+	globalStorageClass := shared.GetDefaultStorageClass()
 	numRoles := len(cr.Spec.Roles)
 	for i := 0; i < numRoles; i++ {
 		role := &(cr.Spec.Roles[i])
@@ -285,7 +285,7 @@ func validateRoleStorageClass(
 		storageClass := role.Storage.StorageClass
 		if storageClass != nil {
 			// Storage class is specified, so validate it.
-			_, scErr := observer.GetStorageClass(*storageClass)
+			_, scErr := observer.GetStorageClass(*storageClass, client)
 			if scErr != nil {
 				valErrors = append(
 					valErrors,
@@ -300,14 +300,14 @@ func validateRoleStorageClass(
 		}
 		// No storage class specified. How we handle this depends on whether
 		// there is a KubeDirector config-specified default.
-		if globalStorageClass != nil {
+		if len(globalStorageClass) > 0 {
 			// Yep. Use that, and remember to validate it when we're done
 			// looping.
 			validateDefault = true
-			role.Storage.StorageClass = globalStorageClass
+			role.Storage.StorageClass = &globalStorageClass
 		} else {
 			// Nope. Let's see what K8s says is the default.
-			scK8sDefault, _ := observer.GetDefaultStorageClass()
+			scK8sDefault, _ := observer.GetDefaultStorageClass(client)
 			if scK8sDefault == nil {
 				missingDefault = true
 				continue
@@ -335,13 +335,13 @@ func validateRoleStorageClass(
 			noDefaultStorageClass,
 		)
 	} else if validateDefault {
-		_, err := observer.GetStorageClass(*globalStorageClass)
+		_, err := observer.GetStorageClass(globalStorageClass, client)
 		if err != nil {
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(
 					badDefaultStorageClass,
-					*globalStorageClass,
+					globalStorageClass,
 				),
 			)
 		}
@@ -350,7 +350,7 @@ func validateRoleStorageClass(
 	return valErrors, patches
 }
 
-// validateMinResources function checks to see if minimum resource requiements
+// validateMinResources function checks to see if minimum resource requirements
 // are specified for each role, by checking against associated app roles' minimum
 // requirement
 func validateMinResources(
@@ -418,7 +418,6 @@ func validateMinResources(
 // cluster CR.
 func addServiceType(
 	cr *kdv1.KubeDirectorCluster,
-	kdConfig *kdv1.KubeDirectorConfig,
 	patches []clusterPatchSpec,
 ) []clusterPatchSpec {
 
@@ -426,9 +425,9 @@ func addServiceType(
 		return patches
 	}
 
-	serviceType := defaultServiceType
-	if kdConfig.Spec.ServiceType != nil {
-		serviceType = *kdConfig.Spec.ServiceType
+	serviceType := shared.GetDefaultServiceType()
+	if len(serviceType) == 0 {
+		serviceType = defaultServiceType
 	}
 	cr.Spec.ServiceType = &serviceType
 
@@ -451,7 +450,7 @@ func addServiceType(
 // response.
 func admitClusterCR(
 	ar *v1beta1.AdmissionReview,
-	handlerState *reconciler.Handler,
+	client k8sclient.Client,
 ) *v1beta1.AdmissionResponse {
 
 	var valErrors []string
@@ -492,10 +491,7 @@ func admitClusterCR(
 	// Don't allow Status to be updated except by KubeDirector. Do this by
 	// using one-time codes known by KubeDirector.
 	if clusterCR.Status != nil {
-		expectedStatusGen, ok := reconciler.ReadStatusGen(
-			&clusterCR,
-			handlerState,
-		)
+		expectedStatusGen, ok := shared.ReadStatusGen(clusterCR.UID)
 		// Reject this write if either of:
 		// - KubeDirector doesn't know about the cluster resource
 		// - this status generation UID is not what we're expecting a write for
@@ -517,10 +513,8 @@ func admitClusterCR(
 			}
 		}
 	}
-	reconciler.ValidateStatusGen(
-		&clusterCR,
-		handlerState,
-	)
+
+	shared.ValidateStatusGen(clusterCR.UID)
 
 	// Shortcut out of here if the spec is not being changed. Among other
 	// things this allows KD to update status or metadata even if the
@@ -533,16 +527,13 @@ func admitClusterCR(
 	}
 
 	// At this point, if app is bad, no need to continue with validation.
-	appCR, err := catalog.GetApp(&clusterCR)
+	appCR, err := catalog.GetApp(&clusterCR, client)
 	if err != nil {
 		admitResponse.Result = &metav1.Status{
 			Message: "\n" + fmt.Sprintf(invalidAppMessage, clusterCR.Spec.AppID),
 		}
 		return &admitResponse
 	}
-
-	// Fetch global config CR (if present)
-	kdConfigCR, _ := observer.GetKDConfig(shared.KubeDirectorGlobalConfig)
 
 	// Validate cardinality and generate patches for defaults members values.
 	valErrors, patches = validateCardinality(&clusterCR, appCR, valErrors)
@@ -556,11 +547,11 @@ func admitClusterCR(
 	valErrors, patches = validateRoleStorageClass(
 		&clusterCR,
 		valErrors,
-		kdConfigCR,
 		patches,
+		client,
 	)
 
-	patches = addServiceType(&clusterCR, kdConfigCR, patches)
+	patches = addServiceType(&clusterCR, patches)
 
 	// If cluster already exists, check for property changes.
 	if ar.Request.Operation == v1beta1.Update {

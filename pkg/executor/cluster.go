@@ -15,35 +15,23 @@
 package executor
 
 import (
-	"encoding/json"
+	"context"
+	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"k8s.io/apimachinery/pkg/types"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-// statusPatchSpec is used to create PATCH operation input for modifying a
-// virtual cluster CR's status.
-type statusPatchSpec struct {
-	Op    string             `json:"op"`
-	Path  string             `json:"path"`
-	Value kdv1.ClusterStatus `json:"value"`
-}
-
-// finalizersPatchSpec is used to create PATCH operation input for modifying a
-// virtual cluster CR's finalizers list.
-type finalizersPatchSpec struct {
-	Op    string   `json:"op"`
-	Path  string   `json:"path"`
-	Value []string `json:"value"`
-}
 
 // UpdateStatus propagates status changes back to k8s. Roles or members in
 // the status that have been marked for deletion (by having certain fields
 // set to emptystring) will be removed before the writeback.
 func UpdateStatus(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
+	client k8sclient.Client,
 ) error {
 
 	// Before writing back, remove any RoleStatus where StatefulSet is
@@ -53,83 +41,174 @@ func UpdateStatus(
 	// TBD: We should probably write to the status sub-resource. That's only
 	// available in 1.11 (beta feature) and later though. So for now let's
 	// just modify the status property of the CR.
-	statusPatch := []statusPatchSpec{
-		{
-			Op:    "replace",
-			Path:  "/status",
-			Value: *(cr.Status),
-		},
+	err := client.Status().Update(context.TODO(), cr)
+	if err == nil {
+		return nil
 	}
-	patchAttempt := func(p []statusPatchSpec) error {
-		statusPatchBytes, err := json.Marshal(statusPatch)
-		if err == nil {
-			err = sdk.Patch(cr, types.JSONPatchType, statusPatchBytes)
-		}
-		return err
-	}
-	patchErr := patchAttempt(statusPatch)
-	if patchErr != nil {
-		// If replace doesn't work, try add. (First time update.)
-		statusPatch[0].Op = "add"
-		patchErr = patchAttempt(statusPatch)
-	}
-	if patchErr != nil {
-		shared.LogErrorf(
+	if !errors.IsConflict(err) {
+		shared.LogError(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonCluster,
-			"failed to update status: %v",
-			patchErr,
+			"failed to update status",
 		)
 	}
-	return patchErr
+
+	// If there was a resourceVersion conflict then fetch a more
+	// recent version of the object and attempt to update that.
+	currentCluster := &kdv1.KubeDirectorCluster{}
+	err = client.Get(
+		context.TODO(),
+		types.NamespacedName{
+			Namespace: cr.Namespace,
+			Name:      cr.Name,
+		},
+		currentCluster,
+	)
+	if err != nil {
+		shared.LogError(
+			reqLogger,
+			err,
+			cr,
+			shared.EventReasonCluster,
+			"failed to retrieve cluster",
+		)
+		return err
+	}
+
+	currentCluster.Status = cr.Status
+	err = client.Status().Update(context.TODO(), currentCluster)
+	if err != nil {
+		shared.LogError(
+			reqLogger,
+			err,
+			cr,
+			shared.EventReasonCluster,
+			"failed to update status",
+		)
+	}
+	return err
 }
 
 // RemoveFinalizer removes the KubeDirector finalizer from the CR's finalizers
 // list (if it is in there).
 func RemoveFinalizer(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
+	client k8sclient.Client,
 ) error {
 
-	found := false
-	for i, f := range cr.Finalizers {
-		if f == finalizerID {
-			cr.Finalizers = append(cr.Finalizers[:i], cr.Finalizers[i+1:]...)
-			found = true
-			break
-		}
-	}
-	if !found {
+	if !removeFinalizer(cr) {
 		return nil
 	}
-
-	finalizersPatch := []finalizersPatchSpec{
-		{
-			Op:    "replace",
-			Path:  "/metadata/finalizers",
-			Value: cr.Finalizers,
-		},
+	err := client.Update(context.TODO(), cr)
+	if err == nil {
+		return nil
 	}
-	finalizersPatchBytes, patchErr := json.Marshal(finalizersPatch)
-	if patchErr == nil {
-		patchErr = sdk.Patch(cr, types.JSONPatchType, finalizersPatchBytes)
-	}
-	if patchErr != nil {
-		shared.LogErrorf(
+	if !errors.IsConflict(err) {
+		shared.LogError(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonCluster,
-			"failed to remove finalizer: %v",
-			patchErr,
+			"failed to remove finalizer",
 		)
+		return err
 	}
-	return patchErr
+
+	// If there was a resourceVersion conflict then fetch a more
+	// recent version of the object and attempt to update that.
+	currentCluster := &kdv1.KubeDirectorCluster{}
+	err = client.Get(
+		context.TODO(),
+		types.NamespacedName{
+			Namespace: cr.Namespace,
+			Name:      cr.Name,
+		},
+		currentCluster,
+	)
+	if err != nil {
+		shared.LogError(
+			reqLogger,
+			err,
+			cr,
+			shared.EventReasonCluster,
+			"failed to retrieve cluster",
+		)
+		return err
+	}
+	if removeFinalizer(currentCluster) {
+		err = client.Update(context.TODO(), currentCluster)
+		if err != nil {
+			shared.LogError(
+				reqLogger,
+				err,
+				cr,
+				shared.EventReasonCluster,
+				"failed to remove finalizer",
+			)
+		}
+	}
+	return err
 }
 
 // EnsureFinalizer adds the KubeDirector finalizer into the CR's finalizers
 // list (if it is not in there).
 func EnsureFinalizer(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
+	client k8sclient.Client,
 ) error {
 
+	if !addFinalizer(cr) {
+		return nil
+	}
+	err := client.Update(context.TODO(), cr)
+	if err == nil {
+		return nil
+	}
+
+	// We can't just retry on a resourceVersion conflict error like
+	// we did in RemoveFinalizer because the webhook validator will
+	// reject any new cluster in the Update call above so we retry
+	// with a more recent object on any error.
+	currentCluster := &kdv1.KubeDirectorCluster{}
+	err = client.Get(
+		context.TODO(),
+		types.NamespacedName{
+			Namespace: cr.Namespace,
+			Name:      cr.Name,
+		},
+		currentCluster,
+	)
+	if err != nil {
+		shared.LogError(
+			reqLogger,
+			err,
+			cr,
+			shared.EventReasonCluster,
+			"failed to retrieve cluster",
+		)
+		return err
+	}
+
+	if addFinalizer(currentCluster) {
+		err = client.Update(context.TODO(), currentCluster)
+		if err != nil {
+			shared.LogError(
+				reqLogger,
+				err,
+				cr,
+				shared.EventReasonCluster,
+				"failed to add finalizer",
+			)
+		}
+	}
+	return err
+}
+
+func addFinalizer(cr *kdv1.KubeDirectorCluster) bool {
 	found := false
 	for _, f := range cr.Finalizers {
 		if f == finalizerID {
@@ -138,46 +217,26 @@ func EnsureFinalizer(
 		}
 	}
 	if found {
-		return nil
+		return false
 	}
 	cr.Finalizers = append(cr.Finalizers, finalizerID)
+	return true
+}
 
-	var finalizersPatch []finalizersPatchSpec
-	if len(cr.Finalizers) == 1 {
-		finalizersPatch = []finalizersPatchSpec{
-			{
-				Op:    "add",
-				Path:  "/metadata/finalizers",
-				Value: cr.Finalizers,
-			},
-		}
-
-	} else {
-		finalizersPatch = []finalizersPatchSpec{
-			{
-				Op:    "replace",
-				Path:  "/metadata/finalizers",
-				Value: cr.Finalizers,
-			},
+func removeFinalizer(cr *kdv1.KubeDirectorCluster) bool {
+	found := false
+	for i, f := range cr.Finalizers {
+		if f == finalizerID {
+			cr.Finalizers = append(cr.Finalizers[:i], cr.Finalizers[i+1:]...)
+			found = true
+			break
 		}
 	}
-	finalizersPatchBytes, patchErr := json.Marshal(finalizersPatch)
-	if patchErr == nil {
-		patchErr = sdk.Patch(cr, types.JSONPatchType, finalizersPatchBytes)
-	}
-	if patchErr != nil {
-		shared.LogErrorf(
-			cr,
-			shared.EventReasonCluster,
-			"failed to add finalizer: %v",
-			patchErr,
-		)
-	}
-	return patchErr
+	return found
 }
 
 // compact edits the input slice of role statuses so that any elements that
-// have an emptystring StatefulSet field are removed from the slice. Also
+// have an empty string StatefulSet field are removed from the slice. Also
 // compactMembers is invoked on the Pod field of the non-removed elements.
 func compact(
 	r *[]kdv1.RoleStatus,

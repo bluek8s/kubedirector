@@ -9,9 +9,13 @@ image ?= ${default_image}
 cluster_resource_name := KubeDirectorCluster
 app_resource_name := KubeDirectorApp
 
+bin_dir := /usr/local/bin
 project_name := kubedirector
 
+configcli_dir := /root
 configcli_version := 0.5
+
+local_deploy_yaml := deploy/kubedirector/deployment-localbuilt.yaml
 
 UNAME := $(shell uname)
 
@@ -24,37 +28,46 @@ sedseparator = ''
 sedignorecase =
 endif
 
-build_dir = 'tmp/_output'
+build_dir := build/_output
 configcli_dest := $(build_dir)/configcli.tgz
+goarch := amd64
+cgo_enabled := 0 
 
 .DEFAULT_GOAL := build
 
 build: configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go | $(build_dir)
-	@echo
 	@echo \* Creating KubeDirector deployment image and YAML...
 	@test -d vendor || dep ensure -v
-	@echo operator-sdk build ${image}
-	@operator-sdk build ${image} | grep -v "Create deploy/operator.yaml"
+	operator-sdk build ${image}
 	@docker image prune -f > /dev/null
-	@sed -i ${sedseparator} \
-        -e '/command:/ {' \
-        -e 'n; ' \
-        -e 's~.*~          - "/bin/sh"~; G; ' \
-        -e 's~$$~          args:~; G; ' \
-        -e 's~$$~          - "-c"~; G; ' \
-        -e 's~$$~          - "mkfifo /tmp/fifo; (/root/${project_name} \&> /tmp/fifo) \& while true; do cat /tmp/fifo; done"~;' \
-        -e '}' deploy/operator.yaml
-	@sed -i ${sedseparator} \
-        -e '/env:/ {' \
-        -e 'G; ' \
-        -e 's~$$~            - name: MY_NAMESPACE~; G; ' \
-        -e 's~$$~              valueFrom:~; G; ' \
-        -e 's~$$~                fieldRef:~; G; ' \
-        -e 's~$$~                  fieldPath: metadata.namespace~;' \
-        -e '}' deploy/operator.yaml
+	@sed ${sedseparator} -e 's~REPLACE_IMAGE~${image}~' deploy/operator.yaml >${local_deploy_yaml}
+	@echo done
+	@echo
 
-	@echo "      serviceAccountName: kubedirector" >> deploy/operator.yaml
-	@mv deploy/operator.yaml deploy/kubedirector/deployment-localbuilt.yaml
+debug: export GOFLAGS += -gcflags=all=-N -gcflags=-l
+debug: build
+debug:
+	@echo \* Applying debug settings to KubeDirector deployment YAML...
+	@sed -i ${sedseparator} \
+        -e '\~${bin_dir}/${project_name}~s~~${bin_dir}/dlv --listen=:40000 --headless --api-version=2 exec &~' \
+        -e '\~template:~,\~metadata:~ {' \
+        -e '\~metadata:~ {' \
+        -e 'a\      annotations:' \
+        -e 'a\        container.apparmor.security.beta.kubernetes.io/${project_name}: unconfined' \
+        -e '}' \
+        -e '}' \
+        -e '\~image:~ {' \
+        -e 'a\          ports:' \
+        -e 'a\          - containerPort: 40000' \
+        -e 'a\            hostPort: 40000' \
+        -e '}' \
+        -e '$$ {' \
+        -e 'a\          securityContext:' \
+        -e 'a\            capabilities:' \
+        -e 'a\              add:' \
+        -e 'a\                - SYS_PTRACE' \
+        -e '}' \
+        ${local_deploy_yaml}
 	@echo done
 	@echo
 
@@ -63,7 +76,10 @@ configcli:  | $(build_dir)
      echo "\* Downloading configcli package ...";                              \
      curl -L -o $(configcli_dest) https://github.com/bluek8s/configcli/archive/v$(configcli_version).tar.gz
 
-pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go: pkg/apis/kubedirector.bluedata.io/v1alpha1/types.go
+pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go:  \
+        pkg/apis/kubedirector.bluedata.io/v1alpha1/kubedirectorapp_types.go \
+        pkg/apis/kubedirector.bluedata.io/v1alpha1/kubedirectorcluster_types.go \
+        pkg/apis/kubedirector.bluedata.io/v1alpha1/kubedirectorconfig_types.go
 	@test -d vendor || dep ensure -v
 	operator-sdk generate k8s
 
@@ -98,9 +114,9 @@ deploy:
 	kubectl create -f deploy/kubedirector/rbac.yaml
 	@echo
 	@echo \* Creating custom resource definitions...
-	kubectl create -f deploy/kubedirector/crd-cluster.yaml
-	kubectl create -f deploy/kubedirector/crd-app.yaml
-	kubectl create -f deploy/kubedirector/crd-config.yaml
+	kubectl create -f deploy/kubedirector/kubedirector_v1alpha1_kubedirectorapp_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector_v1alpha1_kubedirectorcluster_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector_v1alpha1_kubedirectorconfig_crd.yaml
 	@echo
 	@set -e; \
         if [[ -f deploy/kubedirector/deployment-localbuilt.yaml ]]; then \
@@ -115,13 +131,13 @@ deploy:
         echo; \
         echo -n \* Waiting for KubeDirector to start...; \
         sleep 3; \
-        retries=20; \
-        while [ $$retries ]; do \
+        retries=0; \
+        while true; do \
             if kubectl get pods -l name=${project_name} &> /dev/null; then \
                 break; \
             else \
-                retries=`expr $$retries - 1`; \
-                if [ $$retries -le 0 ]; then \
+                retries=`expr $$retries + 1`; \
+                if [ $$retries -gt 20 ]; then \
                     echo; \
                     echo KubeDirector failed to start -- no pod created!; \
                     exit 1; \
@@ -130,13 +146,13 @@ deploy:
                 sleep 3; \
             fi; \
         done; \
-        retries=20; \
-        while [ $$retries ]; do \
+        retries=0; \
+        while true; do \
             if kubectl get MutatingWebhookConfiguration ${project_name}-webhook &> /dev/null; then \
                 exit 0; \
             else \
-                retries=`expr $$retries - 1`; \
-                if [ $$retries -le 0 ]; then \
+                retries=`expr $$retries + 1`; \
+                if [ $$retries -gt 20 ]; then \
                     echo; \
                     echo KubeDirector failed to start -- no admission control hook created!; \
                     exit 1; \
@@ -165,17 +181,17 @@ redeploy:
 	@echo \* Injecting new configcli package...
 	@set -e; \
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
-        kubectl exec $$podname -- mv -f /root/configcli.tgz /root/configcli.tgz.bak || true; \
-        kubectl cp tmp/_output/configcli.tgz $$podname:/root/configcli.tgz
+        kubectl exec $$podname -- mv -f ${configcli_dir}/configcli.tgz ${configcli_dir}/configcli.tgz.bak || true; \
+        kubectl cp ${build_dir}/configcli.tgz $$podname:${configcli_dir}/configcli.tgz
 	@echo
 	@echo \* Injecting and starting new KubeDirector binary...
 	@set -e; \
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
         kubectl exec $$podname -- /bin/sh -c "echo REDEPLOYING > /tmp/fifo"; \
-        kubectl exec $$podname -- mv -f /root/${project_name} /root/${project_name}.bak || true; \
-        kubectl cp tmp/_output/bin/${project_name} $$podname:/root/${project_name}; \
-        kubectl exec $$podname -- chmod +x /root/${project_name}; \
-        kubectl exec -t $$podname -- /bin/sh -c "/root/${project_name} &> /tmp/fifo &"; \
+        kubectl exec $$podname -- mv -f ${bin_dir}/${project_name} ${bin_dir}/${project_name}.bak || true; \
+        kubectl cp ${build_dir}/bin/${project_name} $$podname:${bin_dir}/${project_name}; \
+        kubectl exec $$podname -- chmod +x ${bin_dir}/${project_name}; \
+        kubectl exec -t $$podname -- /bin/sh -c "${bin_dir}/${project_name} &> /tmp/fifo &"; \
         echo; \
         echo KubeDirector pod name is $$podname
 	@echo
@@ -205,9 +221,9 @@ undeploy:
     fi
 	@echo
 	@echo \* Deleting custom resource definitions...
-	-kubectl delete -f deploy/kubedirector/crd-app.yaml --now
-	-kubectl delete -f deploy/kubedirector/crd-cluster.yaml --now
-	-kubectl delete -f deploy/kubedirector/crd-config.yaml --now
+	-kubectl delete -f deploy/kubedirector/kubedirector_v1alpha1_kubedirectorapp_crd.yaml --now
+	-kubectl delete -f deploy/kubedirector/kubedirector_v1alpha1_kubedirectorcluster_crd.yaml --now
+	-kubectl delete -f deploy/kubedirector/kubedirector_v1alpha1_kubedirectorconfig_crd.yaml --now
 	@echo
 	@echo \* Deleting service account...
 	-@if [[ -f deploy/kubedirector/rbac.yaml ]]; then \
@@ -217,9 +233,6 @@ undeploy:
         echo kubectl delete -f deploy/kubedirector/rbac-default.yaml --now; \
         kubectl delete -f deploy/kubedirector/rbac-default.yaml --now; \
     fi
-	@echo
-	@echo \* Deleting headless service...
-	-kubectl delete svc/${project_name}
 	@echo
 	@echo -n \* Waiting for all cluster resources to finish cleanup...
 	@set -e; \
@@ -251,7 +264,8 @@ teardown: undeploy
 
 compile:
 	make clean
-	go build -o tmp/_output/bin ./cmd/kubedirector
+	GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
+		go build -o ${build_dir}/bin/${project_name} ./cmd/manager
 
 format:
 	go fmt $(shell go list ./... | grep -v /vendor/)
@@ -262,7 +276,7 @@ dep:
 clean:
 	-rm -f deploy/kubedirector/rbac.yaml
 	-rm -f deploy/kubedirector/deployment-localbuilt.yaml
-	-rm -rf tmp/_output
+	-rm -rf ${build_dir}
 
 distclean: clean
 	-rm -rf vendor

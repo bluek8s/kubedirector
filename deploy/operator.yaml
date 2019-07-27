@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubedirector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: kubedirector
+  template:
+    metadata:
+      labels:
+        name: kubedirector
+    spec:
+      serviceAccountName: kubedirector
+      containers:
+        - name: kubedirector
+          # Replace this with the built image name
+          image: REPLACE_IMAGE
+          ports:
+          - containerPort: 60000
+            name: metrics
+          command:
+          - "/bin/sh"
+          args:
+          - "-c"
+          - "mkfifo /tmp/fifo; (/usr/local/bin/kubedirector &> /tmp/fifo) & while true; do cat /tmp/fifo; done"
+          imagePullPolicy: Always
+          env:
+            - name: MY_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "kubedirector"

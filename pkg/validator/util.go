@@ -15,20 +15,22 @@
 package validator
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"github.com/operator-framework/operator-sdk/pkg/sdk"
-	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
+	"github.com/bluek8s/kubedirector/pkg/triple"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"k8s.io/api/admissionregistration/v1beta1"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/util/cert"
-	"k8s.io/client-go/util/cert/triple"
+	// "k8s.io/client-go/util/cert/triple"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // createWebhookService creates our webhook Service resource if it does not
@@ -37,10 +39,11 @@ func createWebhookService(
 	ownerReference metav1.OwnerReference,
 	serviceName string,
 	namespace string,
+	client k8sclient.Client,
 ) error {
 
 	var createService = false
-	_, err := observer.GetService(namespace, serviceName)
+	_, err := observer.GetService(namespace, serviceName, client)
 	if err == nil {
 		// service already present, no need to do anything
 		createService = false
@@ -81,7 +84,7 @@ func createWebhookService(
 			},
 		},
 	}
-	return sdk.Create(service)
+	return client.Create(context.TODO(), service)
 }
 
 // createAdmissionService creates our MutatingWebhookConfiguration resource
@@ -92,10 +95,11 @@ func createAdmissionService(
 	namespace string,
 	serviceName string,
 	signingCert []byte,
+	client k8sclient.Client,
 ) error {
 
 	var createValidator = false
-	_, err := observer.GetValidatorWebhook(validatorWebhook)
+	_, err := observer.GetValidatorWebhook(validatorWebhook, client)
 	if err == nil {
 		// validator object already present, no need to do anything
 		createValidator = false
@@ -147,7 +151,7 @@ func createAdmissionService(
 		Webhooks: []v1beta1.Webhook{webhookHandler},
 	}
 
-	return sdk.Create(validator)
+	return client.Create(context.TODO(), validator)
 }
 
 // createCertsSecret creates a self-signed certificate and stores it as a
@@ -157,6 +161,7 @@ func createCertsSecret(
 	secretName string,
 	serviceName string,
 	namespace string,
+	client k8sclient.Client,
 ) (*v1.Secret, error) {
 
 	// Create a signing certificate
@@ -199,7 +204,7 @@ func createCertsSecret(
 		},
 	}
 
-	result := sdk.Create(secret)
+	result := client.Create(context.TODO(), secret)
 
 	return secret, result
 }

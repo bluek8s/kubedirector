@@ -23,6 +23,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/core/v1"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // GetServiceFromID is a utility function that returns the service definition for
@@ -125,12 +126,13 @@ func GetRoleMinResources(
 func PortsForRole(
 	cr *kdv1.KubeDirectorCluster,
 	role string,
+	client k8sclient.Client,
 ) ([]ServicePortInfo, error) {
 	//) ([]int32, error) {
 
 	// Fetch the app type definition if we haven't yet cached it in this
 	// handler pass.
-	appCR, err := GetApp(cr)
+	appCR, err := GetApp(cr, client)
 	if err != nil {
 		return nil, err
 	}
@@ -163,11 +165,12 @@ func PortsForRole(
 func ImageForRole(
 	cr *kdv1.KubeDirectorCluster,
 	role string,
+	client k8sclient.Client,
 ) (string, error) {
 
 	// Fetch the app type definition if we haven't yet cached it in this
 	// handler pass.
-	appCR, err := GetApp(cr)
+	appCR, err := GetApp(cr, client)
 	if err != nil {
 		return "", err
 	}
@@ -200,11 +203,12 @@ func ImageForRole(
 func AppSetupPackageURL(
 	cr *kdv1.KubeDirectorCluster,
 	role string,
+	client k8sclient.Client,
 ) (string, error) {
 
 	// Fetch the app type definition if we haven't yet cached it in this
 	// handler pass.
-	appCR, err := GetApp(cr)
+	appCR, err := GetApp(cr, client)
 	if err != nil {
 		return "", err
 	}
@@ -236,11 +240,12 @@ func AppSetupPackageURL(
 // app.
 func SystemdRequired(
 	cr *kdv1.KubeDirectorCluster,
+	client k8sclient.Client,
 ) (bool, error) {
 
 	// Fetch the app type definition if we haven't yet cached it in this
 	// handler pass.
-	appCR, err := GetApp(cr)
+	appCR, err := GetApp(cr, client)
 	if err != nil {
 		return false, err
 	}
@@ -251,6 +256,7 @@ func SystemdRequired(
 // AgentRequired checks whether agent installation is required for a given app.
 func AgentRequired(
 	cr *kdv1.KubeDirectorCluster,
+	client k8sclient.Client,
 ) bool {
 
 	return false // currently, always false
@@ -259,11 +265,12 @@ func AgentRequired(
 // AppCapabilities fetches the required capabilities for a given app
 func AppCapabilities(
 	cr *kdv1.KubeDirectorCluster,
+	client k8sclient.Client,
 ) ([]v1.Capability, error) {
 
 	// Fetch the app type definition if we haven't yet cached it in this
 	// handler pass.
-	appCR, err := GetApp(cr)
+	appCR, err := GetApp(cr, client)
 	if err != nil {
 		return []v1.Capability{}, err
 	}
@@ -276,11 +283,12 @@ func AppCapabilities(
 func AppPersistDirs(
 	cr *kdv1.KubeDirectorCluster,
 	role string,
+	client k8sclient.Client,
 ) (*[]string, error) {
 
 	// Fetch the app type definition if we haven't yet cached it in this
 	// handler pass.
-	appCR, err := GetApp(cr)
+	appCR, err := GetApp(cr, client)
 	if err != nil {
 		return nil, err
 	}
@@ -308,12 +316,13 @@ func AppPersistDirs(
 // fetch, cache, and return it.
 func GetApp(
 	cr *kdv1.KubeDirectorCluster,
+	client k8sclient.Client,
 ) (*kdv1.KubeDirectorApp, error) {
 
 	if cr.AppSpec != nil {
 		return cr.AppSpec, nil
 	}
-	appCR, appErr := observer.GetApp(cr.Namespace, cr.Spec.AppID)
+	appCR, appErr := observer.GetApp(cr.Namespace, cr.Spec.AppID, client)
 	if appErr != nil {
 		return nil, fmt.Errorf(
 			"failed to fetch CR for the App : %s error %v",

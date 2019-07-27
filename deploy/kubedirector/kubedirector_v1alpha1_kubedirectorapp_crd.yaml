@@ -10,10 +10,15 @@ spec:
     plural: kubedirectorapps
     singular: kubedirectorapp
   scope: Namespaced
-  version: v1alpha1
   validation:
     openAPIV3Schema:
       properties:
+        apiVersion:
+          description:
+          type: string
+        kind:
+          description:
+          type: string
         spec:
           required: [label, distro_id, version, roles, config, config_schema_version]
           properties:
@@ -150,3 +155,5 @@ spec:
                 minLength: 1
             systemdRequired:
               type: boolean
+  version: v1alpha1
+

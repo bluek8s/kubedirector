@@ -15,7 +15,7 @@
 package shared
 
 import (
-	k8sutil "github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"

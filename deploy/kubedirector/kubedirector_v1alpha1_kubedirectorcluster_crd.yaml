@@ -10,10 +10,19 @@ spec:
     plural: kubedirectorclusters
     singular: kubedirectorcluster
   scope: Namespaced
-  version: v1alpha1
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
+        apiVersion:
+          description:
+          type: string
+        kind:
+          description:
+          type: string
+        metadata:
+          type: object
         spec:
           required: [app, roles]
           properties:
@@ -75,7 +84,7 @@ spec:
                         value:
                           type: string
                   storage:
-                    required: [size]
+                    # required: [size]
                     properties:
                         size:
                           type: string
@@ -115,3 +124,4 @@ spec:
                           type: string
                         state:
                           type: string
+  version: v1alpha1

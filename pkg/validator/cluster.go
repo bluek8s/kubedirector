@@ -278,7 +278,7 @@ func validateRoleStorageClass(
 	numRoles := len(cr.Spec.Roles)
 	for i := 0; i < numRoles; i++ {
 		role := &(cr.Spec.Roles[i])
-		if role.Storage.Size == "" {
+		if role.Storage == nil {
 			// No storage section.
 			continue
 		}

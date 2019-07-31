@@ -489,7 +489,11 @@ func (in *Role) DeepCopyInto(out *Role) {
 		**out = **in
 	}
 	in.Resources.DeepCopyInto(&out.Resources)
-	in.Storage.DeepCopyInto(&out.Storage)
+	if in.Storage != nil {
+		in, out := &in.Storage, &out.Storage
+		*out = new(ClusterStorage)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.EnvVars != nil {
 		in, out := &in.EnvVars, &out.EnvVars
 		*out = make([]v1.EnvVar, len(*in))

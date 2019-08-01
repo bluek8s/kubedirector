@@ -81,15 +81,15 @@ type Role struct {
 	Name      string                  `json:"id"`
 	Members   *int32                  `json:"members"`
 	Resources v1.ResourceRequirements `json:"resources"`
-	Storage   ClusterStorage          `json:"storage,omitempty"`
+	Storage   *ClusterStorage         `json:"storage,omitempty"`
 	EnvVars   []v1.EnvVar             `json:"env,omitempty"`
 }
 
 // ClusterStorage defines the persistent storage size/type, if any, to be used
 // for certain specified directories of each container filesystem in a role.
 type ClusterStorage struct {
-	Size         string  `json:"size,omitempty"`
-	StorageClass *string `json:"storageClassName,omitempty"`
+	Size         string  `json:"size"`
+	StorageClass *string `json:"storageClassName"`
 }
 
 // RoleStatus describes the component objects of a virtual cluster role.

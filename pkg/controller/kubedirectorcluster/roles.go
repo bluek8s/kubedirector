@@ -498,7 +498,7 @@ func addMemberStatuses(
 		// avoid realloc, so we can safely grow it w/o disturbing our
 		// pointers to its elements.
 		var pvcName string
-		if role.roleSpec.Storage.Size == "" {
+		if role.roleSpec.Storage == nil {
 			pvcName = ""
 		} else {
 			pvcName = "pvc-" + memberName

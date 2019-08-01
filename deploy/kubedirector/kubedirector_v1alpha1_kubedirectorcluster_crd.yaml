@@ -84,14 +84,14 @@ spec:
                         value:
                           type: string
                   storage:
-                    # required: [size]
+                    required: [size]
                     properties:
-                        size:
-                          type: string
-                          pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
-                        storageClassName:
-                          type: string
-                          minLength: 1
+                      size:
+                        type: string
+                        pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                      storageClassName:
+                        type: string
+                        minLength: 1
         status:
           properties:
             state:

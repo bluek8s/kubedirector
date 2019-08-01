@@ -314,7 +314,7 @@ func getInitContainer(
 	persistDirs []string,
 ) (initContainer []v1.Container) {
 
-	if role.Storage.Size == "" {
+	if role.Storage == nil {
 		return
 	}
 
@@ -357,7 +357,7 @@ func getVolumeClaimTemplate(
 	pvcName string,
 ) (volTemplate []v1.PersistentVolumeClaim) {
 
-	if role.Storage.Size == "" {
+	if role.Storage == nil {
 		return
 	}
 
@@ -439,7 +439,7 @@ func generateVolumeMounts(
 	var volumeMounts []v1.VolumeMount
 	var volumes []v1.Volume
 
-	if role.Storage.Size != "" {
+	if role.Storage != nil {
 		volumeMounts = generateClaimMounts(pvcName, persistDirs)
 	}
 

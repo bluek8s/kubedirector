@@ -32,7 +32,6 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/controller"
 	"github.com/bluek8s/kubedirector/version"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
@@ -40,6 +39,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/restmapper"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	"github.com/spf13/pflag"
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -154,14 +154,13 @@ func main() {
 		log.Error(err, "failed to get kubedirector deployment object")
 		os.Exit(1)
 	}
-
 	err = validator.InitValidationServer(
-		*metav1.NewControllerRef(kd,
-			// kd.GroupVersionKind()),
+		*metav1.NewControllerRef(
+			kd,
 			schema.GroupVersionKind{
-				Group:   kdv1.SchemeGroupVersion.Group,
-				Version: kdv1.SchemeGroupVersion.Version,
-				Kind:    "KubeDirectorCluster",
+				Group:   appsv1.SchemeGroupVersion.Group,
+				Version: appsv1.SchemeGroupVersion.Version,
+				Kind:    "Deployment",
 			}),
 		k8sCoreClient,
 	)

@@ -43,7 +43,7 @@ func ClustersUsingApp(app string) []string {
 	return clusters
 }
 
-// ensureClusterAppReference notes that an app type is in use by this cluster.
+// EnsureClusterAppReference notes that an app type is in use by this cluster.
 func EnsureClusterAppReference(namespace, name, appID string) {
 	clusterKey := namespace + "/" + name
 	appTypesLock.Lock()
@@ -51,7 +51,7 @@ func EnsureClusterAppReference(namespace, name, appID string) {
 	appTypes[clusterKey] = appID
 }
 
-// removeClusterAppReference notes that an app type is no longer in use by
+// RemoveClusterAppReference notes that an app type is no longer in use by
 // this cluster.
 func RemoveClusterAppReference(namespace, name string) {
 	clusterKey := namespace + "/" + name

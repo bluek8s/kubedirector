@@ -24,7 +24,7 @@ var (
 	globalConfigLock sync.RWMutex
 )
 
-// getNativeSystemdSupport extracts the flag definition from the
+// GetNativeSystemdSupport extracts the flag definition from the
 // globalConfig CR data if present, otherwise returns false
 func GetNativeSystemdSupport() bool {
 	globalConfigLock.RLock()
@@ -46,7 +46,7 @@ func GetDefaultStorageClass() string {
 	return ""
 }
 
-// GetDefaultStorageClass extracts the default storage class from the
+// GetDefaultServiceType extracts the default service type from the
 // globalConfig CR data if present, otherwise returns an empty string.
 func GetDefaultServiceType() string {
 	globalConfigLock.RLock()
@@ -57,14 +57,14 @@ func GetDefaultServiceType() string {
 	return ""
 }
 
-// removeGlobalConfig removes the current globalConfig
+// RemoveGlobalConfig removes the current globalConfig
 func RemoveGlobalConfig() {
 	globalConfigLock.Lock()
 	defer globalConfigLock.Unlock()
 	globalConfig = nil
 }
 
-// addGlobalConfig adds the globalConfig CR data
+// AddGlobalConfig adds the globalConfig CR data
 func AddGlobalConfig(config *kdv1.KubeDirectorConfig) {
 	globalConfigLock.Lock()
 	defer globalConfigLock.Unlock()

@@ -39,7 +39,7 @@ func ReadStatusGen(uid types.UID) (StatusGen, bool) {
 	return val, ok
 }
 
-// writeStatusGen provides threadsafe write of a status gen UID string.
+// WriteStatusGen provides threadsafe write of a status gen UID string.
 // The validated flag will begin as false.
 func WriteStatusGen(uid types.UID, newGenUID string) {
 	statusGenLock.Lock()
@@ -58,7 +58,7 @@ func ValidateStatusGen(uid types.UID) {
 	}
 }
 
-// deleteStatusGen provides threadsafe delete of a status gen.
+// DeleteStatusGen provides threadsafe delete of a status gen.
 func DeleteStatusGen(uid types.UID) {
 	statusGenLock.Lock()
 	defer statusGenLock.Unlock()

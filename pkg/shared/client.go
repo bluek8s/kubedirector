@@ -16,19 +16,22 @@ package shared
 
 import (
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-	"github.com/sirupsen/logrus"
+	"os"
+
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 var (
 	// Client is a pointer to the Kubernetes client used for these operations
 	Client        *K8sClient
 	eventRecorder record.EventRecorder
+	log           = logf.Log.WithName("kubedirector")
 )
 
 // init creates the REST API client that will be used for actions not
@@ -59,7 +62,8 @@ func getClientSet(
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		logrus.Fatal("getClientSet: ", err)
+		log.Error(err, "getClientSet")
+		os.Exit(1)
 	}
 	return clientset
 }
@@ -70,7 +74,8 @@ func getConfigFromServiceAccount() *rest.Config {
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		logrus.Fatal("getConfigFromServiceAccount: ", err)
+		log.Error(err, "getConfigFromServiceAccount")
+		os.Exit(1)
 	}
 	return config
 }

@@ -128,11 +128,10 @@ func GetPVC(
 	return result, err
 }
 
-// GetApp fetches the k8s KubeDirectorApp resource.
-// First check if the app exists in the cluster cr's namespace,
-// if not found check in kubedirector's namespace
+// GetApp fetches the k8s KubeDirectorApp resource with the given name in
+// the given namespace.
 func GetApp(
-	clusterNamespace string,
+	appNamespace string,
 	appID string,
 ) (*kdv1.KubeDirectorApp, error) {
 
@@ -144,25 +143,12 @@ func GetApp(
 			APIVersion: "kubedirector.bluedata.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: appID,
+			Name:      appID,
+			Namespace: appNamespace,
 		},
 	}
 
-	// Check to see if this app exists in the cluster namespace
-	appSpec.ObjectMeta.Namespace = clusterNamespace
 	appErr = sdk.Get(appSpec)
-
-	// Check to see if it is present in our namespace
-	if appErr != nil {
-		kdNamespace, nsErr := shared.GetKubeDirectorNamespace()
-		if nsErr != nil {
-			return nil, nsErr
-		}
-
-		appSpec.ObjectMeta.Namespace = kdNamespace
-		appErr = sdk.Get(appSpec)
-	}
-
 	return appSpec, appErr
 }
 

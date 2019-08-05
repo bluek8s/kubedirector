@@ -52,12 +52,6 @@ func syncCluster(
 	// Otherwise, make sure this cluster marks a reference to its app.
 	ensureClusterAppReference(cr, handler)
 
-	// Make sure we have a Status object to work with.
-	if cr.Status == nil {
-		cr.Status = &kdv1.ClusterStatus{}
-		cr.Status.Roles = make([]kdv1.RoleStatus, 0)
-	}
-
 	// Set up logic to update status as necessary when handler exits.
 	oldStatus := cr.Status.DeepCopy()
 	defer func() {
@@ -214,12 +208,15 @@ func handleStatusGen(
 			cr.Status.State = string(clusterCreating)
 			return false
 		}
+
+		//		if lastKnown.UID != "" {
 		shared.LogWarnf(
 			cr,
 			shared.EventReasonNoEvent,
 			"unknown with incoming gen uid %s",
 			incoming,
 		)
+		//		}
 		writeStatusGen(cr, handler, incoming)
 		ValidateStatusGen(cr, handler)
 		ensureClusterAppReference(cr, handler)

@@ -16,13 +16,11 @@ package executor
 
 import (
 	"context"
-	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
+	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // UpdateStatus propagates status changes back to k8s. Roles or members in
@@ -31,7 +29,6 @@ import (
 func UpdateStatus(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	client k8sclient.Client,
 ) error {
 
 	// Before writing back, remove any RoleStatus where StatefulSet is
@@ -41,7 +38,7 @@ func UpdateStatus(
 	// TBD: We should probably write to the status sub-resource. That's only
 	// available in 1.11 (beta feature) and later though. So for now let's
 	// just modify the status property of the CR.
-	err := client.Status().Update(context.TODO(), cr)
+	err := shared.Client.Status().Update(context.TODO(), cr)
 	if err == nil {
 		return nil
 	}
@@ -58,7 +55,7 @@ func UpdateStatus(
 	// If there was a resourceVersion conflict then fetch a more
 	// recent version of the object and attempt to update that.
 	currentCluster := &kdv1.KubeDirectorCluster{}
-	err = client.Get(
+	err = shared.Client.Get(
 		context.TODO(),
 		types.NamespacedName{
 			Namespace: cr.Namespace,
@@ -78,7 +75,7 @@ func UpdateStatus(
 	}
 
 	currentCluster.Status = cr.Status
-	err = client.Status().Update(context.TODO(), currentCluster)
+	err = shared.Client.Status().Update(context.TODO(), currentCluster)
 	if err != nil {
 		shared.LogError(
 			reqLogger,
@@ -96,13 +93,12 @@ func UpdateStatus(
 func RemoveFinalizer(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	client k8sclient.Client,
 ) error {
 
 	if !removeFinalizer(cr) {
 		return nil
 	}
-	err := client.Update(context.TODO(), cr)
+	err := shared.Client.Update(context.TODO(), cr)
 	if err == nil {
 		return nil
 	}
@@ -120,7 +116,7 @@ func RemoveFinalizer(
 	// If there was a resourceVersion conflict then fetch a more
 	// recent version of the object and attempt to update that.
 	currentCluster := &kdv1.KubeDirectorCluster{}
-	err = client.Get(
+	err = shared.Client.Get(
 		context.TODO(),
 		types.NamespacedName{
 			Namespace: cr.Namespace,
@@ -139,7 +135,7 @@ func RemoveFinalizer(
 		return err
 	}
 	if removeFinalizer(currentCluster) {
-		err = client.Update(context.TODO(), currentCluster)
+		err = shared.Client.Update(context.TODO(), currentCluster)
 		if err != nil {
 			shared.LogError(
 				reqLogger,
@@ -158,13 +154,12 @@ func RemoveFinalizer(
 func EnsureFinalizer(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	client k8sclient.Client,
 ) error {
 
 	if !addFinalizer(cr) {
 		return nil
 	}
-	err := client.Update(context.TODO(), cr)
+	err := shared.Client.Update(context.TODO(), cr)
 	if err == nil {
 		return nil
 	}
@@ -174,7 +169,7 @@ func EnsureFinalizer(
 	// reject any new cluster in the Update call above so we retry
 	// with a more recent object on any error.
 	currentCluster := &kdv1.KubeDirectorCluster{}
-	err = client.Get(
+	err = shared.Client.Get(
 		context.TODO(),
 		types.NamespacedName{
 			Namespace: cr.Namespace,
@@ -194,7 +189,7 @@ func EnsureFinalizer(
 	}
 
 	if addFinalizer(currentCluster) {
-		err = client.Update(context.TODO(), currentCluster)
+		err = shared.Client.Update(context.TODO(), currentCluster)
 		if err != nil {
 			shared.LogError(
 				reqLogger,

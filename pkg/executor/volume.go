@@ -16,17 +16,16 @@ package executor
 
 import (
 	"context"
+	"github.com/bluek8s/kubedirector/pkg/shared"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // DeletePVC deletes a persistent volume claim from k8s.
 func DeletePVC(
 	namespace string,
 	pvcName string,
-	client k8sclient.Client,
 ) error {
 
 	toDelete := &v1.PersistentVolumeClaim{
@@ -39,5 +38,5 @@ func DeletePVC(
 			Namespace: namespace,
 		},
 	}
-	return client.Delete(context.TODO(), toDelete)
+	return shared.Client.Delete(context.TODO(), toDelete)
 }

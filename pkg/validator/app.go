@@ -25,7 +25,6 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type appPatchSpec struct {
@@ -299,7 +298,6 @@ func validateServices(
 // response.
 func admitAppCR(
 	ar *v1beta1.AdmissionReview,
-	client k8sclient.Client,
 ) *v1beta1.AdmissionResponse {
 
 	var valErrors []string

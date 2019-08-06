@@ -24,35 +24,30 @@ import (
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 var (
-	// Client is a pointer to the Kubernetes client used for these operations
-	Client        *K8sClient
+	// Client is a global client initialized in main and is used for all
+	//     KubeDirector CRUD operations.
+	Client client.Client
+	// ClientConfig is a client config used to create Client and ClientSet.
+	ClientConfig *rest.Config
+	// ClientSet is a REST API client that will be used for actions not
+	//     supported through the operator SDK.
+	ClientSet kubernetes.Interface
+	// eventRecorder will be used to publish events for a cr
 	eventRecorder record.EventRecorder
 	log           = logf.Log.WithName("kubedirector")
 )
 
-// init creates the REST API client that will be used for actions not
-// supported through the operator SDK. This function also creates an
-// event recorder object that will be used to publish events for a cr
+// init creates the  This function also creates an
+// event recorder
 func init() {
-
-	Client = newClientInCluster()
+	ClientConfig = getConfigFromServiceAccount()
+	ClientSet = getClientSet(ClientConfig)
 	eventRecorder = getEventRecorder()
-}
-
-// newClientInCluster creates a k8s REST API client that will operate using
-// the service account credentials of the KubeDirector pod.
-func newClientInCluster() *K8sClient {
-
-	config := getConfigFromServiceAccount()
-	client := &K8sClient{
-		Clientset:    getClientSet(config),
-		ClientConfig: config,
-	}
-	return client
 }
 
 // getClientSet creates a k8s REST API client from the given config.
@@ -87,7 +82,7 @@ func getEventRecorder() record.EventRecorder {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(
 		&typedcorev1.EventSinkImpl{
-			Interface: Client.Clientset.CoreV1().Events(""),
+			Interface: ClientSet.CoreV1().Events(""),
 		},
 	)
 	operatorName, _ := k8sutil.GetOperatorName()

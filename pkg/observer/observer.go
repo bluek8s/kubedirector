@@ -23,7 +23,7 @@ import (
 	"k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/types"
-	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // GetCluster finds the k8s KubeDirectorCluster with the given name in the
@@ -31,11 +31,10 @@ import (
 func GetCluster(
 	namespace string,
 	clusterName string,
-	client k8sclient.Client,
 ) (*kdv1.KubeDirectorCluster, error) {
 
 	result := &kdv1.KubeDirectorCluster{}
-	err := client.Get(
+	err := shared.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: clusterName},
 		result,
@@ -48,11 +47,10 @@ func GetCluster(
 func GetStatefulSet(
 	namespace string,
 	statefulSetName string,
-	client k8sclient.Client,
 ) (*appsv1.StatefulSet, error) {
 
 	result := &appsv1.StatefulSet{}
-	err := client.Get(
+	err := shared.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: statefulSetName},
 		result,
@@ -64,11 +62,10 @@ func GetStatefulSet(
 func GetService(
 	namespace string,
 	serviceName string,
-	client k8sclient.Client,
 ) (*v1.Service, error) {
 
 	result := &v1.Service{}
-	err := client.Get(
+	err := shared.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: serviceName},
 		result,
@@ -80,11 +77,10 @@ func GetService(
 func GetPod(
 	namespace string,
 	podName string,
-	client k8sclient.Client,
 ) (*v1.Pod, error) {
 
 	result := &v1.Pod{}
-	err := client.Get(
+	err := shared.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: podName},
 		result,
@@ -97,11 +93,10 @@ func GetPod(
 func GetPVC(
 	namespace string,
 	pvcName string,
-	client k8sclient.Client,
 ) (*v1.PersistentVolumeClaim, error) {
 
 	result := &v1.PersistentVolumeClaim{}
-	err := client.Get(
+	err := shared.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: pvcName},
 		result,
@@ -113,13 +108,12 @@ func GetPVC(
 func GetApp(
 	clusterNamespace string,
 	appID string,
-	client k8sclient.Client,
 ) (*kdv1.KubeDirectorApp, error) {
 
 	appSpec := &kdv1.KubeDirectorApp{}
 
 	// Check to see if this app exists in the cluster namespace
-	appErr := client.Get(
+	appErr := shared.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: clusterNamespace, Name: appID},
 		appSpec,
@@ -135,7 +129,7 @@ func GetApp(
 		return nil, nsErr
 	}
 
-	appErr = client.Get(
+	appErr = shared.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: kdNamespace, Name: appID},
 		appSpec,
@@ -147,7 +141,6 @@ func GetApp(
 // KubeDirector's namespace.
 func GetValidatorWebhook(
 	validator string,
-	client k8sclient.Client,
 ) (*v1beta1.MutatingWebhookConfiguration, error) {
 
 	kdNamespace, err := shared.GetKubeDirectorNamespace()
@@ -155,7 +148,7 @@ func GetValidatorWebhook(
 		return nil, err
 	}
 	result := &v1beta1.MutatingWebhookConfiguration{}
-	err = client.Get(
+	err = shared.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: kdNamespace, Name: validator},
 		result,
@@ -167,11 +160,10 @@ func GetValidatorWebhook(
 func GetSecret(
 	secretName string,
 	namespace string,
-	client k8sclient.Client,
 ) (*v1.Secret, error) {
 
 	result := &v1.Secret{}
-	err := client.Get(
+	err := shared.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: secretName},
 		result,
@@ -182,7 +174,6 @@ func GetSecret(
 // GetDeployment fetches the deployment resource in KubeDirector's namespace.
 func GetDeployment(
 	deploymentName string,
-	client k8sclient.Client,
 ) (*appsv1.Deployment, error) {
 
 	kdNamespace, err := shared.GetKubeDirectorNamespace()
@@ -190,7 +181,7 @@ func GetDeployment(
 		return nil, err
 	}
 	result := &appsv1.Deployment{}
-	err = client.Get(
+	err = shared.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: kdNamespace, Name: deploymentName},
 		result,
@@ -201,7 +192,6 @@ func GetDeployment(
 // GetKDConfig fetches kubedirector config CR in KubeDirector's namespace.
 func GetKDConfig(
 	kdConfigName string,
-	client k8sclient.Client,
 ) (*kdv1.KubeDirectorConfig, error) {
 
 	kdNamespace, err := shared.GetKubeDirectorNamespace()
@@ -210,7 +200,7 @@ func GetKDConfig(
 	}
 
 	result := &kdv1.KubeDirectorConfig{}
-	err = client.Get(
+	err = shared.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: kdNamespace, Name: kdConfigName},
 		result,
@@ -221,11 +211,10 @@ func GetKDConfig(
 // GetStorageClass fetches the storage class resource with a given name.
 func GetStorageClass(
 	storageClassName string,
-	client k8sclient.Client,
 ) (*storagev1.StorageClass, error) {
 
 	result := &storagev1.StorageClass{}
-	err := client.Get(
+	err := shared.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Name: storageClassName},
 		result,
@@ -235,11 +224,11 @@ func GetStorageClass(
 
 // GetDefaultStorageClass returns the default storage class, if any, as
 // defined by k8s.
-func GetDefaultStorageClass(client k8sclient.Client) (*storagev1.StorageClass, error) {
+func GetDefaultStorageClass() (*storagev1.StorageClass, error) {
 
 	// Namespace does not matter for this query; leave blank.
 	result := &storagev1.StorageClassList{}
-	err := client.List(context.TODO(), &k8sclient.ListOptions{}, result)
+	err := shared.Client.List(context.TODO(), &client.ListOptions{}, result)
 	if err != nil {
 		return nil, err
 	}

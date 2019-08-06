@@ -30,7 +30,6 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // syncMembers is responsible for adding or deleting members. It is the only
@@ -46,7 +45,6 @@ func syncMembers(
 	roles []*roleInfo,
 	membersHaveChanged bool,
 	configmetaGenerator func(string) string,
-	client k8sclient.Client,
 ) error {
 
 	// Notify current ready members about membership changes.
@@ -55,7 +53,7 @@ func syncMembers(
 		for _, r := range roles {
 			if _, ok := r.membersByState[memberReady]; ok {
 				readyMembersUpdated = readyMembersUpdated &&
-					handleReadyMembers(reqLogger, cr, r, configmetaGenerator, client)
+					handleReadyMembers(reqLogger, cr, r, configmetaGenerator)
 			}
 		}
 	}
@@ -71,16 +69,16 @@ func syncMembers(
 	// implementation in the app setup package.)
 	for _, r := range roles {
 		if _, ok := r.membersByState[memberCreatePending]; ok {
-			handleCreatePendingMembers(reqLogger, cr, r, client)
+			handleCreatePendingMembers(reqLogger, cr, r)
 		}
 		if _, ok := r.membersByState[memberCreating]; ok {
-			handleCreatingMembers(reqLogger, cr, r, roles, configmetaGenerator, client)
+			handleCreatingMembers(reqLogger, cr, r, roles, configmetaGenerator)
 		}
 		if _, ok := r.membersByState[memberDeletePending]; ok {
-			handleDeletePendingMembers(reqLogger, cr, r, roles, client)
+			handleDeletePendingMembers(reqLogger, cr, r, roles)
 		}
 		if _, ok := r.membersByState[memberDeleting]; ok {
-			handleDeletingMembers(reqLogger, cr, r, client)
+			handleDeletingMembers(reqLogger, cr, r)
 		}
 	}
 
@@ -95,7 +93,6 @@ func handleReadyMembers(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 	configmetaGenerator func(string) string,
-	client k8sclient.Client,
 ) bool {
 
 	ready := role.membersByState[memberReady]
@@ -105,7 +102,7 @@ func handleReadyMembers(
 	for _, member := range ready {
 		go func(m *kdv1.MemberStatus) {
 			defer wgReady.Done()
-			pod, podGetErr := observer.GetPod(cr.Namespace, m.Pod, client)
+			pod, podGetErr := observer.GetPod(cr.Namespace, m.Pod)
 			if podGetErr != nil {
 				// Can't get the pod. Skip it and try again later.
 				shared.LogErrorf(
@@ -133,7 +130,6 @@ func handleReadyMembers(
 				m.Pod,
 				configMetaFile,
 				strings.NewReader(configmeta),
-				client,
 			)
 			if createFileErr != nil {
 				shared.LogErrorf(
@@ -168,11 +164,10 @@ func handleCreatePendingMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
-	client k8sclient.Client,
 ) {
 
 	// Fix statefulset if necessary, and bail out if it is not good yet.
-	if !checkMemberCount(reqLogger, cr, role, client) {
+	if !checkMemberCount(reqLogger, cr, role) {
 		return
 	}
 	if !replicasSynced(reqLogger, cr, role) {
@@ -187,7 +182,7 @@ func handleCreatePendingMembers(
 	for _, member := range createPending {
 		go func(m *kdv1.MemberStatus) {
 			defer wgRunning.Done()
-			pod, podGetErr := observer.GetPod(cr.Namespace, m.Pod, client)
+			pod, podGetErr := observer.GetPod(cr.Namespace, m.Pod)
 			if podGetErr != nil {
 				// Can't get the pod. Skip it and try again later.
 				shared.LogErrorf(
@@ -224,13 +219,12 @@ func handleCreatingMembers(
 	role *roleInfo,
 	allRoles []*roleInfo,
 	configmetaGenerator func(string) string,
-	client k8sclient.Client,
 ) {
 
 	creating := role.membersByState[memberCreating]
 
 	// Fetch setup url package
-	setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, role.roleStatus.Name, client)
+	setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, role.roleStatus.Name)
 	if setupURLErr != nil {
 		shared.LogErrorf(
 			reqLogger,
@@ -275,7 +269,6 @@ func handleCreatingMembers(
 				m.Pod,
 				role.roleStatus.Name,
 				configmetaGenerator,
-				client,
 			)
 			if !isFinal {
 				shared.LogInfof(
@@ -317,7 +310,7 @@ func handleCreatingMembers(
 	wgSetup.Wait()
 
 	// Now let any ready nodes know that some new nodes have appeared.
-	if !notifyReadyNodes(reqLogger, cr, role, allRoles, client) {
+	if !notifyReadyNodes(reqLogger, cr, role, allRoles) {
 		shared.LogInfo(
 			reqLogger,
 			cr,
@@ -347,11 +340,10 @@ func handleDeletingMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
-	client k8sclient.Client,
 ) {
 
 	// Fix statefulset if necessary.
-	if !checkMemberCount(reqLogger, cr, role, client) {
+	if !checkMemberCount(reqLogger, cr, role) {
 		return
 	}
 	// We won't call replicasSynced here. We've already sent out the delete
@@ -369,7 +361,7 @@ func handleDeletingMembers(
 	for _, member := range deleting {
 		go func(m *kdv1.MemberStatus) {
 			defer wgCleanup.Done()
-			_, podGetErr := observer.GetPod(cr.Namespace, m.Pod, client)
+			_, podGetErr := observer.GetPod(cr.Namespace, m.Pod)
 			if podGetErr == nil {
 				// Pod isn't gone yet. Skip it.
 				return
@@ -391,7 +383,6 @@ func handleDeletingMembers(
 				serviceDelErr := executor.DeletePodService(
 					cr.Namespace,
 					m.Service,
-					client,
 				)
 				if serviceDelErr == nil || errors.IsNotFound(serviceDelErr) {
 					m.Service = ""
@@ -410,7 +401,6 @@ func handleDeletingMembers(
 				pvcDelErr := executor.DeletePVC(
 					cr.Namespace,
 					m.PVC,
-					client,
 				)
 				if pvcDelErr == nil || errors.IsNotFound(pvcDelErr) {
 					m.PVC = ""
@@ -444,10 +434,9 @@ func handleDeletePendingMembers(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 	allRoles []*roleInfo,
-	client k8sclient.Client,
 ) {
 
-	if !notifyReadyNodes(reqLogger, cr, role, allRoles, client) {
+	if !notifyReadyNodes(reqLogger, cr, role, allRoles) {
 		shared.LogInfo(
 			reqLogger,
 			cr,
@@ -474,7 +463,6 @@ func checkMemberCount(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
-	client k8sclient.Client,
 ) bool {
 
 	// Calculate the number of members that a statefulset/role SHOULD
@@ -501,7 +489,6 @@ func checkMemberCount(
 			cr,
 			replicas,
 			role.statefulSet,
-			client,
 		)
 		if updateErr != nil {
 			shared.LogErrorf(
@@ -549,12 +536,11 @@ func setupNodePrep(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
-	client k8sclient.Client,
 ) error {
 
 	// Check to see if the destination file exists already, in which case just
 	// return. Also bail out if we cannot manage to check file existence.
-	fileExists, fileError := executor.IsFileExists(reqLogger, cr, podName, configcliTestFile, client)
+	fileExists, fileError := executor.IsFileExists(reqLogger, cr, podName, configcliTestFile)
 	if fileError != nil {
 		return fileError
 	} else if fileExists {
@@ -577,7 +563,6 @@ func setupNodePrep(
 		podName,
 		configcliDestFile,
 		bufio.NewReader(nodePrepFile),
-		client,
 	)
 	if createErr != nil {
 		return createErr
@@ -590,7 +575,6 @@ func setupNodePrep(
 		podName,
 		"configcli setup",
 		strings.NewReader(configcliInstallCmd),
-		client,
 	)
 }
 
@@ -602,12 +586,11 @@ func setupAppConfig(
 	setupURL string,
 	podName string,
 	roleName string,
-	client k8sclient.Client,
 ) error {
 
 	// Check to see if the destination file exists already, in which case just
 	// return. Also bail out if we cannot manage to check file existence.
-	fileExists, fileError := executor.IsFileExists(reqLogger, cr, podName, appPrepStartscript, client)
+	fileExists, fileError := executor.IsFileExists(reqLogger, cr, podName, appPrepStartscript)
 	if fileError != nil {
 		return fileError
 	} else if fileExists {
@@ -622,7 +605,6 @@ func setupAppConfig(
 		podName,
 		"app config setup",
 		strings.NewReader(cmd),
-		client,
 	)
 }
 
@@ -633,7 +615,6 @@ func notifyReadyNodes(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 	allRoles []*roleInfo,
-	client k8sclient.Client,
 ) bool {
 
 	totalReady := 0
@@ -655,7 +636,7 @@ func notifyReadyNodes(
 			// then otherRole.roleStatus referenced below will be nil.
 			continue
 		}
-		setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, otherRole.roleStatus.Name, client)
+		setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, otherRole.roleStatus.Name)
 		if setupURLErr != nil {
 			shared.LogErrorf(
 				reqLogger,
@@ -685,7 +666,7 @@ func notifyReadyNodes(
 						return
 					}
 
-					configErr := appReConfig(reqLogger, cr, m.Pod, r.roleStatus.Name, role, client)
+					configErr := appReConfig(reqLogger, cr, m.Pod, r.roleStatus.Name, role)
 					if configErr != nil {
 						shared.LogErrorf(
 							reqLogger,
@@ -718,7 +699,6 @@ func appConfig(
 	podName string,
 	roleName string,
 	configmetaGenerator func(string) string,
-	client k8sclient.Client,
 ) (bool, error) {
 
 	// For initial configuration, startscript will run asynchronously and we
@@ -731,7 +711,6 @@ func appConfig(
 		podName,
 		appPrepConfigStatus,
 		&statusStrB,
-		client,
 	)
 	if fileError != nil {
 		return true, fileError
@@ -763,18 +742,17 @@ func appConfig(
 		podName,
 		configMetaFile,
 		strings.NewReader(configmetaGenerator(podName)),
-		client,
 	)
 	if configmetaErr != nil {
 		return true, configmetaErr
 	}
 	// Set up configcli package for this member (if not set up already).
-	prepErr := setupNodePrep(reqLogger, cr, podName, client)
+	prepErr := setupNodePrep(reqLogger, cr, podName)
 	if prepErr != nil {
 		return true, prepErr
 	}
 	// Make sure the necessary app-specific materials are in place.
-	setupErr := setupAppConfig(reqLogger, cr, setupURL, podName, roleName, client)
+	setupErr := setupAppConfig(reqLogger, cr, setupURL, podName, roleName)
 	if setupErr != nil {
 		return true, setupErr
 	}
@@ -785,7 +763,6 @@ func appConfig(
 		podName,
 		"app config",
 		strings.NewReader(appPrepConfigRunCmd),
-		client,
 	)
 	if cmdErr != nil {
 		return true, cmdErr
@@ -804,7 +781,6 @@ func appReConfig(
 	podName string,
 	roleName string,
 	otherRole *roleInfo,
-	client k8sclient.Client,
 ) error {
 
 	// Figure out which lifecycle event we're dealing with, and collect the
@@ -850,7 +826,6 @@ func appReConfig(
 		podName,
 		"app reconfig",
 		strings.NewReader(cmd),
-		client,
 	)
 }
 

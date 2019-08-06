@@ -25,7 +25,6 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/apimachinery/pkg/api/errors"
-	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // syncRoles is responsible for dealing with roles being changed, added, or
@@ -37,11 +36,10 @@ import (
 func syncRoles(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	client k8sclient.Client,
 ) ([]*roleInfo, clusterStateInternal, error) {
 
 	// Construct the role info slice. Bail out now if that fails.
-	roles, rolesErr := initRoleInfo(reqLogger, cr, client)
+	roles, rolesErr := initRoleInfo(reqLogger, cr)
 	if rolesErr != nil {
 		return nil, clusterMembersUnknown, rolesErr
 	}
@@ -66,14 +64,14 @@ func syncRoles(
 		case r.statefulSet == nil && r.roleStatus == nil:
 			// Role did not previously exist. Create it now.
 			createErr := handleRoleCreate(
-				reqLogger, cr, r, &anyMembersChanged, client)
+				reqLogger, cr, r, &anyMembersChanged)
 			if createErr != nil {
 				return nil, clusterMembersUnknown, createErr
 			}
 		case r.statefulSet == nil && r.roleStatus != nil:
 			// Role exists but there is no statefulset for it in k8s.
 			// Hmm, weird. Statefulset was deleted out-of-band? Let's fix.
-			reCreateErr := handleRoleReCreate(reqLogger, cr, r, &anyMembersChanged, client)
+			reCreateErr := handleRoleReCreate(reqLogger, cr, r, &anyMembersChanged)
 			if reCreateErr != nil {
 				return nil, clusterMembersUnknown, reCreateErr
 			}
@@ -85,7 +83,7 @@ func syncRoles(
 			// Now check for desired changes in role population.
 			if len(r.roleStatus.Members) == 0 && r.desiredPop == 0 {
 				// Role is going away and we have finished removing pods.
-				handleRoleDelete(reqLogger, cr, r, client)
+				handleRoleDelete(reqLogger, cr, r)
 			} else {
 				// Might need to change role population.
 				handleRoleResize(reqLogger, cr, r, &anyMembersChanged)
@@ -128,7 +126,6 @@ func syncRoles(
 func initRoleInfo(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	client k8sclient.Client,
 ) ([]*roleInfo, error) {
 
 	roles := make(map[string]*roleInfo)
@@ -168,7 +165,6 @@ func initRoleInfo(
 		statefulSet, statefulSetErr := observer.GetStatefulSet(
 			cr.Namespace,
 			roleStatus.StatefulSet,
-			client,
 		)
 		if statefulSetErr != nil {
 			if errors.IsNotFound(statefulSetErr) {
@@ -255,7 +251,6 @@ func handleRoleCreate(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 	anyMembersChanged *bool,
-	client k8sclient.Client,
 ) error {
 
 	if role.desiredPop == 0 {
@@ -280,7 +275,6 @@ func handleRoleCreate(
 		cr,
 		nativeSystemdSupport,
 		role.roleSpec,
-		client,
 	)
 	if createErr != nil {
 		// Not much to do if we can't create it... we'll just keep trying
@@ -324,7 +318,6 @@ func handleRoleReCreate(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 	anyMembersChanged *bool,
-	client k8sclient.Client,
 ) error {
 
 	if len(role.roleStatus.Members) == 0 {
@@ -334,7 +327,7 @@ func handleRoleReCreate(
 			role.roleStatus.StatefulSet = ""
 		} else {
 			// Create a new statefulset for the role.
-			return handleRoleCreate(reqLogger, cr, role, anyMembersChanged, client)
+			return handleRoleCreate(reqLogger, cr, role, anyMembersChanged)
 		}
 	} else {
 		shared.LogInfof(
@@ -403,7 +396,6 @@ func handleRoleDelete(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
-	client k8sclient.Client,
 ) {
 
 	shared.LogInfof(
@@ -413,7 +405,7 @@ func handleRoleDelete(
 		"finishing cleanup on role{%s}",
 		role.roleStatus.Name,
 	)
-	deleteErr := executor.DeleteStatefulSet(cr.Namespace, role.statefulSet.Name, client)
+	deleteErr := executor.DeleteStatefulSet(cr.Namespace, role.statefulSet.Name)
 	if deleteErr == nil || errors.IsNotFound(deleteErr) {
 		// Mark the role status for removal.
 		role.roleStatus.StatefulSet = ""

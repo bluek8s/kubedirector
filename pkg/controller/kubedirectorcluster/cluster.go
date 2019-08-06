@@ -56,7 +56,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			for {
 				cr.Status.GenerationUID = uuid.New().String()
 				shared.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
-				updateErr := executor.UpdateStatus(reqLogger, cr, r.Client)
+				updateErr := executor.UpdateStatus(reqLogger, cr)
 				if updateErr == nil {
 					return
 				}
@@ -65,7 +65,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 				currentCluster, currentClusterErr := observer.GetCluster(
 					cr.Namespace,
 					cr.Name,
-					r.Client,
 				)
 				if currentClusterErr != nil {
 					if errors.IsNotFound(currentClusterErr) {
@@ -118,19 +117,19 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		)
 	}
 
-	clusterServiceErr := syncClusterService(reqLogger, cr, r.Client)
+	clusterServiceErr := syncClusterService(reqLogger, cr)
 	if clusterServiceErr != nil {
 		errLog("cluster service", clusterServiceErr)
 		return clusterServiceErr
 	}
 
-	roles, state, rolesErr := syncRoles(reqLogger, cr, r.Client)
+	roles, state, rolesErr := syncRoles(reqLogger, cr)
 	if rolesErr != nil {
 		errLog("roles", rolesErr)
 		return rolesErr
 	}
 
-	memberServicesErr := syncMemberServices(reqLogger, cr, roles, r.Client)
+	memberServicesErr := syncMemberServices(reqLogger, cr, roles)
 	if memberServicesErr != nil {
 		errLog("member services", memberServicesErr)
 		return memberServicesErr
@@ -156,7 +155,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	configmetaGen, configMetaErr := catalog.ConfigmetaGenerator(
 		cr,
 		calcMembersForRoles(roles),
-		r.Client,
 	)
 	if configMetaErr != nil {
 		shared.LogError(
@@ -170,7 +168,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	}
 
 	membersHaveChanged := (state == clusterMembersChangedUnready)
-	membersErr := syncMembers(reqLogger, cr, roles, membersHaveChanged, configmetaGen, r.Client)
+	membersErr := syncMembers(reqLogger, cr, roles, membersHaveChanged, configmetaGen)
 	if membersErr != nil {
 		errLog("members", membersErr)
 		return membersErr
@@ -231,7 +229,7 @@ func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 	if cr.DeletionTimestamp != nil {
 		// If a deletion has been requested, while ours (or other) finalizers
 		// existed on the CR, go ahead and remove our finalizer.
-		removeErr := executor.RemoveFinalizer(reqLogger, cr, r.Client)
+		removeErr := executor.RemoveFinalizer(reqLogger, cr)
 		if removeErr == nil {
 			shared.LogInfo(
 				reqLogger,
@@ -248,7 +246,7 @@ func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 	}
 
 	// If our finalizer doesn't exist on the CR, put it in there.
-	ensureErr := executor.EnsureFinalizer(reqLogger, cr, r.Client)
+	ensureErr := executor.EnsureFinalizer(reqLogger, cr)
 	if ensureErr != nil {
 		return true, ensureErr
 	}

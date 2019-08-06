@@ -16,9 +16,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/bluek8s/kubedirector/pkg/observer"
+	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/bluek8s/kubedirector/pkg/validator"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
@@ -122,7 +124,7 @@ func main() {
 
 	// Setup Scheme for all resources
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Error(err, "")
+		log.Error(err, "failed to add KubeDirector CRs to scheme")
 		os.Exit(1)
 	}
 
@@ -138,6 +140,30 @@ func main() {
 		log.Info(err.Error())
 	}
 
+	// Initialize the shared K8s Client that is used for all K8s CRUD
+	// See https://github.com/bluek8s/kubedirector/issues/173
+	// Since we are not using the manager's webhook framework and are setting
+	// up our own validation server we need to use a temporary client to do that
+	// because the manager's client won't work before mgr.Start() is called and
+	// the the manager's cache is initialized. Once the cache is initialized we
+	// can start using the manager's split client.
+	shared.Client, err = client.New(
+		mgr.GetConfig(),
+		client.Options{
+			Scheme: mgr.GetScheme(),
+		},
+	)
+	stopCh := signals.SetupSignalHandler()
+	go func() {
+		log.Info("Waiting for client cache sync")
+		if mgr.GetCache().WaitForCacheSync(stopCh) {
+			log.Info("Client cache sync successful")
+			shared.Client = mgr.GetClient()
+		} else {
+			log.Error(errors.New("Client cache sync failed"), "")
+		}
+	}()
+
 	// Fetch our deployment object
 	kdName, err := k8sutil.GetOperatorName()
 	if err != nil {
@@ -145,15 +171,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// TODO: determine how we can use mgr.GetClient. Currently the
-	//       manager's client doesn't recognize core objects.
-	k8sCoreClient, _ := client.New(mgr.GetConfig(), client.Options{})
-
-	kd, err := observer.GetDeployment(kdName, k8sCoreClient)
+	kd, err := observer.GetDeployment(kdName)
 	if err != nil {
 		log.Error(err, "failed to get kubedirector deployment object")
 		os.Exit(1)
 	}
+
 	err = validator.InitValidationServer(
 		*metav1.NewControllerRef(
 			kd,
@@ -162,7 +185,6 @@ func main() {
 				Version: appsv1.SchemeGroupVersion.Version,
 				Kind:    "Deployment",
 			}),
-		k8sCoreClient,
 	)
 	if err != nil {
 		log.Error(err, "failed to initialize validation server")
@@ -171,13 +193,13 @@ func main() {
 
 	go func() {
 		log.Info("Starting admission validation server")
-		validator.StartValidationServer(k8sCoreClient)
+		validator.StartValidationServer()
 	}()
 
 	log.Info("Starting the Cmd.")
 
 	// Start the Cmd
-	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(stopCh); err != nil {
 		log.Error(err, "Manager exited non-zero")
 		os.Exit(1)
 	}

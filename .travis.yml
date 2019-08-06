@@ -4,7 +4,7 @@ go:
   - "1.12"
 
 env:
-  - DEP_VERSION="0.5.2" GO111MODULE="on"
+  - DEP_VERSION="0.5.2"
 
 before_install:
   # if we're in a mainline build, don't make a symlink

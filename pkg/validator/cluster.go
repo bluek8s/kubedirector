@@ -27,7 +27,6 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // clusterPatchSpec is used to create the PATCH operation for populating
@@ -268,7 +267,6 @@ func validateRoleStorageClass(
 	cr *kdv1.KubeDirectorCluster,
 	valErrors []string,
 	patches []clusterPatchSpec,
-	client k8sclient.Client,
 ) ([]string, []clusterPatchSpec) {
 
 	var validateDefault = false
@@ -285,7 +283,7 @@ func validateRoleStorageClass(
 		storageClass := role.Storage.StorageClass
 		if storageClass != nil {
 			// Storage class is specified, so validate it.
-			_, scErr := observer.GetStorageClass(*storageClass, client)
+			_, scErr := observer.GetStorageClass(*storageClass)
 			if scErr != nil {
 				valErrors = append(
 					valErrors,
@@ -307,7 +305,7 @@ func validateRoleStorageClass(
 			role.Storage.StorageClass = &globalStorageClass
 		} else {
 			// Nope. Let's see what K8s says is the default.
-			scK8sDefault, _ := observer.GetDefaultStorageClass(client)
+			scK8sDefault, _ := observer.GetDefaultStorageClass()
 			if scK8sDefault == nil {
 				missingDefault = true
 				continue
@@ -335,7 +333,7 @@ func validateRoleStorageClass(
 			noDefaultStorageClass,
 		)
 	} else if validateDefault {
-		_, err := observer.GetStorageClass(globalStorageClass, client)
+		_, err := observer.GetStorageClass(globalStorageClass)
 		if err != nil {
 			valErrors = append(
 				valErrors,
@@ -450,7 +448,6 @@ func addServiceType(
 // response.
 func admitClusterCR(
 	ar *v1beta1.AdmissionReview,
-	client k8sclient.Client,
 ) *v1beta1.AdmissionResponse {
 
 	var valErrors []string
@@ -527,7 +524,7 @@ func admitClusterCR(
 	}
 
 	// At this point, if app is bad, no need to continue with validation.
-	appCR, err := catalog.GetApp(&clusterCR, client)
+	appCR, err := catalog.GetApp(&clusterCR)
 	if err != nil {
 		admitResponse.Result = &metav1.Status{
 			Message: "\n" + fmt.Sprintf(invalidAppMessage, clusterCR.Spec.AppID),
@@ -548,7 +545,6 @@ func admitClusterCR(
 		&clusterCR,
 		valErrors,
 		patches,
-		client,
 	)
 
 	patches = addServiceType(&clusterCR, patches)

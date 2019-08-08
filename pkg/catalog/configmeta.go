@@ -22,7 +22,6 @@ import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/core/v1"
-	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // allServiceRefkeys is a subroutine of getServices, used to generate a
@@ -216,12 +215,11 @@ func clusterBaseConfig(
 func ConfigmetaGenerator(
 	cr *kdv1.KubeDirectorCluster,
 	membersForRole map[string][]*kdv1.MemberStatus,
-	client k8sclient.Client,
 ) (func(string) string, error) {
 
 	// Fetch the app type definition if we haven't yet cached it in this
 	// handler pass.
-	appCR, err := GetApp(cr, client)
+	appCR, err := GetApp(cr)
 	if err != nil {
 		return nil, err
 	}

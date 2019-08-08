@@ -22,7 +22,6 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // serviceShouldBeReconciled captures whether members in a given state should
@@ -45,7 +44,6 @@ var serviceShouldBeReconciled = map[memberState]bool{
 func syncClusterService(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	client k8sclient.Client,
 ) error {
 
 	// If we already have the cluster service name stored,
@@ -54,7 +52,6 @@ func syncClusterService(
 		reqLogger,
 		cr,
 		cr.Status.ClusterService,
-		client,
 	)
 	if queryErr != nil {
 		return queryErr
@@ -69,13 +66,13 @@ func syncClusterService(
 				"re-creating missing cluster service",
 			)
 		}
-		createErr := handleClusterServiceCreate(reqLogger, cr, client)
+		createErr := handleClusterServiceCreate(reqLogger, cr)
 		if createErr != nil {
 			return createErr
 		}
 	} else {
 		// We have an existing service so just reconcile its config.
-		handleClusterServiceConfig(reqLogger, cr, clusterService, client)
+		handleClusterServiceConfig(reqLogger, cr, clusterService)
 	}
 	return nil
 }
@@ -89,7 +86,6 @@ func syncMemberServices(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	roles []*roleInfo,
-	client k8sclient.Client,
 ) error {
 
 	for _, role := range roles {
@@ -100,7 +96,6 @@ func syncMemberServices(
 					cr,
 					role,
 					&(role.roleStatus.Members[i]),
-					client,
 				)
 				if serviceErr != nil {
 					return serviceErr
@@ -118,9 +113,8 @@ func syncMemberServices(
 func handleClusterServiceCreate(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	client k8sclient.Client,
 ) error {
-	clusterService, createErr := executor.CreateHeadlessService(cr, client)
+	clusterService, createErr := executor.CreateHeadlessService(cr)
 	if createErr != nil {
 		// Not much to do if we can't create it... we'll just keep trying
 		// on every run through the reconciler.
@@ -146,10 +140,9 @@ func handleClusterServiceConfig(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	clusterService *v1.Service,
-	client k8sclient.Client,
 ) {
 
-	updateErr := executor.UpdateHeadlessService(cr, clusterService, client)
+	updateErr := executor.UpdateHeadlessService(cr, clusterService)
 	if updateErr != nil {
 		shared.LogErrorf(
 			reqLogger,
@@ -172,7 +165,6 @@ func handleMemberService(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 	member *kdv1.MemberStatus,
-	client k8sclient.Client,
 ) error {
 
 	if serviceShouldBeReconciled[memberState(member.State)] {
@@ -186,7 +178,6 @@ func handleMemberService(
 			reqLogger,
 			cr,
 			member.Service,
-			client,
 		)
 		if queryErr != nil {
 			return queryErr
@@ -208,7 +199,6 @@ func handleMemberService(
 				cr,
 				role,
 				member,
-				client,
 			)
 			if createErr != nil {
 				return createErr
@@ -221,7 +211,6 @@ func handleMemberService(
 				role,
 				member,
 				memberService,
-				client,
 			)
 		}
 	}
@@ -238,13 +227,11 @@ func handleMemberServiceCreate(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 	member *kdv1.MemberStatus,
-	client k8sclient.Client,
 ) error {
 	memberService, createErr := executor.CreatePodService(
 		cr,
 		role.roleSpec,
 		member.Pod,
-		client,
 	)
 	if createErr != nil {
 		// Not much to do if we can't create it... we'll just keep trying
@@ -279,7 +266,6 @@ func handleMemberServiceConfig(
 	role *roleInfo,
 	member *kdv1.MemberStatus,
 	memberService *v1.Service,
-	client k8sclient.Client,
 ) {
 
 	updateErr := executor.UpdatePodService(
@@ -288,7 +274,6 @@ func handleMemberServiceConfig(
 		role.roleSpec,
 		member.Pod,
 		memberService,
-		client,
 	)
 	if updateErr != nil {
 		shared.LogErrorf(
@@ -309,7 +294,6 @@ func queryService(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	serviceName string,
-	client k8sclient.Client,
 ) (*v1.Service, error) {
 
 	var service *v1.Service
@@ -319,7 +303,6 @@ func queryService(
 		serviceFound, queryErr := observer.GetService(
 			cr.Namespace,
 			serviceName,
-			client,
 		)
 		if queryErr == nil {
 			service = serviceFound

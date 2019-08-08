@@ -16,15 +16,15 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/bluek8s/kubedirector/pkg/observer"
+	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/bluek8s/kubedirector/pkg/validator"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
@@ -41,7 +41,6 @@ import (
 	"github.com/spf13/pflag"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
@@ -85,16 +84,14 @@ func main() {
 
 	printVersion()
 
-	// Get a config to talk to the apiserver
-	cfg, err := config.GetConfig()
+	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
-		log.Error(err, "")
+		log.Error(err, "Failed to get watch namespace")
 		os.Exit(1)
 	}
 
-	ctx := context.TODO()
-
 	// Become the leader before proceeding
+	ctx := context.TODO()
 	err = leader.Become(ctx, "kubedirector-lock")
 	if err != nil {
 		log.Error(err, "")
@@ -102,10 +99,9 @@ func main() {
 	}
 
 	// Create a new Cmd to provide shared dependencies and start components
-	// Watch all namespaces but reject KubeDirectorConfig requests in the
-	// validator when the namespace isn't the kubedirector namespace.
-	mgr, err := manager.New(cfg, manager.Options{
-		Namespace:          "",
+	mgr, err := manager.New(shared.Config(), manager.Options{
+		Namespace: namespace,
+
 		MapperProvider:     restmapper.NewDynamicRESTMapper,
 		MetricsBindAddress: fmt.Sprintf("%s:%d", metricsHost, metricsPort),
 	})
@@ -118,7 +114,7 @@ func main() {
 
 	// Setup Scheme for all resources
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Error(err, "")
+		log.Error(err, "failed to add KubeDirector CRs to scheme")
 		os.Exit(1)
 	}
 
@@ -134,6 +130,25 @@ func main() {
 		log.Info(err.Error())
 	}
 
+	// See https://github.com/bluek8s/kubedirector/issues/173
+	// Since we are not using the manager's webhook framework and are
+	// setting up our own validation server we need to use a temporary
+	// client, initialized in the shared package, to do all the K8s
+	// CRUD operations required to do that because the manager's client
+	// won't work before mgr.Start() is called and the the manager's
+	// cache is initialized. Once the cache is initialized we can start
+	// using the manager's split (caching) client.
+	stopCh := signals.SetupSignalHandler()
+	go func() {
+		log.Info("Waiting for client cache sync")
+		if mgr.GetCache().WaitForCacheSync(stopCh) {
+			log.Info("Client cache sync successful")
+			shared.SetClient(mgr.GetClient())
+		} else {
+			log.Error(errors.New("Client cache sync failed"), "")
+		}
+	}()
+
 	// Fetch our deployment object
 	kdName, err := k8sutil.GetOperatorName()
 	if err != nil {
@@ -141,15 +156,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// TODO: determine how we can use mgr.GetClient. Currently the
-	//       manager's client doesn't recognize core objects.
-	k8sCoreClient, _ := client.New(mgr.GetConfig(), client.Options{})
-
-	kd, err := observer.GetDeployment(kdName, k8sCoreClient)
+	kd, err := observer.GetDeployment(kdName)
 	if err != nil {
 		log.Error(err, "failed to get kubedirector deployment object")
 		os.Exit(1)
 	}
+
 	err = validator.InitValidationServer(
 		*metav1.NewControllerRef(
 			kd,
@@ -158,7 +170,6 @@ func main() {
 				Version: appsv1.SchemeGroupVersion.Version,
 				Kind:    "Deployment",
 			}),
-		k8sCoreClient,
 	)
 	if err != nil {
 		log.Error(err, "failed to initialize validation server")
@@ -167,13 +178,13 @@ func main() {
 
 	go func() {
 		log.Info("Starting admission validation server")
-		validator.StartValidationServer(k8sCoreClient)
+		validator.StartValidationServer()
 	}()
 
 	log.Info("Starting the Cmd.")
 
 	// Start the Cmd
-	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(stopCh); err != nil {
 		log.Error(err, "Manager exited non-zero")
 		os.Exit(1)
 	}

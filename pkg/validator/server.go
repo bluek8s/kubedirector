@@ -19,15 +19,13 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
+	"io/ioutil"
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"net/http"
 )
 
 // Add validation handlers for all CRs that we currently support
@@ -42,7 +40,6 @@ var validationHandlers = map[string]admitFunc{
 func validation(
 	w http.ResponseWriter,
 	r *http.Request,
-	client k8sclient.Client,
 ) {
 
 	var admissionResponse *v1beta1.AdmissionResponse
@@ -81,7 +78,7 @@ func validation(
 		crKind := ar.Request.Kind.Kind
 		// If there is a validation handler for this CR invoke it.
 		if handler, ok := validationHandlers[crKind]; ok {
-			admissionResponse = handler(&ar, client)
+			admissionResponse = handler(&ar)
 		} else {
 			// No validation handler for this CR. Allow to go through.
 			admissionResponse.Allowed = true
@@ -116,9 +113,7 @@ func validation(
 // StartValidationServer starts the admission validation server. Prior to
 // invoking this function, InitValidationServer function must be called to
 // set up secret (for TLS certs) k8s resource. This function runs forever.
-func StartValidationServer(
-	client k8sclient.Client,
-) error {
+func StartValidationServer() error {
 
 	// Fetch our namespace
 	kdNamespace, err := shared.GetKubeDirectorNamespace()
@@ -127,7 +122,7 @@ func StartValidationServer(
 	}
 
 	// Fetch certificate secret information
-	certSecret, err := observer.GetSecret(validatorSecret, kdNamespace, client)
+	certSecret, err := observer.GetSecret(validatorSecret, kdNamespace)
 	if err != nil {
 		return fmt.Errorf(
 			"failed to read secret(%s) object %v",
@@ -183,7 +178,7 @@ func StartValidationServer(
 	http.HandleFunc(
 		validationPath,
 		func(w http.ResponseWriter, r *http.Request) {
-			validation(w, r, client)
+			validation(w, r)
 		},
 	)
 
@@ -197,7 +192,6 @@ func StartValidationServer(
 // KubeDirector is running.
 func InitValidationServer(
 	ownerReference metav1.OwnerReference,
-	client k8sclient.Client,
 ) error {
 
 	// Fetch our namespace
@@ -207,7 +201,7 @@ func InitValidationServer(
 	}
 
 	// Check to see if webhook secret is already present
-	certSecret, err := observer.GetSecret(validatorSecret, kdNamespace, client)
+	certSecret, err := observer.GetSecret(validatorSecret, kdNamespace)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Secret not found, create certs and the secret object
@@ -216,7 +210,6 @@ func InitValidationServer(
 				validatorSecret,
 				validatorServiceName,
 				kdNamespace,
-				client,
 			)
 			if err != nil {
 				return fmt.Errorf(
@@ -248,7 +241,6 @@ func InitValidationServer(
 		ownerReference,
 		validatorServiceName,
 		kdNamespace,
-		client,
 	)
 	if serviceErr != nil {
 		return fmt.Errorf(
@@ -264,7 +256,6 @@ func InitValidationServer(
 		kdNamespace,
 		validatorServiceName,
 		signingCertBytes,
-		client,
 	)
 	if validatorErr != nil {
 		return fmt.Errorf(

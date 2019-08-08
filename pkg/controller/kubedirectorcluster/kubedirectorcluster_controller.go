@@ -18,11 +18,11 @@ import (
 	"context"
 	"fmt"
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+	"github.com/bluek8s/kubedirector/pkg/shared"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -31,17 +31,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("controller_kubedirectorcluster")
-
 // Add creates a new KubeDirectorCluster Controller and adds it to the Manager.
 // The Manager will set fields on the Controller and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
 
+var log = logf.Log.WithName("controller_kubedirectorcluster")
+
 // newReconciler returns a new reconcile.Reconciler .
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileKubeDirectorCluster{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileKubeDirectorCluster{scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -72,9 +72,6 @@ const (
 
 // ReconcileKubeDirectorCluster reconciles a KubeDirectorCluster object
 type ReconcileKubeDirectorCluster struct {
-	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
-	Client client.Client
 	scheme *runtime.Scheme
 }
 
@@ -90,7 +87,7 @@ func (r *ReconcileKubeDirectorCluster) Reconcile(request reconcile.Request) (rec
 
 	// Fetch the KubeDirectorCluster instance
 	kdCluster := &kdv1.KubeDirectorCluster{}
-	err := r.Client.Get(context.TODO(), request.NamespacedName, kdCluster)
+	err := shared.Client().Get(context.TODO(), request.NamespacedName, kdCluster)
 	if err != nil {
 		// If the resource is not found, that means all of
 		// the finalizers have been removed, and the kubedirectorcluster

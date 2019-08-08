@@ -17,14 +17,11 @@ package kubedirectorconfig
 import (
 	"context"
 	"fmt"
-	"github.com/bluek8s/kubedirector/pkg/shared"
-	"time"
-
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+	"github.com/bluek8s/kubedirector/pkg/shared"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -43,7 +40,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileKubeDirectorConfig{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileKubeDirectorConfig{scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -67,16 +64,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 var _ reconcile.Reconciler = &ReconcileKubeDirectorConfig{}
 
 const (
-	// Period between the time when the controller requeues a request
-	// and it's scheduled again for reconciliation
-	reconcilePeriod = 30 * time.Second
+	// Period between the time when the controller requeues a request and
+	// it's scheduled again for reconciliation. Zero means don't poll.
+	reconcilePeriod = 0
 )
 
 // ReconcileKubeDirectorConfig reconciles a KubeDirectorConfig object
 type ReconcileKubeDirectorConfig struct {
-	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
-	Client client.Client
 	scheme *runtime.Scheme
 }
 
@@ -92,7 +86,7 @@ func (r *ReconcileKubeDirectorConfig) Reconcile(request reconcile.Request) (reco
 
 	// Fetch the KubeDirectorConfig instance
 	kdConfig := &kdv1.KubeDirectorConfig{}
-	err := r.Client.Get(context.TODO(), request.NamespacedName, kdConfig)
+	err := shared.Client().Get(context.TODO(), request.NamespacedName, kdConfig)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.

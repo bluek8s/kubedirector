@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/util/cert"
 	// "k8s.io/client-go/util/cert/triple"
-	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // createWebhookService creates our webhook Service resource if it does not
@@ -39,11 +38,10 @@ func createWebhookService(
 	ownerReference metav1.OwnerReference,
 	serviceName string,
 	namespace string,
-	client k8sclient.Client,
 ) error {
 
 	var createService = false
-	_, err := observer.GetService(namespace, serviceName, client)
+	_, err := observer.GetService(namespace, serviceName)
 	if err == nil {
 		// service already present, no need to do anything
 		createService = false
@@ -84,7 +82,7 @@ func createWebhookService(
 			},
 		},
 	}
-	return client.Create(context.TODO(), service)
+	return shared.Client().Create(context.TODO(), service)
 }
 
 // createAdmissionService creates our MutatingWebhookConfiguration resource
@@ -95,11 +93,10 @@ func createAdmissionService(
 	namespace string,
 	serviceName string,
 	signingCert []byte,
-	client k8sclient.Client,
 ) error {
 
 	var createValidator = false
-	_, err := observer.GetValidatorWebhook(validatorWebhook, client)
+	_, err := observer.GetValidatorWebhook(validatorWebhook)
 	if err == nil {
 		// validator object already present, no need to do anything
 		createValidator = false
@@ -151,7 +148,7 @@ func createAdmissionService(
 		Webhooks: []v1beta1.Webhook{webhookHandler},
 	}
 
-	return client.Create(context.TODO(), validator)
+	return shared.Client().Create(context.TODO(), validator)
 }
 
 // createCertsSecret creates a self-signed certificate and stores it as a
@@ -161,7 +158,6 @@ func createCertsSecret(
 	secretName string,
 	serviceName string,
 	namespace string,
-	client k8sclient.Client,
 ) (*v1.Secret, error) {
 
 	// Create a signing certificate
@@ -204,7 +200,7 @@ func createCertsSecret(
 		},
 	}
 
-	result := client.Create(context.TODO(), secret)
+	result := shared.Client().Create(context.TODO(), secret)
 
 	return secret, result
 }

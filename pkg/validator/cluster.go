@@ -28,7 +28,6 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/reconciler"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"github.com/google/uuid"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -380,7 +379,6 @@ func validateApp(
 		AppNamespace: appCR.Namespace,
 	}
 	cr.Status.Roles = make([]kdv1.RoleStatus, 0)
-	cr.Status.GenerationUID = uuid.New().String()
 
 	// Generate a patch object to add app namespace to the status resource
 	patches = append(

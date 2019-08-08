@@ -101,6 +101,10 @@ func syncCluster(
 	// updated. Also for a new CR just update the status state/gen.
 	shouldProcessCR := handleStatusGen(cr, handler)
 
+	if !shouldProcessCR {
+		return nil
+	}
+
 	// Regardless of whether the status gen is as expected, make sure the CR
 	// finalizers are as we want them. We use a finalizer to prevent races
 	// between polled CR updates and CR deletion.
@@ -109,10 +113,6 @@ func syncCluster(
 		return finalizerErr
 	}
 	if doExit {
-		return nil
-	}
-
-	if !shouldProcessCR {
 		return nil
 	}
 
@@ -209,14 +209,14 @@ func handleStatusGen(
 			return false
 		}
 
-		//		if lastKnown.UID != "" {
-		shared.LogWarnf(
-			cr,
-			shared.EventReasonNoEvent,
-			"unknown with incoming gen uid %s",
-			incoming,
-		)
-		//		}
+		if lastKnown.UID != "" {
+			shared.LogWarnf(
+				cr,
+				shared.EventReasonNoEvent,
+				"unknown with incoming gen uid %s",
+				incoming,
+			)
+		}
 		writeStatusGen(cr, handler, incoming)
 		ValidateStatusGen(cr, handler)
 		ensureClusterAppReference(cr, handler)

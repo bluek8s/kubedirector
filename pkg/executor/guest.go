@@ -234,7 +234,7 @@ func execCommand(
 		)
 	}
 
-	request := shared.ClientSet.CoreV1().RESTClient().Post().
+	request := shared.ClientSet().CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(podName).
 		Namespace(cr.Namespace).
@@ -249,7 +249,7 @@ func execCommand(
 	}, scheme.ParameterCodec)
 
 	exec, initErr := remotecommand.NewSPDYExecutor(
-		shared.ClientConfig,
+		shared.Config(),
 		"POST",
 		request.URL(),
 	)

@@ -87,7 +87,7 @@ func (r *ReconcileKubeDirectorCluster) Reconcile(request reconcile.Request) (rec
 
 	// Fetch the KubeDirectorCluster instance
 	kdCluster := &kdv1.KubeDirectorCluster{}
-	err := shared.Client.Get(context.TODO(), request.NamespacedName, kdCluster)
+	err := shared.Client().Get(context.TODO(), request.NamespacedName, kdCluster)
 	if err != nil {
 		// If the resource is not found, that means all of
 		// the finalizers have been removed, and the kubedirectorcluster

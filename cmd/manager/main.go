@@ -25,8 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
@@ -43,7 +41,6 @@ import (
 	"github.com/spf13/pflag"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
@@ -93,16 +90,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Get a config to talk to the apiserver
-	cfg, err := config.GetConfig()
-	if err != nil {
-		log.Error(err, "")
-		os.Exit(1)
-	}
-
-	ctx := context.TODO()
-
 	// Become the leader before proceeding
+	ctx := context.TODO()
 	err = leader.Become(ctx, "kubedirector-lock")
 	if err != nil {
 		log.Error(err, "")
@@ -110,7 +99,7 @@ func main() {
 	}
 
 	// Create a new Cmd to provide shared dependencies and start components
-	mgr, err := manager.New(cfg, manager.Options{
+	mgr, err := manager.New(shared.Config(), manager.Options{
 		Namespace:          namespace,
 		MapperProvider:     restmapper.NewDynamicRESTMapper,
 		MetricsBindAddress: fmt.Sprintf("%s:%d", metricsHost, metricsPort),
@@ -140,25 +129,20 @@ func main() {
 		log.Info(err.Error())
 	}
 
-	// Initialize the shared K8s Client that is used for all K8s CRUD
 	// See https://github.com/bluek8s/kubedirector/issues/173
-	// Since we are not using the manager's webhook framework and are setting
-	// up our own validation server we need to use a temporary client to do that
-	// because the manager's client won't work before mgr.Start() is called and
-	// the the manager's cache is initialized. Once the cache is initialized we
-	// can start using the manager's split client.
-	shared.Client, err = client.New(
-		mgr.GetConfig(),
-		client.Options{
-			Scheme: mgr.GetScheme(),
-		},
-	)
+	// Since we are not using the manager's webhook framework and are
+	// setting up our own validation server we need to use a temporary
+	// client, initialized in the shared package, to do all the K8s
+	// CRUD operations required to do that because the manager's client
+	// won't work before mgr.Start() is called and the the manager's
+	// cache is initialized. Once the cache is initialized we can start
+	// using the manager's split (caching) client.
 	stopCh := signals.SetupSignalHandler()
 	go func() {
 		log.Info("Waiting for client cache sync")
 		if mgr.GetCache().WaitForCacheSync(stopCh) {
 			log.Info("Client cache sync successful")
-			shared.Client = mgr.GetClient()
+			shared.SetClient(mgr.GetClient())
 		} else {
 			log.Error(errors.New("Client cache sync failed"), "")
 		}

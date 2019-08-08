@@ -38,7 +38,7 @@ func UpdateStatus(
 	// TBD: We should probably write to the status sub-resource. That's only
 	// available in 1.11 (beta feature) and later though. So for now let's
 	// just modify the status property of the CR.
-	err := shared.Client.Status().Update(context.TODO(), cr)
+	err := shared.Client().Status().Update(context.TODO(), cr)
 	if err == nil {
 		return nil
 	}
@@ -55,7 +55,7 @@ func UpdateStatus(
 	// If there was a resourceVersion conflict then fetch a more
 	// recent version of the object and attempt to update that.
 	currentCluster := &kdv1.KubeDirectorCluster{}
-	err = shared.Client.Get(
+	err = shared.Client().Get(
 		context.TODO(),
 		types.NamespacedName{
 			Namespace: cr.Namespace,
@@ -75,7 +75,7 @@ func UpdateStatus(
 	}
 
 	currentCluster.Status = cr.Status
-	err = shared.Client.Status().Update(context.TODO(), currentCluster)
+	err = shared.Client().Status().Update(context.TODO(), currentCluster)
 	if err != nil {
 		shared.LogError(
 			reqLogger,
@@ -98,7 +98,7 @@ func RemoveFinalizer(
 	if !removeFinalizer(cr) {
 		return nil
 	}
-	err := shared.Client.Update(context.TODO(), cr)
+	err := shared.Client().Update(context.TODO(), cr)
 	if err == nil {
 		return nil
 	}
@@ -116,7 +116,7 @@ func RemoveFinalizer(
 	// If there was a resourceVersion conflict then fetch a more
 	// recent version of the object and attempt to update that.
 	currentCluster := &kdv1.KubeDirectorCluster{}
-	err = shared.Client.Get(
+	err = shared.Client().Get(
 		context.TODO(),
 		types.NamespacedName{
 			Namespace: cr.Namespace,
@@ -135,7 +135,7 @@ func RemoveFinalizer(
 		return err
 	}
 	if removeFinalizer(currentCluster) {
-		err = shared.Client.Update(context.TODO(), currentCluster)
+		err = shared.Client().Update(context.TODO(), currentCluster)
 		if err != nil {
 			shared.LogError(
 				reqLogger,
@@ -159,7 +159,7 @@ func EnsureFinalizer(
 	if !addFinalizer(cr) {
 		return nil
 	}
-	err := shared.Client.Update(context.TODO(), cr)
+	err := shared.Client().Update(context.TODO(), cr)
 	if err == nil {
 		return nil
 	}
@@ -169,7 +169,7 @@ func EnsureFinalizer(
 	// reject any new cluster in the Update call above so we retry
 	// with a more recent object on any error.
 	currentCluster := &kdv1.KubeDirectorCluster{}
-	err = shared.Client.Get(
+	err = shared.Client().Get(
 		context.TODO(),
 		types.NamespacedName{
 			Namespace: cr.Namespace,
@@ -189,7 +189,7 @@ func EnsureFinalizer(
 	}
 
 	if addFinalizer(currentCluster) {
-		err = shared.Client.Update(context.TODO(), currentCluster)
+		err = shared.Client().Update(context.TODO(), currentCluster)
 		if err != nil {
 			shared.LogError(
 				reqLogger,

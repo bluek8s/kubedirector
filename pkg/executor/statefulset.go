@@ -48,7 +48,7 @@ func CreateStatefulSet(
 	if err != nil {
 		return nil, err
 	}
-	return statefulSet, shared.Client.Create(context.TODO(), statefulSet)
+	return statefulSet, shared.Client().Create(context.TODO(), statefulSet)
 }
 
 // UpdateStatefulSetReplicas modifies an existing statefulset in k8s to have
@@ -61,7 +61,7 @@ func UpdateStatefulSetReplicas(
 ) error {
 
 	*statefulSet.Spec.Replicas = replicas
-	err := shared.Client.Update(context.TODO(), statefulSet)
+	err := shared.Client().Update(context.TODO(), statefulSet)
 	if err == nil {
 		return nil
 	}
@@ -79,7 +79,7 @@ func UpdateStatefulSetReplicas(
 	// If there was a resourceVersion conflict then fetch a more
 	// recent version of the object and attempt to update that.
 	currentStatefulSet := &appsv1.StatefulSet{}
-	err = shared.Client.Get(
+	err = shared.Client().Get(
 		context.TODO(),
 		types.NamespacedName{
 			Namespace: statefulSet.Namespace,
@@ -99,7 +99,7 @@ func UpdateStatefulSetReplicas(
 	}
 
 	*currentStatefulSet.Spec.Replicas = replicas
-	err = shared.Client.Update(context.TODO(), currentStatefulSet)
+	err = shared.Client().Update(context.TODO(), currentStatefulSet)
 	if err != nil {
 		shared.LogError(
 			reqLogger,
@@ -150,7 +150,7 @@ func DeleteStatefulSet(
 			Namespace: namespace,
 		},
 	}
-	return shared.Client.Delete(context.TODO(), toDelete)
+	return shared.Client().Delete(context.TODO(), toDelete)
 }
 
 // getStatefulset composes the spec for creating a statefulset in k8s, based

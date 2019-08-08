@@ -86,7 +86,7 @@ func (r *ReconcileKubeDirectorConfig) Reconcile(request reconcile.Request) (reco
 
 	// Fetch the KubeDirectorConfig instance
 	kdConfig := &kdv1.KubeDirectorConfig{}
-	err := shared.Client.Get(context.TODO(), request.NamespacedName, kdConfig)
+	err := shared.Client().Get(context.TODO(), request.NamespacedName, kdConfig)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.

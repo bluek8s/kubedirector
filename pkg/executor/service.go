@@ -64,7 +64,7 @@ func CreateHeadlessService(
 	} else {
 		service.ObjectMeta.Name = cr.Status.ClusterService
 	}
-	err := shared.Client.Create(context.TODO(), service)
+	err := shared.Client().Create(context.TODO(), service)
 
 	return service, err
 }
@@ -127,7 +127,7 @@ func CreatePodService(
 		}
 		service.Spec.Ports = append(service.Spec.Ports, servicePort)
 	}
-	createErr := shared.Client.Create(context.TODO(), service)
+	createErr := shared.Client().Create(context.TODO(), service)
 	return service, createErr
 }
 
@@ -164,7 +164,7 @@ func UpdatePodService(
 	)
 
 	service.Spec.Type = reqServiceType
-	err := shared.Client.Update(context.TODO(), service)
+	err := shared.Client().Update(context.TODO(), service)
 	if err == nil {
 		return nil
 	}
@@ -182,7 +182,7 @@ func UpdatePodService(
 	// If there was a resourceVersion conflict then fetch a more
 	// recent version of the object and attempt to update that.
 	currentService := &v1.Service{}
-	err = shared.Client.Get(
+	err = shared.Client().Get(
 		context.TODO(),
 		types.NamespacedName{
 			Namespace: service.Namespace,
@@ -203,7 +203,7 @@ func UpdatePodService(
 	}
 
 	currentService.Spec.Type = reqServiceType
-	err = shared.Client.Update(context.TODO(), currentService)
+	err = shared.Client().Update(context.TODO(), currentService)
 	if err != nil {
 		shared.LogErrorf(
 			reqLogger,
@@ -234,7 +234,7 @@ func DeletePodService(
 		},
 	}
 
-	return shared.Client.Delete(context.TODO(), toDelete)
+	return shared.Client().Delete(context.TODO(), toDelete)
 }
 
 // serviceName is a utility function for generating the name of a service

@@ -16,37 +16,41 @@ package shared
 
 import (
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-	"os"
-
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"os"
+	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
+	k8sConfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 var (
-	// Client is a global client initialized in main and is used for all
-	//     KubeDirector CRUD operations.
-	Client client.Client
-	// ClientConfig is a client config used to create Client and ClientSet.
-	ClientConfig *rest.Config
-	// ClientSet is a REST API client that will be used for actions not
+	// config is a config to talk to the apiserver.
+	config *rest.Config
+
+	// client is a k8s client to perform K8s CRUD operations.
+	client k8sClient.Client
+
+	// clientSet is a REST API client that will be used for actions not
 	//     supported through the operator SDK.
-	ClientSet kubernetes.Interface
+	clientSet kubernetes.Interface
+
 	// eventRecorder will be used to publish events for a cr
 	eventRecorder record.EventRecorder
-	log           = logf.Log.WithName("kubedirector")
+
+	log = logf.Log.WithName("kubedirector")
 )
 
-// init creates the  This function also creates an
-// event recorder
+// init ...
 func init() {
-	ClientConfig = getConfigFromServiceAccount()
-	ClientSet = getClientSet(ClientConfig)
+
+	config = getConfigFromServiceAccount()
+	client = getClient(config)
+	clientSet = getClientSet(config)
 	eventRecorder = getEventRecorder()
 }
 
@@ -67,7 +71,7 @@ func getClientSet(
 // service account credentials.
 func getConfigFromServiceAccount() *rest.Config {
 
-	config, err := rest.InClusterConfig()
+	config, err := k8sConfig.GetConfig()
 	if err != nil {
 		log.Error(err, "getConfigFromServiceAccount")
 		os.Exit(1)
@@ -82,7 +86,7 @@ func getEventRecorder() record.EventRecorder {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(
 		&typedcorev1.EventSinkImpl{
-			Interface: ClientSet.CoreV1().Events(""),
+			Interface: ClientSet().CoreV1().Events(""),
 		},
 	)
 	operatorName, _ := k8sutil.GetOperatorName()
@@ -91,4 +95,36 @@ func getEventRecorder() record.EventRecorder {
 		v1.EventSource{Component: operatorName},
 	)
 	return recorder
+}
+
+// getClient creates a k8s client from the given config.
+func getClient(
+	config *rest.Config,
+) k8sClient.Client {
+	client, err := k8sClient.New(config, k8sClient.Options{})
+	if err != nil {
+		log.Error(err, "getClient")
+		os.Exit(1)
+	}
+	return client
+}
+
+// Config getter ...
+func Config() *rest.Config {
+	return config
+}
+
+// Client getter ...
+func Client() k8sClient.Client {
+	return client
+}
+
+// SetClient setter ...
+func SetClient(c k8sClient.Client) {
+	client = c
+}
+
+// ClientSet getter ...
+func ClientSet() kubernetes.Interface {
+	return clientSet
 }

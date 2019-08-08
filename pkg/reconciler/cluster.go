@@ -209,14 +209,12 @@ func handleStatusGen(
 			return false
 		}
 
-		if lastKnown.UID != "" {
-			shared.LogWarnf(
-				cr,
-				shared.EventReasonNoEvent,
-				"unknown with incoming gen uid %s",
-				incoming,
-			)
-		}
+		shared.LogWarnf(
+			cr,
+			shared.EventReasonNoEvent,
+			"unknown with incoming gen uid %s",
+			incoming,
+		)
 		writeStatusGen(cr, handler, incoming)
 		ValidateStatusGen(cr, handler)
 		ensureClusterAppReference(cr, handler)

@@ -113,6 +113,8 @@ spec:
               type: string
             last_node_id:
               type: integer
+            app_namespace:
+              type: string
             roles:
               type: array
               items:

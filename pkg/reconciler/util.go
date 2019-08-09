@@ -15,6 +15,8 @@
 package reconciler
 
 import (
+	"strings"
+
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 )
 
@@ -69,6 +71,7 @@ func deleteStatusGen(
 // ClustersUsingApp returns the list of cluster names referencing the given app.
 func ClustersUsingApp(
 	app string,
+	appNamespace string,
 	handler *Handler,
 ) []string {
 	var clusters []string
@@ -82,8 +85,12 @@ func ClustersUsingApp(
 	// ahead and gather all the offending cluster CR names to report back to
 	// the client.
 	for clusterKey, appName := range handler.clusterState.clusterAppTypes {
-		if appName == app {
-			clusters = append(clusters, clusterKey)
+		// Extract app namespace from clusterKey
+		clusterAppNamespace := strings.Split(clusterKey, "/")[0]
+		clusterNamespace := strings.Split(clusterKey, "/")[1]
+		clusterName := strings.Split(clusterKey, "/")[2]
+		if appName == app && clusterAppNamespace == appNamespace {
+			clusters = append(clusters, clusterNamespace+"/"+clusterName)
 		}
 	}
 	return clusters
@@ -94,7 +101,7 @@ func ensureClusterAppReference(
 	cr *kdv1.KubeDirectorCluster,
 	handler *Handler,
 ) {
-	clusterKey := cr.Namespace + "/" + cr.Name
+	clusterKey := cr.Status.AppNamespace + "/" + cr.Namespace + "/" + cr.Name
 	handler.lock.Lock()
 	defer handler.lock.Unlock()
 	handler.clusterState.clusterAppTypes[clusterKey] = cr.Spec.AppID
@@ -106,7 +113,7 @@ func removeClusterAppReference(
 	cr *kdv1.KubeDirectorCluster,
 	handler *Handler,
 ) {
-	clusterKey := cr.Namespace + "/" + cr.Name
+	clusterKey := cr.Status.AppNamespace + "/" + cr.Namespace + "/" + cr.Name
 	handler.lock.Lock()
 	defer handler.lock.Unlock()
 	delete(handler.clusterState.clusterAppTypes, clusterKey)

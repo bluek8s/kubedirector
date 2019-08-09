@@ -44,6 +44,7 @@ type clusterPatchValue struct {
 	ValueInt            *int32
 	ValueStr            *string
 	ValueFileInjections *kdv1.FilePermissions
+	ValueClusterStatus  *kdv1.ClusterStatus
 }
 
 func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
@@ -51,6 +52,9 @@ func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
 		return json.Marshal(obj.ValueInt)
 	} else if obj.ValueFileInjections != nil {
 		return json.Marshal(obj.ValueFileInjections)
+	}
+	if obj.ValueClusterStatus != nil {
+		return json.Marshal(obj.ValueClusterStatus)
 	}
 	return json.Marshal(obj.ValueStr)
 }
@@ -64,9 +68,9 @@ func validateCardinality(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
 	valErrors []string,
+	patches []clusterPatchSpec,
 ) ([]string, []clusterPatchSpec) {
 
-	var patches []clusterPatchSpec
 	anyError := false
 
 	numRoles := len(cr.Spec.Roles)
@@ -93,6 +97,7 @@ func validateCardinality(
 				anyError = true
 				valErrors = append(
 					valErrors,
+
 					fmt.Sprintf(
 						invalidCardinality,
 						role.Name,
@@ -353,6 +358,41 @@ func validateRoleStorageClass(
 	}
 
 	return valErrors, patches
+}
+
+// validateApp function checks for valid app and also
+// creates a patch to setup app_namespace field in
+// status resource
+func validateApp(
+	cr *kdv1.KubeDirectorCluster,
+	patches []clusterPatchSpec,
+) (*kdv1.KubeDirectorApp, []clusterPatchSpec, string) {
+
+	appCR, err := catalog.FindApp(cr)
+
+	if err != nil {
+		return nil, patches,
+			"\n" + fmt.Sprintf(invalidAppMessage, cr.Spec.AppID)
+	}
+
+	cr.Status = &kdv1.ClusterStatus{
+		AppNamespace: appCR.Namespace,
+	}
+	cr.Status.Roles = make([]kdv1.RoleStatus, 0)
+
+	// Generate a patch object to add app namespace to the status resource
+	patches = append(
+		patches,
+		clusterPatchSpec{
+			Op:   "add",
+			Path: "/status",
+			Value: clusterPatchValue{
+				ValueClusterStatus: cr.Status,
+			},
+		},
+	)
+
+	return appCR, patches, ""
 }
 
 // validateMinResources function checks to see if minimum resource requiements
@@ -641,10 +681,12 @@ func admitClusterCR(
 	}
 
 	// At this point, if app is bad, no need to continue with validation.
-	appCR, err := catalog.GetApp(&clusterCR)
-	if err != nil {
+	appCR, patches, errorMsg := validateApp(&clusterCR, patches)
+
+	// If app error, fail right away
+	if appCR == nil {
 		admitResponse.Result = &metav1.Status{
-			Message: "\n" + fmt.Sprintf(invalidAppMessage, clusterCR.Spec.AppID),
+			Message: errorMsg,
 		}
 		return &admitResponse
 	}
@@ -653,7 +695,7 @@ func admitClusterCR(
 	kdConfigCR, _ := observer.GetKDConfig(shared.KubeDirectorGlobalConfig)
 
 	// Validate cardinality and generate patches for defaults members values.
-	valErrors, patches = validateCardinality(&clusterCR, appCR, valErrors)
+	valErrors, patches = validateCardinality(&clusterCR, appCR, valErrors, patches)
 
 	// Validate that roles are known & sufficient.
 	valErrors = validateClusterRoles(&clusterCR, appCR, valErrors)

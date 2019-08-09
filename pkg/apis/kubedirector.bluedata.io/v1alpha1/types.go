@@ -103,6 +103,7 @@ type ClusterStatus struct {
 	ClusterService string       `json:"cluster_service"`
 	LastNodeID     int64        `json:"last_node_id"`
 	Roles          []RoleStatus `json:"roles"`
+	AppNamespace   string       `json:"app_namespace"`
 }
 
 // RoleStatus describes the component objects of a virtual cluster role.

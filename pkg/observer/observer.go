@@ -20,7 +20,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -128,9 +128,10 @@ func GetPVC(
 	return result, err
 }
 
-// GetApp fetches the k8s KubeDirectorApp resource in KubeDirector's namespace.
+// GetApp fetches the k8s KubeDirectorApp resource with the given name in
+// the given namespace.
 func GetApp(
-	clusterNamespace string,
+	appNamespace string,
 	appID string,
 ) (*kdv1.KubeDirectorApp, error) {
 
@@ -142,25 +143,12 @@ func GetApp(
 			APIVersion: "kubedirector.bluedata.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: appID,
+			Name:      appID,
+			Namespace: appNamespace,
 		},
 	}
 
-	// Check to see if this app exists in the cluster namespace
-	appSpec.ObjectMeta.Namespace = clusterNamespace
 	appErr = sdk.Get(appSpec)
-
-	if appErr != nil {
-		// Check to see if it is present in our namespace
-		kdNamespace, nsErr := shared.GetKubeDirectorNamespace()
-		if nsErr != nil {
-			return nil, nsErr
-		}
-
-		appSpec.ObjectMeta.Namespace = kdNamespace
-		appErr = sdk.Get(appSpec)
-	}
-
 	return appSpec, appErr
 }
 

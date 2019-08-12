@@ -278,7 +278,7 @@ func getStatefulset(
 					InitContainers:               getInitContainer(cr, role, pvcName, imageID, persistDirs),
 					Containers: []v1.Container{
 						{
-							Name:            appContainerName,
+							Name:            AppContainerName,
 							Image:           imageID,
 							Resources:       role.Resources,
 							Lifecycle:       &v1.Lifecycle{PostStart: &startupScript},

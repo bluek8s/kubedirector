@@ -19,10 +19,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/bluek8s/kubedirector/pkg/validator"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"runtime"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -39,8 +37,6 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/restmapper"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	"github.com/spf13/pflag"
-	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
@@ -149,28 +145,14 @@ func main() {
 		}
 	}()
 
-	// Fetch our deployment object
-	kdName, err := k8sutil.GetOperatorName()
+	// Fetch a reference to the KubeDirector Deployment object
+	ownerReference, err := controller.GetKubeDirectorReference(log)
 	if err != nil {
-		log.Error(err, "failed to get kubedirector deployment name")
+		log.Error(err, "failed to get a reference to the KubeDirector deployment object")
 		os.Exit(1)
 	}
 
-	kd, err := observer.GetDeployment(kdName)
-	if err != nil {
-		log.Error(err, "failed to get kubedirector deployment object")
-		os.Exit(1)
-	}
-
-	err = validator.InitValidationServer(
-		*metav1.NewControllerRef(
-			kd,
-			schema.GroupVersionKind{
-				Group:   appsv1.SchemeGroupVersion.Group,
-				Version: appsv1.SchemeGroupVersion.Version,
-				Kind:    "Deployment",
-			}),
-	)
+	err = validator.InitValidationServer(*ownerReference)
 	if err != nil {
 		log.Error(err, "failed to initialize validation server")
 		os.Exit(1)

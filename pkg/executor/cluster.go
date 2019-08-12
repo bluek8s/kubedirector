@@ -206,7 +206,7 @@ func EnsureFinalizer(
 func addFinalizer(cr *kdv1.KubeDirectorCluster) bool {
 	found := false
 	for _, f := range cr.Finalizers {
-		if f == finalizerID {
+		if f == shared.KubeDirectorFinalizerID {
 			found = true
 			break
 		}
@@ -214,14 +214,14 @@ func addFinalizer(cr *kdv1.KubeDirectorCluster) bool {
 	if found {
 		return false
 	}
-	cr.Finalizers = append(cr.Finalizers, finalizerID)
+	cr.Finalizers = append(cr.Finalizers, shared.KubeDirectorFinalizerID)
 	return true
 }
 
 func removeFinalizer(cr *kdv1.KubeDirectorCluster) bool {
 	found := false
 	for i, f := range cr.Finalizers {
-		if f == finalizerID {
+		if f == shared.KubeDirectorFinalizerID {
 			cr.Finalizers = append(cr.Finalizers[:i], cr.Finalizers[i+1:]...)
 			found = true
 			break

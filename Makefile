@@ -40,7 +40,7 @@ build: configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcop
 	@test -d vendor || dep ensure -v
 	operator-sdk build ${image}
 	@docker image prune -f > /dev/null
-	@sed ${sedseparator} -e 's~REPLACE_IMAGE~${image}~' deploy/operator.yaml >${local_deploy_yaml}
+	@sed -e 's~REPLACE_IMAGE~${image}~' deploy/operator.yaml >${local_deploy_yaml}
 	@echo done
 	@echo
 

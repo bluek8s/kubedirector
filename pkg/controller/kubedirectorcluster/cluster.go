@@ -83,9 +83,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 					if currentCluster.DeletionTimestamp != nil {
 						return
 					}
-
-					// See https://github.com/bluek8s/kubedirector/issues/194
-					// Migrate Client().Update() calls back to Patch() calls.
 					if errors.IsConflict(updateErr) {
 						// If the update failed with a ResourceVersion
 						// conflict then we need to use the current

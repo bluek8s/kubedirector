@@ -33,6 +33,8 @@ func UpdateStatus(
 	// emptystring, and remove any MemberStatus where Pod is emptystring.
 	compact(&(cr.Status.Roles))
 
+	// See https://github.com/bluek8s/kubedirector/issues/194
+	// Migrate Client().Update() calls back to Patch() calls.
 	return shared.Client().Status().Update(context.TODO(), cr)
 }
 
@@ -53,6 +55,9 @@ func RemoveFinalizer(
 	if !found {
 		return nil
 	}
+
+	// See https://github.com/bluek8s/kubedirector/issues/194
+	// Migrate Client().Update() calls back to Patch() calls.
 	return shared.Client().Update(context.TODO(), cr)
 }
 
@@ -73,6 +78,9 @@ func EnsureFinalizer(
 		return nil
 	}
 	cr.Finalizers = append(cr.Finalizers, finalizerID)
+
+	// See https://github.com/bluek8s/kubedirector/issues/194
+	// Migrate Client().Update() calls back to Patch() calls.
 	return shared.Client().Update(context.TODO(), cr)
 }
 

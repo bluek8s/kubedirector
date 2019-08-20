@@ -66,9 +66,8 @@ func UpdateStatefulSetReplicas(
 		return nil
 	}
 
-	// See GitHub issue #194: Migrate Client().Update() calls
-	// back to Patch() calls.
-	// https://github.com/bluek8s/kubedirector/issues/194
+	// See https://github.com/bluek8s/kubedirector/issues/194
+	// Migrate Client().Update() calls back to Patch() calls.
 
 	if !errors.IsConflict(err) {
 		shared.LogError(

@@ -53,7 +53,7 @@ func LogInfof(
 	args ...interface{},
 ) {
 
-	logger.Info(fmt.Sprint(format, args))
+	logger.Info(fmt.Sprintf(format, args...))
 
 	if eventReason != EventReasonNoEvent {
 		LogEventf(
@@ -97,7 +97,7 @@ func LogErrorf(
 	args ...interface{},
 ) {
 
-	logger.Error(err, fmt.Sprint(format, args))
+	logger.Error(err, fmt.Sprintf(format, args...))
 
 	if eventReason != EventReasonNoEvent {
 		LogEventf(

@@ -86,8 +86,8 @@ func (r *ReconcileKubeDirectorCluster) Reconcile(request reconcile.Request) (rec
 	reconcileResult := reconcile.Result{RequeueAfter: reconcilePeriod}
 
 	// Fetch the KubeDirectorCluster instance
-	kdCluster := &kdv1.KubeDirectorCluster{}
-	err := shared.Client().Get(context.TODO(), request.NamespacedName, kdCluster)
+	cr := &kdv1.KubeDirectorCluster{}
+	err := shared.Client().Get(context.TODO(), request.NamespacedName, cr)
 	if err != nil {
 		// If the resource is not found, that means all of
 		// the finalizers have been removed, and the kubedirectorcluster
@@ -99,6 +99,6 @@ func (r *ReconcileKubeDirectorCluster) Reconcile(request reconcile.Request) (rec
 		return reconcileResult,
 			fmt.Errorf("could not fetch KubeDirectorCluster instance: %s", err)
 	}
-	err = r.syncCluster(reqLogger, kdCluster)
+	err = r.syncCluster(reqLogger, cr)
 	return reconcileResult, err
 }

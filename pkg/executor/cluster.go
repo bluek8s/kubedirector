@@ -19,8 +19,6 @@ import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // UpdateStatus propagates status changes back to k8s. Roles or members in
@@ -35,57 +33,7 @@ func UpdateStatus(
 	// emptystring, and remove any MemberStatus where Pod is emptystring.
 	compact(&(cr.Status.Roles))
 
-	// TBD: We should probably write to the status sub-resource. That's only
-	// available in 1.11 (beta feature) and later though. So for now let's
-	// just modify the status property of the CR.
-	err := shared.Client().Status().Update(context.TODO(), cr)
-	if err == nil {
-		return nil
-	}
-	if !errors.IsConflict(err) {
-		shared.LogError(
-			reqLogger,
-			err,
-			cr,
-			shared.EventReasonCluster,
-			"failed to update status",
-		)
-	}
-
-	// If there was a resourceVersion conflict then fetch a more
-	// recent version of the object and attempt to update that.
-	currentCluster := &kdv1.KubeDirectorCluster{}
-	err = shared.Client().Get(
-		context.TODO(),
-		types.NamespacedName{
-			Namespace: cr.Namespace,
-			Name:      cr.Name,
-		},
-		currentCluster,
-	)
-	if err != nil {
-		shared.LogError(
-			reqLogger,
-			err,
-			cr,
-			shared.EventReasonCluster,
-			"failed to retrieve cluster",
-		)
-		return err
-	}
-
-	currentCluster.Status = cr.Status
-	err = shared.Client().Status().Update(context.TODO(), currentCluster)
-	if err != nil {
-		shared.LogError(
-			reqLogger,
-			err,
-			cr,
-			shared.EventReasonCluster,
-			"failed to update status",
-		)
-	}
-	return err
+	return shared.Client().Status().Update(context.TODO(), cr)
 }
 
 // RemoveFinalizer removes the KubeDirector finalizer from the CR's finalizers
@@ -94,131 +42,6 @@ func RemoveFinalizer(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 ) error {
-
-	if !removeFinalizer(cr) {
-		return nil
-	}
-	err := shared.Client().Update(context.TODO(), cr)
-	if err == nil {
-		return nil
-	}
-	if !errors.IsConflict(err) {
-		shared.LogError(
-			reqLogger,
-			err,
-			cr,
-			shared.EventReasonCluster,
-			"failed to remove finalizer",
-		)
-		return err
-	}
-
-	// If there was a resourceVersion conflict then fetch a more
-	// recent version of the object and attempt to update that.
-	currentCluster := &kdv1.KubeDirectorCluster{}
-	err = shared.Client().Get(
-		context.TODO(),
-		types.NamespacedName{
-			Namespace: cr.Namespace,
-			Name:      cr.Name,
-		},
-		currentCluster,
-	)
-	if err != nil {
-		shared.LogError(
-			reqLogger,
-			err,
-			cr,
-			shared.EventReasonCluster,
-			"failed to retrieve cluster",
-		)
-		return err
-	}
-	if removeFinalizer(currentCluster) {
-		err = shared.Client().Update(context.TODO(), currentCluster)
-		if err != nil {
-			shared.LogError(
-				reqLogger,
-				err,
-				cr,
-				shared.EventReasonCluster,
-				"failed to remove finalizer",
-			)
-		}
-	}
-	return err
-}
-
-// EnsureFinalizer adds the KubeDirector finalizer into the CR's finalizers
-// list (if it is not in there).
-func EnsureFinalizer(
-	reqLogger logr.Logger,
-	cr *kdv1.KubeDirectorCluster,
-) error {
-
-	if !addFinalizer(cr) {
-		return nil
-	}
-	err := shared.Client().Update(context.TODO(), cr)
-	if err == nil {
-		return nil
-	}
-
-	// We can't just retry on a resourceVersion conflict error like
-	// we did in RemoveFinalizer because the webhook validator will
-	// reject any new cluster in the Update call above so we retry
-	// with a more recent object on any error.
-	currentCluster := &kdv1.KubeDirectorCluster{}
-	err = shared.Client().Get(
-		context.TODO(),
-		types.NamespacedName{
-			Namespace: cr.Namespace,
-			Name:      cr.Name,
-		},
-		currentCluster,
-	)
-	if err != nil {
-		shared.LogError(
-			reqLogger,
-			err,
-			cr,
-			shared.EventReasonCluster,
-			"failed to retrieve cluster",
-		)
-		return err
-	}
-
-	if addFinalizer(currentCluster) {
-		err = shared.Client().Update(context.TODO(), currentCluster)
-		if err != nil {
-			shared.LogError(
-				reqLogger,
-				err,
-				cr,
-				shared.EventReasonCluster,
-				"failed to add finalizer",
-			)
-		}
-	}
-	return err
-}
-
-func addFinalizer(cr *kdv1.KubeDirectorCluster) bool {
-	found := false
-	for _, f := range cr.Finalizers {
-		if f == finalizerID {
-			found = true
-			break
-		}
-	}
-	if found {
-		return false
-	}
-	cr.Finalizers = append(cr.Finalizers, finalizerID)
-	return true
-}
-
-func removeFinalizer(cr *kdv1.KubeDirectorCluster) bool {
 	found := false
 	for i, f := range cr.Finalizers {
 		if f == finalizerID {
@@ -227,7 +50,36 @@ func removeFinalizer(cr *kdv1.KubeDirectorCluster) bool {
 			break
 		}
 	}
-	return found
+	if !found {
+		return nil
+	}
+
+	// See https://github.com/bluek8s/kubedirector/issues/194
+	// Migrate Client().Update() calls back to Patch() calls.
+	return shared.Client().Update(context.TODO(), cr)
+}
+
+// EnsureFinalizer adds the KubeDirector finalizer into the CR's finalizers
+// list (if it is not in there).
+func EnsureFinalizer(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+) error {
+	found := false
+	for _, f := range cr.Finalizers {
+		if f == finalizerID {
+			found = true
+			break
+		}
+	}
+	if found {
+		return nil
+	}
+	cr.Finalizers = append(cr.Finalizers, finalizerID)
+
+	// See https://github.com/bluek8s/kubedirector/issues/194
+	// Migrate Client().Update() calls back to Patch() calls.
+	return shared.Client().Update(context.TODO(), cr)
 }
 
 // compact edits the input slice of role statuses so that any elements that

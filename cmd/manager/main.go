@@ -19,6 +19,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/bluek8s/kubedirector/pkg/validator"
 	"os"
@@ -146,7 +147,7 @@ func main() {
 	}()
 
 	// Fetch a reference to the KubeDirector Deployment object
-	ownerReference, err := controller.GetKubeDirectorReference(log)
+	ownerReference, err := executor.GetKubeDirectorReference(log)
 	if err != nil {
 		log.Error(err, "failed to get a reference to the KubeDirector deployment object")
 		os.Exit(1)

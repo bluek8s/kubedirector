@@ -35,6 +35,19 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	cr *kdv1.KubeDirectorCluster,
 ) error {
 
+	// We use a finalizer to maintain KubeDirector state consistency;
+	// e.g. ClusterAppReference's and StatusGen's.
+	doExit, finalizerErr := r.handleFinalizers(reqLogger, cr)
+	if finalizerErr != nil {
+		return finalizerErr
+	}
+	if doExit {
+		return nil
+	}
+
+	// Make sure this cluster marks a reference to its app.
+	shared.EnsureClusterAppReference(cr.Namespace, cr.Name, cr.Spec.AppID)
+
 	// Make sure we have a Status object to work with.
 	if cr.Status == nil {
 		cr.Status = &kdv1.KubeDirectorClusterStatus{}
@@ -103,19 +116,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	// For a new CR just update the status state/gen.
 	shouldProcessCR := r.handleNewCluster(reqLogger, cr)
 	if !shouldProcessCR {
-		return nil
-	}
-
-	// Make sure this cluster marks a reference to its app.
-	shared.EnsureClusterAppReference(cr.Namespace, cr.Name, cr.Spec.AppID)
-
-	// We use a finalizer to maintain KubeDirector state consistency;
-	// e.g. ClusterAppReference's and StatusGen's.
-	doExit, finalizerErr := r.handleFinalizers(reqLogger, cr)
-	if finalizerErr != nil {
-		return finalizerErr
-	}
-	if doExit {
 		return nil
 	}
 

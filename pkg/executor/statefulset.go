@@ -65,6 +65,11 @@ func UpdateStatefulSetReplicas(
 	if err == nil {
 		return nil
 	}
+
+	// See GitHub issue #194: Migrate Client().Update() calls
+	// back to Patch() calls.
+	// https://github.com/bluek8s/kubedirector/issues/194
+
 	if !errors.IsConflict(err) {
 		shared.LogError(
 			reqLogger,
@@ -77,16 +82,13 @@ func UpdateStatefulSetReplicas(
 	}
 
 	// If there was a resourceVersion conflict then fetch a more
-	// recent version of the object and attempt to update that.
-	currentStatefulSet := &appsv1.StatefulSet{}
-	err = shared.Client().Get(
-		context.TODO(),
-		types.NamespacedName{
-			Namespace: statefulSet.Namespace,
-			Name:      statefulSet.Name,
-		},
-		currentStatefulSet,
-	)
+	// recent version of the statefulset and attempt to update that.
+	name := types.NamespacedName{
+		Namespace: statefulSet.Namespace,
+		Name:      statefulSet.Name,
+	}
+	*statefulSet = appsv1.StatefulSet{}
+	err = shared.Client().Get(context.TODO(), name, statefulSet)
 	if err != nil {
 		shared.LogError(
 			reqLogger,
@@ -98,8 +100,8 @@ func UpdateStatefulSetReplicas(
 		return err
 	}
 
-	*currentStatefulSet.Spec.Replicas = replicas
-	err = shared.Client().Update(context.TODO(), currentStatefulSet)
+	*statefulSet.Spec.Replicas = replicas
+	err = shared.Client().Update(context.TODO(), statefulSet)
 	if err != nil {
 		shared.LogError(
 			reqLogger,

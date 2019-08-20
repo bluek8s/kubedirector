@@ -15,17 +15,16 @@
 package kubedirectorcluster
 
 import (
-	"github.com/go-logr/logr"
-	"reflect"
-	"time"
-
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
+	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"reflect"
+	"time"
 )
 
 // syncCluster runs the reconciliation logic. It is invoked because of a
@@ -35,9 +34,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 ) error {
-
-	// Make sure this cluster marks a reference to its app.
-	shared.EnsureClusterAppReference(cr.Namespace, cr.Name, cr.Spec.AppID)
 
 	// Make sure we have a Status object to work with.
 	if cr.Status == nil {
@@ -74,6 +70,20 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 					if currentCluster.DeletionTimestamp != nil {
 						return
 					}
+
+					// See GitHub issue #194: Migrate Client().Update() calls
+					// back to Patch() calls.
+					// https://github.com/bluek8s/kubedirector/issues/194
+					if errors.IsConflict(updateErr) {
+						// If the update failed with a ResourceVersion
+						// conflict then we need to use the current
+						// version of the cluster. Otherwise, the status
+						// update will never succeed and this loop will
+						// never terminate.
+						currentCluster.Status = cr.Status
+						*cr = *currentCluster
+						continue
+					}
 				}
 				if wait < maxWait {
 					wait = wait * 2
@@ -91,18 +101,22 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		}
 	}()
 
-	// We use a finalizer to ensure that only KubeDirector updates status
+	// For a new CR just update the status state/gen.
+	shouldProcessCR := r.handleNewCluster(reqLogger, cr)
+	if !shouldProcessCR {
+		return nil
+	}
+
+	// Make sure this cluster marks a reference to its app.
+	shared.EnsureClusterAppReference(cr.Namespace, cr.Name, cr.Spec.AppID)
+
+	// We use a finalizer to maintain KubeDirector state consistency;
+	// e.g. ClusterAppReference's and StatusGen's.
 	doExit, finalizerErr := r.handleFinalizers(reqLogger, cr)
 	if finalizerErr != nil {
 		return finalizerErr
 	}
 	if doExit {
-		return nil
-	}
-
-	// For a new CR just update the status state/gen.
-	shouldProcessCR := r.handleNewCluster(reqLogger, cr)
-	if !shouldProcessCR {
 		return nil
 	}
 

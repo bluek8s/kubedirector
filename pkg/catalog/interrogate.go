@@ -22,7 +22,7 @@ import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 // GetServiceFromID is a utility function that returns the service definition for
@@ -313,7 +313,37 @@ func GetApp(
 	if cr.AppSpec != nil {
 		return cr.AppSpec, nil
 	}
+	appCR, appErr := observer.GetApp(cr.Status.AppNamespace, cr.Spec.AppID)
+	if appErr != nil {
+		return nil, fmt.Errorf(
+			"failed to fetch CR for the App : %s error %v",
+			cr.Spec.AppID,
+			appErr,
+		)
+	}
+	cr.AppSpec = appCR
+	return appCR, nil
+}
+
+// FindApp returns the app type definition for the given virtual cluster. It first
+// checks to see if the app exists in the same namespace as cluster cr. If not found
+// it will then check in the namespace where kubedirector is running.
+func FindApp(
+	cr *kdv1.KubeDirectorCluster,
+) (*kdv1.KubeDirectorApp, error) {
+
+	if cr.AppSpec != nil {
+		return cr.AppSpec, nil
+	}
 	appCR, appErr := observer.GetApp(cr.Namespace, cr.Spec.AppID)
+	if appErr != nil {
+		kdNamespace, nsErr := shared.GetKubeDirectorNamespace()
+		if nsErr != nil {
+			return nil, nsErr
+		}
+		appCR, appErr = observer.GetApp(kdNamespace, cr.Spec.AppID)
+	}
+
 	if appErr != nil {
 		return nil, fmt.Errorf(
 			"failed to fetch CR for the App : %s error %v",

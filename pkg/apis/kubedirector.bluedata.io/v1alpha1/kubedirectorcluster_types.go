@@ -15,7 +15,7 @@
 package v1alpha1
 
 import (
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -26,9 +26,10 @@ import (
 // using a StatefulSet.
 // +k8s:openapi-gen=true
 type KubeDirectorClusterSpec struct {
-	AppID       string  `json:"app"`
-	ServiceType *string `json:"serviceType"`
-	Roles       []Role  `json:"roles"`
+	AppID        string  `json:"app"`
+	AppNamespace *string `json:"app_namespace"`
+	ServiceType  *string `json:"serviceType"`
+	Roles        []Role  `json:"roles"`
 }
 
 // KubeDirectorClusterStatus defines the observed state of KubeDirectorCluster.
@@ -41,6 +42,7 @@ type KubeDirectorClusterStatus struct {
 	ClusterService string       `json:"cluster_service"`
 	LastNodeID     int64        `json:"last_node_id"`
 	Roles          []RoleStatus `json:"roles"`
+	AppNamespace   string       `json:"app_namespace"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -74,15 +76,32 @@ type EnvVar struct {
 	Value string `json:"value"`
 }
 
+// FilePermissions specifies file mode along with user/group
+// information for the file
+type FilePermissions struct {
+	FileMode  *string `json:"fileMode,omitempty"`
+	FileOwner *string `json:"fileOwner,omitempty"`
+	FileGroup *string `json:"fileGroup,omitempty"`
+}
+
+// FileInjections specifies file injection spec, including
+// file permissions on the destination file
+type FileInjections struct {
+	SrcURL      string           `json:"srcUrl"`
+	DestDir     string           `json:"destDir"`
+	Permissions *FilePermissions `json:"permissions,omitempty"`
+}
+
 // Role describes a subset of the virtual cluster members that shares a common
 // image, resource requirements, persistent storage definition, and (as
 // defined by the cluster's KubeDirectorApp) set of service endpoints.
 type Role struct {
-	Name      string                  `json:"id"`
-	Members   *int32                  `json:"members"`
-	Resources v1.ResourceRequirements `json:"resources"`
-	Storage   *ClusterStorage         `json:"storage,omitempty"`
-	EnvVars   []v1.EnvVar             `json:"env,omitempty"`
+	Name           string                  `json:"id"`
+	Members        *int32                  `json:"members"`
+	Resources      v1.ResourceRequirements `json:"resources"`
+	Storage        *ClusterStorage         `json:"storage,omitempty"`
+	EnvVars        []v1.EnvVar             `json:"env,omitempty"`
+	FileInjections []FileInjections        `json:"fileInjections,omitempty"`
 }
 
 // ClusterStorage defines the persistent storage size/type, if any, to be used

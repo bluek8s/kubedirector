@@ -15,6 +15,9 @@
 package kubedirectorcluster
 
 import (
+	"reflect"
+	"time"
+
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/executor"
@@ -23,8 +26,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"reflect"
-	"time"
 )
 
 // syncCluster runs the reconciliation logic. It is invoked because of a
@@ -46,13 +47,12 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	}
 
 	// Make sure this cluster marks a reference to its app.
-	shared.EnsureClusterAppReference(cr.Namespace, cr.Name, cr.Spec.AppID)
-
-	// Make sure we have a Status object to work with.
-	if cr.Status == nil {
-		cr.Status = &kdv1.KubeDirectorClusterStatus{}
-		cr.Status.Roles = make([]kdv1.RoleStatus, 0)
-	}
+	shared.EnsureClusterAppReference(
+		cr.Status.AppNamespace,
+		cr.Namespace,
+		cr.Name,
+		cr.Spec.AppID,
+	)
 
 	// Set up logic to update status as necessary when reconciler exits.
 	oldStatus := cr.Status.DeepCopy()
@@ -225,7 +225,12 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 	)
 	shared.WriteStatusGen(cr.UID, incoming)
 	shared.ValidateStatusGen(cr.UID)
-	shared.EnsureClusterAppReference(cr.Namespace, cr.Name, cr.Spec.AppID)
+	shared.EnsureClusterAppReference(
+		cr.Status.AppNamespace,
+		cr.Namespace,
+		cr.Name,
+		cr.Spec.AppID,
+	)
 	return true
 }
 
@@ -251,7 +256,11 @@ func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 		// Also clear the status gen from our cache, regardless of whether
 		// finalizer modification succeeded.
 		shared.DeleteStatusGen(cr.UID)
-		shared.RemoveClusterAppReference(cr.Namespace, cr.Name)
+		shared.RemoveClusterAppReference(
+			cr.Status.AppNamespace,
+			cr.Namespace,
+			cr.Name,
+		)
 		return true, removeErr
 	}
 

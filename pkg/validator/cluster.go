@@ -15,8 +15,10 @@
 package validator
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
@@ -38,13 +40,20 @@ type clusterPatchSpec struct {
 }
 
 type clusterPatchValue struct {
-	ValueInt *int32
-	ValueStr *string
+	ValueInt            *int32
+	ValueStr            *string
+	ValueFileInjections *kdv1.FilePermissions
+	ValueClusterStatus  *kdv1.KubeDirectorClusterStatus
 }
 
 func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
 	if obj.ValueInt != nil {
 		return json.Marshal(obj.ValueInt)
+	} else if obj.ValueFileInjections != nil {
+		return json.Marshal(obj.ValueFileInjections)
+	}
+	if obj.ValueClusterStatus != nil {
+		return json.Marshal(obj.ValueClusterStatus)
 	}
 	return json.Marshal(obj.ValueStr)
 }
@@ -58,9 +67,9 @@ func validateCardinality(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
 	valErrors []string,
+	patches []clusterPatchSpec,
 ) ([]string, []clusterPatchSpec) {
 
-	var patches []clusterPatchSpec
 	anyError := false
 
 	numRoles := len(cr.Spec.Roles)
@@ -87,6 +96,7 @@ func validateCardinality(
 				anyError = true
 				valErrors = append(
 					valErrors,
+
 					fmt.Sprintf(
 						invalidCardinality,
 						role.Name,
@@ -348,6 +358,41 @@ func validateRoleStorageClass(
 	return valErrors, patches
 }
 
+// validateApp function checks for valid app and also
+// creates a patch to setup app_namespace field in
+// status resource
+func validateApp(
+	cr *kdv1.KubeDirectorCluster,
+	patches []clusterPatchSpec,
+) (*kdv1.KubeDirectorApp, []clusterPatchSpec, string) {
+
+	appCR, err := catalog.FindApp(cr)
+
+	if err != nil {
+		return nil, patches,
+			"\n" + fmt.Sprintf(invalidAppMessage, cr.Spec.AppID)
+	}
+
+	cr.Status = &kdv1.KubeDirectorClusterStatus{
+		AppNamespace: appCR.Namespace,
+	}
+	cr.Status.Roles = make([]kdv1.RoleStatus, 0)
+
+	// Generate a patch object to add app namespace to the status resource
+	patches = append(
+		patches,
+		clusterPatchSpec{
+			Op:   "add",
+			Path: "/status",
+			Value: clusterPatchValue{
+				ValueClusterStatus: cr.Status,
+			},
+		},
+	)
+
+	return appCR, patches, ""
+}
+
 // validateMinResources function checks to see if minimum resource requirements
 // are specified for each role, by checking against associated app roles' minimum
 // requirement
@@ -407,6 +452,109 @@ func validateMinResources(
 	}
 
 	return valErrors
+}
+
+// validateFileInjections validates fileInjection spec defined for each role. Creates one or
+// more patches as needed if permissions object is not setup for each fileInjection. Validation
+// is done for the srcURL field by doing a HTTP HEAD on the url.
+func validateFileInjections(
+	cr *kdv1.KubeDirectorCluster,
+	valErrors []string,
+	patches []clusterPatchSpec,
+) ([]string, []clusterPatchSpec) {
+
+	// Patch function that will be used to patch various permission fields
+	patchFunc := func(
+		patches []clusterPatchSpec,
+		roleIndex int,
+		injectIndex int,
+		patchPath string,
+		patchValue *string,
+	) []clusterPatchSpec {
+
+		patches = append(
+			patches,
+			clusterPatchSpec{
+				Op:   "add",
+				Path: "/spec/roles/" + strconv.Itoa(roleIndex) + "/fileInjections/" + strconv.Itoa(injectIndex) + "/permissions/" + patchPath,
+				Value: clusterPatchValue{
+					ValueStr: patchValue,
+				},
+			},
+		)
+		return patches
+	}
+
+	numRoles := len(cr.Spec.Roles)
+	for i := 0; i < numRoles; i++ {
+		role := &(cr.Spec.Roles[i])
+		if len(role.FileInjections) == 0 {
+			// No file injections
+			continue
+		}
+		numInjections := len(role.FileInjections)
+		for j := 0; j < numInjections; j++ {
+			fileInjection := role.FileInjections[j]
+			srcURL := fileInjection.SrcURL
+
+			// Validate to make sure srcURL is valid by doing a http head
+			// we want to support insecure https. may be kdconfig can disallow
+			// this in the future?
+			tr := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			}
+			client := &http.Client{Transport: tr}
+			_, headErr := client.Head(srcURL)
+			if headErr != nil {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidSrcURL,
+						srcURL,
+						role.Name,
+						headErr,
+					),
+				)
+				continue
+			}
+
+			// Create patches if default values are not found
+			fileModePatch := defaultFileInjectionMode
+			fileOwnerPatch := defaultFileInjectionOwner
+			fileGroupPatch := defaultFileInjectionGroup
+			if fileInjection.Permissions == nil {
+				perms := &kdv1.FilePermissions{
+					FileMode:  &fileModePatch,
+					FileOwner: &fileOwnerPatch,
+					FileGroup: &fileGroupPatch,
+				}
+				patches = append(
+					patches,
+					clusterPatchSpec{
+						Op:   "add",
+						Path: "/spec/roles/" + strconv.Itoa(i) + "/fileInjections/" + strconv.Itoa(j) + "/permissions",
+						Value: clusterPatchValue{
+							ValueFileInjections: perms,
+						},
+					},
+				)
+			} else {
+				if fileInjection.Permissions.FileMode == nil {
+					patches = patchFunc(patches, i, j, "fileMode", &fileModePatch)
+				}
+
+				if fileInjection.Permissions.FileOwner == nil {
+					patches = patchFunc(patches, i, j, "fileOwner", &fileOwnerPatch)
+				}
+
+				if fileInjection.Permissions.FileGroup == nil {
+					patches = patchFunc(patches, i, j, "fileGroup", &fileGroupPatch)
+				}
+			}
+		}
+	}
+
+	return valErrors, patches
 }
 
 // addServiceType function checks to see if serviceType is provided for a
@@ -524,16 +672,18 @@ func admitClusterCR(
 	}
 
 	// At this point, if app is bad, no need to continue with validation.
-	appCR, err := catalog.GetApp(&clusterCR)
-	if err != nil {
+	appCR, patches, errorMsg := validateApp(&clusterCR, patches)
+
+	// If app error, fail right away
+	if appCR == nil {
 		admitResponse.Result = &metav1.Status{
-			Message: "\n" + fmt.Sprintf(invalidAppMessage, clusterCR.Spec.AppID),
+			Message: errorMsg,
 		}
 		return &admitResponse
 	}
 
 	// Validate cardinality and generate patches for defaults members values.
-	valErrors, patches = validateCardinality(&clusterCR, appCR, valErrors)
+	valErrors, patches = validateCardinality(&clusterCR, appCR, valErrors, patches)
 
 	// Validate that roles are known & sufficient.
 	valErrors = validateClusterRoles(&clusterCR, appCR, valErrors)
@@ -548,6 +698,9 @@ func admitClusterCR(
 	)
 
 	patches = addServiceType(&clusterCR, patches)
+
+	// Validate file injections and generate patches for default values (if any)
+	valErrors, patches = validateFileInjections(&clusterCR, valErrors, patches)
 
 	// If cluster already exists, check for property changes.
 	if ar.Request.Operation == v1beta1.Update {

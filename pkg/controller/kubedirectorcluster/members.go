@@ -17,18 +17,20 @@ package kubedirectorcluster
 import (
 	"bufio"
 	"fmt"
-	"github.com/go-logr/logr"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/go-logr/logr"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -243,6 +245,24 @@ func handleCreatingMembers(
 	for _, member := range creating {
 		go func(m *kdv1.MemberStatus) {
 			defer wgSetup.Done()
+
+			// Check to see if we have to inject one or more files for this member
+			if len(role.roleSpec.FileInjections) != 0 {
+				injectErr := injectFiles(reqLogger, cr, m.Pod, role)
+				if injectErr != nil {
+					shared.LogErrorf(
+						reqLogger,
+						injectErr,
+						cr,
+						shared.EventReasonMember,
+						"failed to inject one or more files for member{%s} in role{%s}: %v",
+						m.Pod,
+						role.roleStatus.Name,
+					)
+					m.State = string(memberConfigError)
+					return
+				}
+			}
 
 			if setupURL == "" {
 				// Leave this in memberConfigured state so, we don't send
@@ -606,6 +626,45 @@ func setupAppConfig(
 		"app config setup",
 		strings.NewReader(cmd),
 	)
+}
+
+// injectFiles injects one or more files as specified through role spec
+// Each file will be downloaded to the specified location inside the pod and
+// file permissions and ownership will be updated based on the spec
+func injectFiles(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	podName string,
+	role *roleInfo,
+) error {
+
+	for _, fileInjection := range role.roleSpec.FileInjections {
+		// Get base file name
+		fileName := filepath.Base(fileInjection.SrcURL)
+
+		// Construct the full destination path
+		destFile := filepath.Join(fileInjection.DestDir, fileName)
+
+		fileInjectCmd := fmt.Sprintf(
+			fileInjectionCommand,
+			fileInjection.DestDir,
+			fileInjection.DestDir,
+			fileInjection.SrcURL, destFile,
+			*fileInjection.Permissions.FileMode, destFile,
+			*fileInjection.Permissions.FileOwner, *fileInjection.Permissions.FileGroup, destFile,
+		)
+		err := executor.RunScript(
+			reqLogger,
+			cr,
+			podName,
+			"file injection ("+destFile+")",
+			strings.NewReader(fileInjectCmd),
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // notifyReadyNodes sends a lifecycle event notification to all ready nodes

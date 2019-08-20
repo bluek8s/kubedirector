@@ -16,11 +16,12 @@ package observer
 
 import (
 	"context"
+
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -104,37 +105,21 @@ func GetPVC(
 	return result, err
 }
 
-// GetApp fetches the k8s KubeDirectorApp resource in KubeDirector's namespace.
+// GetApp fetches the k8s KubeDirectorApp resource with the given name in
+// the given namespace.
 func GetApp(
-	clusterNamespace string,
+	appNamespace string,
 	appID string,
 ) (*kdv1.KubeDirectorApp, error) {
 
-	appSpec := &kdv1.KubeDirectorApp{}
-
-	// Check to see if this app exists in the cluster namespace
-	appErr := shared.Client().Get(
+	result := &kdv1.KubeDirectorApp{}
+	err := shared.Client().Get(
 		context.TODO(),
-		types.NamespacedName{Namespace: clusterNamespace, Name: appID},
-		appSpec,
+		types.NamespacedName{Namespace: appNamespace, Name: appID},
+		result,
 	)
 
-	if appErr == nil {
-		return appSpec, appErr
-	}
-
-	// Check to see if it is present in our namespace
-	kdNamespace, nsErr := shared.GetKubeDirectorNamespace()
-	if nsErr != nil {
-		return nil, nsErr
-	}
-
-	appErr = shared.Client().Get(
-		context.TODO(),
-		types.NamespacedName{Namespace: kdNamespace, Name: appID},
-		appSpec,
-	)
-	return appSpec, appErr
+	return result, err
 }
 
 // GetValidatorWebhook fetches the webhook validator resource in

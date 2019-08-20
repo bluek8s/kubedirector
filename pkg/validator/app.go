@@ -309,7 +309,10 @@ func admitAppCR(
 
 	// Reject an update or delete if the app CR is currently in use.
 	if ar.Request.Operation == v1beta1.Update || ar.Request.Operation == v1beta1.Delete {
-		references := shared.ClustersUsingApp(ar.Request.Name)
+		references := shared.ClustersUsingApp(
+			ar.Request.Namespace,
+			ar.Request.Name,
+		)
 		if len(references) != 0 {
 			referencesStr := strings.Join(references, ", ")
 			admitResponse.Result = &metav1.Status{

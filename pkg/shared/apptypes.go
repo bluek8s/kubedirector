@@ -15,74 +15,111 @@
 package shared
 
 import (
-	"strings"
 	"sync"
 )
 
 var (
-	appTypes     map[string]string
-	appTypesLock sync.RWMutex
+	clustersUsingApp     map[string][]string
+	clustersUsingAppLock sync.RWMutex
 )
 
 // init ...
 func init() {
 
-	appTypes = make(map[string]string)
+	clustersUsingApp = make(map[string][]string)
 }
 
-// ClustersUsingApp returns the list of cluster names referencing the given app.
+// ClustersUsingApp returns the list of clusters referencing the given app.
 func ClustersUsingApp(
 	appNamespace string,
 	appID string,
 ) []string {
 
-	var clusters []string
-	appTypesLock.RLock()
-	defer appTypesLock.RUnlock()
-	// This is a relationship that needs to be query-able given either ONLY
-	// the app name (in this function) or ONLY the cluster name (in
-	// removeClusterAppReference). Since the app CR deletion/update triggers
-	// for this function are very infrequent, we'll implement this app-name
-	// check by just walking the list of associations. It's also nice to go
-	// ahead and gather all the offending cluster CR names to report back to
-	// the client.
-	for clusterKey, appName := range appTypes {
-		// Extract app namespace from clusterKey
-		keyComponents := strings.Split(clusterKey, "/")
-		clusterAppNamespace := keyComponents[0]
-		clusterNamespace := keyComponents[1]
-		clusterName := keyComponents[2]
-		if appName == appID && clusterAppNamespace == appNamespace {
-			clusters = append(clusters, clusterNamespace+"/"+clusterName)
-		}
+	key := appNamespace + "/" + appID
+	clustersUsingAppLock.RLock()
+	defer clustersUsingAppLock.RUnlock()
+	if value, ok := clustersUsingApp[key]; ok {
+		return value
 	}
-	return clusters
+	return []string{}
+}
+
+// makeKey is a utility subroutine used by EnsureClusterAppReference and
+// RemoveClusterAppReference.
+func makeKey(
+	clusterNamespace string,
+	appCatalog string,
+	appID string,
+) string {
+
+	if appCatalog == AppCatalogLocal {
+		return clusterNamespace + "/" + appID
+	}
+	kdNamespace, _ := GetKubeDirectorNamespace()
+	return kdNamespace + "/" + appID
 }
 
 // EnsureClusterAppReference notes that an app type is in use by this cluster.
+// The cluster namespace and name are stored in a map indexed by the app CR's
+// namespace+name. Note that we only expect this to be called once per cluster
+// in the current design, but we will still protect against storing duplicates.
 func EnsureClusterAppReference(
-	appNamespace string,
 	clusterNamespace string,
 	clusterName string,
+	appCatalog string,
 	appID string,
 ) {
 
-	clusterKey := appNamespace + "/" + clusterNamespace + "/" + clusterName
-	appTypesLock.Lock()
-	defer appTypesLock.Unlock()
-	appTypes[clusterKey] = appID
+	key := makeKey(clusterNamespace, appCatalog, appID)
+	newElement := clusterNamespace + "/" + clusterName
+	clustersUsingAppLock.Lock()
+	defer clustersUsingAppLock.Unlock()
+	if value, ok := clustersUsingApp[key]; ok {
+		// Some clusters are already marked as using this app CR.
+		if !StringInList(newElement, value) {
+			// Not this one yet, so let's add it to the list.
+			clustersUsingApp[key] = append(value, newElement)
+		}
+	} else {
+		// First cluster using this app CR.
+		clustersUsingApp[key] = []string{newElement}
+	}
 }
 
 // RemoveClusterAppReference notes that an app type is no longer in use by
-// this cluster.
+// this cluster. The cluster namespace+name is removed from the list of
+// such references marked against the app's namespace+name. Note that we only
+// expect this to be called when a reference to the cluster does exist; but
+// if for some reason the reference does not exist this call is a NOP.
 func RemoveClusterAppReference(
-	appNamespace string,
 	clusterNamespace string,
 	clusterName string,
+	appCatalog string,
+	appID string,
 ) {
 
-	clusterKey := appNamespace + "/" + clusterNamespace + "/" + clusterName
-	appTypesLock.Lock()
-	defer appTypesLock.Unlock()
-	delete(appTypes, clusterKey)
+	key := makeKey(clusterNamespace, appCatalog, appID)
+	element := clusterNamespace + "/" + clusterName
+	clustersUsingAppLock.Lock()
+	defer clustersUsingAppLock.Unlock()
+	if value, ok := clustersUsingApp[key]; ok {
+		// Some clusters are marked as using this app CR.
+		for i, e := range value {
+			if e == element {
+				// Found this cluster in the list.
+				numElements := len(value)
+				if numElements == 1 {
+					// If we're the only one just delete the whole map bucket.
+					delete(clustersUsingApp, key)
+				} else {
+					// Quick delete of our reference. Since we don't care about
+					// order in this list, just copy the last element over
+					// the element we want to delete, then truncate the list
+					// to remove that last element.
+					value[i] = value[numElements-1]
+					clustersUsingApp[key] = value[:numElements-1]
+				}
+			}
+		}
+	}
 }

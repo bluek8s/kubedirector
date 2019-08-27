@@ -26,10 +26,10 @@ import (
 // using a StatefulSet.
 // +k8s:openapi-gen=true
 type KubeDirectorClusterSpec struct {
-	AppID        string  `json:"app"`
-	AppNamespace *string `json:"app_namespace"`
-	ServiceType  *string `json:"serviceType"`
-	Roles        []Role  `json:"roles"`
+	AppID       string  `json:"app"`
+	AppCatalog  *string `json:"appCatalog"`
+	ServiceType *string `json:"serviceType"`
+	Roles       []Role  `json:"roles"`
 }
 
 // KubeDirectorClusterStatus defines the observed state of KubeDirectorCluster.
@@ -42,7 +42,6 @@ type KubeDirectorClusterStatus struct {
 	ClusterService string       `json:"cluster_service"`
 	LastNodeID     int64        `json:"last_node_id"`
 	Roles          []RoleStatus `json:"roles"`
-	AppNamespace   string       `json:"app_namespace"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -46,13 +46,11 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return nil
 	}
 
-	// Make sure this cluster marks a reference to its app.
-	shared.EnsureClusterAppReference(
-		cr.Status.AppNamespace,
-		cr.Namespace,
-		cr.Name,
-		cr.Spec.AppID,
-	)
+	// Make sure we have a Status object to work with.
+	if cr.Status == nil {
+		cr.Status = &kdv1.KubeDirectorClusterStatus{}
+		cr.Status.Roles = make([]kdv1.RoleStatus, 0)
+	}
 
 	// Set up logic to update status as necessary when reconciler exits.
 	oldStatus := cr.Status.DeepCopy()
@@ -195,18 +193,45 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 // also trigger population of the generation UID) and return false to cause
 // this handler to exit; we'll pick up further processing in the next handler.
 // In the latter case, sync up our internal state with the visible state of
-// the CR and return true to continue processing.
+// the CR and return true to continue processing. In either-new cluster case
+// invoke shared.EnsureClusterAppReference to mark that the app is being used.
 func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 ) bool {
 
+	// Have we seen this cluster before?
 	_, ok := shared.ReadStatusGen(cr.UID)
 	if ok {
+		// Yep we've already done processing for this cluster previously.
 		return true
+	}
+	// This is a new cluster, or at least "new to us", so mark that its app
+	// is in use.
+	shared.EnsureClusterAppReference(
+		cr.Namespace,
+		cr.Name,
+		*(cr.Spec.AppCatalog),
+		cr.Spec.AppID,
+	)
+	// There are creation-race or KD-recovery cases where the app might not
+	// exist, so check that now.
+	_, appErr := catalog.GetApp(cr)
+	if appErr != nil {
+		shared.LogError(
+			reqLogger,
+			appErr,
+			cr,
+			shared.EventReasonCluster,
+			"app referenced by cluster does not exist",
+		)
+		// We're not going to take any other steps at this point... not even
+		// going to remove the app reference. Operations on this cluster
+		// could fail, but it might be recoverable by re-creating the app CR.
 	}
 	incoming := cr.Status.GenerationUID
 	if incoming == "" {
+		// This is an actual newly-created cluster, so kick off the processing.
 		shared.LogInfo(
 			reqLogger,
 			cr,
@@ -216,6 +241,8 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 		cr.Status.State = string(clusterCreating)
 		return false
 	}
+	// This cluster has been processed before but we're not aware of it yet.
+	// Probably KD has been restarted. Make us aware of this cluster.
 	shared.LogInfof(
 		reqLogger,
 		cr,
@@ -225,12 +252,6 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 	)
 	shared.WriteStatusGen(cr.UID, incoming)
 	shared.ValidateStatusGen(cr.UID)
-	shared.EnsureClusterAppReference(
-		cr.Status.AppNamespace,
-		cr.Namespace,
-		cr.Name,
-		cr.Spec.AppID,
-	)
 	return true
 }
 
@@ -257,9 +278,10 @@ func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 		// finalizer modification succeeded.
 		shared.DeleteStatusGen(cr.UID)
 		shared.RemoveClusterAppReference(
-			cr.Status.AppNamespace,
 			cr.Namespace,
 			cr.Name,
+			*(cr.Spec.AppCatalog),
+			cr.Spec.AppID,
 		)
 		return true, removeErr
 	}

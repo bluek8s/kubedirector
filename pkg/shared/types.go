@@ -34,3 +34,9 @@ const (
 	EventReasonRole    = "Role"
 	EventReasonMember  = "Member"
 )
+
+// Settings for appCatalog
+const (
+	AppCatalogLocal  = "local"
+	AppCatalogSystem = "system"
+)

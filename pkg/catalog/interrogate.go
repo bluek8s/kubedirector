@@ -303,53 +303,54 @@ func AppPersistDirs(
 	)
 }
 
-// GetApp returns the app type definition for the given virtual cluster. If
-// it has already been fetched and cached, return the cached spec. Otherwise
-// fetch, cache, and return it.
-func GetApp(
-	cr *kdv1.KubeDirectorCluster,
-) (*kdv1.KubeDirectorApp, error) {
-
-	if cr.AppSpec != nil {
-		return cr.AppSpec, nil
-	}
-	appCR, appErr := observer.GetApp(cr.Status.AppNamespace, cr.Spec.AppID)
-	if appErr != nil {
-		return nil, fmt.Errorf(
-			"failed to fetch CR for the App : %s error %v",
-			cr.Spec.AppID,
-			appErr,
-		)
-	}
-	cr.AppSpec = appCR
-	return appCR, nil
-}
-
-// FindApp returns the app type definition for the given virtual cluster. It first
-// checks to see if the app exists in the same namespace as cluster cr. If not found
-// it will then check in the namespace where kubedirector is running.
+// FindApp returns the app type definition for the given virtual cluster. If
+// the appCatalog property is set to "local", it looks in the same namespace
+// as the cluster. If set to "system", it looks in the same namespace as
+// KubeDirector. If unset, it checks the local namespace first and then the KD
+// namespace. The returned values are the app CR (if found) and any error.
 func FindApp(
 	cr *kdv1.KubeDirectorCluster,
 ) (*kdv1.KubeDirectorApp, error) {
 
-	if cr.AppSpec != nil {
-		return cr.AppSpec, nil
-	}
-	appCR, appErr := observer.GetApp(cr.Namespace, cr.Spec.AppID)
-	if appErr != nil {
-		kdNamespace, nsErr := shared.GetKubeDirectorNamespace()
-		if nsErr != nil {
-			return nil, nsErr
+	resultFunc := func(appCR *kdv1.KubeDirectorApp, appErr error) (*kdv1.KubeDirectorApp, error) {
+		if appErr != nil {
+			return nil, fmt.Errorf(
+				"failed to fetch CR for the App : %s error %v",
+				cr.Spec.AppID,
+				appErr,
+			)
 		}
-		appCR, appErr = observer.GetApp(kdNamespace, cr.Spec.AppID)
+		return appCR, nil
 	}
 
+	// Unless the spec explicitly asks to look only in the KD namespace, let's
+	// look in the local namespace first.
+	if cr.Spec.AppCatalog == nil || *(cr.Spec.AppCatalog) == shared.AppCatalogLocal {
+		appCR, appErr := observer.GetApp(cr.Namespace, cr.Spec.AppID)
+		// If we found the app CR or this is the only place we're allowed to
+		// look, then we're done.
+		if appErr == nil || cr.Spec.AppCatalog != nil {
+			return resultFunc(appCR, appErr)
+		}
+	}
+
+	// Now look in the KD namespace.
+	kdNamespace, nsErr := shared.GetKubeDirectorNamespace()
+	if nsErr != nil {
+		return nil, nsErr
+	}
+	return resultFunc(observer.GetApp(kdNamespace, cr.Spec.AppID))
+}
+
+// GetApp is a wrapper for FindApp that caches a pointer to the resulting
+// app CR (if found) in the cluster CR.
+func GetApp(
+	cr *kdv1.KubeDirectorCluster,
+) (*kdv1.KubeDirectorApp, error) {
+
+	appCR, appErr := FindApp(cr)
 	if appErr != nil {
-		return nil, fmt.Errorf(
-			"failed to fetch CR for the App : %s error %v",
-			cr.Spec.AppID,
-			appErr,
-		)
+		return nil, appErr
 	}
 	cr.AppSpec = appCR
 	return appCR, nil

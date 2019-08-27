@@ -19,12 +19,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os"
+	"runtime"
+
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/bluek8s/kubedirector/pkg/validator"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"os"
-	"runtime"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
@@ -84,50 +86,45 @@ func main() {
 
 	printVersion()
 
-	namespace, err := k8sutil.GetWatchNamespace()
-	if err != nil {
-		log.Error(err, "Failed to get watch namespace")
-		os.Exit(1)
-	}
-
 	// Become the leader before proceeding
 	ctx := context.TODO()
-	err = leader.Become(ctx, "kubedirector-lock")
-	if err != nil {
-		log.Error(err, "")
+	leaderErr := leader.Become(ctx, "kubedirector-lock")
+	if leaderErr != nil {
+		log.Error(leaderErr, "")
 		os.Exit(1)
 	}
 
-	// Create a new Cmd to provide shared dependencies and start components
-	mgr, err := manager.New(shared.Config(), manager.Options{
-		Namespace: namespace,
-
+	// Create a new Cmd to provide shared dependencies and start components.
+	// Watch all namespaces but reject KubeDirectorConfig requests in the
+	// validator when the namespace isn't the kubedirector namespace.
+	mgr, mgrErr := manager.New(shared.Config(), manager.Options{
+		Namespace:          "",
 		MapperProvider:     restmapper.NewDynamicRESTMapper,
 		MetricsBindAddress: fmt.Sprintf("%s:%d", metricsHost, metricsPort),
 	})
-	if err != nil {
-		log.Error(err, "")
+	if mgrErr != nil {
+		log.Error(mgrErr, "")
 		os.Exit(1)
 	}
 
 	log.Info("Registering Components.")
 
 	// Setup Scheme for all resources
-	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Error(err, "failed to add KubeDirector CRs to scheme")
+	if schemeErr := apis.AddToScheme(mgr.GetScheme()); schemeErr != nil {
+		log.Error(schemeErr, "failed to add KubeDirector CRs to scheme")
 		os.Exit(1)
 	}
 
 	// Setup all Controllers
-	if err := controller.AddToManager(mgr); err != nil {
-		log.Error(err, "")
+	if controllerErr := controller.AddToManager(mgr); controllerErr != nil {
+		log.Error(controllerErr, "")
 		os.Exit(1)
 	}
 
 	// Create Service object to expose the metrics port.
-	_, err = metrics.ExposeMetricsPort(ctx, metricsPort)
-	if err != nil {
-		log.Info(err.Error())
+	_, metricsErr := metrics.ExposeMetricsPort(ctx, metricsPort)
+	if metricsErr != nil {
+		log.Info(metricsErr.Error())
 	}
 
 	// See https://github.com/bluek8s/kubedirector/issues/173
@@ -150,19 +147,19 @@ func main() {
 	}()
 
 	// Fetch our deployment object
-	kdName, err := k8sutil.GetOperatorName()
-	if err != nil {
-		log.Error(err, "failed to get kubedirector deployment name")
+	kdName, kdNameErr := k8sutil.GetOperatorName()
+	if kdNameErr != nil {
+		log.Error(kdNameErr, "failed to get kubedirector deployment name")
 		os.Exit(1)
 	}
 
-	kd, err := observer.GetDeployment(kdName)
-	if err != nil {
-		log.Error(err, "failed to get kubedirector deployment object")
+	kd, kdErr := observer.GetDeployment(kdName)
+	if kdErr != nil {
+		log.Error(kdErr, "failed to get kubedirector deployment object")
 		os.Exit(1)
 	}
 
-	err = validator.InitValidationServer(
+	validatorErr := validator.InitValidationServer(
 		*metav1.NewControllerRef(
 			kd,
 			schema.GroupVersionKind{
@@ -171,8 +168,8 @@ func main() {
 				Kind:    "Deployment",
 			}),
 	)
-	if err != nil {
-		log.Error(err, "failed to initialize validation server")
+	if validatorErr != nil {
+		log.Error(validatorErr, "failed to initialize validation server")
 		os.Exit(1)
 	}
 
@@ -184,8 +181,8 @@ func main() {
 	log.Info("Starting the Cmd.")
 
 	// Start the Cmd
-	if err := mgr.Start(stopCh); err != nil {
-		log.Error(err, "Manager exited non-zero")
+	if mgrErr := mgr.Start(stopCh); mgrErr != nil {
+		log.Error(mgrErr, "Manager exited non-zero")
 		os.Exit(1)
 	}
 }

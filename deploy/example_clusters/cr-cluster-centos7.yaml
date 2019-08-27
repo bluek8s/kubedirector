@@ -1,7 +1,7 @@
 apiVersion: "kubedirector.bluedata.io/v1alpha1"
 kind: "KubeDirectorCluster"
 metadata:
-  name: "centos7-persistent"
+  name: "centos7"
 spec:
   app: centos7x
   roles:

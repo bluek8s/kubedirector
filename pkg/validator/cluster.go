@@ -358,9 +358,8 @@ func validateRoleStorageClass(
 	return valErrors, patches
 }
 
-// validateApp function checks for valid app and also
-// creates a patch to setup app_namespace field in
-// status resource
+// validateApp function checks for valid app and if necessary creates a patch
+// to populate appCatalog in the spec.
 func validateApp(
 	cr *kdv1.KubeDirectorCluster,
 	patches []clusterPatchSpec,
@@ -373,19 +372,28 @@ func validateApp(
 			"\n" + fmt.Sprintf(invalidAppMessage, cr.Spec.AppID)
 	}
 
-	cr.Status = &kdv1.KubeDirectorClusterStatus{
-		AppNamespace: appCR.Namespace,
-	}
-	cr.Status.Roles = make([]kdv1.RoleStatus, 0)
+	// Note that we should NOT call shared.EnsureClusterAppReference here,
+	// because K8s may yet still reject the creation of this cluster.
 
-	// Generate a patch object to add app namespace to the status resource
+	// If spec.appCatalog is already populated then return.
+	if cr.Spec.AppCatalog != nil {
+		return appCR, patches, ""
+	}
+
+	// Generate a patch object to populate spec.appCatalog.
+	var appCatalog string
+	if appCR.Namespace == cr.Namespace {
+		appCatalog = shared.AppCatalogLocal
+	} else {
+		appCatalog = shared.AppCatalogSystem
+	}
 	patches = append(
 		patches,
 		clusterPatchSpec{
 			Op:   "add",
-			Path: "/status",
+			Path: "/spec/appCatalog",
 			Value: clusterPatchValue{
-				ValueClusterStatus: cr.Status,
+				ValueStr: &appCatalog,
 			},
 		},
 	)

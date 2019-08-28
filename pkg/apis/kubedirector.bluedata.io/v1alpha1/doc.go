@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package v1alpha1 is an initial release package
+// Package v1alpha1 contains API Schema definitions for the kubedirector v1alpha1 API group
 package v1alpha1
 
-// +k8s:deepcopy-gen=package
+// +k8s:deepcopy-gen=package,register
 // +groupName=kubedirector.bluedata.io

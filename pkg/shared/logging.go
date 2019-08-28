@@ -15,42 +15,24 @@
 package shared
 
 import (
+	"fmt"
+
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
-	"github.com/sirupsen/logrus"
+	"github.com/go-logr/logr"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/reference"
 )
 
-const (
-	msgPrefix = "cluster{%s/%s}: "
-)
-
-// appendArgs is an internal utility function. It adds the CR namespace and
-// name to the beginning of the given arg list and returns the resulting list.
-func appendArgs(
-	cr *kdv1.KubeDirectorCluster,
-	args ...interface{},
-) []interface{} {
-
-	newArgs := make([]interface{}, 2, 2+len(args))
-	newArgs[0] = cr.Namespace
-	newArgs[1] = cr.Name
-	return append(newArgs, args...)
-}
-
 // LogInfo logs the given message at Info level.
 func LogInfo(
+	logger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	eventReason string,
 	msg string,
 ) {
 
-	logrus.Infof(
-		msgPrefix+msg,
-		cr.Namespace,
-		cr.Name,
-	)
+	logger.Info(msg)
 
 	if eventReason != "" {
 		LogEvent(
@@ -64,16 +46,14 @@ func LogInfo(
 
 // LogInfof logs the given message format and payload at Info level.
 func LogInfof(
+	logger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	eventReason string,
 	format string,
 	args ...interface{},
 ) {
 
-	logrus.Infof(
-		msgPrefix+format,
-		appendArgs(cr, args...)...,
-	)
+	logger.Info(fmt.Sprintf(format, args...))
 
 	if eventReason != EventReasonNoEvent {
 		LogEventf(
@@ -86,65 +66,16 @@ func LogInfof(
 	}
 }
 
-// LogWarn logs the given message at Warning level.
-func LogWarn(
-	cr *kdv1.KubeDirectorCluster,
-	eventReason string,
-	msg string,
-) {
-
-	logrus.Warnf(
-		msgPrefix+msg,
-		cr.Namespace,
-		cr.Name,
-	)
-
-	if eventReason != EventReasonNoEvent {
-		LogEvent(
-			cr,
-			v1.EventTypeWarning,
-			eventReason,
-			msg,
-		)
-	}
-}
-
-// LogWarnf logs the given message format and payload at Warning level.
-func LogWarnf(
-	cr *kdv1.KubeDirectorCluster,
-	eventReason string,
-	format string,
-	args ...interface{},
-) {
-
-	logrus.Warnf(
-		msgPrefix+format,
-		appendArgs(cr, args...)...,
-	)
-
-	if eventReason != EventReasonNoEvent {
-		LogEventf(
-			cr,
-			v1.EventTypeWarning,
-			eventReason,
-			format,
-			args...,
-		)
-	}
-}
-
 // LogError logs the given message at Error level.
 func LogError(
+	logger logr.Logger,
+	err error,
 	cr *kdv1.KubeDirectorCluster,
 	eventReason string,
 	msg string,
 ) {
 
-	logrus.Errorf(
-		msgPrefix+msg,
-		cr.Namespace,
-		cr.Name,
-	)
+	logger.Error(err, msg)
 
 	if eventReason != EventReasonNoEvent {
 		LogEvent(
@@ -158,16 +89,15 @@ func LogError(
 
 // LogErrorf logs the given message format and payload at Error level.
 func LogErrorf(
+	logger logr.Logger,
+	err error,
 	cr *kdv1.KubeDirectorCluster,
 	eventReason string,
 	format string,
 	args ...interface{},
 ) {
 
-	logrus.Errorf(
-		msgPrefix+format,
-		appendArgs(cr, args...)...,
-	)
+	logger.Error(err, fmt.Sprintf(format, args...))
 
 	if eventReason != EventReasonNoEvent {
 		LogEventf(

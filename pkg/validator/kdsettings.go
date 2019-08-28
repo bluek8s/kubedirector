@@ -17,11 +17,11 @@ package validator
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/bluek8s/kubedirector/pkg/shared"
 	"strings"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
-	"github.com/bluek8s/kubedirector/pkg/reconciler"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -80,7 +80,6 @@ func validateConfigStorageClass(
 // values for missing properties.
 func admitKDConfigCR(
 	ar *v1beta1.AdmissionReview,
-	handlerState *reconciler.Handler,
 ) *v1beta1.AdmissionResponse {
 
 	var valErrors []string
@@ -102,6 +101,24 @@ func admitKDConfigCR(
 	if jsonErr := json.Unmarshal(raw, &configCR); jsonErr != nil {
 		admitResponse.Result = &metav1.Status{
 			Message: "\n" + jsonErr.Error(),
+		}
+		return &admitResponse
+	}
+
+	// Only allow KubeDirectorConfig requests in the kubedirector namespace.
+	kdNamespace, err := shared.GetKubeDirectorNamespace()
+	if err != nil {
+		admitResponse.Result = &metav1.Status{
+			Message: "Failed to get kubedirector namespace",
+		}
+		return &admitResponse
+	}
+	if configCR.Namespace != kdNamespace {
+		admitResponse.Result = &metav1.Status{
+			Message: fmt.Sprintf("Invalid namespace '%s', must be '%s'.\n",
+				configCR.Namespace,
+				kdNamespace,
+			),
 		}
 		return &admitResponse
 	}

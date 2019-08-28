@@ -15,28 +15,21 @@
 package executor
 
 import (
-	"encoding/json"
+	"context"
+	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 	"strings"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
-
-// replicasPatchSpec is used to create PATCH operation input for modifying a
-// statefulset's replicas count.
-type replicasPatchSpec struct {
-	Op    string `json:"op"`
-	Path  string `json:"path"`
-	Value int32  `json:"value"`
-}
 
 // defaultMountFolders identifies the set of member filesystems directories
 // that will always be placed on shared persistent storage (when available).
@@ -45,39 +38,79 @@ var defaultMountFolders = []string{"/usr", "/opt", "/var", "/etc"}
 // CreateStatefulSet creates in k8s a zero-replicas statefulset for
 // implementing the given role.
 func CreateStatefulSet(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	nativeSystemdSupport bool,
 	role *kdv1.Role,
 ) (*appsv1.StatefulSet, error) {
 
-	statefulSet, err := getStatefulset(cr, nativeSystemdSupport, role, 0)
+	statefulSet, err := getStatefulset(reqLogger, cr, nativeSystemdSupport, role, 0)
 	if err != nil {
 		return nil, err
 	}
-	return statefulSet, sdk.Create(statefulSet)
+	return statefulSet, shared.Client().Create(context.TODO(), statefulSet)
 }
 
 // UpdateStatefulSetReplicas modifies an existing statefulset in k8s to have
 // the given number of replicas.
 func UpdateStatefulSetReplicas(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	replicas int32,
 	statefulSet *appsv1.StatefulSet,
 ) error {
 
-	replicasPatch := []replicasPatchSpec{
-		{
-			Op:    "replace",
-			Path:  "/spec/replicas",
-			Value: replicas,
-		},
-	}
-	replicasPatchBytes, patchErr := json.Marshal(replicasPatch)
-	if patchErr == nil {
-		patchErr = sdk.Patch(statefulSet, types.JSONPatchType, replicasPatchBytes)
+	*statefulSet.Spec.Replicas = replicas
+	err := shared.Client().Update(context.TODO(), statefulSet)
+	if err == nil {
+		return nil
 	}
 
-	return patchErr
+	// See https://github.com/bluek8s/kubedirector/issues/194
+	// Migrate Client().Update() calls back to Patch() calls.
+
+	if !errors.IsConflict(err) {
+		shared.LogError(
+			reqLogger,
+			err,
+			cr,
+			shared.EventReasonNoEvent,
+			"failed to update statefulset",
+		)
+		return err
+	}
+
+	// If there was a resourceVersion conflict then fetch a more
+	// recent version of the statefulset and attempt to update that.
+	name := types.NamespacedName{
+		Namespace: statefulSet.Namespace,
+		Name:      statefulSet.Name,
+	}
+	*statefulSet = appsv1.StatefulSet{}
+	err = shared.Client().Get(context.TODO(), name, statefulSet)
+	if err != nil {
+		shared.LogError(
+			reqLogger,
+			err,
+			cr,
+			shared.EventReasonNoEvent,
+			"failed to retrieve statefulset",
+		)
+		return err
+	}
+
+	*statefulSet.Spec.Replicas = replicas
+	err = shared.Client().Update(context.TODO(), statefulSet)
+	if err != nil {
+		shared.LogError(
+			reqLogger,
+			err,
+			cr,
+			shared.EventReasonNoEvent,
+			"failed to update statefulset",
+		)
+	}
+	return err
 }
 
 // UpdateStatefulSetNonReplicas examines a current statefulset in k8s and may take
@@ -118,13 +151,14 @@ func DeleteStatefulSet(
 			Namespace: namespace,
 		},
 	}
-	return sdk.Delete(toDelete)
+	return shared.Client().Delete(context.TODO(), toDelete)
 }
 
 // getStatefulset composes the spec for creating a statefulset in k8s, based
 // on the given virtual cluster CR and for the purposes of implementing the
 // given role.
 func getStatefulset(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	nativeSystemdSupport bool,
 	role *kdv1.Role,
@@ -176,6 +210,7 @@ func getStatefulset(
 				// If rel path doesn't start with "..", it is a subdir
 				if !strings.HasPrefix(rel, "..") {
 					shared.LogInfof(
+						reqLogger,
 						cr,
 						shared.EventReasonNoEvent,
 						"skipping {%s} from volume claim mounts. dir {%s} covers it",
@@ -274,7 +309,7 @@ func getInitContainer(
 	persistDirs []string,
 ) (initContainer []v1.Container) {
 
-	if role.Storage.Size == "" {
+	if role.Storage == nil {
 		return
 	}
 
@@ -317,7 +352,7 @@ func getVolumeClaimTemplate(
 	pvcName string,
 ) (volTemplate []v1.PersistentVolumeClaim) {
 
-	if role.Storage.Size == "" {
+	if role.Storage == nil {
 		return
 	}
 
@@ -398,7 +433,7 @@ func generateVolumeMounts(
 	var volumeMounts []v1.VolumeMount
 	var volumes []v1.Volume
 
-	if role.Storage.Size != "" {
+	if role.Storage != nil {
 		volumeMounts = generateClaimMounts(pvcName, persistDirs)
 	}
 

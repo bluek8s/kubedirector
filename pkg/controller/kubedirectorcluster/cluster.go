@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package reconciler
+package kubedirectorcluster
 
 import (
 	"reflect"
@@ -23,47 +23,47 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
+	"github.com/go-logr/logr"
 	"github.com/google/uuid"
-	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 // syncCluster runs the reconciliation logic. It is invoked because of a
 // change in or addition of a KubeDirectorCluster instance, or a periodic
 // polling to check on such a resource.
-func syncCluster(
-	event sdk.Event,
+func (r *ReconcileKubeDirectorCluster) syncCluster(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	handler *Handler,
 ) error {
 
-	// Exit early if deleting the resource.
-	if event.Deleted {
-		shared.LogInfo(
-			cr,
-			shared.EventReasonCluster,
-			"deleted",
-		)
-		deleteStatusGen(cr, handler)
-		removeClusterAppReference(cr, handler)
+	// We use a finalizer to maintain KubeDirector state consistency;
+	// e.g. ClusterAppReference's and StatusGen's.
+	doExit, finalizerErr := r.handleFinalizers(reqLogger, cr)
+	if finalizerErr != nil {
+		return finalizerErr
+	}
+	if doExit {
 		return nil
 	}
 
-	// Otherwise, make sure this cluster marks a reference to its app.
-	ensureClusterAppReference(cr, handler)
+	// Make sure we have a Status object to work with.
+	if cr.Status == nil {
+		cr.Status = &kdv1.KubeDirectorClusterStatus{}
+		cr.Status.Roles = make([]kdv1.RoleStatus, 0)
+	}
 
-	// Set up logic to update status as necessary when handler exits.
+	// Set up logic to update status as necessary when reconciler exits.
 	oldStatus := cr.Status.DeepCopy()
 	defer func() {
 		if !reflect.DeepEqual(cr.Status, oldStatus) {
-			// Write back the status. Don't exit this handler until we
-			// succeed (will block other handlers for this resource).
+			// Write back the status. Don't exit this reconciler until we
+			// succeed (will block other reconcilers for this resource).
 			wait := time.Second
 			maxWait := 4096 * time.Second
 			for {
 				cr.Status.GenerationUID = uuid.New().String()
-				writeStatusGen(cr, handler, cr.Status.GenerationUID)
-				updateErr := executor.UpdateStatus(cr)
+				shared.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
+				updateErr := executor.UpdateStatus(reqLogger, cr)
 				if updateErr == nil {
 					return
 				}
@@ -81,64 +81,63 @@ func syncCluster(
 					if currentCluster.DeletionTimestamp != nil {
 						return
 					}
+					if errors.IsConflict(updateErr) {
+						// If the update failed with a ResourceVersion
+						// conflict then we need to use the current
+						// version of the cluster. Otherwise, the status
+						// update will never succeed and this loop will
+						// never terminate.
+						currentCluster.Status = cr.Status
+						*cr = *currentCluster
+						continue
+					}
 				}
 				if wait < maxWait {
 					wait = wait * 2
 				}
-				shared.LogWarnf(
+				shared.LogErrorf(
+					reqLogger,
+					updateErr,
 					cr,
 					shared.EventReasonCluster,
-					"trying status update again in %v; failed because: %v",
+					"trying status update again in %v; failed",
 					wait,
-					updateErr,
 				)
 				time.Sleep(wait)
 			}
 		}
 	}()
 
-	// Ignore stale poll-driven handler for a resource we have since
-	// updated. Also for a new CR just update the status state/gen.
-	shouldProcessCR := handleStatusGen(cr, handler)
-
+	// For a new CR just update the status state/gen.
+	shouldProcessCR := r.handleNewCluster(reqLogger, cr)
 	if !shouldProcessCR {
-		return nil
-	}
-
-	// Regardless of whether the status gen is as expected, make sure the CR
-	// finalizers are as we want them. We use a finalizer to prevent races
-	// between polled CR updates and CR deletion.
-	doExit, finalizerErr := handleFinalizers(cr)
-	if finalizerErr != nil {
-		return finalizerErr
-	}
-	if doExit {
 		return nil
 	}
 
 	errLog := func(domain string, err error) {
 		shared.LogErrorf(
+			reqLogger,
+			err,
 			cr,
 			shared.EventReasonCluster,
-			"failed to sync %s: %v",
+			"failed to sync %s",
 			domain,
-			err,
 		)
 	}
 
-	clusterServiceErr := syncClusterService(cr)
+	clusterServiceErr := syncClusterService(reqLogger, cr)
 	if clusterServiceErr != nil {
 		errLog("cluster service", clusterServiceErr)
 		return clusterServiceErr
 	}
 
-	roles, state, rolesErr := syncRoles(cr, handler)
+	roles, state, rolesErr := syncRoles(reqLogger, cr)
 	if rolesErr != nil {
 		errLog("roles", rolesErr)
 		return rolesErr
 	}
 
-	memberServicesErr := syncMemberServices(cr, roles)
+	memberServicesErr := syncMemberServices(reqLogger, cr, roles)
 	if memberServicesErr != nil {
 		errLog("member services", memberServicesErr)
 		return memberServicesErr
@@ -147,6 +146,7 @@ func syncCluster(
 	if state == clusterMembersStableReady {
 		if cr.Status.State != string(clusterReady) {
 			shared.LogInfo(
+				reqLogger,
 				cr,
 				shared.EventReasonCluster,
 				"stable",
@@ -165,17 +165,18 @@ func syncCluster(
 		calcMembersForRoles(roles),
 	)
 	if configMetaErr != nil {
-		shared.LogErrorf(
+		shared.LogError(
+			reqLogger,
+			configMetaErr,
 			cr,
 			shared.EventReasonCluster,
-			"failed to generate cluster config: %v",
-			configMetaErr,
+			"failed to generate cluster config",
 		)
 		return configMetaErr
 	}
 
 	membersHaveChanged := (state == clusterMembersChangedUnready)
-	membersErr := syncMembers(cr, roles, membersHaveChanged, configmetaGen)
+	membersErr := syncMembers(reqLogger, cr, roles, membersHaveChanged, configmetaGen)
 	if membersErr != nil {
 		errLog("members", membersErr)
 		return membersErr
@@ -184,77 +185,109 @@ func syncCluster(
 	return nil
 }
 
-// handleStatusGen compares the incoming status generation to its last known
-// value. If there is no last known value, this is either a new CR or one that
-// was created before this KD came up. In the former case, set the cluster
-// state to creating and return false. In the latter case, figure out the
-// current state of the CR. Otherwise (if there IS a last known value), we
-// want to return true if the incoming gen number is expected; return false to
-// reject old/stale versions of the CR.
-func handleStatusGen(
+// handleNewCluster looks in the cache for the last-known status generation
+// UID for this CR. If there is one, return true to keep processing the CR.
+// If there is not any last-known UID, this is either a new CR or one that
+// was created before this KD came up. In the former case, where the CR status
+// itself has no generation UID: set the cluster state to creating (this will
+// also trigger population of the generation UID) and return false to cause
+// this handler to exit; we'll pick up further processing in the next handler.
+// In the latter case, sync up our internal state with the visible state of
+// the CR and return true to continue processing. In either-new cluster case
+// invoke shared.EnsureClusterAppReference to mark that the app is being used.
+func (r *ReconcileKubeDirectorCluster) handleNewCluster(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	handler *Handler,
 ) bool {
 
-	incoming := cr.Status.GenerationUID
-	lastKnown, ok := ReadStatusGen(cr, handler)
-	if !ok {
-		if incoming == "" {
-			shared.LogInfo(
-				cr,
-				shared.EventReasonCluster,
-				"new",
-			)
-			cr.Status.State = string(clusterCreating)
-			return false
-		}
-
-		shared.LogWarnf(
+	// Have we seen this cluster before?
+	_, ok := shared.ReadStatusGen(cr.UID)
+	if ok {
+		// Yep we've already done processing for this cluster previously.
+		return true
+	}
+	// This is a new cluster, or at least "new to us", so mark that its app
+	// is in use.
+	shared.EnsureClusterAppReference(
+		cr.Namespace,
+		cr.Name,
+		*(cr.Spec.AppCatalog),
+		cr.Spec.AppID,
+	)
+	// There are creation-race or KD-recovery cases where the app might not
+	// exist, so check that now.
+	_, appErr := catalog.GetApp(cr)
+	if appErr != nil {
+		shared.LogError(
+			reqLogger,
+			appErr,
 			cr,
-			shared.EventReasonNoEvent,
-			"unknown with incoming gen uid %s",
-			incoming,
+			shared.EventReasonCluster,
+			"app referenced by cluster does not exist",
 		)
-		writeStatusGen(cr, handler, incoming)
-		ValidateStatusGen(cr, handler)
-		ensureClusterAppReference(cr, handler)
-		return true
+		// We're not going to take any other steps at this point... not even
+		// going to remove the app reference. Operations on this cluster
+		// could fail, but it might be recoverable by re-creating the app CR.
 	}
-
-	if lastKnown.UID == incoming {
-		return true
+	incoming := cr.Status.GenerationUID
+	if incoming == "" {
+		// This is an actual newly-created cluster, so kick off the processing.
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonCluster,
+			"new",
+		)
+		cr.Status.State = string(clusterCreating)
+		return false
 	}
-
-	shared.LogInfo(
+	// This cluster has been processed before but we're not aware of it yet.
+	// Probably KD has been restarted. Make us aware of this cluster.
+	shared.LogInfof(
+		reqLogger,
 		cr,
 		shared.EventReasonNoEvent,
-		"dropping stale poll",
+		"unknown with incoming gen uid %s",
+		incoming,
 	)
-	return false
+	shared.WriteStatusGen(cr.UID, incoming)
+	shared.ValidateStatusGen(cr.UID)
+	return true
 }
 
 // handleFinalizers will remove our finalizer if deletion has been requested.
 // Otherwise it will add our finalizer if it is absent.
-func handleFinalizers(
+func (r *ReconcileKubeDirectorCluster) handleFinalizers(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 ) (bool, error) {
 
 	if cr.DeletionTimestamp != nil {
 		// If a deletion has been requested, while ours (or other) finalizers
 		// existed on the CR, go ahead and remove our finalizer.
-		removeErr := executor.RemoveFinalizer(cr)
+		removeErr := executor.RemoveFinalizer(reqLogger, cr)
 		if removeErr == nil {
 			shared.LogInfo(
+				reqLogger,
 				cr,
 				shared.EventReasonCluster,
 				"greenlighting for deletion",
 			)
 		}
+		// Also clear the status gen from our cache, regardless of whether
+		// finalizer modification succeeded.
+		shared.DeleteStatusGen(cr.UID)
+		shared.RemoveClusterAppReference(
+			cr.Namespace,
+			cr.Name,
+			*(cr.Spec.AppCatalog),
+			cr.Spec.AppID,
+		)
 		return true, removeErr
 	}
 
 	// If our finalizer doesn't exist on the CR, put it in there.
-	ensureErr := executor.EnsureFinalizer(cr)
+	ensureErr := executor.EnsureFinalizer(reqLogger, cr)
 	if ensureErr != nil {
 		return true, ensureErr
 	}

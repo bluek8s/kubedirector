@@ -14,17 +14,6 @@
 
 package shared
 
-import (
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-)
-
-// K8sClient encloses a kubernetes interface and a pointer to a client config
-type K8sClient struct {
-	Clientset    kubernetes.Interface
-	ClientConfig *rest.Config
-}
-
 const (
 	// DomainBase contains the initial segments used to build FQDNs
 	// for cluster members
@@ -44,4 +33,10 @@ const (
 	EventReasonCluster = "Cluster"
 	EventReasonRole    = "Role"
 	EventReasonMember  = "Member"
+)
+
+// Settings for appCatalog
+const (
+	AppCatalogLocal  = "local"
+	AppCatalogSystem = "system"
 )

@@ -4,13 +4,11 @@
 /vendor
 
 # generated
-/deploy/operator.yaml
 /deploy/kubedirector/deployment-localbuilt.yaml
 /deploy/kubedirector/rbac.yaml
 
 # temporary build files
-tmp/_output
-
+build/_output
 
 # Created by https://www.gitignore.io/api/go,vim,emacs,visualstudiocode
 
@@ -112,6 +110,10 @@ tags
 !.vscode/launch.json
 !.vscode/extensions.json
 .history
+
+### IntelliJ ###
+.idea
+*.iml
 
 
 # End of https://www.gitignore.io/api/go,vim,emacs,visualstudiocode

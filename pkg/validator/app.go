@@ -22,7 +22,6 @@ import (
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
-	"github.com/bluek8s/kubedirector/pkg/reconciler"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -148,7 +147,7 @@ func validateSelectedRoles(
 	return valErrors
 }
 
-// validateRoles checks each role for property constraints not expressable
+// validateRoles checks each role for property constraints not expressible
 // in the schema. If any overrideable properties are unspecified, the corresponding
 // global values are used. This will add an PATCH spec for mutation the app CR.
 func validateRoles(
@@ -272,7 +271,7 @@ func validateRoles(
 }
 
 // validateServices checks each service for property constraints not
-// expressable in the schema. Currently this just means checking that the
+// expressible in the schema. Currently this just means checking that the
 // service endpoint must specify url_schema if is_dashboard is true. Any
 // generated error messages will be added to the input list and returned.
 func validateServices(
@@ -299,7 +298,6 @@ func validateServices(
 // response.
 func admitAppCR(
 	ar *v1beta1.AdmissionReview,
-	handlerState *reconciler.Handler,
 ) *v1beta1.AdmissionResponse {
 
 	var valErrors []string
@@ -311,10 +309,9 @@ func admitAppCR(
 
 	// Reject an update or delete if the app CR is currently in use.
 	if ar.Request.Operation == v1beta1.Update || ar.Request.Operation == v1beta1.Delete {
-		references := reconciler.ClustersUsingApp(
-			ar.Request.Name,
+		references := shared.ClustersUsingApp(
 			ar.Request.Namespace,
-			handlerState,
+			ar.Request.Name,
 		)
 		if len(references) != 0 {
 			referencesStr := strings.Join(references, ", ")

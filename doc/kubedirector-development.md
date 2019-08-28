@@ -10,13 +10,15 @@ Creating and managing virtual clusters with KubeDirector is described in [virtua
 
 If you intend to build KubeDirector yourself, rather than deploying a pre-built image, then some additional setup is required.
 
+KubeDirector has been successfully built and deployed from macOS, Ubuntu, and CentOS. Similar OS environments may also work for development but have not been tested.
+
 KubeDirector is written in the ["go"](https://golang.org/) language, so the fundamental requirement for building KubeDirector from source is to have that language installed (version 1.10 or later). The ["dep"](https://golang.github.io/dep/) tool is also required.
 
 KubeDirector currently uses the [Operator SDK](https://github.com/operator-framework/operator-sdk) to do code generation for watching custom resources (the "informer" block in the [architecture diagrams](https://github.com/bluek8s/kubedirector/wiki/KubeDirector-Architecture-Overview)). So if you intend to build KubeDirector from source, you will need the operator SDK on your build system. Do the following step once before any build of KubeDirector:
 ```bash
     git clone https://github.com/operator-framework/operator-sdk.git $GOPATH/src/github.com/operator-framework/operator-sdk
     cd $GOPATH/src/github.com/operator-framework/operator-sdk
-    git checkout v0.0.6
+    git checkout v0.8.1
     make dep
     make install
 ```
@@ -31,6 +33,20 @@ If you intend to share your KubeDirector image by pushing it to a Docker registr
 
 If however you intend to experiment with KubeDirector builds but you do NOT intend to push your image to a registry, you can do that without needing to have a custom image name and registry credentials. You will still need to have Docker installed on your build system though. More about this below.
 
+#### NOTES ON THE RED HAT UBI
+
+We use the Red Hat Universal Base Image (UBI) as a base for building the KubeDirector image. The KubeDirector build process will usually transparently handle downloading the UBI from the appropriate Red Hat-managed repo as necessary.
+
+However we have observed an issue with this process in CentOS development environments using an old version of Docker (e.g. 1.13). This issue manifests as the error message "open /etc/docker/certs.d/registry.access.redhat.com/redhat-ca.crt: no such file or directory" during an attempt to download the UBI.
+
+If you do encounter this error when using an old version of Docker on CentOS, and if you are a sudo-privileged user, the following steps should resolve the issue:
+```bash
+    sudo rpm -e --nodeps subscription-manager-rhsm-certificates
+    sudo yum --setopt=obsoletes=0 install -y python-rhsm-certificates
+```
+
+However the best solution is probably to move to using a more recent release of Docker Engine if that is possible.
+
 #### BUILDING
 
 Make sure that "$GOPATH/bin" is included in your PATH environment variable.
@@ -43,7 +59,7 @@ To build KubeDirector for the first time:
 
 When rebuilding KubeDirector subsequently, only "make build" should be necessary, unless you have changed the set of packages that the code imports.
 
-The build process creates the YAML for the KubeDirector deployment, the kubedirector binary, and a "configcli" package of utility Python code. It then creates a Docker image (based on Alpine Linux) that contains the kubedirector binary at /root/kubedirector, and has the configcli package stored at /root/configcli.tgz.
+The build process creates the YAML for the KubeDirector deployment, the kubedirector binary, and a "configcli" package of utility Python code. It then creates a Docker image that contains the kubedirector binary at /usr/local/bin/kubedirector, and has the configcli package stored at /root/configcli.tgz.
 
 The Docker image will have some default name associated with the KubeDirector version (shown in the "make build" output), unless you have redefined the image name using a Local.mk file as described above.
 

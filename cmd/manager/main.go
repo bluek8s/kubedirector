@@ -64,46 +64,49 @@ func printVersion() {
 
 func main() {
 
-	// Add the zap logger flag set to the CLI. The flag set must
-	// be added before calling pflag.Parse().
+	// Add the zap logger flag set to the CLI. The flag set must be added
+	// before calling pflag.Parse().
 	pflag.CommandLine.AddFlagSet(zap.FlagSet())
 
 	// Add flags registered by imported packages (e.g. glog and
-	// controller-runtime)
+	// controller-runtime).
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
 	pflag.Parse()
 
-	// Use a zap logr.Logger implementation. If none of the zap
-	// flags are configured (or if the zap flag set is not being
-	// used), this defaults to a production zap logger.
+	// Use a zap logr.Logger implementation. If none of the zap flags are
+	// configured (or if the zap flag set is not being used), this defaults to
+	// a production zap logger.
 	//
-	// The logger instantiated here can be changed to any logger
-	// implementing the logr.Logger interface. This logger will
-	// be propagated through the whole operator, generating
-	// uniform and structured logs.
+	// The logger instantiated here can be changed to any logger implementing
+	// the logr.Logger interface. This logger will be propagated through the
+	// whole operator, generating uniform and structured logs.
 	logf.SetLogger(zap.Logger())
 
 	printVersion()
 
-	// Become the leader before proceeding
+	// Become the leader before proceeding.
 	ctx := context.TODO()
 	leaderErr := leader.Become(ctx, "kubedirector-lock")
 	if leaderErr != nil {
-		log.Error(leaderErr, "")
+		log.Error(
+			leaderErr,
+			"failed to become \"leader\"... is another KubeDirector active?",
+		)
 		os.Exit(1)
 	}
 
-	// Create a new Cmd to provide shared dependencies and start components.
-	// Watch all namespaces but reject KubeDirectorConfig requests in the
-	// validator when the namespace isn't the kubedirector namespace.
+	// Create the overall controller-runtime manager. Note that it will watch
+	// all namespaces because of the specified emptystring for Namespace.
+	// (We'll reject KubeDirectorConfig requests in the validator when the
+	// namespace isn't the KubeDirector namespace.)
 	mgr, mgrErr := manager.New(shared.Config(), manager.Options{
 		Namespace:          "",
 		MapperProvider:     restmapper.NewDynamicRESTMapper,
 		MetricsBindAddress: fmt.Sprintf("%s:%d", metricsHost, metricsPort),
 	})
 	if mgrErr != nil {
-		log.Error(mgrErr, "")
+		log.Error(mgrErr, "failed to create manager")
 		os.Exit(1)
 	}
 
@@ -117,7 +120,7 @@ func main() {
 
 	// Setup all Controllers
 	if controllerErr := controller.AddToManager(mgr); controllerErr != nil {
-		log.Error(controllerErr, "")
+		log.Error(controllerErr, "failed to add controllers to manager")
 		os.Exit(1)
 	}
 
@@ -149,13 +152,13 @@ func main() {
 	// Fetch our deployment object
 	kdName, kdNameErr := k8sutil.GetOperatorName()
 	if kdNameErr != nil {
-		log.Error(kdNameErr, "failed to get kubedirector deployment name")
+		log.Error(kdNameErr, "failed to get KubeDirector deployment name")
 		os.Exit(1)
 	}
 
 	kd, kdErr := observer.GetDeployment(kdName)
 	if kdErr != nil {
-		log.Error(kdErr, "failed to get kubedirector deployment object")
+		log.Error(kdErr, "failed to get KubeDirector deployment object")
 		os.Exit(1)
 	}
 

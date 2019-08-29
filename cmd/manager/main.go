@@ -19,6 +19,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/bluek8s/kubedirector/pkg/observer"
 	"os"
 	"runtime"
 
@@ -144,7 +145,7 @@ func main() {
 	}()
 
 	// Fetch a reference to the KubeDirector Deployment object
-	ownerReference, ownerReferenceErr := shared.GetKubeDirectorReference()
+	ownerReference, ownerReferenceErr := observer.GetKubeDirectorReference()
 	if ownerReferenceErr != nil {
 		log.Error(ownerReferenceErr, "failed to get a reference to the KubeDirector deployment object")
 		os.Exit(1)

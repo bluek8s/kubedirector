@@ -16,13 +16,15 @@ package observer
 
 import (
 	"context"
-
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -154,6 +156,46 @@ func GetSecret(
 		result,
 	)
 	return result, err
+}
+
+// GetDeployment fetches the deployment resource in KubeDirector's namespace.
+func GetDeployment(
+	deploymentName string,
+) (*appsv1.Deployment, error) {
+
+	kdNamespace, err := shared.GetKubeDirectorNamespace()
+	if err != nil {
+		return nil, err
+	}
+	result := &appsv1.Deployment{}
+	err = shared.Client().Get(
+		context.TODO(),
+		types.NamespacedName{Namespace: kdNamespace, Name: deploymentName},
+		result,
+	)
+	return result, err
+}
+
+// GetKubeDirectorReference is a utility function to fetch a reference
+// to the kubedirector deployment object
+func GetKubeDirectorReference() (*metav1.OwnerReference, error) {
+
+	// Fetch our deployment object
+	kdName, err := k8sutil.GetOperatorName()
+	if err != nil {
+		return nil, err
+	}
+
+	kd, err := GetDeployment(kdName)
+	if err != nil {
+		return nil, err
+	}
+
+	return metav1.NewControllerRef(kd, schema.GroupVersionKind{
+		Group:   appsv1.SchemeGroupVersion.Group,
+		Version: appsv1.SchemeGroupVersion.Version,
+		Kind:    "Deployment",
+	}), nil
 }
 
 // GetKDConfig fetches kubedirector config CR in KubeDirector's namespace.

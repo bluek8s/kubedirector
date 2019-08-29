@@ -25,46 +25,57 @@ type StatusGen struct {
 	Validated bool
 }
 
-var (
-	statusGens    map[types.UID]StatusGen
-	statusGenLock sync.RWMutex
-)
-
-// ReadStatusGen provides threadsafe read of a status gen UID string and
-// validated flag.
-func ReadStatusGen(uid types.UID) (StatusGen, bool) {
-	statusGenLock.RLock()
-	defer statusGenLock.RUnlock()
-	val, ok := statusGens[uid]
-	return val, ok
+// StatusGens provides thread safe access to a make of StatusGen's.
+type StatusGens struct {
+	lock       sync.RWMutex
+	statusGens map[types.UID]StatusGen
 }
 
-// WriteStatusGen provides threadsafe write of a status gen UID string.
-// The validated flag will begin as false.
-func WriteStatusGen(uid types.UID, newGenUID string) {
-	statusGenLock.Lock()
-	defer statusGenLock.Unlock()
-	statusGens[uid] = StatusGen{UID: newGenUID}
-}
-
-// ValidateStatusGen provides threadsafe mark-validated of a status gen.
-func ValidateStatusGen(uid types.UID) {
-	statusGenLock.Lock()
-	defer statusGenLock.Unlock()
-	val, ok := statusGens[uid]
-	if ok {
-		val.Validated = true
-		statusGens[uid] = val
+// NewStatusGens is a StatusGens constructor
+func NewStatusGens() *StatusGens {
+	return &StatusGens{
+		statusGens: make(map[types.UID]StatusGen),
 	}
 }
 
-// DeleteStatusGen provides threadsafe delete of a status gen.
-func DeleteStatusGen(uid types.UID) {
-	statusGenLock.Lock()
-	defer statusGenLock.Unlock()
-	delete(statusGens, uid)
+// ReadStatusGen provides thread safe read of a status gen UID string and
+// validated flag.
+func (s *StatusGens) ReadStatusGen(uid types.UID) (StatusGen, bool) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	val, ok := s.statusGens[uid]
+	return val, ok
 }
 
-func init() {
-	statusGens = make(map[types.UID]StatusGen)
+// WriteStatusGen provides thread safe write of a status gen UID string.
+// The validated flag will begin as false.
+func (s *StatusGens) WriteStatusGen(uid types.UID, newGenUID string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.statusGens[uid] = StatusGen{UID: newGenUID}
+}
+
+// ValidateStatusGen provides thread safe mark-validated of a status gen.
+func (s *StatusGens) ValidateStatusGen(uid types.UID) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	val, ok := s.statusGens[uid]
+	if ok {
+		val.Validated = true
+		s.statusGens[uid] = val
+	}
+}
+
+// DeleteStatusGen provides thread safe delete of a status gen.
+func (s *StatusGens) DeleteStatusGen(uid types.UID) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	delete(s.statusGens, uid)
+}
+
+// StatusGenCount provides thread safe number of current status gens.
+func (s *StatusGens) StatusGenCount() int {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	return len(s.statusGens)
 }

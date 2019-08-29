@@ -21,7 +21,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -63,9 +63,9 @@ func GetStatefulSet(
 func GetService(
 	namespace string,
 	serviceName string,
-) (*v1.Service, error) {
+) (*corev1.Service, error) {
 
-	result := &v1.Service{}
+	result := &corev1.Service{}
 	err := shared.Client().Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: serviceName},
@@ -78,9 +78,9 @@ func GetService(
 func GetPod(
 	namespace string,
 	podName string,
-) (*v1.Pod, error) {
+) (*corev1.Pod, error) {
 
-	result := &v1.Pod{}
+	result := &corev1.Pod{}
 	err := shared.Client().Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: podName},
@@ -94,9 +94,9 @@ func GetPod(
 func GetPVC(
 	namespace string,
 	pvcName string,
-) (*v1.PersistentVolumeClaim, error) {
+) (*corev1.PersistentVolumeClaim, error) {
 
-	result := &v1.PersistentVolumeClaim{}
+	result := &corev1.PersistentVolumeClaim{}
 	err := shared.Client().Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: pvcName},
@@ -145,30 +145,12 @@ func GetValidatorWebhook(
 func GetSecret(
 	secretName string,
 	namespace string,
-) (*v1.Secret, error) {
+) (*corev1.Secret, error) {
 
-	result := &v1.Secret{}
+	result := &corev1.Secret{}
 	err := shared.Client().Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: secretName},
-		result,
-	)
-	return result, err
-}
-
-// GetDeployment fetches the deployment resource in KubeDirector's namespace.
-func GetDeployment(
-	deploymentName string,
-) (*appsv1.Deployment, error) {
-
-	kdNamespace, err := shared.GetKubeDirectorNamespace()
-	if err != nil {
-		return nil, err
-	}
-	result := &appsv1.Deployment{}
-	err = shared.Client().Get(
-		context.TODO(),
-		types.NamespacedName{Namespace: kdNamespace, Name: deploymentName},
 		result,
 	)
 	return result, err

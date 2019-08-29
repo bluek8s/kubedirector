@@ -23,8 +23,12 @@ const (
 	// which is the namespace of the kubedirector pod.
 	KubeDirectorNamespaceEnvVar = "MY_NAMESPACE"
 
-	// KubeDirectorGlobalConfig - Name of the kubedirector config CR
+	// KubeDirectorGlobalConfig is the name of the kubedirector config CR
 	KubeDirectorGlobalConfig = "kd-global-config"
+
+	// KubeDirectorFinalizerID is added to kubedirector objects finalizers
+	// to prevent them from being deleted before we can clean up.
+	KubeDirectorFinalizerID = "kubedirector.bluedata.io/cleanup"
 )
 
 // Event reason constants for recording events

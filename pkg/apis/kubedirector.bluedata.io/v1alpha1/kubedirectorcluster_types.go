@@ -15,7 +15,7 @@
 package v1alpha1
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -95,12 +95,12 @@ type FileInjections struct {
 // image, resource requirements, persistent storage definition, and (as
 // defined by the cluster's KubeDirectorApp) set of service endpoints.
 type Role struct {
-	Name           string                  `json:"id"`
-	Members        *int32                  `json:"members"`
-	Resources      v1.ResourceRequirements `json:"resources"`
-	Storage        *ClusterStorage         `json:"storage,omitempty"`
-	EnvVars        []v1.EnvVar             `json:"env,omitempty"`
-	FileInjections []FileInjections        `json:"fileInjections,omitempty"`
+	Name           string                      `json:"id"`
+	Members        *int32                      `json:"members"`
+	Resources      corev1.ResourceRequirements `json:"resources"`
+	Storage        *ClusterStorage             `json:"storage,omitempty"`
+	EnvVars        []corev1.EnvVar             `json:"env,omitempty"`
+	FileInjections []FileInjections            `json:"fileInjections,omitempty"`
 }
 
 // ClusterStorage defines the persistent storage size/type, if any, to be used

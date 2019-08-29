@@ -17,9 +17,9 @@ package shared
 import (
 	"fmt"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/go-logr/logr"
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/reference"
 )
@@ -27,7 +27,7 @@ import (
 // LogInfo logs the given message at Info level.
 func LogInfo(
 	logger logr.Logger,
-	cr *kdv1.KubeDirectorCluster,
+	obj runtime.Object,
 	eventReason string,
 	msg string,
 ) {
@@ -36,7 +36,7 @@ func LogInfo(
 
 	if eventReason != "" {
 		LogEvent(
-			cr,
+			obj,
 			v1.EventTypeNormal,
 			eventReason,
 			msg,
@@ -47,7 +47,7 @@ func LogInfo(
 // LogInfof logs the given message format and payload at Info level.
 func LogInfof(
 	logger logr.Logger,
-	cr *kdv1.KubeDirectorCluster,
+	obj runtime.Object,
 	eventReason string,
 	format string,
 	args ...interface{},
@@ -57,7 +57,7 @@ func LogInfof(
 
 	if eventReason != EventReasonNoEvent {
 		LogEventf(
-			cr,
+			obj,
 			v1.EventTypeNormal,
 			eventReason,
 			format,
@@ -70,7 +70,7 @@ func LogInfof(
 func LogError(
 	logger logr.Logger,
 	err error,
-	cr *kdv1.KubeDirectorCluster,
+	obj runtime.Object,
 	eventReason string,
 	msg string,
 ) {
@@ -79,7 +79,7 @@ func LogError(
 
 	if eventReason != EventReasonNoEvent {
 		LogEvent(
-			cr,
+			obj,
 			v1.EventTypeWarning,
 			eventReason,
 			msg,
@@ -91,7 +91,7 @@ func LogError(
 func LogErrorf(
 	logger logr.Logger,
 	err error,
-	cr *kdv1.KubeDirectorCluster,
+	obj runtime.Object,
 	eventReason string,
 	format string,
 	args ...interface{},
@@ -101,7 +101,7 @@ func LogErrorf(
 
 	if eventReason != EventReasonNoEvent {
 		LogEventf(
-			cr,
+			obj,
 			v1.EventTypeWarning,
 			eventReason,
 			format,
@@ -113,14 +113,14 @@ func LogErrorf(
 // LogEvent posts an event to event recorder with the given msg using the
 // CR object as reference
 func LogEvent(
-	cr *kdv1.KubeDirectorCluster,
+	obj runtime.Object,
 	eventType string,
 	eventReason string,
 	msg string,
 ) {
 
 	LogEventf(
-		cr,
+		obj,
 		eventType,
 		eventReason,
 		msg,
@@ -130,14 +130,14 @@ func LogEvent(
 // LogEventf posts an event to event recorder with the given message format
 // and payload using the CR object as reference
 func LogEventf(
-	cr *kdv1.KubeDirectorCluster,
+	obj runtime.Object,
 	eventType string,
 	eventReason string,
 	format string,
 	args ...interface{},
 ) {
 
-	ref, _ := reference.GetReference(scheme.Scheme, cr)
+	ref, _ := reference.GetReference(scheme.Scheme, obj)
 
 	eventRecorder.Eventf(
 		ref,

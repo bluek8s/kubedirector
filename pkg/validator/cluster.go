@@ -25,6 +25,7 @@ import (
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
+	"github.com/bluek8s/kubedirector/pkg/controller/kubedirectorcluster"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
@@ -644,7 +645,7 @@ func admitClusterCR(
 	// Don't allow Status to be updated except by KubeDirector. Do this by
 	// using one-time codes known by KubeDirector.
 	if clusterCR.Status != nil {
-		expectedStatusGen, ok := shared.ReadStatusGen(clusterCR.UID)
+		expectedStatusGen, ok := kubedirectorcluster.StatusGens.ReadStatusGen(clusterCR.UID)
 		// Reject this write if either of:
 		// - KubeDirector doesn't know about the cluster resource
 		// - this status generation UID is not what we're expecting a write for
@@ -667,7 +668,7 @@ func admitClusterCR(
 		}
 	}
 
-	shared.ValidateStatusGen(clusterCR.UID)
+	kubedirectorcluster.StatusGens.ValidateStatusGen(clusterCR.UID)
 
 	// Shortcut out of here if the spec is not being changed. Among other
 	// things this allows KD to update status or metadata even if the

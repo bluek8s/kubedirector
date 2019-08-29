@@ -22,20 +22,21 @@ const (
 	headlessServiceLabel = "kubedirector.bluedata.io/headless"
 	statefulSetPodLabel  = "statefulset.kubernetes.io/pod-name"
 	storageClassName     = "volume.beta.kubernetes.io/storage-class"
-	appContainerName     = "app"
-	pvcName              = "pvc"
-	headlessServiceName  = "svc"
-	initContainerName    = "init"
-	execShell            = "bash"
-	configMetaFile       = "/etc/guestconfig/configmeta.json"
-	cgroupFSVolume       = "/sys/fs/cgroup"
-	systemdFSVolume      = "/sys/fs/cgroup/systemd"
-	tmpFSVolSize         = "20Gi"
-	finalizerID          = "kubedirector.bluedata.io/cleanup"
+	// AppContainerName is the name of kubedirector app containers
+	AppContainerName    = "app"
+	pvcName             = "pvc"
+	headlessServiceName = "svc"
+	initContainerName   = "init"
+	execShell           = "bash"
+	configMetaFile      = "/etc/guestconfig/configmeta.json"
+	cgroupFSVolume      = "/sys/fs/cgroup"
+	systemdFSVolume     = "/sys/fs/cgroup/systemd"
+	tmpFSVolSize        = "20Gi"
 )
 
-type streams struct {
-	in     io.Reader
-	out    io.Writer
-	errOut io.Writer
+// Streams for stdin, stdout, stderr of executed commands
+type Streams struct {
+	In     io.Reader
+	Out    io.Writer
+	ErrOut io.Writer
 }

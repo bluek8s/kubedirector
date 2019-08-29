@@ -25,7 +25,7 @@ type StatusGen struct {
 	Validated bool
 }
 
-// StatusGens provides thread safe access to a make of StatusGen's.
+// StatusGens provides thread safe access to a map of StatusGen's.
 type StatusGens struct {
 	lock       sync.RWMutex
 	statusGens map[types.UID]StatusGen

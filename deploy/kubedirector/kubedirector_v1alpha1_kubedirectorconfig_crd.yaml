@@ -6,15 +6,21 @@ spec:
   group: kubedirector.bluedata.io
   names:
     kind: KubeDirectorConfig
-    listKind: KubeDirectorConfigsList
+    listKind: KubeDirectorConfigList
     plural: kubedirectorconfigs
     singular: kubedirectorconfig
   scope: Namespaced
-  version: v1alpha1
   validation:
     openAPIV3Schema:
       properties:
+        apiVersion:
+          description:
+          type: string
+        kind:
+          description:
+          type: string
         metadata:
+          type: object
           properties:
             name:
               type: string
@@ -29,3 +35,4 @@ spec:
               pattern: '^NodePort$|^LoadBalancer$'
             nativeSystemdSupport:
               type: boolean
+  version: v1alpha1

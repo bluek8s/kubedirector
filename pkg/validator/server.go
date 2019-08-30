@@ -19,15 +19,13 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-
 	"github.com/bluek8s/kubedirector/pkg/observer"
-	"github.com/bluek8s/kubedirector/pkg/reconciler"
 	"github.com/bluek8s/kubedirector/pkg/shared"
+	"io/ioutil"
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net/http"
 )
 
 // Add validation handlers for all CRs that we currently support
@@ -42,7 +40,6 @@ var validationHandlers = map[string]admitFunc{
 func validation(
 	w http.ResponseWriter,
 	r *http.Request,
-	handlerState *reconciler.Handler,
 ) {
 
 	var admissionResponse *v1beta1.AdmissionResponse
@@ -81,7 +78,7 @@ func validation(
 		crKind := ar.Request.Kind.Kind
 		// If there is a validation handler for this CR invoke it.
 		if handler, ok := validationHandlers[crKind]; ok {
-			admissionResponse = handler(&ar, handlerState)
+			admissionResponse = handler(&ar)
 		} else {
 			// No validation handler for this CR. Allow to go through.
 			admissionResponse.Allowed = true
@@ -116,9 +113,7 @@ func validation(
 // StartValidationServer starts the admission validation server. Prior to
 // invoking this function, InitValidationServer function must be called to
 // set up secret (for TLS certs) k8s resource. This function runs forever.
-func StartValidationServer(
-	handlerState *reconciler.Handler,
-) error {
+func StartValidationServer() error {
 
 	// Fetch our namespace
 	kdNamespace, err := shared.GetKubeDirectorNamespace()
@@ -183,7 +178,7 @@ func StartValidationServer(
 	http.HandleFunc(
 		validationPath,
 		func(w http.ResponseWriter, r *http.Request) {
-			validation(w, r, handlerState)
+			validation(w, r)
 		},
 	)
 

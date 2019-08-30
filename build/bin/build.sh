@@ -9,7 +9,7 @@ if ! which go > /dev/null; then
 	exit 1
 fi
 
-BIN_DIR="$(pwd)/tmp/_output/bin"
+BIN_DIR="$(pwd)/build/_output/bin"
 mkdir -p ${BIN_DIR}
 PROJECT_NAME="kubedirector"
 REPO_PATH="github.com/bluek8s/kubedirector"

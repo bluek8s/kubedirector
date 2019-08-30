@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package reconciler
+package kubedirectorcluster
 
 import (
 	"fmt"
+	"github.com/go-logr/logr"
 	"strconv"
 	"sync/atomic"
 
@@ -33,12 +34,12 @@ import (
 // modify the role status data structures, and create a role info slice that
 // can be referenced by the later syncs for other concerns.
 func syncRoles(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	handler *Handler,
 ) ([]*roleInfo, clusterStateInternal, error) {
 
 	// Construct the role info slice. Bail out now if that fails.
-	roles, rolesErr := initRoleInfo(cr)
+	roles, rolesErr := initRoleInfo(reqLogger, cr)
 	if rolesErr != nil {
 		return nil, clusterMembersUnknown, rolesErr
 	}
@@ -62,14 +63,15 @@ func syncRoles(
 		switch {
 		case r.statefulSet == nil && r.roleStatus == nil:
 			// Role did not previously exist. Create it now.
-			createErr := handleRoleCreate(cr, r, handler, &anyMembersChanged)
+			createErr := handleRoleCreate(
+				reqLogger, cr, r, &anyMembersChanged)
 			if createErr != nil {
 				return nil, clusterMembersUnknown, createErr
 			}
 		case r.statefulSet == nil && r.roleStatus != nil:
 			// Role exists but there is no statefulset for it in k8s.
 			// Hmm, weird. Statefulset was deleted out-of-band? Let's fix.
-			reCreateErr := handleRoleReCreate(cr, r, handler, &anyMembersChanged)
+			reCreateErr := handleRoleReCreate(reqLogger, cr, r, &anyMembersChanged)
 			if reCreateErr != nil {
 				return nil, clusterMembersUnknown, reCreateErr
 			}
@@ -77,14 +79,14 @@ func syncRoles(
 			// Deal with an existing role and statefulset.
 			// First see if we need to reconcile any out-of-band statefulset
 			// changes.
-			handleRoleConfig(cr, r)
+			handleRoleConfig(reqLogger, cr, r)
 			// Now check for desired changes in role population.
 			if len(r.roleStatus.Members) == 0 && r.desiredPop == 0 {
 				// Role is going away and we have finished removing pods.
-				handleRoleDelete(cr, r)
+				handleRoleDelete(reqLogger, cr, r)
 			} else {
 				// Might need to change role population.
-				handleRoleResize(cr, r, &anyMembersChanged)
+				handleRoleResize(reqLogger, cr, r, &anyMembersChanged)
 			}
 		case r.statefulSet != nil && r.roleStatus == nil:
 			// "Can't happen" ... there should be no way to find the
@@ -122,6 +124,7 @@ func syncRoles(
 // spec and status that will be used not only in syncRole but also by the
 // sync logic for other concerns.
 func initRoleInfo(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 ) ([]*roleInfo, error) {
 
@@ -168,12 +171,13 @@ func initRoleInfo(
 				statefulSet = nil
 			} else {
 				shared.LogErrorf(
+					reqLogger,
+					statefulSetErr,
 					cr,
 					shared.EventReasonRole,
-					"failed to query StatefulSet{%s} for role{%s}: %v",
+					"failed to query StatefulSet{%s} for role{%s}",
 					roleStatus.StatefulSet,
 					roleStatus.Name,
-					statefulSetErr,
 				)
 				return nil, statefulSetErr
 			}
@@ -241,11 +245,11 @@ func calcRoleMembersByState(
 // handleRoleCreate deals with a newly specified role. If the desired population
 // is nonzero then it will create an associated statefulset and create the
 // role status and its member statuses (initially as create_pending). Failure
-// to create a statefulset will be a handler-stopping error.
+// to create a statefulset will be a reconciler-stopping error.
 func handleRoleCreate(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
-	handler *Handler,
 	anyMembersChanged *bool,
 ) error {
 
@@ -256,29 +260,32 @@ func handleRoleCreate(
 	}
 
 	shared.LogInfof(
+		reqLogger,
 		cr,
 		shared.EventReasonRole,
 		"creating role{%s}",
 		role.roleSpec.Name,
 	)
 
-	nativeSystemdSupport := getNativeSystemdSupport(handler)
+	nativeSystemdSupport := shared.GetNativeSystemdSupport()
 
 	// Create the associated statefulset.
 	statefulSet, createErr := executor.CreateStatefulSet(
+		reqLogger,
 		cr,
 		nativeSystemdSupport,
 		role.roleSpec,
 	)
 	if createErr != nil {
 		// Not much to do if we can't create it... we'll just keep trying
-		// on every run through the handler.
+		// on every run through the reconciler.
 		shared.LogErrorf(
+			reqLogger,
+			createErr,
 			cr,
 			shared.EventReasonRole,
-			"failed to create StatefulSet for role{%s}: %v",
+			"failed to create StatefulSet for role{%s}",
 			role.roleSpec.Name,
-			createErr,
 		)
 		return createErr
 	}
@@ -305,11 +312,11 @@ func handleRoleCreate(
 // handleRoleCreate deals with the unusual-but-possible case of the role
 // status existing but the statefulset gone missing. It may need to clean up
 // the role status or re-create the statefulset. Failure to create a
-// statefulset will be a handler-stopping error.
+// statefulset will be a reconciler-stopping error.
 func handleRoleReCreate(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
-	handler *Handler,
 	anyMembersChanged *bool,
 ) error {
 
@@ -320,10 +327,11 @@ func handleRoleReCreate(
 			role.roleStatus.StatefulSet = ""
 		} else {
 			// Create a new statefulset for the role.
-			return handleRoleCreate(cr, role, handler, anyMembersChanged)
+			return handleRoleCreate(reqLogger, cr, role, anyMembersChanged)
 		}
 	} else {
 		shared.LogInfof(
+			reqLogger,
 			cr,
 			shared.EventReasonRole,
 			"restoring role{%s}",
@@ -357,9 +365,10 @@ func handleRoleReCreate(
 
 // handleRoleConfig checks an existing statefulset to see if any of its
 // important properties (other than replicas count) need to be reconciled.
-// Failure to reconcile will not be treated as a handler-stopping error; we'll
+// Failure to reconcile will not be treated as a reconciler-stopping error; we'll
 // just try again next time.
 func handleRoleConfig(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 ) {
@@ -369,25 +378,28 @@ func handleRoleConfig(
 		role.roleSpec,
 		role.statefulSet)
 	if updateErr != nil {
-		shared.LogWarnf(
+		shared.LogErrorf(
+			reqLogger,
+			updateErr,
 			cr,
 			shared.EventReasonRole,
-			"failed to update StatefulSet{%s}: %v",
+			"failed to update StatefulSet{%s}",
 			role.statefulSet.Name,
-			updateErr,
 		)
 	}
 }
 
 // handleRoleDelete takes care of deleting the associated statefulset after
 // the role members have been cleaned up. Failure to delete will not be
-// treated as a handler-stopping error; we'll just try again next time.
+// treated as a reconciler-stopping error; we'll just try again next time.
 func handleRoleDelete(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 ) {
 
 	shared.LogInfof(
+		reqLogger,
 		cr,
 		shared.EventReasonRole,
 		"finishing cleanup on role{%s}",
@@ -398,12 +410,13 @@ func handleRoleDelete(
 		// Mark the role status for removal.
 		role.roleStatus.StatefulSet = ""
 	} else {
-		shared.LogWarnf(
+		shared.LogErrorf(
+			reqLogger,
+			deleteErr,
 			cr,
 			shared.EventReasonRole,
-			"failed to delete StatefulSet{%s}: %v",
+			"failed to delete StatefulSet{%s}",
 			role.statefulSet.Name,
-			deleteErr,
 		)
 	}
 }
@@ -413,6 +426,7 @@ func handleRoleDelete(
 // current member count it may need adjust the role/member status to start
 // the resize process.
 func handleRoleResize(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 	anyMembersChanged *bool,
@@ -435,6 +449,7 @@ func handleRoleResize(
 		// away with that actually, but let's not complicate things.)
 		if len(role.roleStatus.Members) == prevDesiredPop {
 			shared.LogInfof(
+				reqLogger,
 				cr,
 				shared.EventReasonRole,
 				"expanding role{%s}",
@@ -447,13 +462,14 @@ func handleRoleResize(
 		// We can shrink in any state. This is a helpful thing to allow when
 		// the expand was overambitious and is waiting for resources.
 		shared.LogInfof(
+			reqLogger,
 			cr,
 			shared.EventReasonRole,
 			"shrinking role{%s}",
 			role.roleStatus.Name,
 		)
 		*anyMembersChanged = true
-		deleteMemberStatuses(cr, role)
+		deleteMemberStatuses(role)
 	}
 }
 
@@ -474,7 +490,7 @@ func addMemberStatuses(
 		// avoid realloc, so we can safely grow it w/o disturbing our
 		// pointers to its elements.
 		var pvcName string
-		if role.roleSpec.Storage.Size == "" {
+		if role.roleSpec.Storage == nil {
 			pvcName = ""
 		} else {
 			pvcName = "pvc-" + memberName
@@ -500,7 +516,6 @@ func addMemberStatuses(
 // create_pending or creating), to prepare to shrink the role to the desired
 // number of members. It also updates the members-by-state map accordingly.
 func deleteMemberStatuses(
-	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 ) {
 

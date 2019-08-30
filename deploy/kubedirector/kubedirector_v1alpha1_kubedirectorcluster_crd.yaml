@@ -10,16 +10,28 @@ spec:
     plural: kubedirectorclusters
     singular: kubedirectorcluster
   scope: Namespaced
-  version: v1alpha1
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
+        apiVersion:
+          description:
+          type: string
+        kind:
+          description:
+          type: string
+        metadata:
+          type: object
         spec:
           required: [app, roles]
           properties:
             app:
               type: string
               minLength: 1
+            appCatalog:
+              type: string
+              pattern: '^local$|^system$'
             serviceType:
               type: string
               pattern: '^NodePort$|^LoadBalancer$'
@@ -77,12 +89,12 @@ spec:
                   storage:
                     required: [size]
                     properties:
-                        size:
-                          type: string
-                          pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
-                        storageClassName:
-                          type: string
-                          minLength: 1
+                      size:
+                        type: string
+                        pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                      storageClassName:
+                        type: string
+                        minLength: 1
                   fileInjections:
                     type: array
                     items:
@@ -113,8 +125,6 @@ spec:
               type: string
             last_node_id:
               type: integer
-            app_namespace:
-              type: string
             roles:
               type: array
               items:
@@ -137,3 +147,4 @@ spec:
                           type: string
                         state:
                           type: string
+  version: v1alpha1

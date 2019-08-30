@@ -25,8 +25,8 @@ import (
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
+	"github.com/bluek8s/kubedirector/pkg/controller/kubedirectorcluster"
 	"github.com/bluek8s/kubedirector/pkg/observer"
-	"github.com/bluek8s/kubedirector/pkg/reconciler"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,7 +44,7 @@ type clusterPatchValue struct {
 	ValueInt            *int32
 	ValueStr            *string
 	ValueFileInjections *kdv1.FilePermissions
-	ValueClusterStatus  *kdv1.ClusterStatus
+	ValueClusterStatus  *kdv1.KubeDirectorClusterStatus
 }
 
 func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
@@ -277,18 +277,17 @@ func validateRoleChanges(
 func validateRoleStorageClass(
 	cr *kdv1.KubeDirectorCluster,
 	valErrors []string,
-	kdConfig *kdv1.KubeDirectorConfig,
 	patches []clusterPatchSpec,
 ) ([]string, []clusterPatchSpec) {
 
 	var validateDefault = false
 	var missingDefault = false
 
-	globalStorageClass := kdConfig.Spec.StorageClass
+	globalStorageClass := shared.GetDefaultStorageClass()
 	numRoles := len(cr.Spec.Roles)
 	for i := 0; i < numRoles; i++ {
 		role := &(cr.Spec.Roles[i])
-		if role.Storage.Size == "" {
+		if role.Storage == nil {
 			// No storage section.
 			continue
 		}
@@ -310,11 +309,11 @@ func validateRoleStorageClass(
 		}
 		// No storage class specified. How we handle this depends on whether
 		// there is a KubeDirector config-specified default.
-		if globalStorageClass != nil {
+		if len(globalStorageClass) > 0 {
 			// Yep. Use that, and remember to validate it when we're done
 			// looping.
 			validateDefault = true
-			role.Storage.StorageClass = globalStorageClass
+			role.Storage.StorageClass = &globalStorageClass
 		} else {
 			// Nope. Let's see what K8s says is the default.
 			scK8sDefault, _ := observer.GetDefaultStorageClass()
@@ -345,13 +344,13 @@ func validateRoleStorageClass(
 			noDefaultStorageClass,
 		)
 	} else if validateDefault {
-		_, err := observer.GetStorageClass(*globalStorageClass)
+		_, err := observer.GetStorageClass(globalStorageClass)
 		if err != nil {
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(
 					badDefaultStorageClass,
-					*globalStorageClass,
+					globalStorageClass,
 				),
 			)
 		}
@@ -360,9 +359,8 @@ func validateRoleStorageClass(
 	return valErrors, patches
 }
 
-// validateApp function checks for valid app and also
-// creates a patch to setup app_namespace field in
-// status resource
+// validateApp function checks for valid app and if necessary creates a patch
+// to populate appCatalog in the spec.
 func validateApp(
 	cr *kdv1.KubeDirectorCluster,
 	patches []clusterPatchSpec,
@@ -375,19 +373,28 @@ func validateApp(
 			"\n" + fmt.Sprintf(invalidAppMessage, cr.Spec.AppID)
 	}
 
-	cr.Status = &kdv1.ClusterStatus{
-		AppNamespace: appCR.Namespace,
-	}
-	cr.Status.Roles = make([]kdv1.RoleStatus, 0)
+	// Note that we should NOT call shared.EnsureClusterAppReference here,
+	// because K8s may yet still reject the creation of this cluster.
 
-	// Generate a patch object to add app namespace to the status resource
+	// If spec.appCatalog is already populated then return.
+	if cr.Spec.AppCatalog != nil {
+		return appCR, patches, ""
+	}
+
+	// Generate a patch object to populate spec.appCatalog.
+	var appCatalog string
+	if appCR.Namespace == cr.Namespace {
+		appCatalog = shared.AppCatalogLocal
+	} else {
+		appCatalog = shared.AppCatalogSystem
+	}
 	patches = append(
 		patches,
 		clusterPatchSpec{
 			Op:   "add",
-			Path: "/status",
+			Path: "/spec/appCatalog",
 			Value: clusterPatchValue{
-				ValueClusterStatus: cr.Status,
+				ValueStr: &appCatalog,
 			},
 		},
 	)
@@ -395,7 +402,7 @@ func validateApp(
 	return appCR, patches, ""
 }
 
-// validateMinResources function checks to see if minimum resource requiements
+// validateMinResources function checks to see if minimum resource requirements
 // are specified for each role, by checking against associated app roles' minimum
 // requirement
 func validateMinResources(
@@ -566,7 +573,6 @@ func validateFileInjections(
 // cluster CR.
 func addServiceType(
 	cr *kdv1.KubeDirectorCluster,
-	kdConfig *kdv1.KubeDirectorConfig,
 	patches []clusterPatchSpec,
 ) []clusterPatchSpec {
 
@@ -574,9 +580,9 @@ func addServiceType(
 		return patches
 	}
 
-	serviceType := defaultServiceType
-	if kdConfig.Spec.ServiceType != nil {
-		serviceType = *kdConfig.Spec.ServiceType
+	serviceType := shared.GetDefaultServiceType()
+	if len(serviceType) == 0 {
+		serviceType = defaultServiceType
 	}
 	cr.Spec.ServiceType = &serviceType
 
@@ -599,7 +605,6 @@ func addServiceType(
 // response.
 func admitClusterCR(
 	ar *v1beta1.AdmissionReview,
-	handlerState *reconciler.Handler,
 ) *v1beta1.AdmissionResponse {
 
 	var valErrors []string
@@ -640,10 +645,7 @@ func admitClusterCR(
 	// Don't allow Status to be updated except by KubeDirector. Do this by
 	// using one-time codes known by KubeDirector.
 	if clusterCR.Status != nil {
-		expectedStatusGen, ok := reconciler.ReadStatusGen(
-			&clusterCR,
-			handlerState,
-		)
+		expectedStatusGen, ok := kubedirectorcluster.StatusGens.ReadStatusGen(clusterCR.UID)
 		// Reject this write if either of:
 		// - KubeDirector doesn't know about the cluster resource
 		// - this status generation UID is not what we're expecting a write for
@@ -665,10 +667,8 @@ func admitClusterCR(
 			}
 		}
 	}
-	reconciler.ValidateStatusGen(
-		&clusterCR,
-		handlerState,
-	)
+
+	kubedirectorcluster.StatusGens.ValidateStatusGen(clusterCR.UID)
 
 	// Shortcut out of here if the spec is not being changed. Among other
 	// things this allows KD to update status or metadata even if the
@@ -691,9 +691,6 @@ func admitClusterCR(
 		return &admitResponse
 	}
 
-	// Fetch global config CR (if present)
-	kdConfigCR, _ := observer.GetKDConfig(shared.KubeDirectorGlobalConfig)
-
 	// Validate cardinality and generate patches for defaults members values.
 	valErrors, patches = validateCardinality(&clusterCR, appCR, valErrors, patches)
 
@@ -706,11 +703,10 @@ func admitClusterCR(
 	valErrors, patches = validateRoleStorageClass(
 		&clusterCR,
 		valErrors,
-		kdConfigCR,
 		patches,
 	)
 
-	patches = addServiceType(&clusterCR, kdConfigCR, patches)
+	patches = addServiceType(&clusterCR, patches)
 
 	// Validate file injections and generate patches for default values (if any)
 	valErrors, patches = validateFileInjections(&clusterCR, valErrors, patches)

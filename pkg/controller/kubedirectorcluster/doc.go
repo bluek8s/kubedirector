@@ -12,31 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package executor
-
-import (
-	"context"
-	"github.com/bluek8s/kubedirector/pkg/shared"
-
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-// DeletePVC deletes a persistent volume claim from k8s.
-func DeletePVC(
-	namespace string,
-	pvcName string,
-) error {
-
-	toDelete := &v1.PersistentVolumeClaim{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PersistentVolumeClaim",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      pvcName,
-			Namespace: namespace,
-		},
-	}
-	return shared.Client().Delete(context.TODO(), toDelete)
-}
+// Package kubedirectorcluster implements the reconciler.
+//
+// The reconciler logic will make use of the other packages (observer, catalog,
+// executor, etc.) to determine the current state of the relevant resources
+// and adjust them to match the provided spec.
+package kubedirectorcluster

@@ -22,7 +22,7 @@ spec:
           - "/bin/sh"
           args:
           - "-c"
-          - "mkfifo /tmp/fifo; (/root/kubedirector &> /tmp/fifo) & while true; do cat /tmp/fifo; done"
+          - "mkfifo /tmp/fifo; (/usr/local/bin/kubedirector &> /tmp/fifo) & while true; do cat /tmp/fifo; done"
           imagePullPolicy: Always
           env:
             - name: MY_NAMESPACE
@@ -33,6 +33,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "kubedirector"
       serviceAccountName: kubedirector

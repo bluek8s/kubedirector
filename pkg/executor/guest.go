@@ -18,17 +18,16 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/go-logr/logr"
-	"io"
-	"path/filepath"
-
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"k8s.io/api/core/v1"
+	"github.com/go-logr/logr"
+	"io"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/exec"
+	"path/filepath"
 )
 
 // IsFileExists probes whether the given pod's filesystem contains something
@@ -37,8 +36,10 @@ import (
 // be missing, or non-nil if the probe failed to execute.
 func IsFileExists(
 	reqLogger logr.Logger,
-	cr *kdv1.KubeDirectorCluster,
+	obj runtime.Object,
+	namespace string,
 	podName string,
+	containerName string,
 	filePath string,
 ) (bool, error) {
 
@@ -46,8 +47,16 @@ func IsFileExists(
 	// We only need the exit status, but we have to supply at least one
 	// stream to avoid an error.
 	var stdOut bytes.Buffer
-	ioStreams := &streams{out: &stdOut}
-	execErr := execCommand(reqLogger, cr, podName, command, ioStreams)
+	ioStreams := &Streams{Out: &stdOut}
+	execErr := ExecCommand(
+		reqLogger,
+		obj,
+		namespace,
+		podName,
+		containerName,
+		command,
+		ioStreams,
+	)
 	if execErr != nil {
 		// Determine which type of error occured
 		coe, iscoe := execErr.(exec.CodeExitError)
@@ -70,8 +79,10 @@ func IsFileExists(
 // in the filesystem of the given pod
 func CreateDir(
 	reqLogger logr.Logger,
-	cr *kdv1.KubeDirectorCluster,
+	obj runtime.Object,
+	namespace string,
 	podName string,
+	containerName string,
 	dirName string,
 ) error {
 
@@ -79,39 +90,63 @@ func CreateDir(
 	// We only need the exit status, but we have to supply at least one
 	// stream to avoid an error.
 	var stdOut bytes.Buffer
-	ioStreams := &streams{out: &stdOut}
-	return execCommand(reqLogger, cr, podName, command, ioStreams)
+	ioStreams := &Streams{Out: &stdOut}
+	return ExecCommand(
+		reqLogger,
+		obj,
+		namespace,
+		podName,
+		containerName,
+		command,
+		ioStreams,
+	)
 }
 
 // CreateFile takes the stream from the given reader, and writes it to the
 // indicated filepath in the filesystem of the given pod.
 func CreateFile(
 	reqLogger logr.Logger,
-	cr *kdv1.KubeDirectorCluster,
+	obj runtime.Object,
+	namespace string,
 	podName string,
+	containerName string,
 	filePath string,
 	reader io.Reader,
 ) error {
 
-	createDirErr := CreateDir(reqLogger, cr, podName, filepath.Dir(filePath))
-
+	createDirErr := CreateDir(
+		reqLogger,
+		obj,
+		namespace,
+		podName,
+		containerName,
+		filepath.Dir(filePath),
+	)
 	if createDirErr != nil {
 		return createDirErr
 	}
 
 	command := []string{"tee", filePath}
-	ioStreams := &streams{
-		in: reader,
+	ioStreams := &Streams{
+		In: reader,
 	}
 	shared.LogInfof(
 		reqLogger,
-		cr,
+		obj,
 		shared.EventReasonNoEvent,
 		"creating file{%s} in pod{%s}",
 		filePath,
 		podName,
 	)
-	execErr := execCommand(reqLogger, cr, podName, command, ioStreams)
+	execErr := ExecCommand(
+		reqLogger,
+		obj,
+		namespace,
+		podName,
+		containerName,
+		command,
+		ioStreams,
+	)
 	if execErr != nil {
 		return execErr
 	}
@@ -124,25 +159,35 @@ func CreateFile(
 // IsFileExists.
 func ReadFile(
 	reqLogger logr.Logger,
-	cr *kdv1.KubeDirectorCluster,
+	obj runtime.Object,
+	namespace string,
 	podName string,
+	containerName string,
 	filePath string,
 	writer io.Writer,
 ) (bool, error) {
 
 	command := []string{"cat", filePath}
-	ioStreams := &streams{
-		out: writer,
+	ioStreams := &Streams{
+		Out: writer,
 	}
 	shared.LogInfof(
 		reqLogger,
-		cr,
+		obj,
 		shared.EventReasonNoEvent,
 		"reading file{%s} in pod{%s}",
 		filePath,
 		podName,
 	)
-	execErr := execCommand(reqLogger, cr, podName, command, ioStreams)
+	execErr := ExecCommand(
+		reqLogger,
+		obj,
+		namespace,
+		podName,
+		containerName,
+		command,
+		ioStreams,
+	)
 	if execErr != nil {
 		coe, iscoe := execErr.(exec.CodeExitError)
 		if iscoe {
@@ -159,48 +204,60 @@ func ReadFile(
 // shell script in the given pod.
 func RunScript(
 	reqLogger logr.Logger,
-	cr *kdv1.KubeDirectorCluster,
+	obj runtime.Object,
+	namespace string,
 	podName string,
+	containerName string,
 	description string,
 	reader io.Reader,
 ) error {
 
 	command := []string{execShell}
-	ioStreams := &streams{
-		in: reader,
+	ioStreams := &Streams{
+		In: reader,
 	}
 	shared.LogInfof(
 		reqLogger,
-		cr,
+		obj,
 		shared.EventReasonNoEvent,
 		"running %s in pod{%s}",
 		description,
 		podName,
 	)
-	execErr := execCommand(reqLogger, cr, podName, command, ioStreams)
+	execErr := ExecCommand(
+		reqLogger,
+		obj,
+		namespace,
+		podName,
+		containerName,
+		command,
+		ioStreams,
+	)
 	if execErr != nil {
 		return execErr
 	}
 	return nil
 }
 
-// execCommand is a utility function for executing a command in a pod. It
+// ExecCommand is a utility function for executing a command in a pod. It
 // uses the given ioStreams to provide the command inputs and accept the
 // command outputs.
-func execCommand(
+func ExecCommand(
 	reqLogger logr.Logger,
-	cr *kdv1.KubeDirectorCluster,
+	obj runtime.Object,
+	namespace string,
 	podName string,
+	containerName string,
 	command []string,
-	ioStreams *streams,
+	ioStreams *Streams,
 ) error {
 
-	pod, podErr := observer.GetPod(cr.Namespace, podName)
+	pod, podErr := observer.GetPod(namespace, podName)
 	if podErr != nil {
 		shared.LogErrorf(
 			reqLogger,
 			podErr,
-			cr,
+			obj,
 			shared.EventReasonNoEvent,
 			"could not find pod{%s}",
 			podName,
@@ -211,7 +268,7 @@ func execCommand(
 		)
 	}
 
-	if pod.Status.Phase == v1.PodSucceeded || pod.Status.Phase == v1.PodFailed {
+	if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
 		return fmt.Errorf(
 			"cannot connect to pod{%v} in phase %v",
 			podName,
@@ -221,7 +278,7 @@ func execCommand(
 
 	foundContainer := false
 	for _, container := range pod.Spec.Containers {
-		if container.Name == appContainerName {
+		if container.Name == containerName {
 			foundContainer = true
 			break
 		}
@@ -229,7 +286,7 @@ func execCommand(
 	if !foundContainer {
 		return fmt.Errorf(
 			"container{%s} does not exist in pod{%v}",
-			appContainerName,
+			containerName,
 			podName,
 		)
 	}
@@ -237,15 +294,15 @@ func execCommand(
 	request := shared.ClientSet().CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(podName).
-		Namespace(cr.Namespace).
+		Namespace(namespace).
 		SubResource("exec").
-		Param("container", appContainerName)
-	request.VersionedParams(&v1.PodExecOptions{
-		Container: appContainerName,
+		Param("container", containerName)
+	request.VersionedParams(&corev1.PodExecOptions{
+		Container: containerName,
 		Command:   command,
-		Stdin:     ioStreams.in != nil,
-		Stdout:    ioStreams.out != nil,
-		Stderr:    ioStreams.errOut != nil,
+		Stdin:     ioStreams.In != nil,
+		Stdout:    ioStreams.Out != nil,
+		Stderr:    ioStreams.ErrOut != nil,
 	}, scheme.ParameterCodec)
 
 	exec, initErr := remotecommand.NewSPDYExecutor(
@@ -257,7 +314,7 @@ func execCommand(
 		shared.LogError(
 			reqLogger,
 			initErr,
-			cr,
+			obj,
 			shared.EventReasonNoEvent,
 			"failed to init the executor",
 		)
@@ -265,9 +322,9 @@ func execCommand(
 	}
 	execErr := exec.Stream(remotecommand.StreamOptions{
 		Tty:    false,
-		Stdin:  ioStreams.in,
-		Stdout: ioStreams.out,
-		Stderr: ioStreams.errOut,
+		Stdin:  ioStreams.In,
+		Stdout: ioStreams.Out,
+		Stderr: ioStreams.ErrOut,
 	})
 
 	return execErr

@@ -177,7 +177,7 @@ func UpdatePodService(
 			err,
 			cr,
 			shared.EventReasonCluster,
-			"failed to remove finalizer",
+			"failed to update service type",
 		)
 		return err
 	}

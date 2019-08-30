@@ -44,7 +44,7 @@ func RemoveFinalizer(
 ) error {
 	found := false
 	for i, f := range cr.Finalizers {
-		if f == finalizerID {
+		if f == shared.KubeDirectorFinalizerID {
 			cr.Finalizers = append(cr.Finalizers[:i], cr.Finalizers[i+1:]...)
 			found = true
 			break
@@ -67,7 +67,7 @@ func EnsureFinalizer(
 ) error {
 	found := false
 	for _, f := range cr.Finalizers {
-		if f == finalizerID {
+		if f == shared.KubeDirectorFinalizerID {
 			found = true
 			break
 		}
@@ -75,7 +75,7 @@ func EnsureFinalizer(
 	if found {
 		return nil
 	}
-	cr.Finalizers = append(cr.Finalizers, finalizerID)
+	cr.Finalizers = append(cr.Finalizers, shared.KubeDirectorFinalizerID)
 
 	// See https://github.com/bluek8s/kubedirector/issues/194
 	// Migrate Client().Update() calls back to Patch() calls.

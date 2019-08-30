@@ -19,14 +19,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/bluek8s/kubedirector/pkg/observer"
 	"os"
 	"runtime"
 
-	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/bluek8s/kubedirector/pkg/validator"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
@@ -34,15 +32,12 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/controller"
 	"github.com/bluek8s/kubedirector/version"
 
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	"github.com/operator-framework/operator-sdk/pkg/metrics"
 	"github.com/operator-framework/operator-sdk/pkg/restmapper"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	"github.com/spf13/pflag"
-	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
@@ -149,28 +144,14 @@ func main() {
 		}
 	}()
 
-	// Fetch our deployment object
-	kdName, kdNameErr := k8sutil.GetOperatorName()
-	if kdNameErr != nil {
-		log.Error(kdNameErr, "failed to get KubeDirector deployment name")
+	// Fetch a reference to the KubeDirector Deployment object
+	ownerReference, ownerReferenceErr := observer.GetKubeDirectorReference()
+	if ownerReferenceErr != nil {
+		log.Error(ownerReferenceErr, "failed to get a reference to the KubeDirector deployment object")
 		os.Exit(1)
 	}
 
-	kd, kdErr := observer.GetDeployment(kdName)
-	if kdErr != nil {
-		log.Error(kdErr, "failed to get KubeDirector deployment object")
-		os.Exit(1)
-	}
-
-	validatorErr := validator.InitValidationServer(
-		*metav1.NewControllerRef(
-			kd,
-			schema.GroupVersionKind{
-				Group:   appsv1.SchemeGroupVersion.Group,
-				Version: appsv1.SchemeGroupVersion.Version,
-				Kind:    "Deployment",
-			}),
-	)
+	validatorErr := validator.InitValidationServer(*ownerReference)
 	if validatorErr != nil {
 		log.Error(validatorErr, "failed to initialize validation server")
 		os.Exit(1)

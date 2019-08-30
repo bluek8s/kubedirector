@@ -30,7 +30,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -120,7 +120,7 @@ func handleReadyMembers(
 				return
 			}
 			// Only attempt to push the file if the pod is running.
-			if pod.Status.Phase != v1.PodRunning {
+			if pod.Status.Phase != corev1.PodRunning {
 				// We don't treat this as a problem; pod will get updated
 				// later.
 				return
@@ -129,7 +129,9 @@ func handleReadyMembers(
 			createFileErr := executor.CreateFile(
 				reqLogger,
 				cr,
+				cr.Namespace,
 				m.Pod,
+				executor.AppContainerName,
 				configMetaFile,
 				strings.NewReader(configmeta),
 			)
@@ -198,7 +200,7 @@ func handleCreatePendingMembers(
 				)
 				return
 			}
-			if pod.Status.Phase == v1.PodRunning {
+			if pod.Status.Phase == corev1.PodRunning {
 				m.State = string(memberCreating)
 				// We don't need to update membersByState; the newly
 				// creating-state members will be processed on a subsequent
@@ -560,7 +562,14 @@ func setupNodePrep(
 
 	// Check to see if the destination file exists already, in which case just
 	// return. Also bail out if we cannot manage to check file existence.
-	fileExists, fileError := executor.IsFileExists(reqLogger, cr, podName, configcliTestFile)
+	fileExists, fileError := executor.IsFileExists(
+		reqLogger,
+		cr,
+		cr.Namespace,
+		podName,
+		executor.AppContainerName,
+		configcliTestFile,
+	)
 	if fileError != nil {
 		return fileError
 	} else if fileExists {
@@ -580,7 +589,9 @@ func setupNodePrep(
 	createErr := executor.CreateFile(
 		reqLogger,
 		cr,
+		cr.Namespace,
 		podName,
+		executor.AppContainerName,
 		configcliDestFile,
 		bufio.NewReader(nodePrepFile),
 	)
@@ -592,7 +603,9 @@ func setupNodePrep(
 	return executor.RunScript(
 		reqLogger,
 		cr,
+		cr.Namespace,
 		podName,
+		executor.AppContainerName,
 		"configcli setup",
 		strings.NewReader(configcliInstallCmd),
 	)
@@ -610,7 +623,14 @@ func setupAppConfig(
 
 	// Check to see if the destination file exists already, in which case just
 	// return. Also bail out if we cannot manage to check file existence.
-	fileExists, fileError := executor.IsFileExists(reqLogger, cr, podName, appPrepStartscript)
+	fileExists, fileError := executor.IsFileExists(
+		reqLogger,
+		cr,
+		cr.Namespace,
+		podName,
+		executor.AppContainerName,
+		appPrepStartscript,
+	)
 	if fileError != nil {
 		return fileError
 	} else if fileExists {
@@ -622,7 +642,9 @@ func setupAppConfig(
 	return executor.RunScript(
 		reqLogger,
 		cr,
+		cr.Namespace,
 		podName,
+		executor.AppContainerName,
 		"app config setup",
 		strings.NewReader(cmd),
 	)
@@ -656,7 +678,9 @@ func injectFiles(
 		err := executor.RunScript(
 			reqLogger,
 			cr,
+			cr.Namespace,
 			podName,
+			executor.AppContainerName,
 			"file injection ("+destFile+")",
 			strings.NewReader(fileInjectCmd),
 		)
@@ -767,7 +791,9 @@ func appConfig(
 	fileExists, fileError := executor.ReadFile(
 		reqLogger,
 		cr,
+		cr.Namespace,
 		podName,
+		executor.AppContainerName,
 		appPrepConfigStatus,
 		&statusStrB,
 	)
@@ -798,7 +824,9 @@ func appConfig(
 	configmetaErr := executor.CreateFile(
 		reqLogger,
 		cr,
+		cr.Namespace,
 		podName,
+		executor.AppContainerName,
 		configMetaFile,
 		strings.NewReader(configmetaGenerator(podName)),
 	)
@@ -819,7 +847,9 @@ func appConfig(
 	cmdErr := executor.RunScript(
 		reqLogger,
 		cr,
+		cr.Namespace,
 		podName,
+		executor.AppContainerName,
 		"app config",
 		strings.NewReader(appPrepConfigRunCmd),
 	)
@@ -882,7 +912,9 @@ func appReConfig(
 	return executor.RunScript(
 		reqLogger,
 		cr,
+		cr.Namespace,
 		podName,
+		executor.AppContainerName,
 		"app reconfig",
 		strings.NewReader(cmd),
 	)

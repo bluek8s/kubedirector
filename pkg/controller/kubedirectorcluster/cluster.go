@@ -28,6 +28,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
+var (
+	// StatusGens is exported so that the validator can have access
+	// to the KubeDirectorCluster CR StatusGens
+	StatusGens = shared.NewStatusGens()
+)
+
 // syncCluster runs the reconciliation logic. It is invoked because of a
 // change in or addition of a KubeDirectorCluster instance, or a periodic
 // polling to check on such a resource.
@@ -62,7 +68,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			maxWait := 4096 * time.Second
 			for {
 				cr.Status.GenerationUID = uuid.New().String()
-				shared.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
+				StatusGens.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
 				updateErr := executor.UpdateStatus(reqLogger, cr)
 				if updateErr == nil {
 					return
@@ -201,7 +207,7 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 ) bool {
 
 	// Have we seen this cluster before?
-	_, ok := shared.ReadStatusGen(cr.UID)
+	_, ok := StatusGens.ReadStatusGen(cr.UID)
 	if ok {
 		// Yep we've already done processing for this cluster previously.
 		return true
@@ -250,8 +256,8 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 		"unknown with incoming gen uid %s",
 		incoming,
 	)
-	shared.WriteStatusGen(cr.UID, incoming)
-	shared.ValidateStatusGen(cr.UID)
+	StatusGens.WriteStatusGen(cr.UID, incoming)
+	StatusGens.ValidateStatusGen(cr.UID)
 	return true
 }
 
@@ -276,7 +282,7 @@ func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 		}
 		// Also clear the status gen from our cache, regardless of whether
 		// finalizer modification succeeded.
-		shared.DeleteStatusGen(cr.UID)
+		StatusGens.DeleteStatusGen(cr.UID)
 		shared.RemoveClusterAppReference(
 			cr.Namespace,
 			cr.Name,

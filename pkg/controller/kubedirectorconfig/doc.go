@@ -12,10 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package reconciler implements the reconciliation handler.
-//
-// The handler logic will make use of the other packages (observer, catalog,
-// executor, etc.) to determine the current state of the relevant resources
-// and adjust them to match the provided spec.
-
+// Package kubedirectorconfig implements reconciliation for KubeDirectorConfig.
 package kubedirectorconfig

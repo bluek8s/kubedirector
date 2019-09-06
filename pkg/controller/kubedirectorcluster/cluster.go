@@ -29,9 +29,8 @@ import (
 )
 
 var (
-	// StatusGens is exported so that the validator can have access
-	// to the KubeDirectorCluster CR StatusGens
-	StatusGens = shared.NewStatusGens()
+	// ClusterStatusGens is exported so that the validator can have access.
+	ClusterStatusGens = shared.NewStatusGens()
 )
 
 // syncCluster runs the reconciliation logic. It is invoked because of a
@@ -43,7 +42,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 ) error {
 
 	// We use a finalizer to maintain KubeDirector state consistency;
-	// e.g. ClusterAppReference's and StatusGen's.
+	// e.g. app references and ClusterStatusGens.
 	doExit, finalizerErr := r.handleFinalizers(reqLogger, cr)
 	if finalizerErr != nil {
 		return finalizerErr
@@ -68,8 +67,8 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			maxWait := 4096 * time.Second
 			for {
 				cr.Status.GenerationUID = uuid.New().String()
-				StatusGens.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
-				updateErr := executor.UpdateStatus(reqLogger, cr)
+				ClusterStatusGens.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
+				updateErr := executor.UpdateClusterStatus(cr)
 				if updateErr == nil {
 					return
 				}
@@ -137,7 +136,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return clusterServiceErr
 	}
 
-	roles, state, rolesErr := syncRoles(reqLogger, cr)
+	roles, state, rolesErr := syncClusterRoles(reqLogger, cr)
 	if rolesErr != nil {
 		errLog("roles", rolesErr)
 		return rolesErr
@@ -207,7 +206,7 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 ) bool {
 
 	// Have we seen this cluster before?
-	_, ok := StatusGens.ReadStatusGen(cr.UID)
+	_, ok := ClusterStatusGens.ReadStatusGen(cr.UID)
 	if ok {
 		// Yep we've already done processing for this cluster previously.
 		return true
@@ -253,11 +252,11 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 		reqLogger,
 		cr,
 		shared.EventReasonNoEvent,
-		"unknown with incoming gen uid %s",
+		"unknown cluster with incoming gen uid %s",
 		incoming,
 	)
-	StatusGens.WriteStatusGen(cr.UID, incoming)
-	StatusGens.ValidateStatusGen(cr.UID)
+	ClusterStatusGens.WriteStatusGen(cr.UID, incoming)
+	ClusterStatusGens.ValidateStatusGen(cr.UID)
 	return true
 }
 
@@ -271,7 +270,7 @@ func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 	if cr.DeletionTimestamp != nil {
 		// If a deletion has been requested, while ours (or other) finalizers
 		// existed on the CR, go ahead and remove our finalizer.
-		removeErr := executor.RemoveFinalizer(reqLogger, cr)
+		removeErr := executor.RemoveClusterFinalizer(reqLogger, cr)
 		if removeErr == nil {
 			shared.LogInfo(
 				reqLogger,
@@ -282,7 +281,7 @@ func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 		}
 		// Also clear the status gen from our cache, regardless of whether
 		// finalizer modification succeeded.
-		StatusGens.DeleteStatusGen(cr.UID)
+		ClusterStatusGens.DeleteStatusGen(cr.UID)
 		shared.RemoveClusterAppReference(
 			cr.Namespace,
 			cr.Name,
@@ -293,7 +292,7 @@ func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 	}
 
 	// If our finalizer doesn't exist on the CR, put it in there.
-	ensureErr := executor.EnsureFinalizer(reqLogger, cr)
+	ensureErr := executor.EnsureClusterFinalizer(reqLogger, cr)
 	if ensureErr != nil {
 		return true, ensureErr
 	}

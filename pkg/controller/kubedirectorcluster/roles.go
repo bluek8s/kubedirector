@@ -16,9 +16,10 @@ package kubedirectorcluster
 
 import (
 	"fmt"
-	"github.com/go-logr/logr"
 	"strconv"
 	"sync/atomic"
+
+	"github.com/go-logr/logr"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/executor"
@@ -27,13 +28,13 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
-// syncRoles is responsible for dealing with roles being changed, added, or
-// removed. It is the only function in this file that is invoked from another
+// syncClusterRoles is responsible for dealing with roles being changed, added,
+// or removed. It is the only function in this file that is invoked from another
 // file (from the syncCluster function in cluster.go). Managing role changes
 // may result in operations on k8s statefulsets. This function will also
 // modify the role status data structures, and create a role info slice that
 // can be referenced by the later syncs for other concerns.
-func syncRoles(
+func syncClusterRoles(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 ) ([]*roleInfo, clusterStateInternal, error) {

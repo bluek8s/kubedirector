@@ -29,7 +29,7 @@ type KubeDirectorConfigSpec struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // KubeDirectorConfig represents single global config. This will be referenced
-// by kubediector when processing cluster CRs and app CRs.
+// by kubedirector when processing cluster CRs and app CRs.
 // +k8s:openapi-gen=true
 type KubeDirectorConfig struct {
 	metav1.TypeMeta   `json:",inline"`

@@ -19,17 +19,17 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/bluek8s/kubedirector/pkg/observer"
 	"os"
 	"runtime"
 
-	"github.com/bluek8s/kubedirector/pkg/shared"
-	"github.com/bluek8s/kubedirector/pkg/validator"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"github.com/bluek8s/kubedirector/pkg/apis"
 	"github.com/bluek8s/kubedirector/pkg/controller"
+	"github.com/bluek8s/kubedirector/pkg/observer"
+	"github.com/bluek8s/kubedirector/pkg/shared"
+	"github.com/bluek8s/kubedirector/pkg/validator"
 	"github.com/bluek8s/kubedirector/version"
 
 	"github.com/operator-framework/operator-sdk/pkg/leader"
@@ -51,6 +51,7 @@ var (
 var log = logf.Log.WithName("kubedirector")
 
 func printVersion() {
+
 	log.Info(fmt.Sprintf("Go Version: %s", runtime.Version()))
 	log.Info(fmt.Sprintf("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH))
 	log.Info(fmt.Sprintf("Operator-sdk Version: %v", sdkVersion.Version))

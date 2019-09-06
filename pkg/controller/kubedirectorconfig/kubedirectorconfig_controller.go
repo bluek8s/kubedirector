@@ -17,6 +17,7 @@ package kubedirectorconfig
 import (
 	"context"
 	"fmt"
+
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 
@@ -32,26 +33,33 @@ import (
 
 var log = logf.Log.WithName("controller_kubedirectorconfig")
 
-// Add creates a new KubeDirectorConfig Controller and adds it to the Manager. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
+// Add creates a new KubeDirectorConfig Controller and adds it to the Manager.
+// The Manager will set fields on the Controller and Start it when the Manager
+// is Started.
 func Add(mgr manager.Manager) error {
+
 	return add(mgr, newReconciler(mgr))
 }
 
-// newReconciler returns a new reconcile.Reconciler
+// newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+
 	return &ReconcileKubeDirectorConfig{scheme: mgr.GetScheme()}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
+// add adds a new Controller to mgr with r as the reconcile.Reconciler.
+func add(
+	mgr manager.Manager,
+	r reconcile.Reconciler,
+) error {
+
 	// Create a new controller
 	c, err := controller.New("kubedirectorconfig-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to primary resource KubeDirectorConfig
+	// Watch for changes to primary resource KubeDirectorConfig.
 	err = c.Watch(&source.Kind{Type: &kdv1.KubeDirectorConfig{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
@@ -60,39 +68,43 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileKubeDirectorConfig implements reconcile.Reconciler
+// blank assignment to verify that ReconcileKubeDirectorConfig implements
+// reconcile.Reconciler.
 var _ reconcile.Reconciler = &ReconcileKubeDirectorConfig{}
 
 const (
 	// Period between the time when the controller requeues a request and
-	// it's scheduled again for reconciliation. Zero means don't poll.
+	// when it's scheduled again for reconciliation. Zero means don't poll.
 	reconcilePeriod = 0
 )
 
-// ReconcileKubeDirectorConfig reconciles a KubeDirectorConfig object
+// ReconcileKubeDirectorConfig reconciles a KubeDirectorConfig object.
 type ReconcileKubeDirectorConfig struct {
 	scheme *runtime.Scheme
 }
 
-// Reconcile reads that state of the cluster for a KubeDirectorConfig object and makes changes based on the state read
-// and what is in the KubeDirectorConfig.Spec
+// Reconcile reads that state of the cluster for a KubeDirectorConfig object
+// and makes changes based on the state read and what is in the
+// KubeDirectorConfig.Spec.
 // Note:
-// The Controller will requeue the Request to be processed again if the returned error is non-nil or
-// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
+// The Controller will requeue the Request to be processed again if the
+// returned error is non-nil or Result.Requeue is true, otherwise upon
+// completion it will remove the work from the queue.
 func (r *ReconcileKubeDirectorConfig) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling KubeDirectorConfig")
 	reconcileResult := reconcile.Result{RequeueAfter: reconcilePeriod}
 
-	// Fetch the KubeDirectorConfig instance
-	kdConfig := &kdv1.KubeDirectorConfig{}
-	err := shared.Client().Get(context.TODO(), request.NamespacedName, kdConfig)
+	// Fetch the KubeDirectorConfig instance.
+	cr := &kdv1.KubeDirectorConfig{}
+	err := shared.Client().Get(context.TODO(), request.NamespacedName, cr)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup
-			// logic use finalizers.
-			// Return and don't requeue
+			// Request object not found, could have been deleted after
+			// reconcile request. Owned objects are automatically garbage
+			// collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue.
 			shared.RemoveGlobalConfig()
 			return reconcile.Result{}, nil
 		}
@@ -100,7 +112,6 @@ func (r *ReconcileKubeDirectorConfig) Reconcile(request reconcile.Request) (reco
 		return reconcileResult,
 			fmt.Errorf("could not fetch KubeDirectorConfig instance: %s", err)
 	}
-
-	shared.AddGlobalConfig(kdConfig)
+	shared.AddGlobalConfig(cr)
 	return reconcileResult, nil
 }

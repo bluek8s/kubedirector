@@ -17,10 +17,11 @@ package kubedirectorcluster
 import (
 	"context"
 	"fmt"
+	"time"
+
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -31,28 +32,35 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+var log = logf.Log.WithName("controller_kubedirectorcluster")
+
 // Add creates a new KubeDirectorCluster Controller and adds it to the Manager.
-// The Manager will set fields on the Controller and Start it when the Manager is Started.
+// The Manager will set fields on the Controller and Start it when the Manager
+// is Started.
 func Add(mgr manager.Manager) error {
+
 	return add(mgr, newReconciler(mgr))
 }
 
-var log = logf.Log.WithName("controller_kubedirectorcluster")
-
-// newReconciler returns a new reconcile.Reconciler .
+// newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+
 	return &ReconcileKubeDirectorCluster{scheme: mgr.GetScheme()}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
+// add adds a new Controller to mgr with r as the reconcile.Reconciler.
+func add(
+	mgr manager.Manager,
+	r reconcile.Reconciler,
+) error {
+
 	// Create a new controller
 	c, err := controller.New("kubedirectorcluster-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to primary resource KubeDirectorCluster
+	// Watch for changes to primary resource KubeDirectorCluster.
 	err = c.Watch(&source.Kind{Type: &kdv1.KubeDirectorCluster{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
@@ -61,38 +69,41 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileKubeDirectorCluster implements reconcile.Reconciler
+// blank assignment to verify that ReconcileKubeDirectorCluster implements
+// reconcile.Reconciler.
 var _ reconcile.Reconciler = &ReconcileKubeDirectorCluster{}
 
 const (
-	// Period between the time when the controller requeues a request
-	// and it's scheduled again for reconciliation
+	// Period between the time when the controller requeues a request and
+	// when it's scheduled again for reconciliation.
 	reconcilePeriod = 30 * time.Second
 )
 
-// ReconcileKubeDirectorCluster reconciles a KubeDirectorCluster object
+// ReconcileKubeDirectorCluster reconciles a KubeDirectorCluster object.
 type ReconcileKubeDirectorCluster struct {
 	scheme *runtime.Scheme
 }
 
-// Reconcile reads that state of the cluster for a KubeDirectorCluster object and makes changes based
-// on the state read and what is in the KubeDirectorCluster.Spec
+// Reconcile reads that state of the cluster for a KubeDirectorCluster object
+// and makes changes based on the state read and what is in the
+// KubeDirectorCluster.Spec.
 //
-// The Controller will requeue the Request to be processed again if the returned error is non-nil or
-// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
+// The Controller will requeue the Request to be processed again if the
+// returned error is non-nil or Result.Requeue is true, otherwise upon
+// completion it will remove the work from the queue.
 func (r *ReconcileKubeDirectorCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling KubeDirectorCluster")
 	reconcileResult := reconcile.Result{RequeueAfter: reconcilePeriod}
 
-	// Fetch the KubeDirectorCluster instance
+	// Fetch the KubeDirectorCluster instance.
 	cr := &kdv1.KubeDirectorCluster{}
 	err := shared.Client().Get(context.TODO(), request.NamespacedName, cr)
 	if err != nil {
-		// If the resource is not found, that means all of
-		// the finalizers have been removed, and the kubedirectorcluster
-		// resource has been deleted, so there is nothing left
-		// to do.
+		// If the resource is not found, that means all of the finalizers have
+		// been removed, and the kubedirectorcluster resource has been deleted,
+		// so there is nothing left to do.
 		if apierrors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}

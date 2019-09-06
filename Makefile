@@ -263,6 +263,10 @@ undeploy:
 teardown: undeploy
 
 compile: pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go
+	GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
+		go build -o ${build_dir}/bin/${project_name} ./cmd/manager
+
+ci-compile:
 	make clean
 	GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
 		go build -o ${build_dir}/bin/${project_name} ./cmd/manager

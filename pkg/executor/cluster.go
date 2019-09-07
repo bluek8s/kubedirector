@@ -16,16 +16,16 @@ package executor
 
 import (
 	"context"
+
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
 )
 
-// UpdateStatus propagates status changes back to k8s. Roles or members in
-// the status that have been marked for deletion (by having certain fields
+// UpdateClusterStatus propagates status changes back to k8s. Roles or members
+// in the status that have been marked for deletion (by having certain fields
 // set to emptystring) will be removed before the writeback.
-func UpdateStatus(
-	reqLogger logr.Logger,
+func UpdateClusterStatus(
 	cr *kdv1.KubeDirectorCluster,
 ) error {
 
@@ -36,9 +36,10 @@ func UpdateStatus(
 	return shared.Client().Status().Update(context.TODO(), cr)
 }
 
-// RemoveFinalizer removes the KubeDirector finalizer from the CR's finalizers
+// RemoveClusterFinalizer removes the KubeDirector finalizer from the CR's finalizers
 // list (if it is in there).
-func RemoveFinalizer(
+// XXX Would be good to generalize this (see also RemoveTenantFinalizer).
+func RemoveClusterFinalizer(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 ) error {
@@ -59,9 +60,10 @@ func RemoveFinalizer(
 	return shared.Client().Update(context.TODO(), cr)
 }
 
-// EnsureFinalizer adds the KubeDirector finalizer into the CR's finalizers
+// EnsureClusterFinalizer adds the KubeDirector finalizer into the CR's finalizers
 // list (if it is not in there).
-func EnsureFinalizer(
+// XXX Would be good to generalize this (see also EnsureTenantFinalizer).
+func EnsureClusterFinalizer(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 ) error {

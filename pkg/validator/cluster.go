@@ -645,7 +645,7 @@ func admitClusterCR(
 	// Don't allow Status to be updated except by KubeDirector. Do this by
 	// using one-time codes known by KubeDirector.
 	if clusterCR.Status != nil {
-		expectedStatusGen, ok := kubedirectorcluster.StatusGens.ReadStatusGen(clusterCR.UID)
+		expectedStatusGen, ok := kubedirectorcluster.ClusterStatusGens.ReadStatusGen(clusterCR.UID)
 		// Reject this write if either of:
 		// - KubeDirector doesn't know about the cluster resource
 		// - this status generation UID is not what we're expecting a write for
@@ -668,7 +668,7 @@ func admitClusterCR(
 		}
 	}
 
-	kubedirectorcluster.StatusGens.ValidateStatusGen(clusterCR.UID)
+	kubedirectorcluster.ClusterStatusGens.ValidateStatusGen(clusterCR.UID)
 
 	// Shortcut out of here if the spec is not being changed. Among other
 	// things this allows KD to update status or metadata even if the

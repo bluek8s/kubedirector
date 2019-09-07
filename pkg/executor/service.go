@@ -16,11 +16,12 @@ package executor
 
 import (
 	"context"
+
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -200,7 +201,7 @@ func UpdatePodService(
 			cr,
 			shared.EventReasonMember,
 			"failed to retrieve service{%s}",
-			service.Spec.Type,
+			service.Name,
 		)
 		return err
 	}
@@ -214,7 +215,7 @@ func UpdatePodService(
 			cr,
 			shared.EventReasonMember,
 			"failed to update service{%s}",
-			service.Spec.Type,
+			service.Name,
 		)
 	}
 	return err

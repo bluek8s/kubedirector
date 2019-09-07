@@ -19,13 +19,14 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"io/ioutil"
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/http"
 )
 
 // Add validation handlers for all CRs that we currently support
@@ -81,7 +82,9 @@ func validation(
 			admissionResponse = handler(&ar)
 		} else {
 			// No validation handler for this CR. Allow to go through.
-			admissionResponse.Allowed = true
+			admissionResponse = &v1beta1.AdmissionResponse{
+				Allowed: true,
+			}
 		}
 	}
 
@@ -122,7 +125,7 @@ func StartValidationServer() error {
 	}
 
 	// Fetch certificate secret information
-	certSecret, err := observer.GetSecret(validatorSecret, kdNamespace)
+	certSecret, err := observer.GetSecret(kdNamespace, validatorSecret)
 	if err != nil {
 		return fmt.Errorf(
 			"failed to read secret(%s) object %v",
@@ -201,7 +204,7 @@ func InitValidationServer(
 	}
 
 	// Check to see if webhook secret is already present
-	certSecret, err := observer.GetSecret(validatorSecret, kdNamespace)
+	certSecret, err := observer.GetSecret(kdNamespace, validatorSecret)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Secret not found, create certs and the secret object

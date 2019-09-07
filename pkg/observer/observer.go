@@ -16,6 +16,7 @@ package observer
 
 import (
 	"context"
+
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
@@ -110,14 +111,14 @@ func GetPVC(
 // GetApp fetches the k8s KubeDirectorApp resource with the given name in
 // the given namespace.
 func GetApp(
-	appNamespace string,
-	appID string,
+	namespace string,
+	appName string,
 ) (*kdv1.KubeDirectorApp, error) {
 
 	result := &kdv1.KubeDirectorApp{}
 	err := shared.Client().Get(
 		context.TODO(),
-		types.NamespacedName{Namespace: appNamespace, Name: appID},
+		types.NamespacedName{Namespace: namespace, Name: appName},
 		result,
 	)
 
@@ -145,8 +146,8 @@ func GetValidatorWebhook(
 
 // GetSecret fetches the secret resource in the given namespace.
 func GetSecret(
-	secretName string,
 	namespace string,
+	secretName string,
 ) (*corev1.Secret, error) {
 
 	result := &corev1.Secret{}

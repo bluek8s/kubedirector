@@ -268,23 +268,13 @@ func handleMemberServiceConfig(
 	memberService *v1.Service,
 ) {
 
-	updateErr := executor.UpdatePodService(
+	executor.UpdatePodService(
 		reqLogger,
 		cr,
 		role.roleSpec,
 		member.Pod,
 		memberService,
 	)
-	if updateErr != nil {
-		shared.LogErrorf(
-			reqLogger,
-			updateErr,
-			cr,
-			shared.EventReasonMember,
-			"failed to update Service{%s}",
-			member.Service,
-		)
-	}
 }
 
 // queryService is a generalized lookup subroutine for finding either

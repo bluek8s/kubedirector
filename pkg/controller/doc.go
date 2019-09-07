@@ -12,5 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package kubedirectorcluster implements reconciliation for KubeDirectorCluster.
-package kubedirectorcluster
+// Package controller implements the reconciliation logic for custom resources.
+//
+// The reconciliation logic will make use of the other packages (observer,
+// catalog, executor, etc.) to determine the current state of the relevant
+// resources and adjust them to match the provided spec. The reconciliation
+// code responsible for a particular type of custom resource is segregated
+// into its own subdirectory.
+package controller

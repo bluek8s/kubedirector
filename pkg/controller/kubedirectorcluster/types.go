@@ -50,7 +50,7 @@ const (
 
 const (
 	configMetaFile      = "/etc/guestconfig/configmeta.json"
-	configcliSrcFile    = "/root/configcli.tgz"
+	configcliSrcFile    = "/home/kubedirector/configcli.tgz"
 	configcliDestFile   = "/tmp/configcli.tgz"
 	configcliInstallCmd = `cd /tmp;tar xzf configcli.tgz;
 	chmod +x /tmp/configcli-*/install;/tmp/configcli-*/install;

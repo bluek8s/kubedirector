@@ -5,8 +5,8 @@
 
 if ! whoami &>/dev/null; then
   if [ -w /etc/passwd ]; then
-    echo "kubedirector:x:$(id -u):$(id -g):kubedirector user:/home/kubedirector:/sbin/nologin" >> /etc/passwd
+    echo "${USER_NAME}:x:$(id -u):$(id -g):${USER_NAME} user:${USER_HOME}:/sbin/nologin" >> /etc/passwd
   fi
 fi
 
-mkfifo /tmp/fifo; (/home/kubedirector/kubedirector $@ &> /tmp/fifo) & while true; do cat /tmp/fifo; done
+mkfifo /tmp/fifo; (${USER_HOME}/kubedirector $@ &> /tmp/fifo) & while true; do cat /tmp/fifo; done

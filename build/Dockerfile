@@ -2,7 +2,9 @@ FROM registry.access.redhat.com/ubi7/ubi-minimal:latest
 
 ENV USER_UID=1001 \
     USER_NAME=kubedirector \
-    USER_HOME=/home/kubedirector
+    USER_HOME=/home/kubedirector \
+    OPERATOR=/home/kubedirector/kubedirector \
+    OPERATOR_BUILD_SRC=build/_output/bin/kubedirector
 
 # Support ps and killall, for redeploy.
 RUN microdnf update -y && rm -rf /var/cache/yum
@@ -25,10 +27,10 @@ RUN chown 0:0 /usr/local/bin/entrypoint && \
 RUN mkdir -p ${USER_HOME} && \
     chown ${USER_UID}:0 ${USER_HOME} && \
     chmod ug=rwx ${USER_HOME}
-COPY build/_output/bin/kubedirector ${USER_HOME}/kubedirector
+COPY ${OPERATOR_BUILD_SRC} ${OPERATOR}
 COPY build/_output/configcli.tgz ${USER_HOME}/configcli.tgz
-RUN chown ${USER_UID}:0 ${USER_HOME}/kubedirector && \
-    chmod ug=rwx ${USER_HOME}/kubedirector && \
+RUN chown ${USER_UID}:0 ${OPERATOR} && \
+    chmod ug=rwx ${OPERATOR} && \
     chown ${USER_UID}:0 ${USER_HOME}/configcli.tgz && \
     chmod ug=rw ${USER_HOME}/configcli.tgz
 

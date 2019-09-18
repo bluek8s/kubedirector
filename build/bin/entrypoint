@@ -9,4 +9,4 @@ if ! whoami &>/dev/null; then
   fi
 fi
 
-mkfifo /tmp/fifo; (${USER_HOME}/kubedirector $@ &> /tmp/fifo) & while true; do cat /tmp/fifo; done
+mkfifo /tmp/fifo; (${OPERATOR} $@ &> /tmp/fifo) & while true; do cat /tmp/fifo; done

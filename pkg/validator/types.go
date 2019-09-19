@@ -28,6 +28,7 @@ const (
 	validatorWebhook     = "kubedirector-webhook"
 	validatorSecret      = "kubedirector-validator-secret"
 	webhookHandlerName   = "validate-cr.kubedirector.bluedata.io"
+	validationPort       = 8443
 	validationPath       = "/validate"
 	defaultServiceType   = "LoadBalancer"
 	defaultNativeSystemd = false

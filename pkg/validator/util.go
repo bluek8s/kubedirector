@@ -24,7 +24,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/triple"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"k8s.io/api/admissionregistration/v1beta1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -77,7 +77,7 @@ func createWebhookService(
 				{
 					Protocol:   "TCP",
 					Port:       443,
-					TargetPort: intstr.FromInt(443),
+					TargetPort: intstr.FromInt(validationPort),
 				},
 			},
 		},

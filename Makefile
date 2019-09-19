@@ -9,10 +9,10 @@ image ?= ${default_image}
 cluster_resource_name := KubeDirectorCluster
 app_resource_name := KubeDirectorApp
 
-bin_dir := /usr/local/bin
 project_name := kubedirector
+bin_name := kubedirector
 
-configcli_dir := /root
+home_dir := /home/kubedirector
 configcli_version := 0.5
 
 local_deploy_yaml := deploy/kubedirector/deployment-localbuilt.yaml
@@ -41,33 +41,6 @@ build: configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcop
 	operator-sdk build ${image}
 	@docker image prune -f > /dev/null
 	@sed -e 's~REPLACE_IMAGE~${image}~' deploy/operator.yaml >${local_deploy_yaml}
-	@echo done
-	@echo
-
-debug: export GOFLAGS += -gcflags=all=-N -gcflags=-l
-debug: build
-debug:
-	@echo \* Applying debug settings to KubeDirector deployment YAML...
-	@sed -i ${sedseparator} \
-        -e '\~${bin_dir}/${project_name}~s~~${bin_dir}/dlv --listen=:40000 --headless --api-version=2 exec &~' \
-        -e '\~template:~,\~metadata:~ {' \
-        -e '\~metadata:~ {' \
-        -e 'a\      annotations:' \
-        -e 'a\        container.apparmor.security.beta.kubernetes.io/${project_name}: unconfined' \
-        -e '}' \
-        -e '}' \
-        -e '\~image:~ {' \
-        -e 'a\          ports:' \
-        -e 'a\          - containerPort: 40000' \
-        -e 'a\            hostPort: 40000' \
-        -e '}' \
-        -e '$$ {' \
-        -e 'a\          securityContext:' \
-        -e 'a\            capabilities:' \
-        -e 'a\              add:' \
-        -e 'a\                - SYS_PTRACE' \
-        -e '}' \
-        ${local_deploy_yaml}
 	@echo done
 	@echo
 
@@ -181,17 +154,20 @@ redeploy:
 	@echo \* Injecting new configcli package...
 	@set -e; \
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
-        kubectl exec $$podname -- mv -f ${configcli_dir}/configcli.tgz ${configcli_dir}/configcli.tgz.bak || true; \
-        kubectl cp ${build_dir}/configcli.tgz $$podname:${configcli_dir}/configcli.tgz
+        kubectl exec $$podname -- mv -f ${home_dir}/configcli.tgz ${home_dir}/configcli.tgz.bak || true; \
+        kubectl cp ${build_dir}/configcli.tgz $$podname:${home_dir}/configcli.tgz; \
+        kubectl exec $$podname -- chgrp 0 ${home_dir}/configcli.tgz; \
+        kubectl exec $$podname -- chmod ug=rw ${home_dir}/configcli.tgz
 	@echo
 	@echo \* Injecting and starting new KubeDirector binary...
 	@set -e; \
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
         kubectl exec $$podname -- /bin/sh -c "echo REDEPLOYING > /tmp/fifo"; \
-        kubectl exec $$podname -- mv -f ${bin_dir}/${project_name} ${bin_dir}/${project_name}.bak || true; \
-        kubectl cp ${build_dir}/bin/${project_name} $$podname:${bin_dir}/${project_name}; \
-        kubectl exec $$podname -- chmod +x ${bin_dir}/${project_name}; \
-        kubectl exec -t $$podname -- /bin/sh -c "${bin_dir}/${project_name} &> /tmp/fifo &"; \
+        kubectl exec $$podname -- mv -f ${home_dir}/${project_name} ${home_dir}/${project_name}.bak || true; \
+        kubectl cp ${build_dir}/bin/${bin_name} $$podname:${home_dir}/${project_name}; \
+        kubectl exec $$podname -- chgrp 0 ${home_dir}/${project_name}; \
+        kubectl exec $$podname -- chmod ug=rwx ${home_dir}/${project_name}; \
+        kubectl exec -t $$podname -- /bin/sh -c "${home_dir}/${project_name} &> /tmp/fifo &"; \
         echo; \
         echo KubeDirector pod name is $$podname
 	@echo

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
@@ -173,6 +174,7 @@ func StartValidationServer() error {
 	}
 
 	server := &http.Server{
+		Addr: ":" + strconv.Itoa(validationPort),
 		TLSConfig: &tls.Config{
 			Certificates: []tls.Certificate{sCert},
 		},

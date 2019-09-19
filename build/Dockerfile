@@ -1,22 +1,39 @@
 FROM registry.access.redhat.com/ubi7/ubi-minimal:latest
-ENV OPERATOR=/usr/local/bin/kubedirector
-# ENV DEBUGGER=/usr/local/bin/dlv
 
+ENV USER_UID=1001 \
+    USER_NAME=kubedirector \
+    USER_HOME=/home/kubedirector \
+    OPERATOR=/home/kubedirector/kubedirector \
+    OPERATOR_BUILD_SRC=build/_output/bin/kubedirector
+
+# Support ps and killall, for redeploy.
 RUN microdnf update -y && rm -rf /var/cache/yum
-
 RUN microdnf -y install --nodocs psmisc procps-ng \
     && microdnf clean all
 
-# Allow delve to run on Alpine based containers.
-# RUN apk add --no-cache libc6-compat
+# For OpenShift support, the runtime user will need to be able to self-insert
+# in /etc/passwd. We can't add the user during image build because on OpenShift
+# we'll get a random user ID at runtime (rather than USER_UID).
+RUN chmod g=u /etc/passwd
 
-# Debugger
-# COPY build/bin/dlv ${DEBUGGER}
-# RUN chmod +x ${DEBUGGER}
+# Install entrypoint script. This will create the user passwd entry and
+# launch the operator.
+COPY build/bin/entrypoint /usr/local/bin/entrypoint
+RUN chown 0:0 /usr/local/bin/entrypoint && \
+    chmod u=rwx,go=rx /usr/local/bin/entrypoint
 
-COPY build/_output/bin/kubedirector ${OPERATOR}
-RUN chmod +x ${OPERATOR}
+# Set up the kubedirector user files, including the operator binary. For
+# OpenShift support, make sure they are usable by any user in the root group.
+RUN mkdir -p ${USER_HOME} && \
+    chown ${USER_UID}:0 ${USER_HOME} && \
+    chmod ug=rwx ${USER_HOME}
+COPY ${OPERATOR_BUILD_SRC} ${OPERATOR}
+COPY build/_output/configcli.tgz ${USER_HOME}/configcli.tgz
+RUN chown ${USER_UID}:0 ${OPERATOR} && \
+    chmod ug=rwx ${OPERATOR} && \
+    chown ${USER_UID}:0 ${USER_HOME}/configcli.tgz && \
+    chmod ug=rw ${USER_HOME}/configcli.tgz
 
-COPY build/_output/configcli.tgz /root/configcli.tgz
+ENTRYPOINT ["/usr/local/bin/entrypoint"]
 
-USER root
+USER ${USER_UID}:0

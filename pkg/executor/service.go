@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,9 +21,10 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -34,10 +35,10 @@ import (
 // re-use that same name instead of generating a new one.
 func CreateHeadlessService(
 	cr *kdv1.KubeDirectorCluster,
-) (*v1.Service, error) {
+) (*corev1.Service, error) {
 
 	name := headlessServiceName
-	service := &v1.Service{
+	service := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
@@ -47,12 +48,12 @@ func CreateHeadlessService(
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labelsForService(cr),
 		},
-		Spec: v1.ServiceSpec{
+		Spec: corev1.ServiceSpec{
 			ClusterIP: "None",
 			Selector: map[string]string{
 				headlessServiceLabel: name + "-" + cr.Name,
 			},
-			Ports: []v1.ServicePort{
+			Ports: []corev1.ServicePort{
 				{
 					Name: "port",
 					Port: 8888, // not used
@@ -74,7 +75,7 @@ func CreateHeadlessService(
 // take steps to reconcile it to the desired spec.
 func UpdateHeadlessService(
 	cr *kdv1.KubeDirectorCluster,
-	service *v1.Service,
+	service *corev1.Service,
 ) error {
 
 	// TBD: We could compare the service against the expected service
@@ -94,9 +95,9 @@ func CreatePodService(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
 	podName string,
-) (*v1.Service, error) {
+) (*corev1.Service, error) {
 
-	serviceType := serviceType(*cr.Spec.ServiceType)
+	serviceType := shared.ServiceType(*cr.Spec.ServiceType)
 
 	portInfoList, portsErr := catalog.PortsForRole(cr, role.Name)
 	if portsErr != nil {
@@ -105,7 +106,7 @@ func CreatePodService(
 	if len(portInfoList) == 0 {
 		return nil, nil
 	}
-	service := &v1.Service{
+	service := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
@@ -116,13 +117,14 @@ func CreatePodService(
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labelsForService(cr),
 		},
-		Spec: v1.ServiceSpec{
-			Selector: labelsForPod(cr, role, podName),
-			Type:     serviceType,
+		Spec: corev1.ServiceSpec{
+			Selector:                 labelsForPod(cr, role, podName),
+			Type:                     serviceType,
+			PublishNotReadyAddresses: true,
 		},
 	}
 	for _, portInfo := range portInfoList {
-		servicePort := v1.ServicePort{
+		servicePort := corev1.ServicePort{
 			Port: portInfo.Port,
 			Name: portInfo.ID,
 		}
@@ -144,10 +146,10 @@ func UpdatePodService(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
 	podName string,
-	service *v1.Service,
+	service *corev1.Service,
 ) error {
 
-	reqServiceType := serviceType(*cr.Spec.ServiceType)
+	reqServiceType := shared.ServiceType(*cr.Spec.ServiceType)
 
 	// Compare cluster CR's service type against created service
 	if reqServiceType == service.Spec.Type {
@@ -164,70 +166,51 @@ func UpdatePodService(
 		service.Name,
 	)
 
-	service.Spec.Type = reqServiceType
-	err := shared.Client().Update(context.TODO(), service)
-	if err == nil {
-		return nil
-	}
+	if (service.Spec.Type == corev1.ServiceTypeNodePort ||
+		service.Spec.Type == corev1.ServiceTypeLoadBalancer) &&
+		(reqServiceType == corev1.ServiceTypeClusterIP ||
+			reqServiceType == corev1.ServiceTypeLoadBalancer) {
 
-	// See https://github.com/bluek8s/kubedirector/issues/194
-	// Migrate Client().Update() calls back to Patch() calls.
-	if !errors.IsConflict(err) {
-		shared.LogError(
+		shared.LogInfof(
 			reqLogger,
-			err,
-			cr,
-			shared.EventReasonCluster,
-			"failed to update service type",
-		)
-		return err
-	}
-
-	// If there was a resourceVersion conflict then fetch a more
-	// recent version of the object and attempt to update that.
-	currentService := &v1.Service{}
-	err = shared.Client().Get(
-		context.TODO(),
-		types.NamespacedName{
-			Namespace: service.Namespace,
-			Name:      service.Name,
-		},
-		currentService,
-	)
-	if err != nil {
-		shared.LogErrorf(
-			reqLogger,
-			err,
 			cr,
 			shared.EventReasonMember,
-			"failed to retrieve service{%s}",
+			"deleting service {%s}",
 			service.Name,
 		)
-		return err
-	}
 
-	currentService.Spec.Type = reqServiceType
-	err = shared.Client().Update(context.TODO(), currentService)
-	if err != nil {
-		shared.LogErrorf(
+		deleteError := DeletePodService(
 			reqLogger,
-			err,
-			cr,
-			shared.EventReasonMember,
-			"failed to update service{%s}",
+			cr.Namespace,
 			service.Name,
 		)
+
+		if deleteError != nil {
+			shared.LogInfof(
+				reqLogger,
+				cr,
+				shared.EventReasonMember,
+				"waiting for service of serviceType %s to be created by reconciler",
+				reqServiceType,
+			)
+
+			return deleteError
+		}
+	} else {
+		service.Spec.Type = reqServiceType
+		return UpdateService(reqLogger, cr, service)
 	}
-	return err
+	return nil
 }
 
 // DeletePodService deletes a per-member service from k8s.
 func DeletePodService(
+	reqLogger logr.Logger,
 	namespace string,
 	serviceName string,
 ) error {
 
-	toDelete := &v1.Service{
+	toDelete := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
@@ -250,15 +233,67 @@ func serviceName(
 	return "svc-" + baseName
 }
 
-// serviceType is a utility function that converts serviceType string to
-// v1.ServiceType
-func serviceType(
-	crServicetype string,
-) v1.ServiceType {
+// UpdateService updates a service
+func UpdateService(
+	reqLogger logr.Logger,
+	obj runtime.Object,
+	service *corev1.Service,
+) error {
 
-	if crServicetype == string(v1.ServiceTypeNodePort) {
-		return v1.ServiceTypeNodePort
+	err := shared.Client().Update(context.TODO(), service)
+	if err == nil {
+		return nil
+	}
+	// See https://github.com/bluek8s/kubedirector/issues/194
+	// Migrate Client().Update() calls back to Patch() calls.
+	if !errors.IsConflict(err) {
+		shared.LogErrorf(
+			reqLogger,
+			err,
+			obj,
+			shared.EventReasonCluster,
+			"failed to update service {%v}",
+			service,
+		)
+		return err
 	}
 
-	return v1.ServiceTypeLoadBalancer
+	// If there was a resourceVersion conflict then fetch a more
+	// recent version of the object and attempt to update that.
+	currentService := &corev1.Service{}
+	err = shared.Client().Get(
+		context.TODO(),
+		types.NamespacedName{
+			Namespace: service.Namespace,
+			Name:      service.Name,
+		},
+		currentService,
+	)
+	if err != nil {
+		shared.LogErrorf(
+			reqLogger,
+			err,
+			obj,
+			shared.EventReasonMember,
+			"failed to retrieve service{%s}",
+			service.Name,
+		)
+		return err
+	}
+
+	currentService.Spec.Type = service.Spec.Type
+	currentService.Annotations = service.Annotations
+	err = shared.Client().Update(context.TODO(), currentService)
+	if err != nil {
+		shared.LogErrorf(
+			reqLogger,
+			err,
+			obj,
+			shared.EventReasonMember,
+			"failed to update service{%s} with {%v}",
+			service.Name,
+			currentService,
+		)
+	}
+	return err
 }

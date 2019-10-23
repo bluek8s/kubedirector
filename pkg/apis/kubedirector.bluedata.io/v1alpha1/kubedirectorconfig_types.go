@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,6 +26,13 @@ type KubeDirectorConfigSpec struct {
 	NativeSystemdSupport *bool   `json:"nativeSystemdSupport"`
 }
 
+// KubeDirectorConfigStatus defines the observed state of KubeDirectorConfig.
+// +k8s:openapi-gen=true
+type KubeDirectorConfigStatus struct {
+	GenerationUID string `json:"generation_uid"`
+	State         string `json:"state"`
+}
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // KubeDirectorConfig represents single global config. This will be referenced
@@ -34,7 +41,8 @@ type KubeDirectorConfigSpec struct {
 type KubeDirectorConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              KubeDirectorConfigSpec `json:"spec,omitempty"`
+	Spec              *KubeDirectorConfigSpec   `json:"spec,omitempty"`
+	Status            *KubeDirectorConfigStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

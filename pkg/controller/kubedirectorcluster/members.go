@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -257,7 +257,7 @@ func handleCreatingMembers(
 						injectErr,
 						cr,
 						shared.EventReasonMember,
-						"failed to inject one or more files for member{%s} in role{%s}: %v",
+						"failed to inject one or more files for member{%s} in role{%s}",
 						m.Pod,
 						role.roleStatus.Name,
 					)
@@ -403,6 +403,7 @@ func handleDeletingMembers(
 			}
 			if m.Service != "" {
 				serviceDelErr := executor.DeletePodService(
+					reqLogger,
 					cr.Namespace,
 					m.Service,
 				)

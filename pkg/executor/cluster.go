@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ import (
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"github.com/go-logr/logr"
 )
 
 // UpdateClusterStatus propagates status changes back to k8s. Roles or members
@@ -34,54 +33,6 @@ func UpdateClusterStatus(
 	compact(&(cr.Status.Roles))
 
 	return shared.Client().Status().Update(context.TODO(), cr)
-}
-
-// RemoveClusterFinalizer removes the KubeDirector finalizer from the CR's finalizers
-// list (if it is in there).
-// XXX Would be good to generalize this (see also RemoveTenantFinalizer).
-func RemoveClusterFinalizer(
-	reqLogger logr.Logger,
-	cr *kdv1.KubeDirectorCluster,
-) error {
-	found := false
-	for i, f := range cr.Finalizers {
-		if f == shared.KubeDirectorFinalizerID {
-			cr.Finalizers = append(cr.Finalizers[:i], cr.Finalizers[i+1:]...)
-			found = true
-			break
-		}
-	}
-	if !found {
-		return nil
-	}
-
-	// See https://github.com/bluek8s/kubedirector/issues/194
-	// Migrate Client().Update() calls back to Patch() calls.
-	return shared.Client().Update(context.TODO(), cr)
-}
-
-// EnsureClusterFinalizer adds the KubeDirector finalizer into the CR's finalizers
-// list (if it is not in there).
-// XXX Would be good to generalize this (see also EnsureTenantFinalizer).
-func EnsureClusterFinalizer(
-	reqLogger logr.Logger,
-	cr *kdv1.KubeDirectorCluster,
-) error {
-	found := false
-	for _, f := range cr.Finalizers {
-		if f == shared.KubeDirectorFinalizerID {
-			found = true
-			break
-		}
-	}
-	if found {
-		return nil
-	}
-	cr.Finalizers = append(cr.Finalizers, shared.KubeDirectorFinalizerID)
-
-	// See https://github.com/bluek8s/kubedirector/issues/194
-	// Migrate Client().Update() calls back to Patch() calls.
-	return shared.Client().Update(context.TODO(), cr)
 }
 
 // compact edits the input slice of role statuses so that any elements that

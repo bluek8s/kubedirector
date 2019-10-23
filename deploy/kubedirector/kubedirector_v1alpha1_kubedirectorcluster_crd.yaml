@@ -4,6 +4,7 @@ metadata:
   name: kubedirectorclusters.kubedirector.bluedata.io
 spec:
   group: kubedirector.bluedata.io
+  version: v1alpha1
   names:
     kind: KubeDirectorCluster
     listKind: KubeDirectorClusterList
@@ -14,12 +15,11 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
+      required: [apiVersion, kind, metadata, spec]
       properties:
         apiVersion:
-          description:
           type: string
         kind:
-          description:
           type: string
         metadata:
           type: object
@@ -34,7 +34,22 @@ spec:
               pattern: '^local$|^system$'
             serviceType:
               type: string
-              pattern: '^NodePort$|^LoadBalancer$'
+              pattern: '^ClusterIP$|^NodePort$|^LoadBalancer$'
+            defaultSecret:
+              required: [name, mountPath]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                mountPath:
+                  type: string
+                  minLength: 1
+                  pattern: '^/[a-zA-Z0-9\/-_]*'
+                defaultMode:
+                  type: integer
+                  maximum: 511
+                readOnly:
+                  type: boolean
             roles:
               type: array
               items:
@@ -46,6 +61,21 @@ spec:
                   members:
                     type: integer
                     minimum: 0
+                  secret:
+                    required: [name, mountPath]
+                    properties:
+                      name:
+                        type: string
+                        minLength: 1
+                      mountPath:
+                        type: string
+                        minLength: 1
+                        pattern: '^/[a-zA-Z0-9\/-_]*'
+                      defaultMode:
+                        type: integer
+                        maximum: 511
+                      readOnly:
+                        type: boolean
                   resources:
                     required: [limits]
                     properties:
@@ -147,4 +177,3 @@ spec:
                           type: string
                         state:
                           type: string
-  version: v1alpha1

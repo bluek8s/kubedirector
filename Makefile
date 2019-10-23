@@ -6,8 +6,9 @@ SHELL = bash
 default_image := bluek8s/kubedirector:unstable
 image ?= ${default_image}
 
-cluster_resource_name := KubeDirectorCluster
-app_resource_name := KubeDirectorApp
+cluster_resource_name := kubedirectorcluster
+app_resource_name := kubedirectorapp
+config_resource_name := kubedirectorconfig
 
 project_name := kubedirector
 bin_name := kubedirector
@@ -35,7 +36,17 @@ cgo_enabled := 0
 
 .DEFAULT_GOAL := build
 
-build: configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go | $(build_dir)
+version-check:
+	@if go version | grep -q 'go1\.1[2-9]'; then \
+        true; \
+    else \
+        echo "Error:"; \
+        echo "go version 1.12 or later is required"; \
+        exit 1; \
+    fi
+
+build: configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go version-check | $(build_dir)
+	@echo
 	@echo \* Creating KubeDirector deployment image and YAML...
 	@test -d vendor || dep ensure -v
 	operator-sdk build ${image}
@@ -63,33 +74,36 @@ push:
                 echo "Use Local.mk to set the image variable, rebuild, then push."; \
                 exit 0; \
             fi; \
-        fi; \
-        echo docker push ${image}; \
-        docker push ${image}
+        fi
+	docker push ${image}
 	@echo
 
 deploy:
 	@set -e; \
-        pods_gone=False; \
-        kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name} &> /dev/null || pods_gone=True; \
-        if [[ "$$pods_gone" != "True" ]]; then \
-            echo "KubeDirector pod already exists. Maybe old pod is still terminating?"; \
-            exit 1; \
-        fi; \
+        all_namespaces=`kubectl get ns --no-headers| awk '{print $$1}'`; \
+        for ns in $$all_namespaces; do \
+            pods_gone=False; \
+            kubectl -n $$ns get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name} &> /dev/null || pods_gone=True; \
+            if [[ "$$pods_gone" != "True" ]]; then \
+                echo "KubeDirector pod already exists in namespace $$ns. Maybe old pod is still terminating?"; \
+                exit 1; \
+            fi; \
+        done; \
         kubectl_ns=`kubectl config get-contexts | grep '^\*' | awk '{print $$5}'`; \
         if [[ -z "$$kubectl_ns" ]]; then \
             cp -f deploy/kubedirector/rbac-default.yaml deploy/kubedirector/rbac.yaml; \
         else \
             sed "s/namespace: default/namespace: $$kubectl_ns/" deploy/kubedirector/rbac-default.yaml > deploy/kubedirector/rbac.yaml; \
         fi
-	@echo
-	@echo \* Creating service account...
-	kubectl create -f deploy/kubedirector/rbac.yaml
+
 	@echo
 	@echo \* Creating custom resource definitions...
 	kubectl create -f deploy/kubedirector/kubedirector_v1alpha1_kubedirectorapp_crd.yaml
 	kubectl create -f deploy/kubedirector/kubedirector_v1alpha1_kubedirectorcluster_crd.yaml
 	kubectl create -f deploy/kubedirector/kubedirector_v1alpha1_kubedirectorconfig_crd.yaml
+	@echo
+	@echo \* Creating role and service account...
+	kubectl create -f deploy/kubedirector/rbac.yaml
 	@echo
 	@set -e; \
         if [[ -f deploy/kubedirector/deployment-localbuilt.yaml ]]; then \
@@ -174,41 +188,82 @@ redeploy:
 
 undeploy:
 	@echo
-	@set -e; \
-		all_namespaces=`kubectl get ns --no-headers| awk '{print $$1}'`; \
-		echo Deleting any managed virtual clusters...; \
-		for ns in $$all_namespaces; do \
-			echo kubectl -n $$ns delete ${cluster_resource_name} --all --now; \
-			kubectl -n $$ns delete ${cluster_resource_name} --all --now || true; \
-		done; \
-		echo Deleting application types...; \
-		for ns in $$all_namespaces; do \
-			echo kubectl -n $$ns delete ${app_resource_name} --all --now; \
-			kubectl -n $$ns delete ${app_resource_name} --all --now || true; \
-		done;
-	@echo
-	@echo \* Deleting KubeDirector deployment...
-	-@if [[ -f deploy/kubedirector/deployment-localbuilt.yaml ]]; then \
-        echo kubectl delete -f deploy/kubedirector/deployment-localbuilt.yaml --now; \
-        kubectl delete -f deploy/kubedirector/deployment-localbuilt.yaml --now; \
-    else \
-        echo kubectl delete -f deploy/kubedirector/deployment-prebuilt.yaml --now; \
-        kubectl delete -f deploy/kubedirector/deployment-prebuilt.yaml --now; \
-    fi
-	@echo
-	@echo \* Deleting custom resource definitions...
-	-kubectl delete -f deploy/kubedirector/kubedirector_v1alpha1_kubedirectorapp_crd.yaml --now
-	-kubectl delete -f deploy/kubedirector/kubedirector_v1alpha1_kubedirectorcluster_crd.yaml --now
-	-kubectl delete -f deploy/kubedirector/kubedirector_v1alpha1_kubedirectorconfig_crd.yaml --now
-	@echo
-	@echo \* Deleting service account...
-	-@if [[ -f deploy/kubedirector/rbac.yaml ]]; then \
-        echo kubectl delete -f deploy/kubedirector/rbac.yaml --now; \
-        kubectl delete -f deploy/kubedirector/rbac.yaml --now; \
-    else \
-        echo kubectl delete -f deploy/kubedirector/rbac-default.yaml --now; \
-        kubectl delete -f deploy/kubedirector/rbac-default.yaml --now; \
-    fi
+	@true; \
+        function delete_thing { \
+            if [[ "$$3" == "" ]]; then \
+                namespace_arg=""; \
+                kind=$$1; \
+                name=$$2; \
+            else \
+                namespace_arg=" -n $$1"; \
+                kind=$$2; \
+                name=$$3; \
+            fi; \
+            cmd="kubectl$$namespace_arg delete $$kind $$name --now"; \
+            msg=$$($$cmd 2>&1); \
+            if [[ "$$?" == "0" ]]; then \
+                echo $$cmd; \
+                if [[ "$$msg" != "" ]]; then \
+                    echo "$$msg"; \
+                fi; \
+            else \
+                if [[ ! "$$msg" =~ "Error from server (NotFound):" ]]; then \
+                    echo $$cmd; \
+                    echo "$$msg"; \
+                    exit 1; \
+                fi; \
+            fi; \
+        }; \
+        function delete_all_things { \
+            cmd="kubectl -n $$1 delete $$2 --all --now"; \
+            msg=$$($$cmd 2>&1); \
+            if [[ "$$?" == "0" ]]; then \
+                if [[ "$$msg" != "No resources found" ]]; then \
+                    echo $$cmd; \
+                    if [[ "$$msg" != "" ]]; then \
+                        echo "$$msg"; \
+                    fi; \
+                fi; \
+            else \
+                if [[ ! "$$msg" =~ "the server doesn't have a resource type" ]]; then \
+                    echo $$cmd; \
+                    echo "$$msg"; \
+                    exit 1; \
+                fi; \
+            fi; \
+        }; \
+        all_namespaces=`kubectl get ns --no-headers| awk '{print $$1}'`; \
+        echo \* Deleting any managed virtual clusters...; \
+        for ns in $$all_namespaces; do \
+            delete_all_things $$ns ${cluster_resource_name}; \
+        done; \
+        echo; \
+        echo \* Deleting any application types...; \
+        for ns in $$all_namespaces; do \
+            delete_all_things $$ns ${app_resource_name}; \
+        done; \
+        echo; \
+        echo \* Deleting any configs...; \
+        for ns in $$all_namespaces; do \
+            delete_all_things $$ns ${config_resource_name}; \
+        done; \
+        echo; \
+        echo \* Deleting KubeDirector deployment...; \
+        for ns in $$all_namespaces; do \
+            delete_thing $$ns deployment ${project_name}; \
+        done; \
+        echo; \
+        echo \* Deleting role and service account...; \
+        delete_thing clusterrolebinding ${project_name}; \
+        delete_thing clusterrole ${project_name}; \
+        for ns in $$all_namespaces; do \
+            delete_thing $$ns serviceaccount ${project_name}; \
+        done; \
+        echo; \
+        echo \* Deleting custom resource definitions...; \
+        delete_thing customresourcedefinition ${app_resource_name}s.kubedirector.bluedata.io; \
+        delete_thing customresourcedefinition ${cluster_resource_name}s.kubedirector.bluedata.io; \
+        delete_thing customresourcedefinition ${config_resource_name}s.kubedirector.bluedata.io
 	@echo
 	@echo -n \* Waiting for all cluster resources to finish cleanup...
 	@set -e; \
@@ -231,21 +286,36 @@ undeploy:
 	@echo
 	@echo
 	@echo \* Deleting any storage class labelled kubedirector-support...
-	-kubectl delete storageclass -l kubedirector-support=true
+	@true; \
+        cmd="kubectl delete storageclass -l kubedirector-support=true --now"; \
+        msg=$$($$cmd 2>&1); \
+        if [[ "$$?" == "0" ]]; then \
+            if [[ "$$msg" != "No resources found" ]]; then \
+                echo $$cmd; \
+                if [[ "$$msg" != "" ]]; then \
+                    echo "$$msg"; \
+                fi; \
+            fi; \
+        else \
+            echo $$cmd; \
+            echo "$$msg"; \
+            exit 1; \
+        fi
 	@echo
 	@echo done
 	@echo
 
 teardown: undeploy
 
-compile: pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go
-	GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
-		go build -o ${build_dir}/bin/${project_name} ./cmd/manager
+compile: pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go version-check
+	-rm -f ${build_dir}/bin/${bin_name}
+	GOOS=linux GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
+        go build -o ${build_dir}/bin/${bin_name} ./cmd/manager
 
 ci-compile:
 	make clean
-	GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
-		go build -o ${build_dir}/bin/${project_name} ./cmd/manager
+	GOOS=linux GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
+		go build -o ${build_dir}/bin/${bin_name} ./cmd/manager
 
 format:
 	go fmt $(shell go list ./... | grep -v /vendor/)
@@ -302,10 +372,10 @@ golint:
 check-format:
 	@make clean > /dev/null
 	@if [ "$$(gofmt -d $$(go list -f '{{.Dir}}' ./...))" == "" ] ; then \
-	    echo "No formatting changes needed, good job!" ; \
+        echo "No formatting changes needed, good job!" ; \
     else \
-	    echo "Formatting changes necessary, please run make format and resubmit" ; \
-	    echo "$$(gofmt -d $$(go list -f '{{.Dir}}' ./...))" ; \
+        echo "Formatting changes necessary, please run make format and resubmit" ; \
+        echo "$$(gofmt -d $$(go list -f '{{.Dir}}' ./...))" ; \
         exit 2 ; \
     fi
 

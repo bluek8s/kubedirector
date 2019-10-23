@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,17 +16,18 @@ package executor
 
 import (
 	"context"
+	"path/filepath"
+	"strings"
+
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
-	"strings"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -419,6 +420,37 @@ func generateInitContainerLaunch(persistDirs []string) string {
 	return launchCmd
 }
 
+// generateSecretVolume generates VolumeMount and Volume
+// object for mounting a secret into a container
+func generateSecretVolume(
+	secret *kdv1.KDSecret,
+) ([]v1.VolumeMount, []v1.Volume) {
+
+	if secret != nil {
+		secretVolName := "secret-vol-" + secret.Name
+		secretVolumeSource := v1.SecretVolumeSource{
+			SecretName:  secret.Name,
+			DefaultMode: secret.DefaultMode,
+		}
+		return []v1.VolumeMount{
+				v1.VolumeMount{
+					Name:      secretVolName,
+					MountPath: secret.MountPath,
+					ReadOnly:  secret.ReadOnly,
+				},
+			}, []v1.Volume{
+				v1.Volume{
+					Name: secretVolName,
+					VolumeSource: v1.VolumeSource{
+						Secret: &secretVolumeSource,
+					},
+				},
+			}
+	}
+	return []v1.VolumeMount{}, []v1.Volume{}
+
+}
+
 // generateVolumeMounts generates all of an app container's volume and mount
 // specs for persistent storage, tmpfs and systemctl support that are
 // appropriate for members of the given role. For systemctl support,
@@ -429,7 +461,6 @@ func generateVolumeMounts(
 	nativeSystemdSupport bool,
 	persistDirs []string,
 ) ([]v1.VolumeMount, []v1.Volume, error) {
-
 	var volumeMounts []v1.VolumeMount
 	var volumes []v1.Volume
 
@@ -440,6 +471,11 @@ func generateVolumeMounts(
 	tmpfsVolMnts, tmpfsVols := generateTmpfsSupport(cr)
 	volumeMounts = append(volumeMounts, tmpfsVolMnts...)
 	volumes = append(volumes, tmpfsVols...)
+
+	// Generate secret volumes (if needed)
+	secretVolMnts, secretVols := generateSecretVolume(role.Secret)
+	volumeMounts = append(volumeMounts, secretVolMnts...)
+	volumes = append(volumes, secretVols...)
 
 	isSystemdReqd, err := catalog.SystemdRequired(cr)
 

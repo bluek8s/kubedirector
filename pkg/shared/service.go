@@ -12,22 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package controller
+package shared
 
 import (
-	"sigs.k8s.io/controller-runtime/pkg/manager"
+	corev1 "k8s.io/api/core/v1"
 )
 
-// AddToManagerFuncs is a list of functions to add all Controllers to the Manager
-var AddToManagerFuncs []func(manager.Manager) error
+// ServiceType is a utility function that converts serviceType string to
+// Kubedirector-Plus supported service types as a corev1.ServiceType
+// returns corev1.ServiceTypeNodePort if crServicetype is not ClusterIP or LoadBalancer
+func ServiceType(
+	crServicetype string,
+) corev1.ServiceType {
 
-// AddToManager adds all Controllers to the Manager
-func AddToManager(m manager.Manager) error {
-
-	for _, f := range AddToManagerFuncs {
-		if err := f(m); err != nil {
-			return err
-		}
+	switch crServicetype {
+	case string(corev1.ServiceTypeClusterIP):
+		return corev1.ServiceTypeClusterIP
+	case string(corev1.ServiceTypeLoadBalancer):
+		return corev1.ServiceTypeLoadBalancer
 	}
-	return nil
+
+	return corev1.ServiceTypeNodePort
 }

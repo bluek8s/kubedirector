@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -114,6 +114,7 @@ func handleClusterServiceCreate(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 ) error {
+
 	clusterService, createErr := executor.CreateHeadlessService(cr)
 	if createErr != nil {
 		// Not much to do if we can't create it... we'll just keep trying
@@ -139,7 +140,7 @@ func handleClusterServiceCreate(
 func handleClusterServiceConfig(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	clusterService *v1.Service,
+	clusterService *corev1.Service,
 ) {
 
 	updateErr := executor.UpdateHeadlessService(cr, clusterService)
@@ -228,6 +229,7 @@ func handleMemberServiceCreate(
 	role *roleInfo,
 	member *kdv1.MemberStatus,
 ) error {
+
 	memberService, createErr := executor.CreatePodService(
 		cr,
 		role.roleSpec,
@@ -265,7 +267,7 @@ func handleMemberServiceConfig(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 	member *kdv1.MemberStatus,
-	memberService *v1.Service,
+	memberService *corev1.Service,
 ) {
 
 	executor.UpdatePodService(
@@ -284,9 +286,9 @@ func queryService(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	serviceName string,
-) (*v1.Service, error) {
+) (*corev1.Service, error) {
 
-	var service *v1.Service
+	var service *corev1.Service
 	if serviceName == "" || serviceName == zeroPortsService {
 		service = nil
 	} else {

@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,8 +15,9 @@
 package shared
 
 import (
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"sync"
+
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 )
 
 var (
@@ -27,6 +28,7 @@ var (
 // GetNativeSystemdSupport extracts the flag definition from the
 // globalConfig CR data if present, otherwise returns false
 func GetNativeSystemdSupport() bool {
+
 	globalConfigLock.RLock()
 	defer globalConfigLock.RUnlock()
 	if globalConfig != nil && globalConfig.Spec.NativeSystemdSupport != nil {
@@ -38,6 +40,7 @@ func GetNativeSystemdSupport() bool {
 // GetDefaultStorageClass extracts the default storage class from the
 // globalConfig CR data if present, otherwise returns an empty string
 func GetDefaultStorageClass() string {
+
 	globalConfigLock.RLock()
 	defer globalConfigLock.RUnlock()
 	if globalConfig != nil && globalConfig.Spec.StorageClass != nil {
@@ -47,18 +50,21 @@ func GetDefaultStorageClass() string {
 }
 
 // GetDefaultServiceType extracts the default service type from the
-// globalConfig CR data if present, otherwise returns an empty string.
+// globalConfig CR data if present, otherwise returns the default
+// value (NodePort).
 func GetDefaultServiceType() string {
+
 	globalConfigLock.RLock()
 	defer globalConfigLock.RUnlock()
 	if globalConfig != nil && globalConfig.Spec.ServiceType != nil {
 		return *globalConfig.Spec.ServiceType
 	}
-	return ""
+	return DefaultServiceType
 }
 
 // RemoveGlobalConfig removes the current globalConfig
 func RemoveGlobalConfig() {
+
 	globalConfigLock.Lock()
 	defer globalConfigLock.Unlock()
 	globalConfig = nil
@@ -66,6 +72,7 @@ func RemoveGlobalConfig() {
 
 // AddGlobalConfig adds the globalConfig CR data
 func AddGlobalConfig(config *kdv1.KubeDirectorConfig) {
+
 	globalConfigLock.Lock()
 	defer globalConfigLock.Unlock()
 	globalConfig = config

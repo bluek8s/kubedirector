@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ type packageURL struct {
 }
 
 func (obj appPatchValue) MarshalJSON() ([]byte, error) {
+
 	if obj.packageURLValue != nil {
 		return json.Marshal(obj.packageURLValue)
 	}

@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package kubedirectorconfig
 import (
 	"context"
 	"fmt"
+
+	"time"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
@@ -74,8 +76,8 @@ var _ reconcile.Reconciler = &ReconcileKubeDirectorConfig{}
 
 const (
 	// Period between the time when the controller requeues a request and
-	// when it's scheduled again for reconciliation. Zero means don't poll.
-	reconcilePeriod = 0
+	// it's scheduled again for reconciliation. Zero means don't poll.
+	reconcilePeriod = 30 * time.Second
 )
 
 // ReconcileKubeDirectorConfig reconciles a KubeDirectorConfig object.
@@ -93,7 +95,6 @@ type ReconcileKubeDirectorConfig struct {
 func (r *ReconcileKubeDirectorConfig) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling KubeDirectorConfig")
 	reconcileResult := reconcile.Result{RequeueAfter: reconcilePeriod}
 
 	// Fetch the KubeDirectorConfig instance.
@@ -112,6 +113,7 @@ func (r *ReconcileKubeDirectorConfig) Reconcile(request reconcile.Request) (reco
 		return reconcileResult,
 			fmt.Errorf("could not fetch KubeDirectorConfig instance: %s", err)
 	}
-	shared.AddGlobalConfig(cr)
-	return reconcileResult, nil
+
+	err = r.syncConfig(reqLogger, cr)
+	return reconcileResult, err
 }

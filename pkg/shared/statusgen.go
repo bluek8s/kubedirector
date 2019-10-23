@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,8 +15,9 @@
 package shared
 
 import (
-	"k8s.io/apimachinery/pkg/types"
 	"sync"
+
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // StatusGen informs whether the enclosed UID has been validated.
@@ -33,6 +34,7 @@ type StatusGens struct {
 
 // NewStatusGens is a StatusGens constructor
 func NewStatusGens() *StatusGens {
+
 	return &StatusGens{
 		statusGens: make(map[types.UID]StatusGen),
 	}
@@ -41,6 +43,7 @@ func NewStatusGens() *StatusGens {
 // ReadStatusGen provides thread safe read of a status gen UID string and
 // validated flag.
 func (s *StatusGens) ReadStatusGen(uid types.UID) (StatusGen, bool) {
+
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	val, ok := s.statusGens[uid]
@@ -50,6 +53,7 @@ func (s *StatusGens) ReadStatusGen(uid types.UID) (StatusGen, bool) {
 // WriteStatusGen provides thread safe write of a status gen UID string.
 // The validated flag will begin as false.
 func (s *StatusGens) WriteStatusGen(uid types.UID, newGenUID string) {
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.statusGens[uid] = StatusGen{UID: newGenUID}
@@ -57,6 +61,7 @@ func (s *StatusGens) WriteStatusGen(uid types.UID, newGenUID string) {
 
 // ValidateStatusGen provides thread safe mark-validated of a status gen.
 func (s *StatusGens) ValidateStatusGen(uid types.UID) {
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	val, ok := s.statusGens[uid]
@@ -68,6 +73,7 @@ func (s *StatusGens) ValidateStatusGen(uid types.UID) {
 
 // DeleteStatusGen provides thread safe delete of a status gen.
 func (s *StatusGens) DeleteStatusGen(uid types.UID) {
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	delete(s.statusGens, uid)
@@ -75,7 +81,8 @@ func (s *StatusGens) DeleteStatusGen(uid types.UID) {
 
 // StatusGenCount provides thread safe number of current status gens.
 func (s *StatusGens) StatusGenCount() int {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 	return len(s.statusGens)
 }

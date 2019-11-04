@@ -461,6 +461,7 @@ func generateVolumeMounts(
 	nativeSystemdSupport bool,
 	persistDirs []string,
 ) ([]v1.VolumeMount, []v1.Volume, error) {
+
 	var volumeMounts []v1.VolumeMount
 	var volumes []v1.Volume
 

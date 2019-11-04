@@ -269,7 +269,7 @@ undeploy:
 	@set -e; \
         retries=100; \
         while [ $$retries ]; do \
-            if kubectl get all -l kubedirectorcluster --all-namespaces 2>&1 >/dev/null | grep "No resources found." &> /dev/null; then \
+            if kubectl get all -l kubedirectorcluster --all-namespaces 2>&1 >/dev/null | grep "No resources found" &> /dev/null; then \
                 exit 0; \
             else \
                 retries=`expr $$retries - 1`; \

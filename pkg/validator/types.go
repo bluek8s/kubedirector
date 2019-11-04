@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,12 +16,15 @@ package validator
 
 import (
 	"k8s.io/api/admission/v1beta1"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 // admitFunc is used as the type for all the callback validators
 type admitFunc func(*v1beta1.AdmissionReview) *v1beta1.AdmissionResponse
 
 type checkFunc func() error
+
+var log = logf.Log.WithName("Validator")
 
 const (
 	validatorServiceName = "kubedirector-validator"
@@ -30,7 +33,6 @@ const (
 	webhookHandlerName   = "validate-cr.kubedirector.bluedata.io"
 	validationPort       = 8443
 	validationPath       = "/validate"
-	defaultServiceType   = "LoadBalancer"
 	defaultNativeSystemd = false
 
 	defaultFileInjectionMode  = "644"
@@ -57,6 +59,9 @@ const (
 	nonUniqueServiceID    = "Each id in the services array must be unique."
 	nonUniqueSelectedRole = "Each element of selected_roles array in config section must be unique."
 	nonUniqueServiceRole  = "Each role_id in role_services array in config section must be unique."
+
+	invalidDefaultSecret = "Unable to fetch defaultSecret (%s) from (%s) namespace."
+	invalidSecret        = "Unable to fetch secret (%s) from (%s) namespace for role(%s)."
 
 	noDefaultImage = "Role(%s) has no specified image, and no top-level default image is specified."
 

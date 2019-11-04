@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,9 +16,10 @@ package executor
 
 import (
 	"context"
+
 	"github.com/bluek8s/kubedirector/pkg/shared"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

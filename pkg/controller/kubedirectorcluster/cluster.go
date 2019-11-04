@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -270,7 +270,7 @@ func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 	if cr.DeletionTimestamp != nil {
 		// If a deletion has been requested, while ours (or other) finalizers
 		// existed on the CR, go ahead and remove our finalizer.
-		removeErr := executor.RemoveClusterFinalizer(reqLogger, cr)
+		removeErr := shared.RemoveFinalizer(cr)
 		if removeErr == nil {
 			shared.LogInfo(
 				reqLogger,
@@ -292,7 +292,7 @@ func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 	}
 
 	// If our finalizer doesn't exist on the CR, put it in there.
-	ensureErr := executor.EnsureClusterFinalizer(reqLogger, cr)
+	ensureErr := shared.EnsureFinalizer(cr)
 	if ensureErr != nil {
 		return true, ensureErr
 	}

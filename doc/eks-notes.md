@@ -30,9 +30,9 @@ This is particularly useful to address [an issue with storage classes](https://g
 
 The volumeBindingMode property of an existing storage class cannot be modified, so to deal with this issue you must create another storage class and then either set it as the K8s default or else explicitly configure KubeDirector to use it.
 
-A YAML file is available in the "deploy/example_config" subdirectory to address this issue. It creates a storage class with the necessary property, and also creates a KubeDirectorConfig to direct KubeDirector to use that storage class. You can use kubectl to apply this solution:
+A YAML file is available in the "deploy/example_configs" subdirectory to address this issue. It creates a storage class with the necessary property, and also creates a KubeDirectorConfig to direct KubeDirector to use that storage class. You can use kubectl to apply this solution:
 ```
-    kubectl create -f deploy/example_config/eks-gp2-for-kd.yaml
+    kubectl create -f deploy/example_configs/eks-gp2-for-kd.yaml
 ```
 
 If you teardown and then re-deploy KubeDirector, you will need to repeat this step before using persistent storage.

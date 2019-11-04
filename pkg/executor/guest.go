@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,16 +18,17 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"path/filepath"
+
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
-	"io"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/exec"
-	"path/filepath"
 )
 
 // IsFileExists probes whether the given pod's filesystem contains something
@@ -89,9 +90,9 @@ func CreateDir(
 	command := []string{"mkdir", "-p", dirName}
 	// We only need the exit status, but we have to supply at least one
 	// stream to avoid an error.
-	var stdOut bytes.Buffer
-	ioStreams := &Streams{Out: &stdOut}
-	return ExecCommand(
+	var stdErr bytes.Buffer
+	ioStreams := &Streams{ErrOut: &stdErr}
+	err := ExecCommand(
 		reqLogger,
 		obj,
 		namespace,
@@ -100,6 +101,53 @@ func CreateDir(
 		command,
 		ioStreams,
 	)
+	if err != nil {
+		err = fmt.Errorf("mkdir failed: %s\n%s",
+			stdErr.String(),
+			err.Error(),
+		)
+	}
+	return err
+}
+
+// RemoveDir removes a directory.
+func RemoveDir(
+	reqLogger logr.Logger,
+	obj runtime.Object,
+	namespace string,
+	podName string,
+	containerName string,
+	dirName string,
+	ignoreNotEmpty bool,
+) error {
+
+	var command []string
+	if ignoreNotEmpty {
+		command = []string{"rmdir", "--ignore-fail-on-non-empty", dirName}
+	} else {
+		command = []string{"rmdir", dirName}
+	}
+
+	// We only need the exit status, but we have to supply at least one
+	// stream to avoid an error.
+	var stdErr bytes.Buffer
+	ioStreams := &Streams{ErrOut: &stdErr}
+	err := ExecCommand(
+		reqLogger,
+		obj,
+		namespace,
+		podName,
+		containerName,
+		command,
+		ioStreams,
+	)
+	if err != nil {
+		err = fmt.Errorf("rmdir failed: %s\n%s",
+			stdErr.String(),
+			err.Error(),
+		)
+	}
+	return err
 }
 
 // CreateFile takes the stream from the given reader, and writes it to the

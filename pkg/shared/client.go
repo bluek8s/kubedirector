@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,14 +15,15 @@
 package shared
 
 import (
+	"os"
+
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
-	"os"
 	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
 	k8sConfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -92,7 +93,7 @@ func getEventRecorder() record.EventRecorder {
 	operatorName, _ := k8sutil.GetOperatorName()
 	recorder := eventBroadcaster.NewRecorder(
 		scheme.Scheme,
-		v1.EventSource{Component: operatorName},
+		corev1.EventSource{Component: operatorName},
 	)
 	return recorder
 }
@@ -101,6 +102,7 @@ func getEventRecorder() record.EventRecorder {
 func getClient(
 	config *rest.Config,
 ) k8sClient.Client {
+
 	client, err := k8sClient.New(config, k8sClient.Options{})
 	if err != nil {
 		log.Error(err, "getClient")

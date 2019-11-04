@@ -4,23 +4,24 @@ metadata:
   name: kubedirectorconfigs.kubedirector.bluedata.io
 spec:
   group: kubedirector.bluedata.io
+  version: v1alpha1
   names:
     kind: KubeDirectorConfig
     listKind: KubeDirectorConfigList
     plural: kubedirectorconfigs
     singular: kubedirectorconfig
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
+      required: [apiVersion, kind, metadata]
       properties:
         apiVersion:
-          description:
           type: string
         kind:
-          description:
           type: string
         metadata:
-          type: object
           properties:
             name:
               type: string
@@ -32,7 +33,12 @@ spec:
               minLength: 1
             defaultServiceType:
               type: string
-              pattern: '^NodePort$|^LoadBalancer$'
+              pattern: '^ClusterIP$|^NodePort$|^LoadBalancer$'
             nativeSystemdSupport:
               type: boolean
-  version: v1alpha1
+        status:
+          properties:
+            generation_uid:
+              type: string
+            state:
+              type: string

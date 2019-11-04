@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,9 +26,9 @@ const (
 	// KubeDirectorGlobalConfig is the name of the kubedirector config CR
 	KubeDirectorGlobalConfig = "kd-global-config"
 
-	// KubeDirectorFinalizerID is added to kubedirector objects finalizers
-	// to prevent them from being deleted before we can clean up.
-	KubeDirectorFinalizerID = "kubedirector.bluedata.io/cleanup"
+	// DefaultServiceType - default service type if not specified in
+	// the configCR
+	DefaultServiceType = "LoadBalancer"
 )
 
 // Event reason constants for recording events
@@ -37,6 +37,7 @@ const (
 	EventReasonCluster = "Cluster"
 	EventReasonRole    = "Role"
 	EventReasonMember  = "Member"
+	EventReasonConfig  = "Config"
 )
 
 // Settings for appCatalog

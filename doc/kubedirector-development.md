@@ -12,7 +12,7 @@ If you intend to build KubeDirector yourself, rather than deploying a pre-built 
 
 KubeDirector has been successfully built and deployed from macOS, Ubuntu, and CentOS. Similar OS environments may also work for development but have not been tested.
 
-KubeDirector is written in the ["go"](https://golang.org/) language, so the fundamental requirement for building KubeDirector from source is to have that language installed (version 1.10 or later). The ["dep"](https://golang.github.io/dep/) tool is also required.
+KubeDirector is written in the ["go"](https://golang.org/) language, so the fundamental requirement for building KubeDirector from source is to have that language installed (version 1.12 or later). The ["dep"](https://golang.github.io/dep/) tool is also required.
 
 KubeDirector currently uses the [Operator SDK](https://github.com/operator-framework/operator-sdk) to do code generation for watching custom resources (the "informer" block in the [architecture diagrams](https://github.com/bluek8s/kubedirector/wiki/KubeDirector-Architecture-Overview)). So if you intend to build KubeDirector from source, you will need the operator SDK on your build system. Do the following step once before any build of KubeDirector:
 ```bash

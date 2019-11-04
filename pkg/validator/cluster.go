@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
@@ -45,13 +46,17 @@ type clusterPatchValue struct {
 	ValueStr            *string
 	ValueFileInjections *kdv1.FilePermissions
 	ValueClusterStatus  *kdv1.KubeDirectorClusterStatus
+	ValueKDSecret       *kdv1.KDSecret
 }
 
 func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
+
 	if obj.ValueInt != nil {
 		return json.Marshal(obj.ValueInt)
 	} else if obj.ValueFileInjections != nil {
 		return json.Marshal(obj.ValueFileInjections)
+	} else if obj.ValueKDSecret != nil {
+		return json.Marshal(obj.ValueKDSecret)
 	}
 	if obj.ValueClusterStatus != nil {
 		return json.Marshal(obj.ValueClusterStatus)
@@ -512,7 +517,7 @@ func validateFileInjections(
 			tr := &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}
-			client := &http.Client{Transport: tr}
+			client := &http.Client{Transport: tr, Timeout: 15 * time.Second}
 			_, headErr := client.Head(srcURL)
 			if headErr != nil {
 				valErrors = append(
@@ -566,6 +571,78 @@ func validateFileInjections(
 	return valErrors, patches
 }
 
+// validateSecrets validates defaultSecret and individual secret field for each role.
+// Validation is done to make sure secret object with the given name
+// is present in the cluster cr. Also if required, create a patch for individual role
+// objects to create the secret object
+func validateSecrets(
+	cr *kdv1.KubeDirectorCluster,
+	valErrors []string,
+	patches []clusterPatchSpec,
+) ([]string, []clusterPatchSpec) {
+
+	defaultSecret := cr.Spec.DefaultSecret
+	if defaultSecret != nil {
+		// Validate to make sure that secret exists in the cluster namespace
+		_, defaultSecretErr := observer.GetSecret(
+			cr.Namespace,
+			defaultSecret.Name,
+		)
+		if defaultSecretErr != nil {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					invalidDefaultSecret,
+					defaultSecret.Name,
+					cr.Namespace,
+				),
+			)
+			return valErrors, patches
+		}
+	}
+
+	numRoles := len(cr.Spec.Roles)
+	for i := 0; i < numRoles; i++ {
+		role := &(cr.Spec.Roles[i])
+
+		if role.Secret != nil {
+			// Validate to make sure that secret exists in the cluster namespace
+			_, secretErr := observer.GetSecret(
+				cr.Namespace,
+				role.Secret.Name,
+			)
+			if secretErr != nil {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidSecret,
+						role.Secret.Name,
+						cr.Namespace,
+						role.Name,
+					),
+				)
+				continue
+			}
+		}
+
+		// If there is a defaultSecret, use that for this role (if not specified)
+		if role.Secret == nil && cr.Spec.DefaultSecret != nil {
+			patches = append(
+				patches,
+				clusterPatchSpec{
+					Op:   "add",
+					Path: "/spec/roles/" + strconv.Itoa(i) + "/secret",
+					Value: clusterPatchValue{
+						ValueKDSecret: defaultSecret,
+					},
+				},
+			)
+		}
+	}
+
+	return valErrors, patches
+}
+
 // addServiceType function checks to see if serviceType is provided for a
 // cluster CR. If unspecified, check to see if there is a default serviceType
 // provided through kubedirector's config CR, otherwise use a global constant
@@ -573,19 +650,16 @@ func validateFileInjections(
 // cluster CR.
 func addServiceType(
 	cr *kdv1.KubeDirectorCluster,
+	valErrors []string,
 	patches []clusterPatchSpec,
-) []clusterPatchSpec {
+) ([]string, []clusterPatchSpec) {
 
 	if cr.Spec.ServiceType != nil {
-		return patches
+		return valErrors, patches
 	}
 
 	serviceType := shared.GetDefaultServiceType()
-	if len(serviceType) == 0 {
-		serviceType = defaultServiceType
-	}
 	cr.Spec.ServiceType = &serviceType
-
 	patches = append(
 		patches,
 		clusterPatchSpec{
@@ -597,7 +671,7 @@ func addServiceType(
 		},
 	)
 
-	return patches
+	return valErrors, patches
 }
 
 // admitClusterCR is the top-level cluster validation function, which invokes
@@ -706,10 +780,14 @@ func admitClusterCR(
 		patches,
 	)
 
-	patches = addServiceType(&clusterCR, patches)
+	// Validate service type and generate patch in case no service type defined or change
+	valErrors, patches = addServiceType(&clusterCR, valErrors, patches)
 
 	// Validate file injections and generate patches for default values (if any)
 	valErrors, patches = validateFileInjections(&clusterCR, valErrors, patches)
+
+	// Validate secret and generate patches for default values (if any)
+	valErrors, patches = validateSecrets(&clusterCR, valErrors, patches)
 
 	// If cluster already exists, check for property changes.
 	if ar.Request.Operation == v1beta1.Update {

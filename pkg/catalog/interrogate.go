@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -126,6 +126,7 @@ func PortsForRole(
 	cr *kdv1.KubeDirectorCluster,
 	role string,
 ) ([]ServicePortInfo, error) {
+
 	//) ([]int32, error) {
 
 	// Fetch the app type definition if we haven't yet cached it in this

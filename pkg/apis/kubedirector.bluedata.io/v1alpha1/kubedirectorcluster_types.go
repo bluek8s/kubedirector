@@ -1,4 +1,4 @@
-// Copyright 2018 BlueData Software, Inc.
+// Copyright 2019 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,10 +26,11 @@ import (
 // using a StatefulSet.
 // +k8s:openapi-gen=true
 type KubeDirectorClusterSpec struct {
-	AppID       string  `json:"app"`
-	AppCatalog  *string `json:"appCatalog"`
-	ServiceType *string `json:"serviceType"`
-	Roles       []Role  `json:"roles"`
+	AppID         string    `json:"app"`
+	AppCatalog    *string   `json:"appCatalog"`
+	ServiceType   *string   `json:"serviceType"`
+	Roles         []Role    `json:"roles"`
+	DefaultSecret *KDSecret `json:"defaultSecret"`
 }
 
 // KubeDirectorClusterStatus defines the observed state of KubeDirectorCluster.
@@ -69,6 +70,14 @@ type KubeDirectorClusterList struct {
 	Items           []KubeDirectorCluster `json:"items"`
 }
 
+// KDSecret describes a secret object intended to be mounted inside a container.
+type KDSecret struct {
+	Name        string `json:"name"`
+	DefaultMode *int32 `json:"defaultMode,omitempty"`
+	MountPath   string `json:"mountPath"`
+	ReadOnly    bool   `json:"readOnly,omitempty"`
+}
+
 // EnvVar specifies environment variables for the start script in a container
 type EnvVar struct {
 	Name  string `json:"name"`
@@ -101,6 +110,7 @@ type Role struct {
 	Storage        *ClusterStorage             `json:"storage,omitempty"`
 	EnvVars        []corev1.EnvVar             `json:"env,omitempty"`
 	FileInjections []FileInjections            `json:"fileInjections,omitempty"`
+	Secret         *KDSecret                   `json:"secret"`
 }
 
 // ClusterStorage defines the persistent storage size/type, if any, to be used

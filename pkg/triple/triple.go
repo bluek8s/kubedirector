@@ -35,6 +35,7 @@ type KeyPair struct {
 
 // NewCA ...
 func NewCA(name string) (*KeyPair, error) {
+
 	key, err := certutil.NewPrivateKey()
 	if err != nil {
 		return nil, fmt.Errorf("unable to create a private key for a new CA: %v", err)
@@ -57,6 +58,7 @@ func NewCA(name string) (*KeyPair, error) {
 
 // NewServerKeyPair ...
 func NewServerKeyPair(ca *KeyPair, commonName, svcName, svcNamespace, dnsDomain string, ips, hostnames []string) (*KeyPair, error) {
+
 	key, err := certutil.NewPrivateKey()
 	if err != nil {
 		return nil, fmt.Errorf("unable to create a server private key: %v", err)
@@ -98,6 +100,7 @@ func NewServerKeyPair(ca *KeyPair, commonName, svcName, svcNamespace, dnsDomain 
 
 // NewClientKeyPair ...
 func NewClientKeyPair(ca *KeyPair, commonName string, organizations []string) (*KeyPair, error) {
+
 	key, err := certutil.NewPrivateKey()
 	if err != nil {
 		return nil, fmt.Errorf("unable to create a client private key: %v", err)

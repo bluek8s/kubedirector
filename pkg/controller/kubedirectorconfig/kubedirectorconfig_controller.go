@@ -18,8 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	"time"
-
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 
@@ -77,7 +75,10 @@ var _ reconcile.Reconciler = &ReconcileKubeDirectorConfig{}
 const (
 	// Period between the time when the controller requeues a request and
 	// it's scheduled again for reconciliation. Zero means don't poll.
-	reconcilePeriod = 30 * time.Second
+	// For now we don't need polling on this CR. Some anticipated features
+	// will need polling at which point we can change this.
+	//reconcilePeriod = 30 * time.Second
+	reconcilePeriod = 0
 )
 
 // ReconcileKubeDirectorConfig reconciles a KubeDirectorConfig object.

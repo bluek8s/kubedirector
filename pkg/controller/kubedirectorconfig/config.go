@@ -16,6 +16,7 @@ package kubedirectorconfig
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -123,7 +124,10 @@ func (r *ReconcileKubeDirectorConfig) syncConfig(
 	}()
 
 	// For a new config just update the status state/gen.
-	shouldProcessCR := r.handleNewConfig(reqLogger, cr)
+	shouldProcessCR, processErr := r.handleNewConfig(reqLogger, cr)
+	if processErr != nil {
+		return processErr
+	}
 	if !shouldProcessCR {
 		return nil
 	}
@@ -143,24 +147,43 @@ func (r *ReconcileKubeDirectorConfig) syncConfig(
 }
 
 // handleNewConfig looks in the cache for the last-known status generation
-// UID for this Config. If there is one, return true to keep processing the CR.
-// If there is not any last-known UID, this is either a new Config or one that
-// was created before this KD came up. In the former case, where the Config status
-// itself has no generation UID: set the config state to creating (this will
-// also trigger population of the generation UID) and return false to cause
-// this handler to exit; we'll pick up further processing in the next handler.
-// In the latter case, sync up our internal state with the visible state of
-// the Config and return true to continue processing.
+// UID for this CR. If there is one, make sure the UID is what we expect, and
+// if so return true to keep processing the CR. If there is not any last-known
+// UID, this is either a new CR or one that was created before this KD came up.
+// In the former case, where the CR status itself has no generation UID: set
+// the config state to creating (this will also trigger population of the
+// generation UID) and return false to cause this handler to exit; we'll pick
+// up further processing in the next handler. In the latter case, sync up our
+// internal state with the visible state of the CR and return true to continue
+// processing.
 func (r *ReconcileKubeDirectorConfig) handleNewConfig(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorConfig,
-) bool {
+) (bool, error) {
 
-	_, ok := StatusGens.ReadStatusGen(cr.UID)
-	if ok {
-		return true
-	}
 	incoming := cr.Status.GenerationUID
+	lastKnown, ok := StatusGens.ReadStatusGen(cr.UID)
+	if ok {
+		// Yep we've already done processing for this config previously.
+		// Sanity check that the UID is what we expect... it REALLY should be,
+		// but if there is a bug/race in the client code or unexpected behavior
+		// of the K8s API consistency then it might not be.
+		if lastKnown.UID == incoming {
+			return true, nil
+		}
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonNoEvent,
+			"ignoring config CR with stale status UID; will retry",
+		)
+		mismatchErr := fmt.Errorf(
+			"incoming UID %s != last known UID %s",
+			incoming,
+			lastKnown.UID,
+		)
+		return false, mismatchErr
+	}
 	if incoming == "" {
 		// This is an actual newly-created config, so kick off the processing.
 		shared.LogInfo(
@@ -170,7 +193,7 @@ func (r *ReconcileKubeDirectorConfig) handleNewConfig(
 			"new",
 		)
 		cr.Status.State = string(configCreating)
-		return false
+		return false, nil
 	}
 	shared.LogInfof(
 		reqLogger,
@@ -181,7 +204,7 @@ func (r *ReconcileKubeDirectorConfig) handleNewConfig(
 	)
 	StatusGens.WriteStatusGen(cr.UID, incoming)
 	StatusGens.ValidateStatusGen(cr.UID)
-	return true
+	return true, nil
 }
 
 // handleFinalizers will remove our finalizer if deletion has been requested.

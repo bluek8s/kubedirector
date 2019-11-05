@@ -8,15 +8,15 @@
     "spec" : {
         "systemdRequired": true,
         "config": {
-            "role_services": [
+            "roleServices": [
                 {
-                    "service_ids": [
+                    "serviceIDs": [
                         "ssh"
                     ],
-                    "role_id": "vanilla_centos"
+                    "roleID": "vanilla_centos"
                 }
             ],
-            "selected_roles": [
+            "selectedRoles": [
                 "vanilla_centos"
             ]
         },
@@ -24,14 +24,14 @@
             "name": "CentOS 7.x utility.",
             "description": "CentOS 7x utility with no preinstalled apps"
         },
-        "distro_id": "bluedata/centos7x",
+        "distroID": "bluedata/centos7x",
         "version": "1.0",
-        "config_schema_version": 7,
+        "configSchemaVersion": 7,
         "services": [
             {
                 "endpoint": {
                     "port": 22,
-                    "is_dashboard": false
+                    "isDashboard": false
                 },
                 "id": "ssh",
                 "label": {
@@ -39,8 +39,8 @@
                 }
             }
         ],
-        "default_image_repo_tag": "docker.io/bluedata/centos7:4.1",
-        "default_config_package": null,
+        "defaultImageRepoTag": "docker.io/bluedata/centos7:4.1",
+        "defaultConfigPackage": null,
         "roles": [
             {
                 "cardinality": "1+",

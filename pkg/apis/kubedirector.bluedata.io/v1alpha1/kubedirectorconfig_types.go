@@ -29,7 +29,7 @@ type KubeDirectorConfigSpec struct {
 // KubeDirectorConfigStatus defines the observed state of KubeDirectorConfig.
 // +k8s:openapi-gen=true
 type KubeDirectorConfigStatus struct {
-	GenerationUID string `json:"generation_uid"`
+	GenerationUID string `json:"generationUid"`
 	State         string `json:"state"`
 }
 

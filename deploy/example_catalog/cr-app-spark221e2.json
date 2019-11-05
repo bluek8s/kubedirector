@@ -8,32 +8,32 @@
     "spec" : {
         "systemdRequired": true,
         "config": {
-            "role_services": [
+            "roleServices": [
                 {
-                    "service_ids": [
+                    "serviceIDs": [
                         "ssh",
                         "spark",
                         "spark-master",
                         "spark-worker"
                     ],
-                    "role_id": "controller"
+                    "roleID": "controller"
                 },
                 {
-                    "service_ids": [
+                    "serviceIDs": [
                         "ssh",
                         "spark-worker"
                     ],
-                    "role_id": "worker"
+                    "roleID": "worker"
                 },
                 {
-                    "service_ids": [
+                    "serviceIDs": [
                         "ssh",
                         "jupyter-nb"
                     ],
-                    "role_id": "jupyter"
+                    "roleID": "jupyter"
                 }
             ],
-            "selected_roles": [
+            "selectedRoles": [
                 "controller",
                 "worker",
                 "jupyter"
@@ -43,14 +43,14 @@
             "name": "Spark 2.2.1 on centos7x with Jupyter",
             "description": "Spark 2.2.1 with Jupyter"
         },
-        "distro_id": "bluedata/spark221e2",
+        "distroID": "bluedata/spark221e2",
         "version": "2.6",
-        "config_schema_version": 7,
+        "configSchemaVersion": 7,
         "services": [
             {
                 "endpoint": {
                     "port": 22,
-                    "is_dashboard": false
+                    "isDashboard": false
                 },
                 "id": "ssh",
                 "label": {
@@ -59,9 +59,9 @@
             },
             {
                 "endpoint": {
-                    "url_scheme": "http",
+                    "urlScheme": "http",
                     "path": "/",
-                    "is_dashboard": true,
+                    "isDashboard": true,
                     "port": 8080
                 },
                 "id": "spark",
@@ -71,8 +71,8 @@
             },
             {
                 "endpoint": {
-                    "url_scheme": "spark",
-                    "is_dashboard": false,
+                    "urlScheme": "spark",
+                    "isDashboard": false,
                     "port": 7077
                 },
                 "id": "spark-master",
@@ -82,9 +82,9 @@
             },
             {
                 "endpoint": {
-                    "url_scheme": "http",
+                    "urlScheme": "http",
                     "path": "/",
-                    "is_dashboard": true,
+                    "isDashboard": true,
                     "port": 8081
                 },
                 "id": "spark-worker",
@@ -94,9 +94,9 @@
             },
             {
                 "endpoint": {
-                    "url_scheme": "http",
+                    "urlScheme": "http",
                     "path": "/",
-                    "is_dashboard": true,
+                    "isDashboard": true,
                     "port": 8888
                 },
                 "id": "jupyter-nb",
@@ -105,9 +105,9 @@
                 }
             }
         ],
-        "default_image_repo_tag": "docker.io/bluedata/sparkbase:2.0",
-        "default_config_package":  {
-            "package_url": "https://s3.amazonaws.com/bluek8s/kubedirector/spark221e2/appconfig-2.6.tgz"
+        "defaultImageRepoTag": "docker.io/bluedata/sparkbase:2.0",
+        "defaultConfigPackage":  {
+            "packageUrl": "https://s3.amazonaws.com/bluek8s/kubedirector/spark221e2/appconfig-2.6.tgz"
         },
         "roles": [
             {
@@ -119,7 +119,7 @@
                 "id": "worker"
             },
             {
-                "image_repo_tag": "docker.io/bluedata/jupyter:2.2",
+                "imageRepoTag": "docker.io/bluedata/jupyter:2.2",
                 "cardinality": "0+",
                 "id": "jupyter"
             }

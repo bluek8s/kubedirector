@@ -8,17 +8,17 @@
     "spec": {
         "systemdRequired": true,
         "config": {
-            "config_meta": {},
+            "configMeta": {},
             "config_choices": [],
-            "role_services": [
+            "roleServices": [
                 {
-                    "service_ids": [
+                    "serviceIDs": [
                         "jupyter-nb"
                     ],
-                    "role_id": "controller"
+                    "roleID": "controller"
                 }
             ],
-            "selected_roles": [
+            "selectedRoles": [
                 "controller"
             ]
         },
@@ -26,16 +26,16 @@
             "name": "Tensorflow GPU with jupyter notebook",
             "description": "TensorFlow GPU with jupyter notebook"
         },
-        "default_image_repo_tag": "tensorflow/tensorflow:latest-gpu-jupyter",
-        "distro_id": "tensorflow/tensorflow:latest-gpu-jupyter",
+        "defaultImageRepoTag": "tensorflow/tensorflow:latest-gpu-jupyter",
+        "distroID": "tensorflow/tensorflow:latest-gpu-jupyter",
         "version": "latest-gpu-jupyter",
-        "config_schema_version": 7,
+        "configSchemaVersion": 7,
         "services": [
             {
                 "endpoint": {
-                    "url_scheme": "http",
+                    "urlScheme": "http",
                     "path": "/",
-                    "is_dashboard": true,
+                    "isDashboard": true,
                     "port": 8888
                 },
                 "id": "jupyter-nb",
@@ -44,12 +44,12 @@
                 }
             }
         ],
-        "default_config_package": null,
+        "defaultConfigPackage": null,
         "roles": [
             {
                 "cardinality": "1",
                 "id": "controller",
-                "min_resources" : {
+                "minResources" : {
                     "nvidia.com/gpu" : 1
                 }
             }

@@ -39,9 +39,9 @@ type KubeDirectorClusterSpec struct {
 // +k8s:openapi-gen=true
 type KubeDirectorClusterStatus struct {
 	State          string       `json:"state"`
-	GenerationUID  string       `json:"generation_uid"`
-	ClusterService string       `json:"cluster_service"`
-	LastNodeID     int64        `json:"last_node_id"`
+	GenerationUID  string       `json:"generationUid"`
+	ClusterService string       `json:"clusterService"`
+	LastNodeID     int64        `json:"lastNodeID"`
 	Roles          []RoleStatus `json:"roles"`
 }
 
@@ -123,7 +123,7 @@ type ClusterStorage struct {
 // RoleStatus describes the component objects of a virtual cluster role.
 type RoleStatus struct {
 	Name        string         `json:"id"`
-	StatefulSet string         `json:"stateful_set"`
+	StatefulSet string         `json:"statefulSet"`
 	Members     []MemberStatus `json:"members"`
 }
 
@@ -133,7 +133,7 @@ type MemberStatus struct {
 	Service string `json:"service"`
 	PVC     string `json:"pvc,omitempty"`
 	State   string `json:"state"`
-	NodeID  int64  `json:"node_id"`
+	NodeID  int64  `json:"nodeID"`
 }
 
 func init() {

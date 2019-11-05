@@ -6,7 +6,7 @@ You should also be familiar with the process of [creating and managing virtual c
 
 The "deploy/example_catalog" directory contains several KubeDirectorApp resources that are applied when you do "make deploy". These determine what kinds of virtual clusters can be deployed using KubeDirectorCluster resources. Each resource also identifies the Docker image(s) and app setup package(s) that it uses. Before authoring new app definitions, examine these current examples and the contents of each component. Currently the Cassandra example is the easiest non-trivial example to understand, with TensorFlow a close runner-up.
 
-The simplest authoring task would involve making a modification to an existing image or setup package, and then making a modified KubeDirectorApp to reference the modified artifact (and possibly accomodate other roles or services). A modified version of an existing KubeDirectorApp should keep the same "distro_id" value but have a new "version" and a new metadata name; currently there is not a more sophisticated framework for KubeDirectorApp versioning.
+The simplest authoring task would involve making a modification to an existing image or setup package, and then making a modified KubeDirectorApp to reference the modified artifact (and possibly accomodate other roles or services). A modified version of an existing KubeDirectorApp should keep the same "distroID" value but have a new "version" and a new metadata name; currently there is not a more sophisticated framework for KubeDirectorApp versioning.
 
 A more complex authoring task is to make an app definition from scratch. The KubeDirectorApp, image(s), and any app setup packages will need to be iteratively developed and tested together.
 

@@ -15,7 +15,7 @@
 package v1alpha1
 
 import (
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -23,15 +23,15 @@ import (
 // +k8s:openapi-gen=true
 type KubeDirectorAppSpec struct {
 	Label               Label           `json:"label"`
-	DistroID            string          `json:"distro_id"`
+	DistroID            string          `json:"distroID"`
 	Version             string          `json:"version"`
 	SchemaVersion       int             `json:"schema_version"`
-	DefaultImageRepoTag *string         `json:"default_image_repo_tag,omitempty"`
-	DefaultSetupPackage SetupPackage    `json:"default_config_package,omitempty"`
+	DefaultImageRepoTag *string         `json:"defaultImageRepoTag,omitempty"`
+	DefaultSetupPackage SetupPackage    `json:"defaultConfigPackage,omitempty"`
 	Services            []Service       `json:"services"`
 	NodeRoles           []NodeRole      `json:"roles"`
 	Config              NodeGroupConfig `json:"config"`
-	DefaultPersistDirs  *[]string       `json:"default_persist_dirs"`
+	DefaultPersistDirs  *[]string       `json:"defaultPersistDirs"`
 	Capabilities        []v1.Capability `json:"capabilities"`
 	SystemdRequired     bool            `json:"systemdRequired"`
 }
@@ -74,7 +74,7 @@ type SetupPackage struct {
 
 // SetupPackageURL is the URL of the setup package.
 type SetupPackageURL struct {
-	PackageURL string `json:"package_url"`
+	PackageURL string `json:"packageUrl"`
 }
 
 // Service describes a network endpoint that should be exposed for external
@@ -89,10 +89,10 @@ type Service struct {
 // ServiceEndpoint describes the service network address and protocol, and
 // whether it should be displayed through a web browser.
 type ServiceEndpoint struct {
-	URLScheme   string `json:"url_scheme,omitempty"`
+	URLScheme   string `json:"urlScheme,omitempty"`
 	Port        *int32 `json:"port"`
 	Path        string `json:"path,omitempty"`
-	IsDashboard bool   `json:"is_dashboard,omitempty"`
+	IsDashboard bool   `json:"isDashboard,omitempty"`
 }
 
 // NodeRole describes a subset of virtual cluster members that will provide
@@ -101,10 +101,10 @@ type ServiceEndpoint struct {
 type NodeRole struct {
 	ID           string           `json:"id"`
 	Cardinality  string           `json:"cardinality"`
-	ImageRepoTag *string          `json:"image_repo_tag,omitempty"`
-	SetupPackage SetupPackage     `json:"config_package,omitempty"`
-	PersistDirs  *[]string        `json:"persist_dirs"`
-	MinResources *v1.ResourceList `json:"min_resources"`
+	ImageRepoTag *string          `json:"imageRepoTag,omitempty"`
+	SetupPackage SetupPackage     `json:"configPackage,omitempty"`
+	PersistDirs  *[]string        `json:"persistDirs"`
+	MinResources *v1.ResourceList `json:"minResources"`
 }
 
 // NodeGroupConfig identifies a set of roles, and the services on those roles.
@@ -112,15 +112,15 @@ type NodeRole struct {
 // active. Implementation of "config choices" will introduce other conditional
 // configs.
 type NodeGroupConfig struct {
-	RoleServices   []RoleService     `json:"role_services"`
-	SelectedRoles  []string          `json:"selected_roles"`
-	ConfigMetadata map[string]string `json:"config_meta"`
+	RoleServices   []RoleService     `json:"roleServices"`
+	SelectedRoles  []string          `json:"selectedRoles"`
+	ConfigMetadata map[string]string `json:"configMeta"`
 }
 
 // RoleService associates a service with a role.
 type RoleService struct {
-	ServiceIDs []string `json:"service_ids"`
-	RoleID     string   `json:"role_id"`
+	ServiceIDs []string `json:"serviceIDs"`
+	RoleID     string   `json:"roleID"`
 }
 
 func init() {

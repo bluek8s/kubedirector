@@ -15,6 +15,7 @@
 package kubedirectorcluster
 
 import (
+	"fmt"
 	"reflect"
 	"time"
 
@@ -114,7 +115,10 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	}()
 
 	// For a new CR just update the status state/gen.
-	shouldProcessCR := r.handleNewCluster(reqLogger, cr)
+	shouldProcessCR, processErr := r.handleNewCluster(reqLogger, cr)
+	if processErr != nil {
+		return processErr
+	}
 	if !shouldProcessCR {
 		return nil
 	}
@@ -191,25 +195,44 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 }
 
 // handleNewCluster looks in the cache for the last-known status generation
-// UID for this CR. If there is one, return true to keep processing the CR.
-// If there is not any last-known UID, this is either a new CR or one that
-// was created before this KD came up. In the former case, where the CR status
-// itself has no generation UID: set the cluster state to creating (this will
-// also trigger population of the generation UID) and return false to cause
-// this handler to exit; we'll pick up further processing in the next handler.
-// In the latter case, sync up our internal state with the visible state of
-// the CR and return true to continue processing. In either-new cluster case
-// invoke shared.EnsureClusterAppReference to mark that the app is being used.
+// UID for this CR. If there is one, make sure the UID is what we expect, and
+// if so return true to keep processing the CR. If there is not any last-known
+// UID, this is either a new CR or one that was created before this KD came up.
+// In the former case, where the CR status itself has no generation UID: set
+// the cluster state to creating (this will also trigger population of the
+// generation UID) and return false to cause this handler to exit; we'll pick
+// up further processing in the next handler. In the latter case, sync up our
+// internal state with the visible state of the CR and return true to continue
+// processing. In either-new cluster case invoke shared.EnsureClusterAppReference
+// to mark that the app is being used.
 func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-) bool {
+) (bool, error) {
 
 	// Have we seen this cluster before?
-	_, ok := ClusterStatusGens.ReadStatusGen(cr.UID)
+	incoming := cr.Status.GenerationUID
+	lastKnown, ok := ClusterStatusGens.ReadStatusGen(cr.UID)
 	if ok {
 		// Yep we've already done processing for this cluster previously.
-		return true
+		// Sanity check that the UID is what we expect... it REALLY should be,
+		// but if there is a bug/race in the client code or unexpected behavior
+		// of the K8s API consistency then it might not be.
+		if lastKnown.UID == incoming {
+			return true, nil
+		}
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonNoEvent,
+			"ignoring cluster CR with stale status UID; will retry",
+		)
+		mismatchErr := fmt.Errorf(
+			"incoming UID %s != last known UID %s",
+			incoming,
+			lastKnown.UID,
+		)
+		return false, mismatchErr
 	}
 	// This is a new cluster, or at least "new to us", so mark that its app
 	// is in use.
@@ -234,7 +257,6 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 		// going to remove the app reference. Operations on this cluster
 		// could fail, but it might be recoverable by re-creating the app CR.
 	}
-	incoming := cr.Status.GenerationUID
 	if incoming == "" {
 		// This is an actual newly-created cluster, so kick off the processing.
 		shared.LogInfo(
@@ -244,7 +266,7 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 			"new",
 		)
 		cr.Status.State = string(clusterCreating)
-		return false
+		return false, nil
 	}
 	// This cluster has been processed before but we're not aware of it yet.
 	// Probably KD has been restarted. Make us aware of this cluster.
@@ -257,7 +279,7 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 	)
 	ClusterStatusGens.WriteStatusGen(cr.UID, incoming)
 	ClusterStatusGens.ValidateStatusGen(cr.UID)
-	return true
+	return true, nil
 }
 
 // handleFinalizers will remove our finalizer if deletion has been requested.

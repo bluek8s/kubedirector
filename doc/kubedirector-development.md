@@ -95,3 +95,5 @@ After the initial deploy, your development cycle can look like this:
 5. repeat from step 1
 
 If you have made changes that affect the RBAC or the KubeDirector deployment resource spec, you'll need to reset the cycle with a "make teardown" followed by "make deploy". Then you can immediately do "make redeploy" and start testing again.
+
+Note: if you are using this redeploy cycle for your testing, you could choose to substitute "make compile" for "make build" in step 1. This will be faster because it only builds the KubeDirector executable, without rebuilding the container image. You will need to be sure to finally do "make build" before any "make push" however, because otherwise your container image will not be up-to-date with your tested changes.

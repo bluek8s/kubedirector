@@ -6,6 +6,7 @@
 # generated
 /deploy/kubedirector/deployment-localbuilt.yaml
 /deploy/kubedirector/rbac.yaml
+zz_generated.*.go
 
 # temporary build files
 build/_output

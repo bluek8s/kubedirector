@@ -312,7 +312,7 @@ compile: pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go ver
 	GOOS=linux GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
         go build -o ${build_dir}/bin/${bin_name} ./cmd/manager
 
-ci-compile:
+ci-compile: pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go
 	make clean
 	GOOS=linux GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
 		go build -o ${build_dir}/bin/${bin_name} ./cmd/manager
@@ -326,6 +326,7 @@ dep:
 clean:
 	-rm -f deploy/kubedirector/rbac.yaml
 	-rm -f deploy/kubedirector/deployment-localbuilt.yaml
+	-rm -f pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go
 	-rm -rf ${build_dir}
 
 distclean: clean

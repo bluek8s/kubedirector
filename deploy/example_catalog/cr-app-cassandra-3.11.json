@@ -67,7 +67,7 @@
             }
         ],
         "defaultConfigPackage": {
-            "packageUrl": "https://s3.amazonaws.com/bluek8s/kubedirector/cassandra311/appconfig-3.1.tgz"
+            "packageURL": "https://s3.amazonaws.com/bluek8s/kubedirector/cassandra311/appconfig-3.1.tgz"
         },
         "roles": [
             {

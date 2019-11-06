@@ -107,7 +107,7 @@
         ],
         "defaultImageRepoTag": "docker.io/bluedata/sparkbase:2.0",
         "defaultConfigPackage":  {
-            "packageUrl": "https://s3.amazonaws.com/bluek8s/kubedirector/spark221e2/appconfig-2.6.tgz"
+            "packageURL": "https://s3.amazonaws.com/bluek8s/kubedirector/spark221e2/appconfig-2.6.tgz"
         },
         "roles": [
             {

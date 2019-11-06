@@ -40,7 +40,7 @@ type appPatchValue struct {
 }
 
 type packageURL struct {
-	URL string `json:"packageUrl"`
+	URL string `json:"packageURL"`
 }
 
 func (obj appPatchValue) MarshalJSON() ([]byte, error) {

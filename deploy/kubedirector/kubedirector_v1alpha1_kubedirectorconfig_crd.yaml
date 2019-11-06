@@ -38,7 +38,7 @@ spec:
               type: boolean
         status:
           properties:
-            generationUid:
+            generationUID:
               type: string
             state:
               type: string

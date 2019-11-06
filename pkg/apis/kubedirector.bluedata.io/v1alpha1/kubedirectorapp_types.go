@@ -25,7 +25,7 @@ type KubeDirectorAppSpec struct {
 	Label               Label           `json:"label"`
 	DistroID            string          `json:"distroID"`
 	Version             string          `json:"version"`
-	SchemaVersion       int             `json:"schema_version"`
+	SchemaVersion       int             `json:"configSchemaVersion"`
 	DefaultImageRepoTag *string         `json:"defaultImageRepoTag,omitempty"`
 	DefaultSetupPackage SetupPackage    `json:"defaultConfigPackage,omitempty"`
 	Services            []Service       `json:"services"`
@@ -74,7 +74,7 @@ type SetupPackage struct {
 
 // SetupPackageURL is the URL of the setup package.
 type SetupPackageURL struct {
-	PackageURL string `json:"packageUrl"`
+	PackageURL string `json:"packageURL"`
 }
 
 // Service describes a network endpoint that should be exposed for external

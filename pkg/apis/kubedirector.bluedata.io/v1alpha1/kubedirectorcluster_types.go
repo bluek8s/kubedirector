@@ -39,7 +39,7 @@ type KubeDirectorClusterSpec struct {
 // +k8s:openapi-gen=true
 type KubeDirectorClusterStatus struct {
 	State          string       `json:"state"`
-	GenerationUID  string       `json:"generationUid"`
+	GenerationUID  string       `json:"generationUID"`
 	ClusterService string       `json:"clusterService"`
 	LastNodeID     int64        `json:"lastNodeID"`
 	Roles          []RoleStatus `json:"roles"`
@@ -95,7 +95,7 @@ type FilePermissions struct {
 // FileInjections specifies file injection spec, including
 // file permissions on the destination file
 type FileInjections struct {
-	SrcURL      string           `json:"srcUrl"`
+	SrcURL      string           `json:"srcURL"`
 	DestDir     string           `json:"destDir"`
 	Permissions *FilePermissions `json:"permissions,omitempty"`
 }

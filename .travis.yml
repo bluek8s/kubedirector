@@ -20,6 +20,6 @@ before_install:
   - make dep
 
 script:
-  - make ci-compile
+  - make compile
   - make golint
   - make check-format

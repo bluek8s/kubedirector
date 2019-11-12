@@ -28,7 +28,7 @@ RUN mkdir -p ${USER_HOME} && \
     chown ${USER_UID}:0 ${USER_HOME} && \
     chmod ug=rwx ${USER_HOME}
 COPY ${OPERATOR_BUILD_SRC} ${OPERATOR}
-COPY build/_output/configcli.tgz ${USER_HOME}/configcli.tgz
+COPY build/configcli.tgz ${USER_HOME}/configcli.tgz
 RUN chown ${USER_UID}:0 ${OPERATOR} && \
     chmod ug=rwx ${OPERATOR} && \
     chown ${USER_UID}:0 ${USER_HOME}/configcli.tgz && \

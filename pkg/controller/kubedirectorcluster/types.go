@@ -71,7 +71,7 @@ const (
 	nohup sh -c "` + appPrepStartscript + ` --configure
 	2> /opt/guestconfig/configure.stderr
 	1> /opt/guestconfig/configure.stdout;
-	echo -n $? > /opt/guestconfig/configure.status" &`
+	echo -n $? > ` + appPrepConfigStatus + `" &`
 	fileInjectionCommand = `mkdir -p %s && cd %s &&
 	curl -L %s -o %s &&
 	chmod %s %s &&

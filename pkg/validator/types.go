@@ -51,21 +51,21 @@ const (
 	modifiedProperty = "The %s property is read-only."
 	modifiedRole     = "Role(%s) properties other than the members count cannot be modified while role members exist."
 
-	invalidNodeRoleID     = "Invalid role_id(%s) in role_services array in config section. Valid roles: \"%s\""
-	invalidSelectedRoleID = "Invalid element(%s) in selected_roles array in config section. Valid roles: \"%s\""
-	invalidServiceID      = "Invalid service_id(%s) in role_services array in config section. Valid services: \"%s\""
+	invalidNodeRoleID     = "Invalid roleID(%s) in roleServices array in config section. Valid roles: \"%s\""
+	invalidSelectedRoleID = "Invalid element(%s) in selectedRoles array in config section. Valid roles: \"%s\""
+	invalidServiceID      = "Invalid service_id(%s) in roleServices array in config section. Valid services: \"%s\""
 
 	nonUniqueRoleID       = "Each id in the roles array must be unique."
 	nonUniqueServiceID    = "Each id in the services array must be unique."
-	nonUniqueSelectedRole = "Each element of selected_roles array in config section must be unique."
-	nonUniqueServiceRole  = "Each role_id in role_services array in config section must be unique."
+	nonUniqueSelectedRole = "Each element of selectedRoles array in config section must be unique."
+	nonUniqueServiceRole  = "Each roleID in roleServices array in config section must be unique."
 
 	invalidDefaultSecret = "Unable to fetch defaultSecret (%s) from (%s) namespace."
 	invalidSecret        = "Unable to fetch secret (%s) from (%s) namespace for role(%s)."
 
 	noDefaultImage = "Role(%s) has no specified image, and no top-level default image is specified."
 
-	noURLScheme = "The endpoint for service(%s) must include a url_scheme value because is_dashboard is true."
+	noURLScheme = "The endpoint for service(%s) must include a urlScheme value because isDashboard is true."
 
 	failedToPatch = "Internal error: failed to populate default values for unspecified properties."
 

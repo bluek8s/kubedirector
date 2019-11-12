@@ -30,7 +30,7 @@ sedignorecase =
 endif
 
 build_dir := build/_output
-configcli_dest := $(build_dir)/configcli.tgz
+configcli_dest := build/configcli.tgz
 goarch := amd64
 cgo_enabled := 0 
 
@@ -55,9 +55,9 @@ build: configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcop
 	@echo done
 	@echo
 
-configcli:  | $(build_dir)
+configcli:
 	@if [ -e $(configcli_dest) ]; then exit 0; fi;                             \
-     echo "\* Downloading configcli package ...";                              \
+     echo "* Downloading configcli package ...";                               \
      curl -L -o $(configcli_dest) https://github.com/bluek8s/configcli/archive/v$(configcli_version).tar.gz
 
 pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go:  \
@@ -169,7 +169,7 @@ redeploy:
 	@set -e; \
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
         kubectl exec $$podname -- mv -f ${home_dir}/configcli.tgz ${home_dir}/configcli.tgz.bak || true; \
-        kubectl cp ${build_dir}/configcli.tgz $$podname:${home_dir}/configcli.tgz; \
+        kubectl cp ${configcli_dest} $$podname:${home_dir}/configcli.tgz; \
         kubectl exec $$podname -- chgrp 0 ${home_dir}/configcli.tgz; \
         kubectl exec $$podname -- chmod ug=rw ${home_dir}/configcli.tgz
 	@echo
@@ -307,7 +307,7 @@ undeploy:
 
 teardown: undeploy
 
-compile: version-check pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go
+compile: version-check configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go
 	-rm -rf ${build_dir}
 	GOOS=linux GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
         go build -o ${build_dir}/bin/${bin_name} ./cmd/manager

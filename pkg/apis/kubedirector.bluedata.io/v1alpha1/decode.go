@@ -17,7 +17,7 @@ package v1alpha1
 import "encoding/json"
 
 // UnmarshalJSON for SetupPackage handles the unmarshalling of three
-// scenarios wrt 'default_config_package':
+// scenarios wrt 'defaultConfigPackage':
 //   1. omitted                 : IsSet==false
 //   2. explicitly set to null  : IsSet==true && IsNull==true
 //   3. Set to a valid object   : IsSet==true && IsNull==false

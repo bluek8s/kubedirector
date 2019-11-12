@@ -22,7 +22,7 @@ spec:
         metadata:
           type: object
         spec:
-          required: [label, distro_id, version, roles, config, config_schema_version]
+          required: [label, distroID, version, roles, config, configSchemaVersion]
           properties:
             label:
               required: [name]
@@ -32,22 +32,22 @@ spec:
                   minLength: 1
                 description:
                   type: string
-            distro_id:
+            distroID:
               type: string
               minLength: 1
             version:
               type: string
               minLength: 1
-            config_schema_version:
+            configSchemaVersion:
               type: integer
               minimum: 7
-            default_image_repo_tag:
+            defaultImageRepoTag:
               type: string
               minLength: 1
-            default_config_package:
-              required: [package_url]
+            defaultConfigPackage:
+              required: [packageURL]
               properties:
-                package_url:
+                packageURL:
                   type: string
                   pattern: '^(file|https?)://.+\.tgz$'
             services:
@@ -75,12 +75,12 @@ spec:
                         type: integer
                         minimum: 1
                         maximum: 65535
-                      url_scheme:
+                      urlScheme:
                         type: string
                         minLength: 1
                       path:
                         type: string
-                      is_dashboard:
+                      isDashboard:
                         type: boolean
             roles:
               type: array
@@ -93,20 +93,20 @@ spec:
                   cardinality:
                     type: string
                     pattern: '^\d+\+?$'
-                  image_repo_tag:
+                  imageRepoTag:
                     type: string
                     minLength: 1
-                  config_package:
+                  configPackage:
                     properties:
-                      package_url:
+                      packageURL:
                         type: string
                         pattern: '^(file|https?)://.+\.tgz$'
-                  persist_dirs:
+                  persistDirs:
                     type: array
                     items:
                       type: string
                       pattern: '^/.*[^/]$'
-                  min_resources:
+                  minResources:
                     properties:
                       memory:
                         type: string
@@ -122,31 +122,31 @@ spec:
                       amd.com/gpu:
                         type: integer
             config:
-              required: [selected_roles, role_services]
+              required: [selectedRoles, roleServices]
               properties:
-                config_meta:
+                configMeta:
                   type: object
-                selected_roles:
+                selectedRoles:
                   type: array
                   items:
                     type: string
                     minLength: 1
-                role_services:
+                roleServices:
                   type: array
                   items:
-                    required: [role_id, service_ids]
+                    required: [roleID, serviceIDs]
                     properties:
-                      role_id:
+                      roleID:
                         type: string
                         minLength: 1
-                      service_ids:
+                      serviceIDs:
                         type: array
                         items:
                           type: string
                           minLength: 1
                           maxLength: 15
                           pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
-            default_persist_dirs:
+            defaultPersistDirs:
               type: array
               items:
                 type: string

@@ -40,7 +40,7 @@ type appPatchValue struct {
 }
 
 type packageURL struct {
-	URL string `json:"package_url"`
+	URL string `json:"packageURL"`
 }
 
 func (obj appPatchValue) MarshalJSON() ([]byte, error) {
@@ -92,7 +92,7 @@ func validateRefUniqueness(
 	return valErrors
 }
 
-// validateServiceRoles checks service_ids and role_id from role_services
+// validateServiceRoles checks serviceIDs and roleID from roleServices
 // in the config section, to ensure that they refer to legal/existing service
 // and role definitions. Any generated error messages will be added to the
 // input list and returned.
@@ -126,7 +126,7 @@ func validateServiceRoles(
 	return valErrors
 }
 
-// validateSelectedRoles checks the selected_roles array to make sure it
+// validateSelectedRoles checks the selectedRoles array to make sure it
 // only contains valid role IDs. Any generated error messages will be added to
 // the input list and returned.
 func validateSelectedRoles(
@@ -167,7 +167,7 @@ func validateRoles(
 			patches,
 			appPatchSpec{
 				Op:   "remove",
-				Path: "/spec/default_image_repo_tag",
+				Path: "/spec/defaultImageRepoTag",
 			},
 		)
 	}
@@ -181,7 +181,7 @@ func validateRoles(
 			patches,
 			appPatchSpec{
 				Op:   "remove",
-				Path: "/spec/default_config_package",
+				Path: "/spec/defaultConfigPackage",
 			},
 		)
 	}
@@ -192,7 +192,7 @@ func validateRoles(
 			patches,
 			appPatchSpec{
 				Op:   "remove",
-				Path: "/spec/default_persist_dirs",
+				Path: "/spec/defaultPersistDirs",
 			},
 		)
 	}
@@ -205,7 +205,7 @@ func validateRoles(
 					patches,
 					appPatchSpec{
 						Op:   "add",
-						Path: "/spec/roles/" + strconv.Itoa(index) + "/config_package",
+						Path: "/spec/roles/" + strconv.Itoa(index) + "/configPackage",
 						Value: appPatchValue{
 							stringValue: nil,
 						},
@@ -216,7 +216,7 @@ func validateRoles(
 					patches,
 					appPatchSpec{
 						Op:   "add",
-						Path: "/spec/roles/" + strconv.Itoa(index) + "/config_package",
+						Path: "/spec/roles/" + strconv.Itoa(index) + "/configPackage",
 						Value: appPatchValue{
 							packageURLValue: &packageURL{URL: *globalSetupPackageURL},
 						},
@@ -243,7 +243,7 @@ func validateRoles(
 				patches,
 				appPatchSpec{
 					Op:   "add",
-					Path: "/spec/roles/" + strconv.Itoa(index) + "/image_repo_tag",
+					Path: "/spec/roles/" + strconv.Itoa(index) + "/imageRepoTag",
 					Value: appPatchValue{
 						stringValue: globalImageRepoTag,
 					},
@@ -258,7 +258,7 @@ func validateRoles(
 					patches,
 					appPatchSpec{
 						Op:   "add",
-						Path: "/spec/roles/" + strconv.Itoa(index) + "/persist_dirs",
+						Path: "/spec/roles/" + strconv.Itoa(index) + "/persistDirs",
 						Value: appPatchValue{
 							stringSliceValue: globalPersistDirs,
 						},
@@ -273,7 +273,7 @@ func validateRoles(
 
 // validateServices checks each service for property constraints not
 // expressible in the schema. Currently this just means checking that the
-// service endpoint must specify url_schema if is_dashboard is true. Any
+// service endpoint must specify url_schema if isDashboard is true. Any
 // generated error messages will be added to the input list and returned.
 func validateServices(
 	appCR *kdv1.KubeDirectorApp,

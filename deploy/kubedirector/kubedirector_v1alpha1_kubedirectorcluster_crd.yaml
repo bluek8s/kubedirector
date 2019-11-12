@@ -128,9 +128,9 @@ spec:
                   fileInjections:
                     type: array
                     items:
-                      required: [srcUrl, destDir]
+                      required: [srcURL, destDir]
                       properties:
-                        srcUrl:
+                        srcURL:
                           type: string
                           pattern: '^https?://.+$'
                         destDir:
@@ -149,11 +149,11 @@ spec:
           properties:
             state:
               type: string
-            generation_uid:
+            generationUID:
               type: string
-            cluster_service:
+            clusterService:
               type: string
-            last_node_id:
+            lastNodeID:
               type: integer
             roles:
               type: array
@@ -161,7 +161,7 @@ spec:
                 properties:
                   id:
                     type: string
-                  stateful_set:
+                  statefulSet:
                     type: string
                   members:
                     type: array
@@ -169,7 +169,7 @@ spec:
                       properties:
                         pod:
                           type: string
-                        node_id:
+                        nodeID:
                           type: integer
                         service:
                           type: string

@@ -1,6 +1,47 @@
 # v0.3.0 - ???
 
-* ConfigCli is migrated to its own Git repository
+The most extensive change in this release is that the version of the operator SDK used by KubeDirector has been updated from v0.0.6 to v0.8.1. This picks up the operator SDK's transition to being based on the Kubernetes controller-runtime project. The effects from that change propagated into most corners of the KubeDirector codebase; while the functional difference is not generally visible to the end user, this should put us on a better footing for future updates and maintenance.
+
+In another case of "taking our medicine", the property names in our CRs have all been regularized to use camelCase style. This means that any existing CR YAML or JSON will need to be updated accordingly. The example CRs in this repo, in the various subdirectories of "deploy", have of course been updated. As usual, note that the [wiki](https://github.com/bluek8s/kubedirector/wiki) documents the release-specific format of each CRD; during the "alpha" phase of this API they may still change freely in non-backward-compatible ways between releases.
+
+Our baseline for supported Kubernetes versions has been raised to 1.12. Also, if you are compiling KubeDirector yourself you must now use version 1.12 or later of the go language. The fact that those version numbers match is purely coincidental!
+
+Now on to the feature bulletpoints:
+
+## App/cluster model
+
+* The status stanza for a KubeDirectorCluster is now a subresource. KubeDirectorConfig has also gained a status subresource.
+
+* KubeDirectorCluster resources can now specify AMD or NVidia GPU consumption.
+
+* A KubeDirectorApp can now specify minimum resource requirements per role, which will be enforced when validating a KubeDirectorCluster.
+
+* A KubeDirectorCluster can be deployed into any namespace (not limited to the namespace where KubeDirector resides).
+
+* A KubeDirectorCluster can reference a KubeDirectorApp that exists either in its own namespace or in the KubeDirector namespace.
+
+* Each role in a KubeDirectorCluster may specify a URL for a file to be downloaded into each of that role's containers.
+
+* Each role in a KubeDirectorCluster may specify a K8s secret to be mounted into each of that role's containers. Note that doing so necessarily reveals the secret's name to anyone who has GET privileges for various K8s resource types; see the wiki for more discussion of this feature.
+
+## Operational
+
+* The KubeDirector container image is now based on ubi-minimal (rather than on Alpine).
+
+* KubeDirector now runs as a non-root user.
+
+## Developer support
+
+* The ConfigCLI materials have been migrated to [their own git repository](https://github.com/bluek8s/configcli).
+
+* More documentation and Makefile support for EKS deployments. Cf. [doc/eks-notes.md](doc/eks-notes.md).
+
+* The result of "make compile" can now be used for "make redeploy" even if done on non-Linux.
+
+* Various improvements to Makefile deploy/teardown targets to make them more bulletproof and less verbose.
+
+* The generated deepcopy code is no longer committed to git, so it won't cause merge conflicts.
+
 
 # v0.2.0 - Feb 19, 2019
 

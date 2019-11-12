@@ -12,7 +12,7 @@ With gcloud configured to use the appropriate project, you can then launch a GKE
 
 If you need to grow your GKE cluster you can use gcloud to do that as well; for example, growing to 5 nodes:
 ```bash
-    gcloud container clusters resize my-gke --size=5
+    gcloud container clusters resize my-gke --num-nodes=5
 ```
 
 #### KUBECTL SETUP

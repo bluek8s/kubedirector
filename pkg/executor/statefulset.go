@@ -34,7 +34,7 @@ import (
 
 // defaultMountFolders identifies the set of member filesystems directories
 // that will always be placed on shared persistent storage (when available).
-var defaultMountFolders = []string{"/usr", "/opt", "/var", "/etc"}
+var defaultMountFolders = []string{"/etc"}
 
 // CreateStatefulSet creates in k8s a zero-replicas statefulset for
 // implementing the given role.
@@ -310,6 +310,10 @@ func getInitContainer(
 	persistDirs []string,
 ) (initContainer []v1.Container) {
 
+	// We are depending on the default value of 0 here. Not setting it
+	// explicitly because golint doesn't like that.
+	var rootUID int64
+
 	if role.Storage == nil {
 		return
 	}
@@ -337,6 +341,9 @@ func getInitContainer(
 					"cpu":    cpus,
 					"memory": mem,
 				},
+			},
+			SecurityContext: &v1.SecurityContext{
+				RunAsUser: &rootUID,
 			},
 			VolumeMounts: initVolumeMounts,
 		},

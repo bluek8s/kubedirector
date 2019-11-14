@@ -7,7 +7,7 @@
 
     "spec" : {
         "systemdRequired" : true,
-        "defaultPersistDirs" : ["/data"],
+        "defaultPersistDirs" : ["/usr", "/opt", "/var", "/data"],
         "capabilities" : [
             "SYS_PACCT",
             "SYS_RESOURCE",

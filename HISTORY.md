@@ -4,7 +4,9 @@ The most extensive change in this release is that the version of the operator SD
 
 In another case of "taking our medicine", the property names in our CRs have all been regularized to use camelCase style. This means that any existing CR YAML or JSON will need to be updated accordingly. The example CRs in this repo, in the various subdirectories of "deploy", have of course been updated. As usual, note that the [wiki](https://github.com/bluek8s/kubedirector/wiki) documents the release-specific format of each CRD; during the "alpha" phase of this API they may still change freely in non-backward-compatible ways between releases.
 
-Our baseline for supported Kubernetes versions has been raised to 1.12. Also, if you are compiling KubeDirector yourself you must now use version 1.12 or later of the go language. The fact that those version numbers match is purely coincidental!
+Also note that the list of "always mounted" directories when requesting persistent storage has been reduced; now only the "/etc" directory is a required mount, and anything else must be explicitly listed in the KubeDirectorApp CR. This can help drastically reduce startup time in cases where "/usr", "/opt", and/or "/var" do not need to be persistent.
+
+Final general comment: our baseline for supported Kubernetes versions has been raised to 1.12. Also, if you are compiling KubeDirector yourself you must now use version 1.12 or later of the go language. The fact that those version numbers match is purely coincidental!
 
 Now on to the feature bulletpoints:
 

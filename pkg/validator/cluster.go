@@ -192,8 +192,8 @@ func validateClusterRoles(
 
 // validateGeneralChanges checks for modifications to any property that is
 // not ever allowed to change after initial deployment. Currently this covers
-// the top-level app. Any generated error messages will be added to the input
-// list and returned.
+// the top-level app and appCatalog. Any generated error messages will be
+// added to the input list and returned.
 func validateGeneralChanges(
 	cr *kdv1.KubeDirectorCluster,
 	prevCr *kdv1.KubeDirectorCluster,
@@ -206,6 +206,25 @@ func validateGeneralChanges(
 			"app",
 		)
 		valErrors = append(valErrors, appModifiedMsg)
+	}
+	// appCatalog should not be nil at this point in the flow if everything
+	// has worked as expected, but it doesn't hurt to be robust against that.
+	appCatalogMatch := true
+	if cr.Spec.AppCatalog != nil {
+		if prevCr.Spec.AppCatalog != nil {
+			appCatalogMatch = (*(cr.Spec.AppCatalog) == *(prevCr.Spec.AppCatalog))
+		} else {
+			appCatalogMatch = false
+		}
+	} else {
+		appCatalogMatch = (prevCr.Spec.AppCatalog == nil)
+	}
+	if !appCatalogMatch {
+		appCatalogModifiedMsg := fmt.Sprintf(
+			modifiedProperty,
+			"appCatalog",
+		)
+		valErrors = append(valErrors, appCatalogModifiedMsg)
 	}
 
 	return valErrors

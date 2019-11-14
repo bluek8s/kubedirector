@@ -677,8 +677,9 @@ func injectFiles(
 		)
 		if fileInjection.Permissions != nil {
 			if fileInjection.Permissions.FileMode != nil {
+				fileModeStr := strconv.FormatInt(int64(*fileInjection.Permissions.FileMode), 8)
 				fileInjectCmd = strings.Join(
-					[]string{fileInjectCmd, "&&", "chmod", *fileInjection.Permissions.FileMode, destFile},
+					[]string{fileInjectCmd, "&&", "chmod", fileModeStr, destFile},
 					" ",
 				)
 			}

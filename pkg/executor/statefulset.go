@@ -34,7 +34,7 @@ import (
 
 // defaultMountFolders identifies the set of member filesystems directories
 // that will always be placed on shared persistent storage (when available).
-var defaultMountFolders = []string{"/usr", "/opt", "/var", "/etc"}
+var defaultMountFolders = []string{"/etc"}
 
 // CreateStatefulSet creates in k8s a zero-replicas statefulset for
 // implementing the given role.

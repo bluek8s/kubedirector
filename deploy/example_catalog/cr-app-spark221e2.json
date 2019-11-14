@@ -7,6 +7,7 @@
 
     "spec" : {
         "systemdRequired": true,
+        "defaultPersistDirs" : ["/usr", "/opt", "/var", "/data"],
         "config": {
             "roleServices": [
                 {

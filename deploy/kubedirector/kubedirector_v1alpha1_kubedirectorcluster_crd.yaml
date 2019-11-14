@@ -140,7 +140,7 @@ spec:
                         permissions:
                           properties:
                             fileMode:
-                              type: string
+                              type: integer
                             fileOwner:
                               type: string
                             fileGroup:

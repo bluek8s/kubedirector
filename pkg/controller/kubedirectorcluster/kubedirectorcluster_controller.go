@@ -55,7 +55,7 @@ func add(
 ) error {
 
 	// Create a new controller
-	c, err := controller.New("kubedirectorcluster-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("kubedirectorcluster-controller", mgr, controller.Options{MaxConcurrentReconciles: 10, Reconciler: r})
 	if err != nil {
 		return err
 	}

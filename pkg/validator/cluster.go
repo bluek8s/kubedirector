@@ -33,6 +33,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type secretValidateResult int
+
+const (
+	secretIsValid secretValidateResult = iota
+	secretPrefixNotMatched
+	secretNotFound
+)
+
 // clusterPatchSpec is used to create the PATCH operation for populating
 // default values for omitted properties.
 type clusterPatchSpec struct {
@@ -42,19 +50,16 @@ type clusterPatchSpec struct {
 }
 
 type clusterPatchValue struct {
-	ValueInt            *int32
-	ValueStr            *string
-	ValueFileInjections *kdv1.FilePermissions
-	ValueClusterStatus  *kdv1.KubeDirectorClusterStatus
-	ValueKDSecret       *kdv1.KDSecret
+	ValueInt           *int32
+	ValueStr           *string
+	ValueClusterStatus *kdv1.KubeDirectorClusterStatus
+	ValueKDSecret      *kdv1.KDSecret
 }
 
 func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
 
 	if obj.ValueInt != nil {
 		return json.Marshal(obj.ValueInt)
-	} else if obj.ValueFileInjections != nil {
-		return json.Marshal(obj.ValueFileInjections)
 	} else if obj.ValueKDSecret != nil {
 		return json.Marshal(obj.ValueKDSecret)
 	}
@@ -192,8 +197,8 @@ func validateClusterRoles(
 
 // validateGeneralChanges checks for modifications to any property that is
 // not ever allowed to change after initial deployment. Currently this covers
-// the top-level app. Any generated error messages will be added to the input
-// list and returned.
+// the top-level app and appCatalog. Any generated error messages will be
+// added to the input list and returned.
 func validateGeneralChanges(
 	cr *kdv1.KubeDirectorCluster,
 	prevCr *kdv1.KubeDirectorCluster,
@@ -206,6 +211,25 @@ func validateGeneralChanges(
 			"app",
 		)
 		valErrors = append(valErrors, appModifiedMsg)
+	}
+	// appCatalog should not be nil at this point in the flow if everything
+	// has worked as expected, but it doesn't hurt to be robust against that.
+	appCatalogMatch := true
+	if cr.Spec.AppCatalog != nil {
+		if prevCr.Spec.AppCatalog != nil {
+			appCatalogMatch = (*(cr.Spec.AppCatalog) == *(prevCr.Spec.AppCatalog))
+		} else {
+			appCatalogMatch = false
+		}
+	} else {
+		appCatalogMatch = (prevCr.Spec.AppCatalog == nil)
+	}
+	if !appCatalogMatch {
+		appCatalogModifiedMsg := fmt.Sprintf(
+			modifiedProperty,
+			"appCatalog",
+		)
+		valErrors = append(valErrors, appCatalogModifiedMsg)
 	}
 
 	return valErrors
@@ -468,36 +492,13 @@ func validateMinResources(
 	return valErrors
 }
 
-// validateFileInjections validates fileInjection spec defined for each role. Creates one or
-// more patches as needed if permissions object is not setup for each fileInjection. Validation
-// is done for the srcURL field by doing a HTTP HEAD on the url.
+// validateFileInjections validates fileInjection spec defined for each role.
+// Validation is done for the srcURL field by doing a HTTP HEAD on the url.
 func validateFileInjections(
 	cr *kdv1.KubeDirectorCluster,
 	valErrors []string,
 	patches []clusterPatchSpec,
 ) ([]string, []clusterPatchSpec) {
-
-	// Patch function that will be used to patch various permission fields
-	patchFunc := func(
-		patches []clusterPatchSpec,
-		roleIndex int,
-		injectIndex int,
-		patchPath string,
-		patchValue *string,
-	) []clusterPatchSpec {
-
-		patches = append(
-			patches,
-			clusterPatchSpec{
-				Op:   "add",
-				Path: "/spec/roles/" + strconv.Itoa(roleIndex) + "/fileInjections/" + strconv.Itoa(injectIndex) + "/permissions/" + patchPath,
-				Value: clusterPatchValue{
-					ValueStr: patchValue,
-				},
-			},
-		)
-		return patches
-	}
 
 	numRoles := len(cr.Spec.Roles)
 	for i := 0; i < numRoles; i++ {
@@ -531,64 +532,61 @@ func validateFileInjections(
 				)
 				continue
 			}
-
-			// Create patches if default values are not found
-			fileModePatch := defaultFileInjectionMode
-			fileOwnerPatch := defaultFileInjectionOwner
-			fileGroupPatch := defaultFileInjectionGroup
-			if fileInjection.Permissions == nil {
-				perms := &kdv1.FilePermissions{
-					FileMode:  &fileModePatch,
-					FileOwner: &fileOwnerPatch,
-					FileGroup: &fileGroupPatch,
-				}
-				patches = append(
-					patches,
-					clusterPatchSpec{
-						Op:   "add",
-						Path: "/spec/roles/" + strconv.Itoa(i) + "/fileInjections/" + strconv.Itoa(j) + "/permissions",
-						Value: clusterPatchValue{
-							ValueFileInjections: perms,
-						},
-					},
-				)
-			} else {
-				if fileInjection.Permissions.FileMode == nil {
-					patches = patchFunc(patches, i, j, "fileMode", &fileModePatch)
-				}
-
-				if fileInjection.Permissions.FileOwner == nil {
-					patches = patchFunc(patches, i, j, "fileOwner", &fileOwnerPatch)
-				}
-
-				if fileInjection.Permissions.FileGroup == nil {
-					patches = patchFunc(patches, i, j, "fileGroup", &fileGroupPatch)
-				}
-			}
 		}
 	}
 
 	return valErrors, patches
 }
 
-// validateSecrets validates defaultSecret and individual secret field for each role.
-// Validation is done to make sure secret object with the given name
-// is present in the cluster cr. Also if required, create a patch for individual role
-// objects to create the secret object
+// validateSecrets validates defaultSecret and individual secret field for
+// each role. Validation is done to make sure secret object with the given
+// name is present in the cluster CR's namespace, and that its name includes
+// the required secret prefix (if any). Also if required, create a patch for
+// individual role objects to populate them with the default secret.
 func validateSecrets(
 	cr *kdv1.KubeDirectorCluster,
 	valErrors []string,
 	patches []clusterPatchSpec,
 ) ([]string, []clusterPatchSpec) {
 
+	requiredNamePrefix := shared.GetRequiredSecretPrefix()
+
+	validateFunc := func(
+		secretName string,
+	) secretValidateResult {
+
+		// First check the name against any required prefix.
+		if strings.HasPrefix(secretName, requiredNamePrefix) {
+			// Now also check that the secret exists in this namespace.
+			_, fetchErr := observer.GetSecret(
+				cr.Namespace,
+				secretName,
+			)
+			if fetchErr != nil {
+				return secretNotFound
+			}
+		} else {
+			return secretPrefixNotMatched
+		}
+		return secretIsValid
+	}
+
 	defaultSecret := cr.Spec.DefaultSecret
 	if defaultSecret != nil {
-		// Validate to make sure that secret exists in the cluster namespace
-		_, defaultSecretErr := observer.GetSecret(
-			cr.Namespace,
-			defaultSecret.Name,
-		)
-		if defaultSecretErr != nil {
+		// Validate the default secret, and return early if there are errors.
+		defaultSecretValidateResult := validateFunc(defaultSecret.Name)
+		if defaultSecretValidateResult == secretPrefixNotMatched {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					invalidDefaultSecretPrefix,
+					defaultSecret.Name,
+					requiredNamePrefix,
+				),
+			)
+			return valErrors, patches
+		}
+		if defaultSecretValidateResult == secretNotFound {
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(
@@ -601,24 +599,34 @@ func validateSecrets(
 		}
 	}
 
+	// Now also validate any role-specific secrets, and also handle populating
+	// unspecified ones with the default (if any).
 	numRoles := len(cr.Spec.Roles)
 	for i := 0; i < numRoles; i++ {
 		role := &(cr.Spec.Roles[i])
 
 		if role.Secret != nil {
-			// Validate to make sure that secret exists in the cluster namespace
-			_, secretErr := observer.GetSecret(
-				cr.Namespace,
-				role.Secret.Name,
-			)
-			if secretErr != nil {
+			secretValidateResult := validateFunc(role.Secret.Name)
+			if secretValidateResult == secretPrefixNotMatched {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidSecretPrefix,
+						role.Secret.Name,
+						role.Name,
+						requiredNamePrefix,
+					),
+				)
+				continue
+			}
+			if secretValidateResult == secretNotFound {
 				valErrors = append(
 					valErrors,
 					fmt.Sprintf(
 						invalidSecret,
 						role.Secret.Name,
-						cr.Namespace,
 						role.Name,
+						requiredNamePrefix,
 					),
 				)
 				continue

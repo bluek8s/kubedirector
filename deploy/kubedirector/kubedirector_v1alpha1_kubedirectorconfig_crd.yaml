@@ -36,6 +36,8 @@ spec:
               pattern: '^ClusterIP$|^NodePort$|^LoadBalancer$'
             nativeSystemdSupport:
               type: boolean
+            requiredSecretPrefix:
+              type: string
         status:
           properties:
             generationUID:

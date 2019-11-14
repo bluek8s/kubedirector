@@ -87,7 +87,7 @@ type EnvVar struct {
 // FilePermissions specifies file mode along with user/group
 // information for the file
 type FilePermissions struct {
-	FileMode  *string `json:"fileMode,omitempty"`
+	FileMode  *int32  `json:"fileMode,omitempty"`
 	FileOwner *string `json:"fileOwner,omitempty"`
 	FileGroup *string `json:"fileGroup,omitempty"`
 }

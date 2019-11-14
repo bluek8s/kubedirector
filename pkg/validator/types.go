@@ -35,10 +35,6 @@ const (
 	validationPath       = "/validate"
 	defaultNativeSystemd = false
 
-	defaultFileInjectionMode  = "644"
-	defaultFileInjectionOwner = "root"
-	defaultFileInjectionGroup = "root"
-
 	appCrt  = "app.crt"
 	appKey  = "app.pem"
 	rootCrt = "ca.crt"
@@ -60,8 +56,10 @@ const (
 	nonUniqueSelectedRole = "Each element of selectedRoles array in config section must be unique."
 	nonUniqueServiceRole  = "Each roleID in roleServices array in config section must be unique."
 
-	invalidDefaultSecret = "Unable to fetch defaultSecret (%s) from (%s) namespace."
-	invalidSecret        = "Unable to fetch secret (%s) from (%s) namespace for role(%s)."
+	invalidDefaultSecretPrefix = "defaultSecret(%s) does not have the required name prefix(%s)."
+	invalidDefaultSecret       = "Unable to find defaultSecret(%s) in namespace(%s)."
+	invalidSecretPrefix        = "Secret(%s) for role(%s) does not have the required name prefix(%s)."
+	invalidSecret              = "Unable to find secret(%s) for role(%s) in namespace(%s)."
 
 	noDefaultImage = "Role(%s) has no specified image, and no top-level default image is specified."
 

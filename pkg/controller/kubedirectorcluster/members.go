@@ -664,18 +664,39 @@ func injectFiles(
 	for _, fileInjection := range role.roleSpec.FileInjections {
 		// Get base file name
 		fileName := filepath.Base(fileInjection.SrcURL)
-
 		// Construct the full destination path
 		destFile := filepath.Join(fileInjection.DestDir, fileName)
-
+		// Build the complete injection command. Include setting mode/owner
+		// if specified.
 		fileInjectCmd := fmt.Sprintf(
 			fileInjectionCommand,
 			fileInjection.DestDir,
 			fileInjection.DestDir,
-			fileInjection.SrcURL, destFile,
-			*fileInjection.Permissions.FileMode, destFile,
-			*fileInjection.Permissions.FileOwner, *fileInjection.Permissions.FileGroup, destFile,
+			fileInjection.SrcURL,
+			destFile,
 		)
+		if fileInjection.Permissions != nil {
+			if fileInjection.Permissions.FileMode != nil {
+				fileModeStr := strconv.FormatInt(int64(*fileInjection.Permissions.FileMode), 8)
+				fileInjectCmd = strings.Join(
+					[]string{fileInjectCmd, "&&", "chmod", fileModeStr, destFile},
+					" ",
+				)
+			}
+			if fileInjection.Permissions.FileOwner != nil {
+				fileInjectCmd = strings.Join(
+					[]string{fileInjectCmd, "&&", "chown", *fileInjection.Permissions.FileOwner, destFile},
+					" ",
+				)
+			}
+			if fileInjection.Permissions.FileGroup != nil {
+				fileInjectCmd = strings.Join(
+					[]string{fileInjectCmd, "&&", "chgrp", *fileInjection.Permissions.FileGroup, destFile},
+					" ",
+				)
+			}
+		}
+		// Away we go!
 		err := executor.RunScript(
 			reqLogger,
 			cr,

@@ -24,6 +24,7 @@ type KubeDirectorConfigSpec struct {
 	StorageClass         *string `json:"defaultStorageClassName,omitempty"`
 	ServiceType          *string `json:"defaultServiceType,omitempty"`
 	NativeSystemdSupport *bool   `json:"nativeSystemdSupport"`
+	RequiredSecretPrefix *string `json:"requiredSecretPrefix,omitempty"`
 }
 
 // KubeDirectorConfigStatus defines the observed state of KubeDirectorConfig.

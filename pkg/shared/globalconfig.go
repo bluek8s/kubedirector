@@ -25,6 +25,19 @@ var (
 	globalConfigLock sync.RWMutex
 )
 
+// GetRequiredSecretPrefix returns a string that must prefix-match a
+// secret name in order to allow that secret to be mounted by us. May be
+// emptystring if no match required.
+func GetRequiredSecretPrefix() string {
+
+	globalConfigLock.RLock()
+	defer globalConfigLock.RUnlock()
+	if globalConfig != nil && globalConfig.Spec.RequiredSecretPrefix != nil {
+		return *globalConfig.Spec.RequiredSecretPrefix
+	}
+	return ""
+}
+
 // GetNativeSystemdSupport extracts the flag definition from the
 // globalConfig CR data if present, otherwise returns false
 func GetNativeSystemdSupport() bool {

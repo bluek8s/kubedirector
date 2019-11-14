@@ -33,6 +33,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type secretValidateResult int
+
+const (
+	secretIsValid secretValidateResult = iota
+	secretPrefixNotMatched
+	secretNotFound
+)
+
 // clusterPatchSpec is used to create the PATCH operation for populating
 // default values for omitted properties.
 type clusterPatchSpec struct {
@@ -530,24 +538,55 @@ func validateFileInjections(
 	return valErrors, patches
 }
 
-// validateSecrets validates defaultSecret and individual secret field for each role.
-// Validation is done to make sure secret object with the given name
-// is present in the cluster cr. Also if required, create a patch for individual role
-// objects to create the secret object
+// validateSecrets validates defaultSecret and individual secret field for
+// each role. Validation is done to make sure secret object with the given
+// name is present in the cluster CR's namespace, and that its name includes
+// the required secret prefix (if any). Also if required, create a patch for
+// individual role objects to populate them with the default secret.
 func validateSecrets(
 	cr *kdv1.KubeDirectorCluster,
 	valErrors []string,
 	patches []clusterPatchSpec,
 ) ([]string, []clusterPatchSpec) {
 
+	requiredNamePrefix := shared.GetRequiredSecretPrefix()
+
+	validateFunc := func(
+		secretName string,
+	) secretValidateResult {
+
+		// First check the name against any required prefix.
+		if strings.HasPrefix(secretName, requiredNamePrefix) {
+			// Now also check that the secret exists in this namespace.
+			_, fetchErr := observer.GetSecret(
+				cr.Namespace,
+				secretName,
+			)
+			if fetchErr != nil {
+				return secretNotFound
+			}
+		} else {
+			return secretPrefixNotMatched
+		}
+		return secretIsValid
+	}
+
 	defaultSecret := cr.Spec.DefaultSecret
 	if defaultSecret != nil {
-		// Validate to make sure that secret exists in the cluster namespace
-		_, defaultSecretErr := observer.GetSecret(
-			cr.Namespace,
-			defaultSecret.Name,
-		)
-		if defaultSecretErr != nil {
+		// Validate the default secret, and return early if there are errors.
+		defaultSecretValidateResult := validateFunc(defaultSecret.Name)
+		if defaultSecretValidateResult == secretPrefixNotMatched {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					invalidDefaultSecretPrefix,
+					defaultSecret.Name,
+					requiredNamePrefix,
+				),
+			)
+			return valErrors, patches
+		}
+		if defaultSecretValidateResult == secretNotFound {
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(
@@ -560,24 +599,34 @@ func validateSecrets(
 		}
 	}
 
+	// Now also validate any role-specific secrets, and also handle populating
+	// unspecified ones with the default (if any).
 	numRoles := len(cr.Spec.Roles)
 	for i := 0; i < numRoles; i++ {
 		role := &(cr.Spec.Roles[i])
 
 		if role.Secret != nil {
-			// Validate to make sure that secret exists in the cluster namespace
-			_, secretErr := observer.GetSecret(
-				cr.Namespace,
-				role.Secret.Name,
-			)
-			if secretErr != nil {
+			secretValidateResult := validateFunc(role.Secret.Name)
+			if secretValidateResult == secretPrefixNotMatched {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidSecretPrefix,
+						role.Secret.Name,
+						role.Name,
+						requiredNamePrefix,
+					),
+				)
+				continue
+			}
+			if secretValidateResult == secretNotFound {
 				valErrors = append(
 					valErrors,
 					fmt.Sprintf(
 						invalidSecret,
 						role.Secret.Name,
-						cr.Namespace,
 						role.Name,
+						requiredNamePrefix,
 					),
 				)
 				continue

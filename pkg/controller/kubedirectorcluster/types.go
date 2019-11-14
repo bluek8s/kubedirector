@@ -73,9 +73,7 @@ const (
 	1> /opt/guestconfig/configure.stdout;
 	echo -n $? > ` + appPrepConfigStatus + `" &`
 	fileInjectionCommand = `mkdir -p %s && cd %s &&
-	curl -L %s -o %s &&
-	chmod %s %s &&
-	chown %s:%s %s`
+	curl -L %s -o %s`
 )
 
 const (

@@ -42,19 +42,16 @@ type clusterPatchSpec struct {
 }
 
 type clusterPatchValue struct {
-	ValueInt            *int32
-	ValueStr            *string
-	ValueFileInjections *kdv1.FilePermissions
-	ValueClusterStatus  *kdv1.KubeDirectorClusterStatus
-	ValueKDSecret       *kdv1.KDSecret
+	ValueInt           *int32
+	ValueStr           *string
+	ValueClusterStatus *kdv1.KubeDirectorClusterStatus
+	ValueKDSecret      *kdv1.KDSecret
 }
 
 func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
 
 	if obj.ValueInt != nil {
 		return json.Marshal(obj.ValueInt)
-	} else if obj.ValueFileInjections != nil {
-		return json.Marshal(obj.ValueFileInjections)
 	} else if obj.ValueKDSecret != nil {
 		return json.Marshal(obj.ValueKDSecret)
 	}
@@ -487,36 +484,13 @@ func validateMinResources(
 	return valErrors
 }
 
-// validateFileInjections validates fileInjection spec defined for each role. Creates one or
-// more patches as needed if permissions object is not setup for each fileInjection. Validation
-// is done for the srcURL field by doing a HTTP HEAD on the url.
+// validateFileInjections validates fileInjection spec defined for each role.
+// Validation is done for the srcURL field by doing a HTTP HEAD on the url.
 func validateFileInjections(
 	cr *kdv1.KubeDirectorCluster,
 	valErrors []string,
 	patches []clusterPatchSpec,
 ) ([]string, []clusterPatchSpec) {
-
-	// Patch function that will be used to patch various permission fields
-	patchFunc := func(
-		patches []clusterPatchSpec,
-		roleIndex int,
-		injectIndex int,
-		patchPath string,
-		patchValue *string,
-	) []clusterPatchSpec {
-
-		patches = append(
-			patches,
-			clusterPatchSpec{
-				Op:   "add",
-				Path: "/spec/roles/" + strconv.Itoa(roleIndex) + "/fileInjections/" + strconv.Itoa(injectIndex) + "/permissions/" + patchPath,
-				Value: clusterPatchValue{
-					ValueStr: patchValue,
-				},
-			},
-		)
-		return patches
-	}
 
 	numRoles := len(cr.Spec.Roles)
 	for i := 0; i < numRoles; i++ {
@@ -549,40 +523,6 @@ func validateFileInjections(
 					),
 				)
 				continue
-			}
-
-			// Create patches if default values are not found
-			fileModePatch := defaultFileInjectionMode
-			fileOwnerPatch := defaultFileInjectionOwner
-			fileGroupPatch := defaultFileInjectionGroup
-			if fileInjection.Permissions == nil {
-				perms := &kdv1.FilePermissions{
-					FileMode:  &fileModePatch,
-					FileOwner: &fileOwnerPatch,
-					FileGroup: &fileGroupPatch,
-				}
-				patches = append(
-					patches,
-					clusterPatchSpec{
-						Op:   "add",
-						Path: "/spec/roles/" + strconv.Itoa(i) + "/fileInjections/" + strconv.Itoa(j) + "/permissions",
-						Value: clusterPatchValue{
-							ValueFileInjections: perms,
-						},
-					},
-				)
-			} else {
-				if fileInjection.Permissions.FileMode == nil {
-					patches = patchFunc(patches, i, j, "fileMode", &fileModePatch)
-				}
-
-				if fileInjection.Permissions.FileOwner == nil {
-					patches = patchFunc(patches, i, j, "fileOwner", &fileOwnerPatch)
-				}
-
-				if fileInjection.Permissions.FileGroup == nil {
-					patches = patchFunc(patches, i, j, "fileGroup", &fileGroupPatch)
-				}
 			}
 		}
 	}

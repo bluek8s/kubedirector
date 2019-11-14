@@ -35,10 +35,6 @@ const (
 	validationPath       = "/validate"
 	defaultNativeSystemd = false
 
-	defaultFileInjectionMode  = "644"
-	defaultFileInjectionOwner = "root"
-	defaultFileInjectionGroup = "root"
-
 	appCrt  = "app.crt"
 	appKey  = "app.pem"
 	rootCrt = "ca.crt"

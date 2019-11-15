@@ -71,6 +71,14 @@ func (s *StatusGens) ValidateStatusGen(uid types.UID) {
 	}
 }
 
+// WriteValidatedStatusGen does WriteStatusGen + ValidateStatusGen atomically.
+func (s *StatusGens) WriteValidatedStatusGen(uid types.UID, newGenUID string) {
+
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.statusGens[uid] = StatusGen{UID: newGenUID, Validated: true}
+}
+
 // DeleteStatusGen provides thread safe delete of a status gen.
 func (s *StatusGens) DeleteStatusGen(uid types.UID) {
 

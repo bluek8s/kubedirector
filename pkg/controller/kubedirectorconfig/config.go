@@ -202,8 +202,7 @@ func (r *ReconcileKubeDirectorConfig) handleNewConfig(
 		"unknown with incoming gen uid %s",
 		incoming,
 	)
-	StatusGens.WriteStatusGen(cr.UID, incoming)
-	StatusGens.ValidateStatusGen(cr.UID)
+	StatusGens.WriteValidatedStatusGen(cr.UID, incoming)
 	return true, nil
 }
 

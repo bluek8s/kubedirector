@@ -277,8 +277,7 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 		"unknown cluster with incoming gen uid %s",
 		incoming,
 	)
-	ClusterStatusGens.WriteStatusGen(cr.UID, incoming)
-	ClusterStatusGens.ValidateStatusGen(cr.UID)
+	ClusterStatusGens.WriteValidatedStatusGen(cr.UID, incoming)
 	return true, nil
 }
 

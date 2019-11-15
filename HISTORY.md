@@ -1,4 +1,4 @@
-# v0.3.0 - ???
+# v0.3.0 - Nov 16, 2019
 
 The most extensive change in this release is that the version of the operator SDK used by KubeDirector has been updated from v0.0.6 to v0.8.1. This picks up the operator SDK's transition to being based on the Kubernetes controller-runtime project. The effects from that change propagated into most corners of the KubeDirector codebase; while the functional difference is not generally visible to the end user, this should put us on a better footing for future updates and maintenance.
 

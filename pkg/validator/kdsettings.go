@@ -163,24 +163,30 @@ func admitKDConfigCR(
 	// Don't allow Status to be updated except by KubeDirector. Do this by
 	// using one-time codes known by KubeDirector.
 	if configCR.Status != nil {
+		statusViolation := &metav1.Status{
+			Message: "\nKubeDirector-related status properties are read-only",
+		}
 		expectedStatusGen, ok := kubedirectorconfig.StatusGens.ReadStatusGen(configCR.UID)
 		// Reject this write if either of:
-		// - KubeDirector doesn't know about the config resource
 		// - this status generation UID is not what we're expecting a write for
-		if !ok || configCR.Status.GenerationUID != expectedStatusGen.UID {
-			admitResponse.Result = &metav1.Status{
-				Message: "\nKubeDirector-related status properties are read-only",
+		// - KubeDirector doesn't know about the CR & the status is changing
+		if ok {
+			if configCR.Status.GenerationUID != expectedStatusGen.UID {
+				admitResponse.Result = statusViolation
+				return &admitResponse
 			}
-			return &admitResponse
+		} else {
+			if !reflect.DeepEqual(configCR.Status, prevConfigCR.Status) {
+				admitResponse.Result = statusViolation
+				return &admitResponse
+			}
 		}
 		// If this status generation UID has already been admitted previously,
 		// it's OK to write the status again as long as nothing is changing.
 		// (For example we'll see this when a PATCH happens.)
 		if expectedStatusGen.Validated {
 			if !reflect.DeepEqual(configCR.Status, prevConfigCR.Status) {
-				admitResponse.Result = &metav1.Status{
-					Message: "\nKubeDirector-related status properties are read-only",
-				}
+				admitResponse.Result = statusViolation
 				return &admitResponse
 			}
 		}

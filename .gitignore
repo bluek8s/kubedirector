@@ -1,6 +1,7 @@
 /Local.mk
 
 # dependencies
+/.vendor-new
 /vendor
 
 # generated

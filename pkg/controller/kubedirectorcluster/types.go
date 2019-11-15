@@ -52,22 +52,22 @@ const (
 	configMetaFile      = "/etc/guestconfig/configmeta.json"
 	configcliSrcFile    = "/home/kubedirector/configcli.tgz"
 	configcliDestFile   = "/tmp/configcli.tgz"
-	configcliInstallCmd = `cd /tmp;tar xzf configcli.tgz;
-	chmod +x /tmp/configcli-*/install;/tmp/configcli-*/install;
-	rm -rf /tmp/configcli-*;rm -f /tmp/configcli.tgz;
-	ln -sf /usr/bin/configcli /usr/bin/bdvcli;
-	ln -sf /usr/bin/configcli /usr/bin/bd_vcli;`
+	configcliInstallCmd = `cd /tmp && tar xzf configcli.tgz &&
+	chmod +x /tmp/configcli-*/install && /tmp/configcli-*/install &&
+	rm -rf /tmp/configcli-* && rm -f /tmp/configcli.tgz &&
+	ln -sf /usr/bin/configcli /usr/bin/bdvcli &&
+	ln -sf /usr/bin/configcli /usr/bin/bd_vcli`
 	configcliTestFile  = "/usr/bin/configcli"
 	appPrepStartscript = "/opt/guestconfig/*/startscript"
-	appPrepInitCmd     = `cd /opt/guestconfig/;
-	rm -rf /opt/guestconfig/*;
-	curl -L {{APP_CONFIG_URL}} -o appconfig.tgz;
-	tar xzf appconfig.tgz;
-	chmod +x ` + appPrepStartscript + `;
+	appPrepInitCmd     = `cd /opt/guestconfig/ &&
+	rm -rf /opt/guestconfig/* &&
+	curl -L {{APP_CONFIG_URL}} -o appconfig.tgz &&
+	tar xzf appconfig.tgz &&
+	chmod +x ` + appPrepStartscript + ` &&
 	rm -rf /opt/guestconfig/appconfig.tgz`
 	appPrepConfigStatus = "/opt/guestconfig/configure.status"
-	appPrepConfigRunCmd = `rm -f /opt/guestconfig/configure.*;
-	touch ` + appPrepConfigStatus + `;
+	appPrepConfigRunCmd = `rm -f /opt/guestconfig/configure.* &&
+	touch ` + appPrepConfigStatus + ` &&
 	nohup sh -c "` + appPrepStartscript + ` --configure
 	2> /opt/guestconfig/configure.stderr
 	1> /opt/guestconfig/configure.stdout;

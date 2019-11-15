@@ -37,6 +37,7 @@ In your local clone of your own repo, create the x.y.z-release-info branch from 
 Working on your local x.y.z-release-info branch:
 * Change references to the previous KD version to x.y.z in doc/quickstart.md - for example changing from "v0.1.0" to "v0.2.0".
 * Update/finalize HISTORY.md (i.e. release date and changes for version x.y.z).
+* Change the version string to "x.y.z-unstable" in version.go.
 
 Push your local x.y.z-release-info branch to your own GitHub repo.
 
@@ -53,6 +54,7 @@ In your local clone of your own repo, create the x.y.z-release branch from x.y.z
 Working on your local x.y.z-release branch:
 * Search docs for links that include "kubedirector/wiki/Type-Definitions" (i.e. CR docs) and replace each with a link to the appropriate version-snapshot page.
 * Change image version from unstable to x.y.z in Makefile and deployment-prebuilt.yaml.
+* Change the version string to "x.y.z" in version.go.
 * Build and push that KD image (modify Local.mk to enable push_default if necessary).
 * Regression test this image.
 

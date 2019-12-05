@@ -41,7 +41,8 @@ type Attachments struct {
 	Models   []Model  `json:"models,omitempty"`
 }
 
-// Model test
+// Model object has meta data pertaining
+// to a serialized model
 type Model struct {
 	Name        string `json:"name"`
 	Version     string `json:"version"`

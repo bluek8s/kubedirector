@@ -137,6 +137,9 @@ func servicesForRole(
 	return result
 }
 
+// modelAttachments will look at the cluster spec
+// and generates a map of models to be attached to
+// this cluster
 func modelAttachments(
 	cr *kdv1.KubeDirectorCluster,
 ) (map[string]kdv1.Model, error) {

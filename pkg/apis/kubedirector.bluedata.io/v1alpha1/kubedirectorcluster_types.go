@@ -26,11 +26,27 @@ import (
 // using a StatefulSet.
 // +k8s:openapi-gen=true
 type KubeDirectorClusterSpec struct {
-	AppID         string    `json:"app"`
-	AppCatalog    *string   `json:"appCatalog"`
-	ServiceType   *string   `json:"serviceType"`
-	Roles         []Role    `json:"roles"`
-	DefaultSecret *KDSecret `json:"defaultSecret"`
+	AppID         string      `json:"app"`
+	AppCatalog    *string     `json:"appCatalog"`
+	ServiceType   *string     `json:"serviceType"`
+	Roles         []Role      `json:"roles"`
+	DefaultSecret *KDSecret   `json:"defaultSecret"`
+	Attachments   Attachments `json:"attachments"`
+}
+
+// Attachments specifies list of cluster objects and model objects that has
+// be attached to the cluster.
+type Attachments struct {
+	Clusters []string `json:"clusters,omitempty"`
+	Models   []Model  `json:"models,omitempty"`
+}
+
+// Model test
+type Model struct {
+	Name        string `json:"name"`
+	Version     string `json:"version"`
+	Location    string `json:"location"`
+	ScoringPath string `json:"scoring"`
 }
 
 // KubeDirectorClusterStatus defines the observed state of KubeDirectorCluster.

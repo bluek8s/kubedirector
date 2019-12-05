@@ -14,17 +14,20 @@
 
 package catalog
 
+import kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+
 // configmeta is a representation of a virtual cluster config, based on both
 // the app type definition and the deploy-time spec provided in the cluster
 // CR. It is arranged in a format to be consumed by the app setup Python
 // packages.
 type configmeta struct {
-	Version    string                  `json:"version"`
-	Services   map[string]ngRefkeysMap `json:"services"`
-	Nodegroups map[string]nodegroup    `json:"nodegroups"`
-	Distros    map[string]refkeysMap   `json:"distros"`
-	Cluster    cluster                 `json:"cluster"`
-	Node       *node                   `json:"node"`
+	Version     string                  `json:"version"`
+	Services    map[string]ngRefkeysMap `json:"services"`
+	Nodegroups  map[string]nodegroup    `json:"nodegroups"`
+	Distros     map[string]refkeysMap   `json:"distros"`
+	Cluster     cluster                 `json:"cluster"`
+	Node        *node                   `json:"node"`
+	Attachments attachments             `json:"attachments"`
 }
 
 type ngRefkeysMap map[string]refkeysMap
@@ -40,6 +43,23 @@ type nodegroup struct {
 	DistroID            string            `json:"distro_id"`
 	CatalogEntryVersion string            `json:"catalog_entry_version"`
 	ConfigMeta          map[string]string `json:"config_metadata"`
+}
+
+type attachments struct {
+	Clusters map[string]clusterAttachment `json:"clusters"`
+	Models   map[string]kdv1.Model        `json:"models"`
+}
+
+type clusterAttachment struct {
+	Version    string                  `json:"version"`
+	Services   map[string]ngRefkeysMap `json:"services"`
+	Nodegroups map[string]nodegroup    `json:"nodegroups"`
+	Distros    map[string]refkeysMap   `json:"distros"`
+	Cluster    cluster                 `json:"cluster"`
+	Name       string                  `json:"name"`
+	Isolated   bool                    `json:"isolated"`
+	ID         string                  `json:"id"`
+	ConfigMeta map[string]refkeys      `json:"config_metadata"`
 }
 
 type cluster struct {

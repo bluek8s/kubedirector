@@ -22,18 +22,26 @@ import (
 // KubeDirectorAppSpec is the spec provided for an app definition.
 // +k8s:openapi-gen=true
 type KubeDirectorAppSpec struct {
-	Label               Label           `json:"label"`
-	DistroID            string          `json:"distroID"`
-	Version             string          `json:"version"`
-	SchemaVersion       int             `json:"configSchemaVersion"`
-	DefaultImageRepoTag *string         `json:"defaultImageRepoTag,omitempty"`
-	DefaultSetupPackage SetupPackage    `json:"defaultConfigPackage,omitempty"`
-	Services            []Service       `json:"services"`
-	NodeRoles           []NodeRole      `json:"roles"`
-	Config              NodeGroupConfig `json:"config"`
-	DefaultPersistDirs  *[]string       `json:"defaultPersistDirs"`
-	Capabilities        []v1.Capability `json:"capabilities"`
-	SystemdRequired     bool            `json:"systemdRequired"`
+	Label               Label              `json:"label"`
+	DistroID            string             `json:"distroID"`
+	Version             string             `json:"version"`
+	SchemaVersion       int                `json:"configSchemaVersion"`
+	DefaultImageRepoTag *string            `json:"defaultImageRepoTag,omitempty"`
+	DefaultSetupPackage SetupPackage       `json:"defaultConfigPackage,omitempty"`
+	Services            []Service          `json:"services"`
+	NodeRoles           []NodeRole         `json:"roles"`
+	Config              NodeGroupConfig    `json:"config"`
+	DefaultPersistDirs  *[]string          `json:"defaultPersistDirs"`
+	Capabilities        []v1.Capability    `json:"capabilities"`
+	SystemdRequired     bool               `json:"systemdRequired"`
+	AttachableTo        []AttachableConfig `json:"attachable_to,omitempty"`
+}
+
+// AttachableConfig describes type of objects that can be attached to
+// a cluster that uses the app.
+// XXX FIXME. Only categor
+type AttachableConfig struct {
+	Category string `json:"category"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -81,9 +89,10 @@ type SetupPackageURL struct {
 // access, and/or identified for other use by API clients or consumers
 // internal to the virtual cluster (e.g. app setup packages).
 type Service struct {
-	ID       string          `json:"id"`
-	Label    Label           `json:"label,omitempty"`
-	Endpoint ServiceEndpoint `json:"endpoint,omitempty"`
+	ID              string          `json:"id"`
+	Label           Label           `json:"label,omitempty"`
+	Endpoint        ServiceEndpoint `json:"endpoint,omitempty"`
+	ExportedService string          `json:"exported_service,omitempty"`
 }
 
 // ServiceEndpoint describes the service network address and protocol, and

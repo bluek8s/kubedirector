@@ -21,7 +21,7 @@ import (
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 // allServiceRefkeys is a subroutine of getServices, used to generate a
@@ -228,7 +228,7 @@ func ConfigmetaGenerator(
 	// returned function, since we won't always actually need to call the
 	// function. However it's really handy to know up front if any errors
 	// would be generated.
-	domain := cr.Status.ClusterService + "." + cr.Namespace + shared.DomainBase
+	domain := cr.Status.ClusterService + "." + cr.Namespace + shared.GetDefaultSvcClusterDomainBase()
 	perNodeConfig := make(map[string]*node)
 	c := clusterBaseConfig(cr, appCR, membersForRole, domain)
 	for roleName, members := range membersForRole {

@@ -15,9 +15,9 @@
 package shared
 
 const (
-	// DomainBase contains the initial segments used to build FQDNs
+	// DefaultSvcDomainBase contains the initial segments used to build FQDNs
 	// for cluster members
-	DomainBase = ".svc.cluster.local"
+	DefaultSvcDomainBase = ".svc.cluster.local"
 
 	// KubeDirectorNamespaceEnvVar is the constant for env variable MY_NAMESPACE
 	// which is the namespace of the kubedirector pod.

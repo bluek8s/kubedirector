@@ -38,6 +38,8 @@ spec:
               type: boolean
             requiredSecretPrefix:
               type: string
+            clusterSvcDomainBase:
+              type: string
         status:
           properties:
             generationUID:

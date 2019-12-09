@@ -57,7 +57,7 @@ func NewCA(name string) (*KeyPair, error) {
 }
 
 // NewServerKeyPair ...
-func NewServerKeyPair(ca *KeyPair, commonName, svcName, svcNamespace, dnsDomain string, ips, hostnames []string) (*KeyPair, error) {
+func NewServerKeyPair(ca *KeyPair, commonName, svcName, svcNamespace string, ips, hostnames []string) (*KeyPair, error) {
 
 	key, err := certutil.NewPrivateKey()
 	if err != nil {
@@ -69,7 +69,6 @@ func NewServerKeyPair(ca *KeyPair, commonName, svcName, svcNamespace, dnsDomain 
 		svcName,
 		namespacedName,
 		fmt.Sprintf("%s.svc", namespacedName),
-		fmt.Sprintf("%s.svc.%s", namespacedName, dnsDomain),
 	}
 
 	altNames := certutil.AltNames{}

@@ -75,6 +75,19 @@ func GetDefaultServiceType() string {
 	return DefaultServiceType
 }
 
+// GetSvcClusterDomainBase extracts the default svc cluster domain
+// from the globalConfig CR data if present, otherwise returns the default
+// value (NodePort).
+func GetSvcClusterDomainBase() string {
+
+	globalConfigLock.RLock()
+	defer globalConfigLock.RUnlock()
+	if globalConfig != nil && globalConfig.Spec.ClusterSvcDomainBase != nil {
+		return *globalConfig.Spec.ClusterSvcDomainBase
+	}
+	return DefaultSvcDomainBase
+}
+
 // RemoveGlobalConfig removes the current globalConfig
 func RemoveGlobalConfig() {
 

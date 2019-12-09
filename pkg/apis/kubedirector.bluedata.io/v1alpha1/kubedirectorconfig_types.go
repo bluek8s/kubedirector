@@ -25,6 +25,7 @@ type KubeDirectorConfigSpec struct {
 	ServiceType          *string `json:"defaultServiceType,omitempty"`
 	NativeSystemdSupport *bool   `json:"nativeSystemdSupport"`
 	RequiredSecretPrefix *string `json:"requiredSecretPrefix,omitempty"`
+	ClusterSvcDomainBase *string `json:"clusterSvcDomainBase"`
 }
 
 // KubeDirectorConfigStatus defines the observed state of KubeDirectorConfig.

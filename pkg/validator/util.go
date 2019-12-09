@@ -172,7 +172,6 @@ func createCertsSecret(
 		strings.Join([]string{serviceName, namespace, "svc"}, "."),
 		serviceName,
 		namespace,
-		"cluster.local",
 		[]string{},
 		[]string{},
 	)

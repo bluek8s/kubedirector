@@ -53,6 +53,7 @@ func CreateHeadlessService(
 			Selector: map[string]string{
 				headlessServiceLabel: name + "-" + cr.Name,
 			},
+			PublishNotReadyAddresses: true,
 			Ports: []corev1.ServicePort{
 				{
 					Name: "port",

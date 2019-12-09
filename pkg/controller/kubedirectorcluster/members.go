@@ -952,7 +952,7 @@ func fqdnsList(
 		s := []string{
 			m.Pod,
 			cr.Status.ClusterService,
-			cr.Namespace + shared.GetDefaultSvcClusterDomainBase(),
+			cr.Namespace + shared.GetSvcClusterDomainBase(),
 		}
 		return strings.Join(s, ".")
 	}

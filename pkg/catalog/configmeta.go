@@ -228,7 +228,7 @@ func ConfigmetaGenerator(
 	// returned function, since we won't always actually need to call the
 	// function. However it's really handy to know up front if any errors
 	// would be generated.
-	domain := cr.Status.ClusterService + "." + cr.Namespace + shared.GetDefaultSvcClusterDomainBase()
+	domain := cr.Status.ClusterService + "." + cr.Namespace + shared.GetSvcClusterDomainBase()
 	perNodeConfig := make(map[string]*node)
 	c := clusterBaseConfig(cr, appCR, membersForRole, domain)
 	for roleName, members := range membersForRole {

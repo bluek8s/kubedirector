@@ -106,9 +106,9 @@
                 }
             }
         ],
-        "defaultImageRepoTag": "docker.io/bluedata/sparkbase:2.0",
+        "defaultImageRepoTag": "docker.io/bluedata/sparkbase:2.2",
         "defaultConfigPackage":  {
-            "packageURL": "https://s3.amazonaws.com/bluek8s/kubedirector/spark221e2/appconfig-2.6.tgz"
+            "packageURL": "file:///opt/configscripts/appconfig-2.6.tgz"
         },
         "roles": [
             {
@@ -120,7 +120,7 @@
                 "id": "worker"
             },
             {
-                "imageRepoTag": "docker.io/bluedata/jupyter:2.2",
+                "imageRepoTag": "docker.io/bluedata/jupyter:2.3",
                 "cardinality": "0+",
                 "id": "jupyter"
             }

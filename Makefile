@@ -81,14 +81,12 @@ push:
 deploy:
 	@set -e; \
         all_namespaces=`kubectl get ns --no-headers| awk '{print $$1}'`; \
-        for ns in $$all_namespaces; do \
-            pods_gone=False; \
-            kubectl -n $$ns get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name} &> /dev/null || pods_gone=True; \
-            if [[ "$$pods_gone" != "True" ]]; then \
-                echo "KubeDirector pod already exists in namespace $$ns. Maybe old pod is still terminating?"; \
-                exit 1; \
-            fi; \
-        done; \
+        pods_gone=False; \
+        kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name} -A &> /dev/null || pods_gone=True; \
+        if [[ "$$pods_gone" != "True" ]]; then \
+            echo "KubeDirector pod already exists. Maybe the old pod is still terminating?"; \
+            exit 1; \
+        fi; \
         kubectl_ns=`kubectl config get-contexts | grep '^\*' | awk '{print $$5}'`; \
         if [[ -z "$$kubectl_ns" ]]; then \
             cp -f deploy/kubedirector/rbac-default.yaml deploy/kubedirector/rbac.yaml; \

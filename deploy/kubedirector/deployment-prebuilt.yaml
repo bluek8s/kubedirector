@@ -15,6 +15,7 @@ spec:
       containers:
         - name: kubedirector
           image: bluek8s/kubedirector:unstable
+          command: /usr/local/bin/entrypoint
           ports:
           - containerPort: 60000
             name: metrics

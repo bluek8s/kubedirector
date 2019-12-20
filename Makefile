@@ -215,7 +215,7 @@ undeploy:
             fi; \
         }; \
         function delete_all_things { \
-            cmd="kubectl -n $$1 delete $$2 --all --now"; \
+            cmd="kubectl delete $$1 --all=true -A --now"; \
             msg=$$($$cmd 2>&1); \
             if [[ "$$?" == "0" ]]; then \
                 if [[ "$$msg" != "No resources found" ]]; then \
@@ -234,19 +234,13 @@ undeploy:
         }; \
         all_namespaces=`kubectl get ns --no-headers| awk '{print $$1}'`; \
         echo \* Deleting any managed virtual clusters...; \
-        for ns in $$all_namespaces; do \
-            delete_all_things $$ns ${cluster_resource_name}; \
-        done; \
+        delete_all_things ${cluster_resource_name}; \
         echo; \
         echo \* Deleting any application types...; \
-        for ns in $$all_namespaces; do \
-            delete_all_things $$ns ${app_resource_name}; \
-        done; \
+        delete_all_things ${app_resource_name}; \
         echo; \
         echo \* Deleting any configs...; \
-        for ns in $$all_namespaces; do \
-            delete_all_things $$ns ${config_resource_name}; \
-        done; \
+        delete_all_things ${config_resource_name}; \
         echo; \
         echo \* Deleting KubeDirector deployment...; \
         for ns in $$all_namespaces; do \

@@ -5,7 +5,7 @@ If you intend to deploy KubeDirector on EKS, you will need to have AWS credentia
 The [Getting Started with Amazon EKS](https://docs.aws.amazon.com/eks/latest/userguide/getting-started.html) guide will walk you through all first-time setup as well as the process of creating a cluster. Both the AWS Management Console (web UI) process as well as the eksctl (command-line) process will work fine, but we recommend becoming familiar with the eksctl process if you will be repeatedly deploying EKS clusters.
 
 Two important notes to be aware of when creating an EKS cluster:
-* Be sure to specify Kubernetes version 1.12 or later.
+* Be sure to specify Kubernetes version 1.14 or later.
 * Choose a worker [instance type](https://aws.amazon.com/ec2/instance-types/) with enough resources to host at least one virtual cluster member. The example type t3.medium is probably too small; consider using t3.xlarge or an m5 instance type.
 
 Use of eksctl and the AWS Management Console can be somewhat intermixed, because in the end they are just manipulating standard AWS resources, but this doc will assume you're just using one process or the other.
@@ -36,8 +36,6 @@ A YAML file is available in the "deploy/example_configs" subdirectory to address
 ```
 
 If you teardown and then re-deploy KubeDirector, you will need to repeat this step before using persistent storage.
-
-Note: if that command fails by rejecting the storage class creation, it may be the case that you are not using Kubernetes version 1.12 or later (as required) in your EKS cluster.
 
 #### WORKING WITH KUBEDIRECTOR
 

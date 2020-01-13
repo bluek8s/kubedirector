@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
@@ -142,10 +143,12 @@ func RemoveDir(
 		ioStreams,
 	)
 	if err != nil {
-		err = fmt.Errorf("rmdir failed: %s\n%s",
-			stdErr.String(),
-			err.Error(),
-		)
+		errStr := stdErr.String()
+		if strings.Contains(errStr, "No such file or directory") {
+			err = nil
+		} else {
+			err = fmt.Errorf("rmdir failed: %s", errStr)
+		}
 	}
 	return err
 }

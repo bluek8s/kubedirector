@@ -15,6 +15,7 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
+      type: object
       required: [apiVersion, kind, metadata, spec]
       properties:
         apiVersion:
@@ -24,6 +25,7 @@ spec:
         metadata:
           type: object
         spec:
+          type: object
           required: [app, roles]
           properties:
             app:
@@ -36,6 +38,8 @@ spec:
               type: string
               pattern: '^ClusterIP$|^NodePort$|^LoadBalancer$'
             defaultSecret:
+              type: object
+              nullable: true
               required: [name, mountPath]
               properties:
                 name:
@@ -53,15 +57,23 @@ spec:
             roles:
               type: array
               items:
+                type: object
                 required: [id, resources]
                 properties:
                   id:
                     type: string
                     minLength: 1
+                    maxLength: 63
+                    pattern: '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?'
+                  labels:
+                    type: object
+                    nullable: true
                   members:
                     type: integer
                     minimum: 0
                   secret:
+                    type: object
+                    nullable: true
                     required: [name, mountPath]
                     properties:
                       name:
@@ -77,9 +89,11 @@ spec:
                       readOnly:
                         type: boolean
                   resources:
+                    type: object
                     required: [limits]
                     properties:
                       limits:
+                        type: object
                         required: [memory, cpu]
                         properties:
                           memory:
@@ -96,6 +110,8 @@ spec:
                             type: string
                             pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                       requests:
+                        type: object
+                        nullable: true
                         properties:
                           memory:
                             type: string
@@ -109,6 +125,7 @@ spec:
                   env:
                     type: array
                     items:
+                      type: object
                       required: [name, value]
                       properties:
                         name:
@@ -117,6 +134,8 @@ spec:
                         value:
                           type: string
                   storage:
+                    type: object
+                    nullable: true
                     required: [size]
                     properties:
                       size:
@@ -128,6 +147,7 @@ spec:
                   fileInjections:
                     type: array
                     items:
+                      type: object
                       required: [srcURL, destDir]
                       properties:
                         srcURL:
@@ -138,6 +158,8 @@ spec:
                           pattern: '^/.*$'
                           minLength: 1
                         permissions:
+                          type: object
+                          nullable: true
                           properties:
                             fileMode:
                               type: integer
@@ -146,6 +168,8 @@ spec:
                             fileGroup:
                               type: string
         status:
+          type: object
+          nullable: true
           properties:
             state:
               type: string
@@ -158,6 +182,7 @@ spec:
             roles:
               type: array
               items:
+                type: object
                 properties:
                   id:
                     type: string
@@ -166,6 +191,7 @@ spec:
                   members:
                     type: array
                     items:
+                      type: object
                       properties:
                         pod:
                           type: string

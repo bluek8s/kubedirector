@@ -31,6 +31,8 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	appsvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 type secretValidateResult int
@@ -84,6 +86,7 @@ func validateCardinality(
 	anyError := false
 
 	numRoles := len(cr.Spec.Roles)
+	rolesPath := field.NewPath("spec", "roles")
 	for i := 0; i < numRoles; i++ {
 		role := &(cr.Spec.Roles[i])
 		appRole := catalog.GetRoleFromID(appCR, role.Name)
@@ -107,7 +110,6 @@ func validateCardinality(
 				anyError = true
 				valErrors = append(
 					valErrors,
-
 					fmt.Sprintf(
 						invalidCardinality,
 						role.Name,
@@ -128,6 +130,16 @@ func validateCardinality(
 					},
 				},
 			)
+		}
+		// validate role[i].labels
+		rolePath := rolesPath.Index(i)
+		fieldsPath := rolePath.Child("labels")
+		labelErrors := appsvalidation.ValidateLabels(role.Labels, fieldsPath)
+		if len(labelErrors) != 0 {
+			anyError = true
+			for _, err := range labelErrors {
+				valErrors = append(valErrors, err.Error())
+			}
 		}
 	}
 
@@ -195,11 +207,11 @@ func validateClusterRoles(
 	return valErrors
 }
 
-// validateGeneralChanges checks for modifications to any property that is
-// not ever allowed to change after initial deployment. Currently this covers
-// the top-level app and appCatalog. Any generated error messages will be
-// added to the input list and returned.
-func validateGeneralChanges(
+// validateGeneralClusterChanges checks for modifications to any property that
+// is not ever allowed to change after initial deployment. Currently this
+// covers the top-level app and appCatalog. Any generated error messages will
+// be added to the input list and returned.
+func validateGeneralClusterChanges(
 	cr *kdv1.KubeDirectorCluster,
 	prevCr *kdv1.KubeDirectorCluster,
 	valErrors []string,
@@ -803,15 +815,15 @@ func admitClusterCR(
 	// Validate secret and generate patches for default values (if any)
 	valErrors, patches = validateSecrets(&clusterCR, valErrors, patches)
 
-	// If cluster already exists, check for property changes.
+	// If cluster already exists, check for invalid property changes.
 	if ar.Request.Operation == v1beta1.Update {
 		var changeErrors []string
-		changeErrors = validateGeneralChanges(&clusterCR, &prevClusterCR, changeErrors)
+		changeErrors = validateGeneralClusterChanges(&clusterCR, &prevClusterCR, changeErrors)
 		changeErrors = validateRoleChanges(&clusterCR, &prevClusterCR, changeErrors)
 		// If un-change-able properties are being changed, ignore all other error
 		// messages in favor of those. (The reason we didn't just do this check
-		// first and then skip other validation is because this check depends on
-		// the defaulting logic that happens in those other functions.)
+		// first and then skip other validation is because this check may
+		// depend on the defaulting logic that happens in those other functions.)
 		if len(changeErrors) != 0 {
 			valErrors = changeErrors
 		}

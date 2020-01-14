@@ -1,6 +1,6 @@
 #### KUBERNETES SETUP
 
-You will need a K8s (Kubernetes) cluster for deploying KubeDirector and KubeDirector-managed virtual clusters. Currently we require using K8s version 1.12 or later. Especially if you are using a cloud service to spin up K8s clusters, take care that you are getting the necessary K8s version.
+You will need a K8s (Kubernetes) cluster for deploying KubeDirector and KubeDirector-managed virtual clusters. Currently we require using K8s version 1.14 or later. Especially if you are using a cloud service to spin up K8s clusters, take care that you are getting the necessary K8s version.
 
 We usually run KubeDirector on Google Kubernetes Engine; see [gke-notes.md](gke-notes.md) for GKE-specific elaborations on the various steps in this document. Or if you would rather use Amazon Elastic Container Service for Kubernetes, see [eks-notes.md](eks-notes.md). We have also run it on DigitalOcean Kubernetes without issues.
 

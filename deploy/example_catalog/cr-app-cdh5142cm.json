@@ -112,10 +112,7 @@
                     "port": 8088,
                     "path": "/cluster"
                 },
-                "id": "yarn-rm",
-                "qualifiers": [
-                    "yarn"
-                ]
+                "id": "yarn-rm"
             },
             {
                 "endpoint": {

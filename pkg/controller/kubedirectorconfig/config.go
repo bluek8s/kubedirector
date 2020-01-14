@@ -49,6 +49,102 @@ func (r *ReconcileKubeDirectorConfig) syncConfig(
 	cr *kdv1.KubeDirectorConfig,
 ) error {
 
+	// Memoize state of the incoming object.
+	hadFinalizer := shared.HasFinalizer(cr)
+	oldStatus := cr.Status.DeepCopy()
+
+	// Make sure we have a Status object to work with.
+	if cr.Status == nil {
+		cr.Status = &kdv1.KubeDirectorConfigStatus{}
+	}
+
+	// Set a defer func to write new status and/or finalizers if they change.
+	defer func() {
+		nowHasFinalizer := shared.HasFinalizer(cr)
+		// Bail out if nothing has changed.
+		statusChanged := !reflect.DeepEqual(cr.Status, oldStatus)
+		finalizersChanged := (hadFinalizer != nowHasFinalizer)
+		if !(statusChanged || finalizersChanged) {
+			return
+		}
+		// Write back the status. Don't exit this reconciler until we
+		// succeed (will block other reconcilers for this resource).
+		wait := time.Second
+		maxWait := 4096 * time.Second
+		for {
+			// If status has changed, write it back.
+			var updateErr error
+			if statusChanged {
+				cr.Status.GenerationUID = uuid.New().String()
+				StatusGens.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
+				updateErr = shared.Client().Status().Update(context.TODO(), cr)
+				// If this succeeded, no need to do it again on next iteration
+				// if we're just cycling because of a failure to update the
+				// finalizer.
+				if updateErr == nil {
+					statusChanged = false
+				}
+			}
+			// If any necessary status update worked, let's also update
+			// finalizers if necessary.
+			if (updateErr == nil) && finalizersChanged {
+				// See https://github.com/bluek8s/kubedirector/issues/194
+				// Migrate Client().Update() calls back to Patch() calls.
+				updateErr = shared.Client().Update(context.TODO(), cr)
+			}
+			// Bail out if we're done.
+			if updateErr == nil {
+				return
+			}
+			// Some necessary update failed. If the config has been deleted,
+			// that's ok... otherwise we'll try again.
+			currentConfig, currentConfigErr := observer.GetKDConfig(cr.Name)
+			if currentConfigErr != nil {
+				shared.LogErrorf(
+					reqLogger,
+					currentConfigErr,
+					cr,
+					shared.EventReasonConfig,
+					"get current config failed",
+				)
+				if errors.IsNotFound(currentConfigErr) {
+					return
+				}
+			} else {
+				// If we got a conflict error, update the CR with its current
+				// form, restore our desired status/finalizers, and try again
+				// immediately.
+				if errors.IsConflict(updateErr) {
+					currentConfig.Status = cr.Status
+					currentHasFinalizer := shared.HasFinalizer(currentConfig)
+					if currentHasFinalizer {
+						if !nowHasFinalizer {
+							shared.RemoveFinalizer(currentConfig)
+						}
+					} else {
+						if nowHasFinalizer {
+							shared.EnsureFinalizer(currentConfig)
+						}
+					}
+					*cr = *currentConfig
+					continue
+				}
+			}
+			if wait < maxWait {
+				wait = wait * 2
+			}
+			shared.LogErrorf(
+				reqLogger,
+				updateErr,
+				cr,
+				shared.EventReasonConfig,
+				"trying status update again in %v; failed",
+				wait,
+			)
+			time.Sleep(wait)
+		}
+	}()
+
 	// We use a finalizer to maintain config state consistency.
 	doExit, finalizerErr := r.handleFinalizers(reqLogger, cr)
 	if finalizerErr != nil {
@@ -58,72 +154,7 @@ func (r *ReconcileKubeDirectorConfig) syncConfig(
 		return nil
 	}
 
-	// Make sure we have a Status object to work with.
-	if cr.Status == nil {
-		cr.Status = &kdv1.KubeDirectorConfigStatus{}
-	}
-
-	// Set up logic to update status as necessary when reconciler exits.
-	oldStatus := cr.Status.DeepCopy()
-	defer func() {
-		if !reflect.DeepEqual(cr.Status, oldStatus) {
-			// Write back the status. Don't exit this reconciler until we
-			// succeed (will block other reconcilers for this resource).
-			wait := time.Second
-			maxWait := 4096 * time.Second
-			for {
-				cr.Status.GenerationUID = uuid.New().String()
-				StatusGens.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
-				updateErr := shared.Client().Status().Update(context.TODO(), cr)
-				if updateErr == nil {
-					return
-				}
-				// Update failed. If the config has been or is being
-				// deleted, that's ok... otherwise wait and try again.
-				currentConfig, currentConfigErr := observer.GetKDConfig(cr.Name)
-				if currentConfigErr != nil {
-					shared.LogErrorf(
-						reqLogger,
-						currentConfigErr,
-						cr,
-						shared.EventReasonConfig,
-						"get current config failed",
-					)
-					if errors.IsNotFound(currentConfigErr) {
-						return
-					}
-				} else {
-					if currentConfig.DeletionTimestamp != nil {
-						return
-					}
-					if errors.IsConflict(updateErr) {
-						// If the update failed with a ResourceVersion
-						// conflict then we need to use the current
-						// version of the config. Otherwise, the status
-						// update will never succeed and this loop will
-						// never terminate.
-						currentConfig.Status = cr.Status
-						*cr = *currentConfig
-						continue
-					}
-				}
-				if wait < maxWait {
-					wait = wait * 2
-				}
-				shared.LogErrorf(
-					reqLogger,
-					updateErr,
-					cr,
-					shared.EventReasonConfig,
-					"trying status update again in %v; failed",
-					wait,
-				)
-				time.Sleep(wait)
-			}
-		}
-	}()
-
-	// For a new config just update the status state/gen.
+	// For a new KD config just update the status state/gen.
 	shouldProcessCR, processErr := r.handleNewConfig(reqLogger, cr)
 	if processErr != nil {
 		return processErr
@@ -161,6 +192,7 @@ func (r *ReconcileKubeDirectorConfig) handleNewConfig(
 	cr *kdv1.KubeDirectorConfig,
 ) (bool, error) {
 
+	// Have we seen this config before?
 	incoming := cr.Status.GenerationUID
 	lastKnown, ok := StatusGens.ReadStatusGen(cr.UID)
 	if ok {
@@ -195,6 +227,8 @@ func (r *ReconcileKubeDirectorConfig) handleNewConfig(
 		cr.Status.State = string(configCreating)
 		return false, nil
 	}
+	// This config has been processed before but we're not aware of it yet.
+	// Probably KD has been restarted. Make us aware of this config.
 	shared.LogInfof(
 		reqLogger,
 		cr,
@@ -206,8 +240,10 @@ func (r *ReconcileKubeDirectorConfig) handleNewConfig(
 	return true, nil
 }
 
-// handleFinalizers will remove our finalizer if deletion has been requested.
-// Otherwise it will add our finalizer if it is absent.
+// handleFinalizers will, if deletion has been requested, try to do any
+// cleanup and then remove our finalizer from the in-memory CR. If deletion
+// has NOT been requested then it will add our finalizer to the in-memory CR
+// if it is absent.
 func (r *ReconcileKubeDirectorConfig) handleFinalizers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorConfig,
@@ -216,27 +252,20 @@ func (r *ReconcileKubeDirectorConfig) handleFinalizers(
 	if cr.DeletionTimestamp != nil {
 		// If a deletion has been requested, while ours (or other) finalizers
 		// existed on the CR, go ahead and remove our finalizer.
-		removeErr := shared.RemoveFinalizer(cr)
-		if removeErr == nil {
-			shared.LogInfo(
-				reqLogger,
-				cr,
-				shared.EventReasonConfig,
-				"greenlighting for deletion",
-			)
-		}
-
-		// Also clear the status gen from our cache, regardless of whether
-		// finalizer modification succeeded.
+		shared.RemoveFinalizer(cr)
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonConfig,
+			"greenlighting for deletion",
+		)
+		// Also clear the status gen from our cache.
 		StatusGens.DeleteStatusGen(cr.UID)
 		return true, nil
 	}
 
 	// If our finalizer doesn't exist on the CR, put it in there.
-	ensureErr := shared.EnsureFinalizer(cr)
-	if ensureErr != nil {
-		return true, ensureErr
-	}
+	shared.EnsureFinalizer(cr)
 
 	return false, nil
 }

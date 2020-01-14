@@ -16,10 +16,14 @@ package executor
 
 import (
 	"io"
+
+	"github.com/bluek8s/kubedirector/pkg/shared"
 )
 
 const (
-	headlessServiceLabel = "kubedirector.bluedata.io/headless"
+	clusterLabel         = "kubedirectorcluster"
+	clusterRoleLabel     = "role"
+	headlessServiceLabel = shared.KdDomainBase + "/" + "headless"
 	statefulSetPodLabel  = "statefulset.kubernetes.io/pod-name"
 	storageClassName     = "volume.beta.kubernetes.io/storage-class"
 	// AppContainerName is the name of kubedirector app containers

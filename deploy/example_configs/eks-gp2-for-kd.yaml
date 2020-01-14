@@ -1,8 +1,18 @@
-# This is an example of one solution for the default StorageClass on EKS
-# not setting its volumeBindingMode to WaitForFirstConsumer. It creates
-# another storage class, which is identical to the "gp2" class except with
-# the necessary setting for volumeBindingMode, and then configures KD to use
-# that storage class (even though it is not the K8s default storage class).
+# This config was previously used as one possible solution for the default
+# StorageClass on EKS not setting its volumeBindingMode to WaitForFirstConsumer.
+#
+# It appears that the default StorageClass for KD-supported versions of
+# Kubernetes on EKS now WILL have the necessary setting for volumeBindingMode.
+# Until we're sure that this is a stable situation, we will leave this
+# config CR in the repo (and also leave the related processing of the
+# kubedirector-support label in the Makefile).
+
+# Here's the original description of this CR:
+
+# This creates another storage class, which is identical to the "gp2" class
+# except with the necessary setting for volumeBindingMode, and then configures
+# KD to use that storage class (even though it is not the K8s default storage
+# class).
 
 # The kubedirector-support label ensures that this storage class will be
 # removed by "make teardown". This is purely a behavior of the Makefile in

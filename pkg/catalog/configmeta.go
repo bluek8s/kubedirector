@@ -142,14 +142,15 @@ func servicesForRole(
 // this cluster
 func modelAttachments(
 	cr *kdv1.KubeDirectorCluster,
-) (map[string]string, error) {
+) (map[string]map[string]string, error) {
 
-	models := make(map[string]string)
+	models := make(map[string]map[string]string)
 	for _, modelMapName := range cr.Spec.Attachments.ModelConfigMaps {
 		modelCM, err := observer.GetConfigMap(cr.Namespace, modelMapName)
-		if err == nil {
-			models = modelCM.Data
+		if err != nil {
+			return nil, err
 		}
+		models[modelMapName] = modelCM.Data
 		//models[modelAttachment] = modelAttachment
 	}
 	return models, nil

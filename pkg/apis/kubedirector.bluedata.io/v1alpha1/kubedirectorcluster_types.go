@@ -41,15 +41,6 @@ type Attachments struct {
 	ModelConfigMaps []string `json:"models,omitempty"`
 }
 
-// Model object has meta data pertaining
-// to a serialized model
-type Model struct {
-	Name        string `json:"name"`
-	Version     string `json:"version"`
-	Location    string `json:"location"`
-	ScoringPath string `json:"scoring"`
-}
-
 // KubeDirectorClusterStatus defines the observed state of KubeDirectorCluster.
 // It identifies which native k8s objects make up the cluster, and broadly
 // indicates ongoing operations of cluster creation or reconfiguration.

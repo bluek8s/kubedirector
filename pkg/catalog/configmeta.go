@@ -142,11 +142,15 @@ func servicesForRole(
 // this cluster
 func modelAttachments(
 	cr *kdv1.KubeDirectorCluster,
-) (map[string]kdv1.Model, error) {
+) (map[string]string, error) {
 
-	models := make(map[string]kdv1.Model)
-	for _, modelAttachment := range cr.Spec.Attachments.Models {
-		models[modelAttachment.Name] = modelAttachment
+	models := make(map[string]string)
+	for _, modelMapName := range cr.Spec.Attachments.ModelConfigMaps {
+		modelCM, err := observer.GetConfigMap(cr.Namespace, modelMapName)
+		if err == nil {
+			models = modelCM.Data
+		}
+		//models[modelAttachment] = modelAttachment
 	}
 	return models, nil
 }
@@ -290,7 +294,7 @@ func clusterBaseConfig(
 ) (*configmeta, error) {
 
 	clustersMeta, attachErr := clusterAttachments(cr)
-	modelsMeta, modelErr := modelAttachments(cr)
+	modelCM, modelErr := modelAttachments(cr)
 
 	if modelErr != nil {
 		return nil, modelErr
@@ -322,7 +326,7 @@ func clusterBaseConfig(
 		},
 		Attachments: attachments{
 			Clusters: clustersMeta,
-			Models:   modelsMeta,
+			Models:   modelCM,
 		},
 	}, nil
 }

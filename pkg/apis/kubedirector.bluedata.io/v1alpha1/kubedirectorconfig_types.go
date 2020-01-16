@@ -23,8 +23,9 @@ import (
 type KubeDirectorConfigSpec struct {
 	StorageClass         *string `json:"defaultStorageClassName,omitempty"`
 	ServiceType          *string `json:"defaultServiceType,omitempty"`
-	NativeSystemdSupport *bool   `json:"nativeSystemdSupport"`
+	NativeSystemdSupport *bool   `json:"nativeSystemdSupport,omitempty"`
 	RequiredSecretPrefix *string `json:"requiredSecretPrefix,omitempty"`
+	ClusterSvcDomainBase *string `json:"clusterSvcDomainBase,omitempty"`
 }
 
 // KubeDirectorConfigStatus defines the observed state of KubeDirectorConfig.
@@ -41,7 +42,7 @@ type KubeDirectorConfigStatus struct {
 // +k8s:openapi-gen=true
 type KubeDirectorConfig struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 	Spec              *KubeDirectorConfigSpec   `json:"spec,omitempty"`
 	Status            *KubeDirectorConfigStatus `json:"status,omitempty"`
 }
@@ -51,7 +52,7 @@ type KubeDirectorConfig struct {
 // KubeDirectorConfigList is the top-level list type for global config CRs
 type KubeDirectorConfigList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []KubeDirectorConfig `json:"items"`
 }
 

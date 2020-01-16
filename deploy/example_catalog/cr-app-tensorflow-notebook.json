@@ -2,7 +2,7 @@
     "apiVersion": "kubedirector.bluedata.io/v1alpha1",
     "kind": "KubeDirectorApp",
     "metadata": {
-        "name" : "tensorflowjupyter"
+        "name" : "ml-jupyter-notebook"
     },
 
     "spec" : {
@@ -29,10 +29,10 @@
             ]
         },
         "label": {
-            "name": "Tensorflow distributed 1.9 on CPU with jupyter notebook & centos7x",
-            "description": "TensorFlow1.9 CPU with centos7x"
+            "name": "Tensorflow 1.14 on GPU with jupyter notebook & centos7x",
+            "description": "Tensorflow 1.14 GPU with jupyter notebook & centos7x"
         },
-        "distroID": "bluedata/tensorflow19cpu",
+        "distroID": "bluedata/jupyter-notebook",
         "version": "1.8",
         "configSchemaVersion": 7,
         "services": [
@@ -60,16 +60,15 @@
             }
         ],
         "defaultConfigPackage": {
-            "packageURL" : "https://s3.amazonaws.com/bluek8s/kubedirector/tensorflowcpu/appconfig-1.8.tgz"
+            "packageURL" : "file:///opt/configscripts/appconfig-1.8.tgz"
         },
+        "defaultImageRepoTag": "docker.io/bluedata/tensorflow-notebook:1.4",
         "roles": [
             {
-                "imageRepoTag": "docker.io/bluedata/tensorflowcpu-jupyter:2.0",
                 "cardinality": "1",
                 "id": "controller"
             },
             {
-                "imageRepoTag": "docker.io/bluedata/tensorflowcpu-jupyter:2.0",
                 "cardinality": "0+",
                 "id": "worker"
             }

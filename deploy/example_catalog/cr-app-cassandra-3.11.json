@@ -35,7 +35,7 @@
                 "worker"
             ]
         },
-        "defaultImageRepoTag": "docker.io/bluedata/cassandra:3.0",
+        "defaultImageRepoTag": "docker.io/bluedata/cassandra:4.0",
         "label": {
             "name": "Cassandra 3.11",
             "description": "Cassandra 3.11 on centos 7.x"
@@ -67,7 +67,7 @@
             }
         ],
         "defaultConfigPackage": {
-            "packageURL": "https://s3.amazonaws.com/bluek8s/kubedirector/cassandra311/appconfig-3.1.tgz"
+            "packageURL": "file:///opt/configscripts/appconfig-3.1.tgz"
         },
         "roles": [
             {

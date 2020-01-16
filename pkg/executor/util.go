@@ -16,21 +16,22 @@ package executor
 
 import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+	"github.com/bluek8s/kubedirector/pkg/shared"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // ownerReferences creates an owner reference spec that identifies the
-// virtual cluster CR as the controller.
+// custom resource as the owner.
 func ownerReferences(
-	cr *kdv1.KubeDirectorCluster,
+	cr shared.KubeDirectorObject,
 ) []metav1.OwnerReference {
 
 	return []metav1.OwnerReference{
 		*metav1.NewControllerRef(cr, schema.GroupVersionKind{
 			Group:   kdv1.SchemeGroupVersion.Group,
 			Version: kdv1.SchemeGroupVersion.Version,
-			Kind:    "KubeDirectorCluster",
+			Kind:    cr.GetObjectKind().GroupVersionKind().Kind,
 		}),
 	}
 }
@@ -42,11 +43,15 @@ func labelsForRole(
 	role *kdv1.Role,
 ) map[string]string {
 
-	return map[string]string{
-		"kubedirectorcluster": cr.Name,
-		"role":                role.Name,
-		headlessServiceLabel:  headlessServiceName + "-" + cr.Name,
+	result := map[string]string{
+		clusterLabel:         cr.Name,
+		clusterRoleLabel:     role.Name,
+		headlessServiceLabel: headlessServiceName + "-" + cr.Name,
 	}
+	for name, value := range role.Labels {
+		result[name] = value
+	}
+	return result
 }
 
 // labelsForService generates a set of resource labels appropriate for the
@@ -56,7 +61,7 @@ func labelsForService(
 ) map[string]string {
 
 	return map[string]string{
-		"kubedirectorcluster": cr.Name,
+		clusterLabel: cr.Name,
 	}
 }
 

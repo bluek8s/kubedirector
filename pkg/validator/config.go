@@ -215,6 +215,21 @@ func admitKDConfigCR(
 		)
 	}
 
+	// Populate the default ClusterSvcDomainBase if necessary
+	if configCR.Spec.ClusterSvcDomainBase == nil {
+		svcDomainBase := shared.DefaultSvcDomainBase
+		patches = append(
+			patches,
+			configPatchSpec{
+				Op:   "add",
+				Path: "/spec/clusterSvcDomainBase",
+				Value: configPatchValue{
+					ValueStr: &svcDomainBase,
+				},
+			},
+		)
+	}
+
 	if len(valErrors) == 0 {
 		if len(patches) != 0 {
 			patchResult, patchErr := json.Marshal(patches)

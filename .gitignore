@@ -1,8 +1,6 @@
 /Local.mk
 
-#configmeta tgz
-*.tgz
-
+build/configcli.tgz
 # dependencies
 /.vendor-new
 /vendor

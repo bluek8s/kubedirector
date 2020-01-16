@@ -37,8 +37,8 @@ type KubeDirectorClusterSpec struct {
 // Attachments specifies list of cluster objects and model objects that has
 // be attached to the cluster.
 type Attachments struct {
-	Clusters []string `json:"clusters,omitempty"`
-	Models   []Model  `json:"models,omitempty"`
+	Clusters        []string `json:"clusters,omitempty"`
+	ModelConfigMaps []string `json:"models,omitempty"`
 }
 
 // Model object has meta data pertaining
@@ -71,11 +71,10 @@ type KubeDirectorClusterStatus struct {
 // +k8s:openapi-gen=true
 type KubeDirectorCluster struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec    KubeDirectorClusterSpec    `json:"spec,omitempty"`
-	Status  *KubeDirectorClusterStatus `json:"status,omitempty"`
-	AppSpec *KubeDirectorApp           `json:"-"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              KubeDirectorClusterSpec    `json:"spec"`
+	Status            *KubeDirectorClusterStatus `json:"status,omitempty"`
+	AppSpec           *KubeDirectorApp           `json:"-"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -83,7 +82,7 @@ type KubeDirectorCluster struct {
 // KubeDirectorClusterList is the top-level list type for virtual cluster CRs.
 type KubeDirectorClusterList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []KubeDirectorCluster `json:"items"`
 }
 
@@ -122,19 +121,20 @@ type FileInjections struct {
 // defined by the cluster's KubeDirectorApp) set of service endpoints.
 type Role struct {
 	Name           string                      `json:"id"`
-	Members        *int32                      `json:"members"`
+	Labels         map[string]string           `json:"labels,omitempty"`
+	Members        *int32                      `json:"members,omitempty"`
 	Resources      corev1.ResourceRequirements `json:"resources"`
 	Storage        *ClusterStorage             `json:"storage,omitempty"`
 	EnvVars        []corev1.EnvVar             `json:"env,omitempty"`
 	FileInjections []FileInjections            `json:"fileInjections,omitempty"`
-	Secret         *KDSecret                   `json:"secret"`
+	Secret         *KDSecret                   `json:"secret,omitempty"`
 }
 
 // ClusterStorage defines the persistent storage size/type, if any, to be used
 // for certain specified directories of each container filesystem in a role.
 type ClusterStorage struct {
 	Size         string  `json:"size"`
-	StorageClass *string `json:"storageClassName"`
+	StorageClass *string `json:"storageClassName,omitempty"`
 }
 
 // RoleStatus describes the component objects of a virtual cluster role.

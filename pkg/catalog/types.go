@@ -14,8 +14,6 @@
 
 package catalog
 
-import kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
-
 // configmeta is a representation of a virtual cluster config, based on both
 // the app type definition and the deploy-time spec provided in the cluster
 // CR. It is arranged in a format to be consumed by the app setup Python
@@ -47,7 +45,7 @@ type nodegroup struct {
 
 type attachments struct {
 	Clusters map[string]clusterAttachment `json:"clusters"`
-	Models   map[string]kdv1.Model        `json:"models"`
+	Models   map[string]string            `json:"models"`
 }
 
 type clusterAttachment struct {

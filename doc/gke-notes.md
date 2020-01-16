@@ -4,11 +4,21 @@ If you intend to deploy KubeDirector on GKE, you will need to have a Google Clou
 
 If you're starting from scratch with GKE, the first few sections of [Google's GKE Quickstart guide](https://cloud.google.com/kubernetes-engine/docs/quickstart) may be useful, but you should probably stop after the "Configuring default settings for gcloud" section in that page and return here.
 
-With gcloud configured to use the appropriate project, you can then launch a GKE cluster. For example, this gcloud command will create a 3-node GKE cluster named "my-gke":
+With gcloud configured to use the appropriate project, you can then launch a GKE cluster.
+
+Two important notes to be aware of when creating a GKE cluster:
+* Be sure to specify Kubernetes version 1.14 or later.
+* Choose a [machine type](https://cloud.google.com/compute/docs/machine-types) with enough resources to host at least one virtual cluster member.
+
+For a list of available GKE Kubernetes versions you can run the following query. For simplest cluster launching syntax, you would want to find a version that is in both the validMasterVersions list and the validNodeVersions list.
 ```bash
-    gcloud container clusters create my-gke --machine-type n1-highmem-4
+    gcloud container get-server-config
 ```
-(See [the Machine Types list](https://cloud.google.com/compute/docs/machine-types) for the details of the available GKE node resources.)
+
+So for example, this gcloud command will create a 3-node GKE cluster named "my-gke" using Kubernetes version 1.15.7 and the n1-highmem-4 machine type:
+```bash
+    gcloud container clusters create my-gke --cluster-version=1.15.7-gke.2 --machine-type=n1-highmem-4
+```
 
 If you need to grow your GKE cluster you can use gcloud to do that as well; for example, growing to 5 nodes:
 ```bash

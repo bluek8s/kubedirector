@@ -15,9 +15,9 @@
 package shared
 
 const (
-	// DomainBase contains the initial segments used to build FQDNs
+	// DefaultSvcDomainBase contains the initial segments used to build FQDNs
 	// for cluster members
-	DomainBase = ".svc.cluster.local"
+	DefaultSvcDomainBase = ".svc.cluster.local"
 
 	// KubeDirectorNamespaceEnvVar is the constant for env variable MY_NAMESPACE
 	// which is the namespace of the kubedirector pod.
@@ -25,6 +25,9 @@ const (
 
 	// KubeDirectorGlobalConfig is the name of the kubedirector config CR
 	KubeDirectorGlobalConfig = "kd-global-config"
+
+	//KdDomainBase - Annotation DNS subdomain prefix
+	KdDomainBase = "kubedirector.bluedata.io"
 
 	// DefaultServiceType - default service type if not specified in
 	// the configCR

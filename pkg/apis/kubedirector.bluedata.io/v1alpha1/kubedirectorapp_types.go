@@ -41,7 +41,19 @@ type KubeDirectorAppSpec struct {
 // a cluster that uses the app.
 // XXX FIXME. Only categor
 type AttachableConfig struct {
-	Category string `json:"category"`
+	Category            string          `json:"category"`
+	Label               Label           `json:"label"`
+	DistroID            string          `json:"distroID"`
+	Version             string          `json:"version"`
+	SchemaVersion       int             `json:"configSchemaVersion"`
+	DefaultImageRepoTag *string         `json:"defaultImageRepoTag,omitempty"`
+	DefaultSetupPackage SetupPackage    `json:"defaultConfigPackage,omitempty"`
+	Services            []Service       `json:"services"`
+	NodeRoles           []NodeRole      `json:"roles"`
+	Config              NodeGroupConfig `json:"config"`
+	DefaultPersistDirs  *[]string       `json:"defaultPersistDirs,omitempty"`
+	Capabilities        []v1.Capability `json:"capabilities"`
+	SystemdRequired     bool            `json:"systemdRequired"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -51,9 +63,8 @@ type AttachableConfig struct {
 // +kubebuilder:subresource:status
 type KubeDirectorApp struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec KubeDirectorAppSpec `json:"spec,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              KubeDirectorAppSpec `json:"spec"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -61,7 +72,7 @@ type KubeDirectorApp struct {
 // KubeDirectorAppList contains a list of KubeDirectorApp
 type KubeDirectorAppList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []KubeDirectorApp `json:"items"`
 }
 
@@ -112,8 +123,8 @@ type NodeRole struct {
 	Cardinality  string           `json:"cardinality"`
 	ImageRepoTag *string          `json:"imageRepoTag,omitempty"`
 	SetupPackage SetupPackage     `json:"configPackage,omitempty"`
-	PersistDirs  *[]string        `json:"persistDirs"`
-	MinResources *v1.ResourceList `json:"minResources"`
+	PersistDirs  *[]string        `json:"persistDirs,omitempty"`
+	MinResources *v1.ResourceList `json:"minResources,omitempty"`
 }
 
 // NodeGroupConfig identifies a set of roles, and the services on those roles.
@@ -123,7 +134,7 @@ type NodeRole struct {
 type NodeGroupConfig struct {
 	RoleServices   []RoleService     `json:"roleServices"`
 	SelectedRoles  []string          `json:"selectedRoles"`
-	ConfigMetadata map[string]string `json:"configMeta"`
+	ConfigMetadata map[string]string `json:"configMeta,omitempty"`
 }
 
 // RoleService associates a service with a role.

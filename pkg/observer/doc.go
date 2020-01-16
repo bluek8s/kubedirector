@@ -12,13 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package executor manages objects within k8s that implement virtual clusters.
-//
-// For the most part, the exported functions in this package will create,
-// update, or delete individual native k8s objects that make up parts of the
-// virtual cluster. The exceptions are in guest.go, where the exported
-// functions handle operations within a cluster member's OS.
-
 // Package observer implements queries for k8s objects that compose a cluster.
 //
 // Each exported function will return the found object (if query succeeds).

@@ -15,6 +15,7 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
+      type: object
       required: [apiVersion, kind, metadata]
       properties:
         apiVersion:
@@ -22,11 +23,14 @@ spec:
         kind:
           type: string
         metadata:
+          type: object
           properties:
             name:
               type: string
               pattern: '^kd-global-config$'
         spec:
+          type: object
+          nullable: true
           properties:
             defaultStorageClassName:
               type: string
@@ -38,7 +42,11 @@ spec:
               type: boolean
             requiredSecretPrefix:
               type: string
+            clusterSvcDomainBase:
+              type: string
         status:
+          type: object
+          nullable: true
           properties:
             generationUID:
               type: string

@@ -68,6 +68,9 @@ spec:
                   labels:
                     type: object
                     nullable: true
+                  serviceLabels:
+                    type: object
+                    nullable: true
                   members:
                     type: integer
                     minimum: 0

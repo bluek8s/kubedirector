@@ -46,7 +46,7 @@ func CreateHeadlessService(
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
-			Labels:          labelsForService(cr),
+			Labels:          labelsForService(cr, nil),
 		},
 		Spec: corev1.ServiceSpec{
 			ClusterIP: "None",
@@ -116,10 +116,10 @@ func CreatePodService(
 			Name:            serviceName(podName),
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
-			Labels:          labelsForService(cr),
+			Labels:          labelsForService(cr, role),
 		},
 		Spec: corev1.ServiceSpec{
-			Selector:                 labelsForPod(cr, role, podName),
+			Selector:                 map[string]string{statefulSetPodLabel: podName},
 			Type:                     serviceType,
 			PublishNotReadyAddresses: true,
 		},

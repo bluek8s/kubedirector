@@ -166,7 +166,8 @@ func getStatefulset(
 	replicas int32,
 ) (*appsv1.StatefulSet, error) {
 
-	labels := labelsForRole(cr, role)
+	labels := labelsForStatefulSet(cr, role)
+	podLabels := labelsForPod(cr, role)
 	startupScript := getStartupScript(cr)
 
 	portInfoList, portsErr := catalog.PortsForRole(cr, role.Name)
@@ -269,11 +270,11 @@ func getStatefulset(
 			Replicas:            &replicas,
 			ServiceName:         cr.Status.ClusterService,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: podLabels,
 			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
+					Labels: podLabels,
 				},
 				Spec: v1.PodSpec{
 					AutomountServiceAccountToken: &useServiceAccount,

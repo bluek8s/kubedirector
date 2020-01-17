@@ -40,17 +40,40 @@ func ownerReferences(
 }
 
 // labelsForRole generates a set of resource labels appropriate for the
-// given role.
+// given role. These will be propagated to the statefulset, pods, and
+// services related to that role.
 func labelsForRole(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
 ) map[string]string {
 
 	result := map[string]string{
-		clusterLabel:         cr.Name,
-		clusterRoleLabel:     role.Name,
-		headlessServiceLabel: headlessServiceName + "-" + cr.Name,
+		clusterLabel:     cr.Name,
+		clusterRoleLabel: role.Name,
 	}
+	return result
+}
+
+// labelsForStatefulSet generates a set of resource labels appropriate for a
+// statefulset in the given role.
+func labelsForStatefulSet(
+	cr *kdv1.KubeDirectorCluster,
+	role *kdv1.Role,
+) map[string]string {
+
+	result := labelsForRole(cr, role)
+	result[headlessServiceLabel] = headlessServiceName + "-" + cr.Name
+	return result
+}
+
+// labelsForPod generates a set of resource labels appropriate for a pod in
+// the given role. This includes any user-requested labels.
+func labelsForPod(
+	cr *kdv1.KubeDirectorCluster,
+	role *kdv1.Role,
+) map[string]string {
+
+	result := labelsForStatefulSet(cr, role)
 	for name, value := range role.Labels {
 		result[name] = value
 	}
@@ -58,28 +81,23 @@ func labelsForRole(
 }
 
 // labelsForService generates a set of resource labels appropriate for the
-// services created for a cluster
+// services created for a cluster. This includes any user-requested labels.
+// role may be nil if this is the headless service.
 func labelsForService(
 	cr *kdv1.KubeDirectorCluster,
-) map[string]string {
-
-	return map[string]string{
-		clusterLabel: cr.Name,
-	}
-}
-
-// labelsForPod generates a set of resource labels appropriate for a pod in
-// the given role.
-func labelsForPod(
-	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
-	podName string,
 ) map[string]string {
 
-	podLabels := labelsForRole(cr, role)
-	podLabels[statefulSetPodLabel] = podName
-
-	return podLabels
+	var result map[string]string
+	if role == nil {
+		result = map[string]string{clusterLabel: cr.Name}
+	} else {
+		result = labelsForRole(cr, role)
+		for name, value := range role.ServiceLabels {
+			result[name] = value
+		}
+	}
+	return result
 }
 
 // createPortNameForService creates the port name for a service endpoint.

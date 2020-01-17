@@ -104,7 +104,7 @@ type FileInjections struct {
 // defined by the cluster's KubeDirectorApp) set of service endpoints.
 type Role struct {
 	Name           string                      `json:"id"`
-	Labels         map[string]string           `json:"labels,omitempty"`
+	PodLabels      map[string]string           `json:"podLabels,omitempty"`
 	ServiceLabels  map[string]string           `json:"serviceLabels,omitempty"`
 	Members        *int32                      `json:"members,omitempty"`
 	Resources      corev1.ResourceRequirements `json:"resources"`

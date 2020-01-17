@@ -74,7 +74,7 @@ func labelsForPod(
 ) map[string]string {
 
 	result := labelsForStatefulSet(cr, role)
-	for name, value := range role.Labels {
+	for name, value := range role.PodLabels {
 		result[name] = value
 	}
 	return result

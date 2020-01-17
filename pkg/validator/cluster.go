@@ -134,8 +134,8 @@ func validateCardinality(
 		// validate user-specified labels
 		rolePath := rolesPath.Index(i)
 		labelErrors := appsvalidation.ValidateLabels(
-			role.Labels,
-			rolePath.Child("labels"),
+			role.PodLabels,
+			rolePath.Child("podLabels"),
 		)
 		serviceLabelErrors := appsvalidation.ValidateLabels(
 			role.ServiceLabels,

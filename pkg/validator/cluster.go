@@ -131,14 +131,23 @@ func validateCardinality(
 				},
 			)
 		}
-		// validate role[i].labels
+		// validate user-specified labels
 		rolePath := rolesPath.Index(i)
-		fieldsPath := rolePath.Child("labels")
-		labelErrors := appsvalidation.ValidateLabels(role.Labels, fieldsPath)
-		if len(labelErrors) != 0 {
+		labelErrors := appsvalidation.ValidateLabels(
+			role.PodLabels,
+			rolePath.Child("podLabels"),
+		)
+		serviceLabelErrors := appsvalidation.ValidateLabels(
+			role.ServiceLabels,
+			rolePath.Child("serviceLabels"),
+		)
+		if (len(labelErrors) != 0) || (len(serviceLabelErrors) != 0) {
 			anyError = true
-			for _, err := range labelErrors {
-				valErrors = append(valErrors, err.Error())
+			for _, labelErr := range labelErrors {
+				valErrors = append(valErrors, labelErr.Error())
+			}
+			for _, serviceLabelErr := range serviceLabelErrors {
+				valErrors = append(valErrors, serviceLabelErr.Error())
 			}
 		}
 	}

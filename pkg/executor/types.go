@@ -21,7 +21,11 @@ import (
 )
 
 const (
-	ClusterLabel         = "kubedirectorcluster"
+	// ClusterLabel is a label placed on every created statefulset, pod, and
+	// service, with a value of the KubeDirectorCluster CR name.
+	ClusterLabel = "kubedirectorcluster"
+	// ClusterRoleLabel is a label placed on every created pod, and
+	// (non-headless) service, with a value of the relevant role ID.
 	ClusterRoleLabel     = "role"
 	headlessServiceLabel = shared.KdDomainBase + "/" + "headless"
 	statefulSetPodLabel  = "statefulset.kubernetes.io/pod-name"

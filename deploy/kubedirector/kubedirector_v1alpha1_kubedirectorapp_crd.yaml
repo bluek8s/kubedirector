@@ -88,6 +88,8 @@ spec:
                       urlScheme:
                         type: string
                         minLength: 1
+                        maxLength: 15
+                        pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
                       path:
                         type: string
                       isDashboard:
@@ -102,7 +104,7 @@ spec:
                     type: string
                     minLength: 1
                     maxLength: 63
-                    pattern: '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?'
+                    pattern: '^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$'
                   cardinality:
                     type: string
                     pattern: '^\d+\+?$'
@@ -160,6 +162,8 @@ spec:
                       roleID:
                         type: string
                         minLength: 1
+                        maxLength: 63
+                        pattern: '^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$'
                       serviceIDs:
                         type: array
                         items:

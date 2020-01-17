@@ -15,7 +15,10 @@
 package executor
 
 import (
+	"strings"
+
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -77,4 +80,17 @@ func labelsForPod(
 	podLabels[statefulSetPodLabel] = podName
 
 	return podLabels
+}
+
+// createPortNameForService creates the port name for a service endpoint.
+// It prefixes the ID with the lowercased URL scheme if given; otherwise
+// prefixing with "generic-".
+func createPortNameForService(
+	portInfo catalog.ServicePortInfo,
+) string {
+
+	if portInfo.URLScheme == "" {
+		return "generic-" + portInfo.ID
+	}
+	return strings.ToLower(portInfo.URLScheme) + "-" + portInfo.ID
 }

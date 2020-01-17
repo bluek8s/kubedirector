@@ -127,7 +127,7 @@ func CreatePodService(
 	for _, portInfo := range portInfoList {
 		servicePort := corev1.ServicePort{
 			Port: portInfo.Port,
-			Name: portInfo.ID,
+			Name: createPortNameForService(portInfo),
 		}
 		service.Spec.Ports = append(service.Spec.Ports, servicePort)
 	}

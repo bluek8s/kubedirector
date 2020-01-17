@@ -90,6 +90,7 @@ type flavor struct {
 
 // ServicePortInfo - A mapping between a Service Port ID and the port number
 type ServicePortInfo struct {
-	ID   string
-	Port int32
+	ID        string
+	Port      int32
+	URLScheme string
 }

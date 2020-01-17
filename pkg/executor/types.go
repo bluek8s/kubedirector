@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	clusterLabel         = "kubedirectorcluster"
-	clusterRoleLabel     = "role"
+	ClusterLabel         = "kubedirectorcluster"
+	ClusterRoleLabel     = "role"
 	headlessServiceLabel = shared.KdDomainBase + "/" + "headless"
 	statefulSetPodLabel  = "statefulset.kubernetes.io/pod-name"
 	storageClassName     = "volume.beta.kubernetes.io/storage-class"

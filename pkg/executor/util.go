@@ -48,8 +48,8 @@ func labelsForRole(
 ) map[string]string {
 
 	result := map[string]string{
-		clusterLabel:     cr.Name,
-		clusterRoleLabel: role.Name,
+		ClusterLabel:     cr.Name,
+		ClusterRoleLabel: role.Name,
 	}
 	return result
 }
@@ -90,7 +90,7 @@ func labelsForService(
 
 	var result map[string]string
 	if role == nil {
-		result = map[string]string{clusterLabel: cr.Name}
+		result = map[string]string{ClusterLabel: cr.Name}
 	} else {
 		result = labelsForRole(cr, role)
 		for name, value := range role.ServiceLabels {

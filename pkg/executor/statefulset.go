@@ -421,9 +421,9 @@ func getStartupScript(
 func generateInitContainerLaunch(persistDirs []string) string {
 
 	// To be safe in the case that this container is restarted by someone,
-	// don't do this copy if the configmeta file already exists in /etc.
-	launchCmd := "! [ -f /mnt" + configMetaFile + " ]" + " && " +
-		"cp --parent -ax " + strings.Join(persistDirs, " ") + " /mnt || exit 0"
+	// don't do this copy if the kubedirector.init file already exists in /etc.
+	launchCmd := "! [ -f /mnt" + kubedirectorInit + " ]" + " && " +
+		"cp --parent -ax " + strings.Join(persistDirs, " ") + " /mnt || exit 0; touch " + kubedirectorInit
 
 	return launchCmd
 }

@@ -40,6 +40,7 @@ const (
 	cgroupFSVolume      = "/sys/fs/cgroup"
 	systemdFSVolume     = "/sys/fs/cgroup/systemd"
 	tmpFSVolSize        = "20Gi"
+	kubedirectorInit    = "/etc/kubedirector.init"
 )
 
 // Streams for stdin, stdout, stderr of executed commands

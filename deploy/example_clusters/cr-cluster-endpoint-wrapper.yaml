@@ -1,0 +1,30 @@
+apiVersion: "kubedirector.bluedata.io/v1alpha1"
+kind: "KubeDirectorCluster"
+metadata: 
+  name: "deploymt-engine"
+
+spec:
+  app: flask-and-inf-eng
+  attachments:
+    models:
+    - "model-prediction"
+  roles:
+  - id: RESTServer
+    members: 1
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "1"
+      limits:
+        memory: "2Gi"
+        cpu: "1"
+  - id: LoadBalancer
+    members: 1
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "1"
+      limits:
+        memory: "8Gi"
+        cpu: "2"    
+        

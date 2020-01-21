@@ -146,8 +146,9 @@ func PortsForRole(
 				if shared.StringInList(service.ID, roleService.ServiceIDs) {
 					if service.Endpoint.Port != nil {
 						servicePortInfo := ServicePortInfo{
-							ID:   service.ID,
-							Port: *(service.Endpoint.Port),
+							ID:        service.ID,
+							Port:      *(service.Endpoint.Port),
+							URLScheme: service.Endpoint.URLScheme,
 						}
 						result = append(result, servicePortInfo)
 					}

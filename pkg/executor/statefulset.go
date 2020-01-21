@@ -166,7 +166,8 @@ func getStatefulset(
 	replicas int32,
 ) (*appsv1.StatefulSet, error) {
 
-	labels := labelsForRole(cr, role)
+	labels := labelsForStatefulSet(cr, role)
+	podLabels := labelsForPod(cr, role)
 	startupScript := getStartupScript(cr)
 
 	portInfoList, portsErr := catalog.PortsForRole(cr, role.Name)
@@ -269,11 +270,11 @@ func getStatefulset(
 			Replicas:            &replicas,
 			ServiceName:         cr.Status.ClusterService,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: podLabels,
 			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
+					Labels: podLabels,
 				},
 				Spec: v1.PodSpec{
 					AutomountServiceAccountToken: &useServiceAccount,
@@ -420,9 +421,9 @@ func getStartupScript(
 func generateInitContainerLaunch(persistDirs []string) string {
 
 	// To be safe in the case that this container is restarted by someone,
-	// don't do this copy if the configmeta file already exists in /etc.
-	launchCmd := "! [ -f /mnt" + configMetaFile + " ]" + " && " +
-		"cp --parent -ax " + strings.Join(persistDirs, " ") + " /mnt || exit 0"
+	// don't do this copy if the kubedirector.init file already exists in /etc.
+	launchCmd := "! [ -f /mnt" + kubedirectorInit + " ]" + " && " +
+		"cp --parent -ax " + strings.Join(persistDirs, " ") + " /mnt || exit 0; touch " + kubedirectorInit
 
 	return launchCmd
 }

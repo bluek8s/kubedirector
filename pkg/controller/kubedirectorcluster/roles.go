@@ -37,10 +37,10 @@ import (
 func syncClusterRoles(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-) ([]*roleInfo, clusterStateInternal, error) {
+) ([]*RoleInfo, clusterStateInternal, error) {
 
 	// Construct the role info slice. Bail out now if that fails.
-	roles, rolesErr := initRoleInfo(reqLogger, cr)
+	roles, rolesErr := InitRoleInfo(reqLogger, cr)
 	if rolesErr != nil {
 		return nil, clusterMembersUnknown, rolesErr
 	}
@@ -120,16 +120,16 @@ func syncClusterRoles(
 	return roles, returnState, nil
 }
 
-// initRoleInfo constructs a slice of elements representing all current or
+// InitRoleInfo constructs a slice of elements representing all current or
 // desired roles. Each element contains useful information about the role
 // spec and status that will be used not only in syncRole but also by the
 // sync logic for other concerns.
-func initRoleInfo(
+func InitRoleInfo(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-) ([]*roleInfo, error) {
+) ([]*RoleInfo, error) {
 
-	roles := make(map[string]*roleInfo)
+	roles := make(map[string]*RoleInfo)
 	numRoleSpecs := len(cr.Spec.Roles)
 	numRoleStatuses := len(cr.Status.Roles)
 
@@ -138,7 +138,7 @@ func initRoleInfo(
 	// in this function.
 	for i := 0; i < numRoleSpecs; i++ {
 		roleSpec := &(cr.Spec.Roles[i])
-		roles[roleSpec.Name] = &roleInfo{
+		roles[roleSpec.Name] = &RoleInfo{
 			statefulSet:    nil,
 			roleSpec:       roleSpec,
 			roleStatus:     nil,
@@ -205,7 +205,7 @@ func initRoleInfo(
 		} else {
 			// This is not a role desired in the spec. Create a new info
 			// entry with desired member count at zero.
-			roles[roleStatus.Name] = &roleInfo{
+			roles[roleStatus.Name] = &RoleInfo{
 				statefulSet:    statefulSet,
 				roleSpec:       nil,
 				roleStatus:     roleStatus,
@@ -217,7 +217,7 @@ func initRoleInfo(
 
 	// Return a slice of roleinfo made from the map values, and with the
 	// membersByState maps populated.
-	var result []*roleInfo
+	var result []*RoleInfo
 	for _, info := range roles {
 		calcRoleMembersByState(info)
 		result = append(result, info)
@@ -228,7 +228,7 @@ func initRoleInfo(
 // calcRoleMembersByState builds the members-by-state map based on the current
 // member statuses in the role.
 func calcRoleMembersByState(
-	role *roleInfo,
+	role *RoleInfo,
 ) {
 
 	if role.roleStatus == nil {
@@ -250,7 +250,7 @@ func calcRoleMembersByState(
 func handleRoleCreate(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *roleInfo,
+	role *RoleInfo,
 	anyMembersChanged *bool,
 ) error {
 
@@ -317,7 +317,7 @@ func handleRoleCreate(
 func handleRoleReCreate(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *roleInfo,
+	role *RoleInfo,
 	anyMembersChanged *bool,
 ) error {
 
@@ -371,7 +371,7 @@ func handleRoleReCreate(
 func handleRoleConfig(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *roleInfo,
+	role *RoleInfo,
 ) {
 
 	updateErr := executor.UpdateStatefulSetNonReplicas(
@@ -396,7 +396,7 @@ func handleRoleConfig(
 func handleRoleDelete(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *roleInfo,
+	role *RoleInfo,
 ) {
 
 	shared.LogInfof(
@@ -429,7 +429,7 @@ func handleRoleDelete(
 func handleRoleResize(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *roleInfo,
+	role *RoleInfo,
 	anyMembersChanged *bool,
 ) {
 
@@ -479,7 +479,7 @@ func handleRoleResize(
 // members-by-state map accordingly.
 func addMemberStatuses(
 	cr *kdv1.KubeDirectorCluster,
-	role *roleInfo,
+	role *RoleInfo,
 ) {
 
 	lastNodeID := &cr.Status.LastNodeID
@@ -517,7 +517,7 @@ func addMemberStatuses(
 // create_pending or creating), to prepare to shrink the role to the desired
 // number of members. It also updates the members-by-state map accordingly.
 func deleteMemberStatuses(
-	role *roleInfo,
+	role *RoleInfo,
 ) {
 
 	currentPop := len(role.roleStatus.Members)
@@ -577,7 +577,7 @@ func deleteMemberStatuses(
 // whether all existing members are in the ready-state or error-state bucket.
 // (The situation of "no members" will also return true.)
 func allRoleMembersReadyOrError(
-	role *roleInfo,
+	role *RoleInfo,
 ) bool {
 
 	switch len(role.membersByState) {

@@ -49,7 +49,8 @@ const (
 )
 
 const (
-	configMetaFile      = "/etc/guestconfig/configmeta.json"
+	//ConfigMetaFile file path for configmeta
+	ConfigMetaFile      = "/etc/guestconfig/configmeta.json"
 	configcliSrcFile    = "/home/kubedirector/configcli.tgz"
 	configcliDestFile   = "/tmp/configcli.tgz"
 	configcliInstallCmd = `cd /tmp && tar xzf configcli.tgz &&
@@ -80,7 +81,8 @@ const (
 	zeroPortsService = "n/a"
 )
 
-type roleInfo struct {
+//RoleInfo comment
+type RoleInfo struct {
 	statefulSet    *appsv1.StatefulSet
 	roleSpec       *kdv1.Role
 	roleStatus     *kdv1.RoleStatus

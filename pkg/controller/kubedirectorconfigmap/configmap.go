@@ -15,15 +15,23 @@
 package kubedirectorconfigmap
 
 import (
+	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+	"github.com/bluek8s/kubedirector/pkg/catalog"
+	kc "github.com/bluek8s/kubedirector/pkg/controller/kubedirectorcluster"
+	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -67,18 +75,49 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 			// If status has changed, write it back.
 			var updateErr error
 			if cmChanged {
-				//cr.GenerationUID = uuid.New().String()
-				//StatusGens.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
-				//updateErr = shared.Client().Status().Update(context.TODO(), cr)
-				// If this succeeded, no need to do it again on next iteration
-				// if we're just cycling because of a failure to update the
-				// finalizer.
-				// if updateErr == nil {
-				// 	statusChanged = false
-				// }
 
-				// ToDo - 1) find all clusters where this model is attached to
-				//		  2) then find all pods and dump configmeta to all pods, look for race condition etc
+				isClusterUsingConfigMap := func(cmName string, cluster kdv1.KubeDirectorCluster) bool {
+					clusterModels := cluster.Spec.Attachments.ModelConfigMaps
+					for _, modelMapName := range clusterModels {
+						if modelMapName == cmName {
+							fmt.Println("found affected cluster: ", cluster.Name)
+							return true
+						}
+					}
+					return false
+				}
+
+				result := &kdv1.KubeDirectorClusterList{}
+				shared.Client().List(context.TODO(), &client.ListOptions{}, result)
+				for _, kubecluster := range result.Items {
+					if isClusterUsingConfigMap(cr.Name, kubecluster) {
+						pods := &v1.PodList{}
+						shared.Client().List(context.TODO(), &client.ListOptions{}, pods)
+						for _, p := range pods.Items {
+							if value, ok := p.Labels["kubedirectorcluster"]; ok {
+								// Construct the role info slice. Bail out now if that fails.
+								roles, _ := kc.InitRoleInfo(reqLogger, &kubecluster)
+								if value == kubecluster.Name {
+									configmetaGenFun, _ := catalog.ConfigmetaGenerator(
+										&kubecluster,
+										kc.CalcMembersForRoles(roles),
+									)
+									configmeta := configmetaGenFun(p.Name)
+									fmt.Println("Successfully generated configmeta for pod ", p.Name)
+									executor.CreateFile(
+										reqLogger,
+										&kubecluster,
+										cr.Namespace,
+										p.Name,
+										executor.AppContainerName,
+										kc.ConfigMetaFile,
+										strings.NewReader(configmeta),
+									)
+								}
+							}
+						}
+					}
+				}
 			}
 
 			// Bail out if we're done.

@@ -44,7 +44,7 @@ import (
 func syncMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	roles []*roleInfo,
+	roles []*RoleInfo,
 	membersHaveChanged bool,
 	configmetaGenerator func(string) string,
 ) error {
@@ -93,7 +93,7 @@ func syncMembers(
 func handleReadyMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *roleInfo,
+	role *RoleInfo,
 	configmetaGenerator func(string) string,
 ) bool {
 
@@ -132,7 +132,7 @@ func handleReadyMembers(
 				cr.Namespace,
 				m.Pod,
 				executor.AppContainerName,
-				configMetaFile,
+				ConfigMetaFile,
 				strings.NewReader(configmeta),
 			)
 			if createFileErr != nil {
@@ -167,7 +167,7 @@ func handleReadyMembers(
 func handleCreatePendingMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *roleInfo,
+	role *RoleInfo,
 ) {
 
 	// Fix statefulset if necessary, and bail out if it is not good yet.
@@ -220,8 +220,8 @@ func handleCreatePendingMembers(
 func handleCreatingMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *roleInfo,
-	allRoles []*roleInfo,
+	role *RoleInfo,
+	allRoles []*RoleInfo,
 	configmetaGenerator func(string) string,
 ) {
 
@@ -361,7 +361,7 @@ func handleCreatingMembers(
 func handleDeletingMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *roleInfo,
+	role *RoleInfo,
 ) {
 
 	// Fix statefulset if necessary.
@@ -455,8 +455,8 @@ func handleDeletingMembers(
 func handleDeletePendingMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *roleInfo,
-	allRoles []*roleInfo,
+	role *RoleInfo,
+	allRoles []*RoleInfo,
 ) {
 
 	if !notifyReadyNodes(reqLogger, cr, role, allRoles) {
@@ -485,7 +485,7 @@ func handleDeletePendingMembers(
 func checkMemberCount(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *roleInfo,
+	role *RoleInfo,
 ) bool {
 
 	// Calculate the number of members that a statefulset/role SHOULD
@@ -534,7 +534,7 @@ func checkMemberCount(
 func replicasSynced(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *roleInfo,
+	role *RoleInfo,
 ) bool {
 
 	if role.statefulSet.Status.Replicas != *(role.statefulSet.Spec.Replicas) {
@@ -658,7 +658,7 @@ func injectFiles(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
-	role *roleInfo,
+	role *RoleInfo,
 ) error {
 
 	for _, fileInjection := range role.roleSpec.FileInjections {
@@ -718,8 +718,8 @@ func injectFiles(
 func notifyReadyNodes(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *roleInfo,
-	allRoles []*roleInfo,
+	role *RoleInfo,
+	allRoles []*RoleInfo,
 ) bool {
 
 	totalReady := 0
@@ -755,7 +755,7 @@ func notifyReadyNodes(
 		}
 		if ready, ok := otherRole.membersByState[memberReady]; ok {
 			for _, member := range ready {
-				go func(m *kdv1.MemberStatus, r *roleInfo) {
+				go func(m *kdv1.MemberStatus, r *RoleInfo) {
 					defer wgReady.Done()
 
 					if setupURL == "" {
@@ -849,7 +849,7 @@ func appConfig(
 		cr.Namespace,
 		podName,
 		executor.AppContainerName,
-		configMetaFile,
+		ConfigMetaFile,
 		strings.NewReader(configmetaGenerator(podName)),
 	)
 	if configmetaErr != nil {
@@ -891,7 +891,7 @@ func appReConfig(
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
 	roleName string,
-	otherRole *roleInfo,
+	otherRole *RoleInfo,
 ) error {
 
 	// Figure out which lifecycle event we're dealing with, and collect the

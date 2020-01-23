@@ -205,7 +205,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 
 	configmetaGen, configMetaErr := catalog.ConfigmetaGenerator(
 		cr,
-		calcMembersForRoles(roles),
+		CalcMembersForRoles(roles),
 	)
 	if configMetaErr != nil {
 		shared.LogError(
@@ -351,11 +351,11 @@ func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 	return false, nil
 }
 
-// calcMembersForRoles generates a map of role name to list of all member
+// CalcMembersForRoles generates a map of role name to list of all member
 // in the role that are intended to exist -- i.e. members in states
 // memberCreatePending, memberCreating, memberReady or memberConfigError
-func calcMembersForRoles(
-	roles []*roleInfo,
+func CalcMembersForRoles(
+	roles []*RoleInfo,
 ) map[string][]*kdv1.MemberStatus {
 
 	result := make(map[string][]*kdv1.MemberStatus)

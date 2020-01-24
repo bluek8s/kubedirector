@@ -16,15 +16,12 @@ package validator
 
 import (
 	"k8s.io/api/admission/v1beta1"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 // admitFunc is used as the type for all the callback validators
 type admitFunc func(*v1beta1.AdmissionReview) *v1beta1.AdmissionResponse
 
 type checkFunc func() error
-
-var log = logf.Log.WithName("Validator")
 
 const (
 	validatorServiceName = "kubedirector-validator"

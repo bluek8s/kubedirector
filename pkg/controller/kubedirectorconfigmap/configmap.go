@@ -100,11 +100,17 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 							//shared.Client().List(context.TODO(), &client.ListOptions{}, pods)
 							for _, roleMember := range role.Members {
 								// Construct the role info slice. Bail out now if that fails.
-								roleInfos, _ := kc.InitRoleInfo(reqLogger, &kubecluster)
-								configmetaGenFun, _ := catalog.ConfigmetaGenerator(
+								roleInfos, infoErr := kc.InitRoleInfo(reqLogger, &kubecluster)
+								if infoErr != nil {
+									return
+								}
+								configmetaGenFun, generationErr := catalog.ConfigmetaGenerator(
 									&kubecluster,
 									kc.CalcMembersForRoles(roleInfos),
 								)
+								if generationErr != nil {
+									return
+								}
 								configmeta := configmetaGenFun(roleMember.Pod)
 								//fmt.Println("Successfully generated configmeta for pod ", roleMember.)
 								executor.CreateFile(
@@ -192,18 +198,6 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 	if !shouldProcessCR {
 		return nil
 	}
-
-	// if cr.Status.State == string(configCreating) {
-	// 	cr.Status.State = string(configReady)
-	// 	shared.LogInfo(
-	// 		reqLogger,
-	// 		cr,
-	// 		shared.EventReasonConfig,
-	// 		"stable",
-	// 	)
-	// }
-
-	//shared.AddGlobalConfig(cr)
 	return nil
 }
 

@@ -29,7 +29,6 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -76,6 +75,8 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 			var updateErr error
 			if cmChanged {
 
+				//anonymous fun to check if this cluster
+				// is using this config map as an attachment
 				isClusterUsingConfigMap := func(cmName string, cluster kdv1.KubeDirectorCluster) bool {
 					clusterModels := cluster.Spec.Attachments.ModelConfigMaps
 					for _, modelMapName := range clusterModels {
@@ -87,33 +88,34 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 					return false
 				}
 
-				result := &kdv1.KubeDirectorClusterList{}
-				shared.Client().List(context.TODO(), &client.ListOptions{}, result)
-				for _, kubecluster := range result.Items {
+				allClusters := &kdv1.KubeDirectorClusterList{}
+				//Fix Me - Currently this gets all pods,
+				//change client list options to fetch pods
+				//from this cluster only
+				shared.Client().List(context.TODO(), &client.ListOptions{}, allClusters)
+				for _, kubecluster := range allClusters.Items {
 					if isClusterUsingConfigMap(cr.Name, kubecluster) {
-						pods := &v1.PodList{}
-						shared.Client().List(context.TODO(), &client.ListOptions{}, pods)
-						for _, p := range pods.Items {
-							if value, ok := p.Labels["kubedirectorcluster"]; ok {
+						for _, role := range kubecluster.Status.Roles {
+							//pods := &v1.PodList{}
+							//shared.Client().List(context.TODO(), &client.ListOptions{}, pods)
+							for _, roleMember := range role.Members {
 								// Construct the role info slice. Bail out now if that fails.
-								roles, _ := kc.InitRoleInfo(reqLogger, &kubecluster)
-								if value == kubecluster.Name {
-									configmetaGenFun, _ := catalog.ConfigmetaGenerator(
-										&kubecluster,
-										kc.CalcMembersForRoles(roles),
-									)
-									configmeta := configmetaGenFun(p.Name)
-									fmt.Println("Successfully generated configmeta for pod ", p.Name)
-									executor.CreateFile(
-										reqLogger,
-										&kubecluster,
-										cr.Namespace,
-										p.Name,
-										executor.AppContainerName,
-										kc.ConfigMetaFile,
-										strings.NewReader(configmeta),
-									)
-								}
+								roleInfos, _ := kc.InitRoleInfo(reqLogger, &kubecluster)
+								configmetaGenFun, _ := catalog.ConfigmetaGenerator(
+									&kubecluster,
+									kc.CalcMembersForRoles(roleInfos),
+								)
+								configmeta := configmetaGenFun(roleMember.Pod)
+								//fmt.Println("Successfully generated configmeta for pod ", roleMember.)
+								executor.CreateFile(
+									reqLogger,
+									&kubecluster,
+									cr.Namespace,
+									roleMember.Pod,
+									executor.AppContainerName,
+									kc.ConfigMetaFile,
+									strings.NewReader(configmeta),
+								)
 							}
 						}
 					}

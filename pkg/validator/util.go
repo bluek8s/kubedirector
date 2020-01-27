@@ -112,20 +112,13 @@ func createAdmissionService(
 		return nil
 	}
 
+	// Webhook handler with a "fail" failure policy; these operations
+	// will NOT be allowed even when the handler is down.
+	// Use the v1beta1 version until our K8s version support floor is 1.16 or
+	// better.
+	failurePolicy := v1beta1.Fail
 	webhookHandler := v1beta1.Webhook{
 		Name: webhookHandlerName,
-		Rules: []v1beta1.RuleWithOperations{{
-			Operations: []v1beta1.OperationType{
-				v1beta1.Create,
-				v1beta1.Update,
-				v1beta1.Delete,
-			},
-			Rule: v1beta1.Rule{
-				APIGroups:   []string{"kubedirector.bluedata.io"},
-				APIVersions: []string{"v1alpha1"},
-				Resources:   []string{"*"},
-			},
-		}},
 		ClientConfig: v1beta1.WebhookClientConfig{
 			Service: &v1beta1.ServiceReference{
 				Namespace: namespace,
@@ -134,6 +127,32 @@ func createAdmissionService(
 			},
 			CABundle: signingCert,
 		},
+		Rules: []v1beta1.RuleWithOperations{
+			{
+				Operations: []v1beta1.OperationType{
+					v1beta1.Create,
+					v1beta1.Update,
+					v1beta1.Delete,
+				},
+				Rule: v1beta1.Rule{
+					APIGroups:   []string{"kubedirector.bluedata.io"},
+					APIVersions: []string{"v1alpha1"},
+					Resources:   []string{"kubedirectorapps"},
+				},
+			},
+			{
+				Operations: []v1beta1.OperationType{
+					v1beta1.Create,
+					v1beta1.Update,
+				},
+				Rule: v1beta1.Rule{
+					APIGroups:   []string{"kubedirector.bluedata.io"},
+					APIVersions: []string{"v1alpha1"},
+					Resources:   []string{"kubedirectorclusters", "kubedirectorconfigs"},
+				},
+			},
+		},
+		FailurePolicy: &failurePolicy,
 	}
 
 	validator := &v1beta1.MutatingWebhookConfiguration{

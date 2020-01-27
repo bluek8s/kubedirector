@@ -17,6 +17,16 @@ spec:
         - name: kubedirector
           # Replace this with the built image name
           image: REPLACE_IMAGE
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8443
+              scheme: HTTPS
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
           ports:
           - containerPort: 60000
             name: metrics

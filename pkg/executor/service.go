@@ -283,7 +283,6 @@ func UpdateService(
 	}
 
 	currentService.Spec.Type = service.Spec.Type
-	currentService.Annotations = service.Annotations
 	err = shared.Client().Update(context.TODO(), currentService)
 	if err != nil {
 		shared.LogErrorf(

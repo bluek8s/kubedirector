@@ -128,6 +128,13 @@ func createAdmissionService(
 			CABundle: signingCert,
 		},
 		Rules: []v1beta1.RuleWithOperations{
+			// For kubedirectorclusters and kubedirectorconfigs, we don't
+			// actually do any delete validation, but if our whole operator is
+			// down (most likely failure case) the object won't go away
+			// because the reconciler won't remove its finalizer. And you
+			// can't manually remove the finalizer without doing an update. So
+			// let's head all of that off by just registering for Delete
+			// (with Fail failure policy) for those resources too.
 			{
 				Operations: []v1beta1.OperationType{
 					v1beta1.Create,
@@ -137,18 +144,11 @@ func createAdmissionService(
 				Rule: v1beta1.Rule{
 					APIGroups:   []string{"kubedirector.bluedata.io"},
 					APIVersions: []string{"v1alpha1"},
-					Resources:   []string{"kubedirectorapps"},
-				},
-			},
-			{
-				Operations: []v1beta1.OperationType{
-					v1beta1.Create,
-					v1beta1.Update,
-				},
-				Rule: v1beta1.Rule{
-					APIGroups:   []string{"kubedirector.bluedata.io"},
-					APIVersions: []string{"v1alpha1"},
-					Resources:   []string{"kubedirectorclusters", "kubedirectorconfigs"},
+					Resources: []string{
+						"kubedirectorconfigs",
+						"kubedirectorapps",
+						"kubedirectorclusters",
+					},
 				},
 			},
 		},

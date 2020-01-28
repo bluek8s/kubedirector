@@ -17,7 +17,7 @@ spec:
           image: bluek8s/kubedirector:unstable
           livenessProbe:
             httpGet:
-              path: /health
+              path: /healthz
               port: 8443
               scheme: HTTPS
             initialDelaySeconds: 10

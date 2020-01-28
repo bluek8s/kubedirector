@@ -19,7 +19,7 @@ spec:
           image: REPLACE_IMAGE
           livenessProbe:
             httpGet:
-              path: /health
+              path: /healthz
               port: 8443
               scheme: HTTPS
             initialDelaySeconds: 10

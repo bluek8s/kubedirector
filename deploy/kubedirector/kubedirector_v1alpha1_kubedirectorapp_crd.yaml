@@ -138,9 +138,11 @@ spec:
                         type: string
                         pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                       nvidia.com/gpu:
-                        type: integer
+                        type: string
+                        pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                       amd.com/gpu:
-                        type: integer
+                        type: string
+                        pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
             config:
               type: object
               required: [selectedRoles, roleServices]

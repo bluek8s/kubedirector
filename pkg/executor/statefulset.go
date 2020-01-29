@@ -36,6 +36,11 @@ import (
 // that will always be placed on shared persistent storage (when available).
 var defaultMountFolders = []string{"/etc"}
 
+// appConfigDefaultMountFolders identifies set of member filesystems directories
+// that will always be placed on shared persistent storage, if app config is provided
+// for a role
+var appConfigDefaultMountFolders = []string{"/etc", "/opt", "/usr"}
+
 // CreateStatefulSet creates in k8s a zero-replicas statefulset for
 // implementing the given role.
 func CreateStatefulSet(
@@ -190,14 +195,27 @@ func getStatefulset(
 		return nil, persistErr
 	}
 
+	defaultPersistDirs := &defaultMountFolders
+
+	// Check if there is an app config package for this role, If so we have
+	// to add additional defaults
+	setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, role.Name)
+	if setupURLErr != nil {
+		return nil, setupURLErr
+	}
+
+	if setupURL != "" {
+		defaultPersistDirs = &appConfigDefaultMountFolders
+	}
+
 	// Create a combined unique list of directories that have be persisted
 	// Start with default mounts
-	var maxLen = len(defaultMountFolders)
+	var maxLen = len(*defaultPersistDirs)
 	if appPersistDirs != nil {
 		maxLen += len(*appPersistDirs)
 	}
-	persistDirs := make([]string, len(defaultMountFolders), maxLen)
-	copy(persistDirs, defaultMountFolders)
+	persistDirs := make([]string, len(*defaultPersistDirs), maxLen)
+	copy(persistDirs, *defaultPersistDirs)
 
 	// if the app directory is either same or a subdir of one of the default mount
 	// dirs, we can skip them. if not we should add them to the persistDirs list

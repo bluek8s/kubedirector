@@ -30,6 +30,7 @@ const (
 	webhookHandlerName   = "validate-cr.kubedirector.bluedata.io"
 	validationPort       = 8443
 	validationPath       = "/validate"
+	healthPath           = "/healthz"
 	defaultNativeSystemd = false
 
 	appCrt  = "app.crt"

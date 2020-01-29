@@ -15,6 +15,16 @@ spec:
       containers:
         - name: kubedirector
           image: bluek8s/kubedirector:unstable
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8443
+              scheme: HTTPS
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
           ports:
           - containerPort: 60000
             name: metrics

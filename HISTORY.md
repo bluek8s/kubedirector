@@ -1,3 +1,42 @@
+# v0.3.1 - Jan 29, 2020
+
+Primarily we're pushing this release to make some bugfixes public, but there are a few other nice changes included.
+
+Note that our baseline for supported Kubernetes versions has been raised to 1.14. This was necessary to have support for proper CR schema validation. If you're creating your K8s cluster using a cloud service, pay close attention to the version of K8s that you request.
+
+Also note that in the next release we will be changing the API namespace for our CRs from "kubedirector.bluedata.io/v1alpha1" to "kubedirector.hpe.com/v1beta1". We have _not_ yet made this change; this is just a heads-up.
+
+## App/cluster model
+
+* Better schema-based validation for CRs.
+
+* New optional clusterSvcDomainBase property in the KubeDirectorConfig spec.
+
+* New optional podLabels and serviceLabels property in role spec, to place specified labels on generated resources.
+
+## Operational
+
+* Fixed some DNS issues by setting publishNotReadyAddresses=true for the headless cluster service.
+
+* New port naming format for ports on generated service resources; port name is now prefixed with the urlScheme from the app service definition ("generic-" prefix if no urlScheme).
+
+* Liveness probe added for the operator pod.
+
+* Changes to CRs will now be rejected if the operator itself is down.
+
+* Some fixes for proper handling of the persistent storage in KDClusters that don't use a config package, and some fixes for those that do.
+
+## Developer support
+
+* Many updated docs, especially for GKE and EKS.
+
+* Changed example apps to include the config package on the container image, for easier deployment in K8s clusters that don't have S3 access.
+
+* New TensorFlow example app (old one removed).
+
+* Some reduction of log verbosity.
+
+
 # v0.3.0 - Nov 16, 2019
 
 The most extensive change in this release is that the version of the operator SDK used by KubeDirector has been updated from v0.0.6 to v0.8.1. This picks up the operator SDK's transition to being based on the Kubernetes controller-runtime project. The effects from that change propagated into most corners of the KubeDirector codebase; while the functional difference is not generally visible to the end user, this should put us on a better footing for future updates and maintenance.

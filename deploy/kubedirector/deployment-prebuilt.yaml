@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: kubedirector
-          image: bluek8s/kubedirector:unstable
+          image: bluek8s/kubedirector:0.3.1
           livenessProbe:
             httpGet:
               path: /healthz

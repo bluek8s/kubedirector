@@ -187,6 +187,14 @@ func StartValidationServer() error {
 		},
 	)
 
+	http.HandleFunc(
+		healthPath,
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(200)
+			w.Write([]byte("ok"))
+		},
+	)
+
 	err = server.ListenAndServeTLS("", "")
 
 	return err

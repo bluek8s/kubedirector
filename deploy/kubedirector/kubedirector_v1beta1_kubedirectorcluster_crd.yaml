@@ -10,6 +10,8 @@ spec:
     listKind: KubeDirectorClusterList
     plural: kubedirectorclusters
     singular: kubedirectorcluster
+    shortNames:
+      - kdcluster
   scope: Namespaced
   subresources:
     status: {}

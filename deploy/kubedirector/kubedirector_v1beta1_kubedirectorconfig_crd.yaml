@@ -10,6 +10,8 @@ spec:
     listKind: KubeDirectorConfigList
     plural: kubedirectorconfigs
     singular: kubedirectorconfig
+    shortNames:
+      - kdconfig
   scope: Namespaced
   subresources:
     status: {}

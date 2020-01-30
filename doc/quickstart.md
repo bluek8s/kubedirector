@@ -4,7 +4,7 @@ You will need a K8s (Kubernetes) cluster for deploying KubeDirector and KubeDire
 
 We usually run KubeDirector on Google Kubernetes Engine; see [gke-notes.md](gke-notes.md) for GKE-specific elaborations on the various steps in this document. Or if you would rather use Amazon Elastic Container Service for Kubernetes, see [eks-notes.md](eks-notes.md). We have also run it on DigitalOcean Kubernetes without issues.
 
-We have also run KubeDirector on a local K8s installation created with RPMs from kubernetes.io, so this is another possible approach. If you are going this route, you will need to ensure that [admission webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites) are enabled and that root-user containers are allowed. If you are using [kubeadm](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/), you shouldn't have to explicitly worry about those requirements -- its default configuration should be good.
+We have also run KubeDirector on a local K8s installation created with RPMs from kubernetes.io, so this is another possible approach. If you are going this route, you will need to ensure that [admission webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites) are enabled. If you are using [kubeadm](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/), you shouldn't have to explicitly worry about those requirements -- its default configuration should be good.
 
 Note that we generally do not recommend KubeDirector deployment on OpenShift for new KubeDirector users/developers, because of a [variety of issues](https://github.com/bluek8s/kubedirector/issues/1).
 

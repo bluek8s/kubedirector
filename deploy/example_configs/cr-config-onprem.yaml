@@ -4,7 +4,7 @@
 # available. It also sets nativeSystemdSupport to true as this is the correct
 # value for RHEL/CentOS systems with OS version 7.2 or later.
 
-apiVersion: "kubedirector.bluedata.io/v1alpha1"
+apiVersion: "kubedirector.hpe.com/v1beta1"
 kind: "KubeDirectorConfig"
 metadata:
   name: "kd-global-config"

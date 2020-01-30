@@ -27,7 +27,7 @@ const (
 	KubeDirectorGlobalConfig = "kd-global-config"
 
 	//KdDomainBase - Annotation DNS subdomain prefix
-	KdDomainBase = "kubedirector.bluedata.io"
+	KdDomainBase = "kubedirector.hpe.com"
 
 	// DefaultServiceType - default service type if not specified in
 	// the configCR

@@ -23,7 +23,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/controller/kubedirectorconfig"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

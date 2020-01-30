@@ -1,10 +1,10 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: kubedirectorclusters.kubedirector.bluedata.io
+  name: kubedirectorclusters.kubedirector.hpe.com
 spec:
-  group: kubedirector.bluedata.io
-  version: v1alpha1
+  group: kubedirector.hpe.com
+  version: v1beta1
   names:
     kind: KubeDirectorCluster
     listKind: KubeDirectorClusterList

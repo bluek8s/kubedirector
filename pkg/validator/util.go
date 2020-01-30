@@ -142,8 +142,8 @@ func createAdmissionService(
 					v1beta1.Delete,
 				},
 				Rule: v1beta1.Rule{
-					APIGroups:   []string{"kubedirector.bluedata.io"},
-					APIVersions: []string{"v1alpha1"},
+					APIGroups:   []string{"kubedirector.hpe.com"},
+					APIVersions: []string{"v1beta1"},
 					Resources: []string{
 						"kubedirectorconfigs",
 						"kubedirectorapps",

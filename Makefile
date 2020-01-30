@@ -45,7 +45,7 @@ version-check:
         exit 1; \
     fi
 
-build: configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go version-check | $(build_dir)
+build: configcli pkg/apis/kubedirector.hpe.com/v1beta1/zz_generated.deepcopy.go version-check | $(build_dir)
 	@echo
 	@echo \* Creating KubeDirector deployment image and YAML...
 	@test -d vendor || dep ensure -v
@@ -60,10 +60,10 @@ configcli:
      echo "* Downloading configcli package ...";                               \
      curl -L -o $(configcli_dest) https://github.com/bluek8s/configcli/archive/v$(configcli_version).tar.gz
 
-pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go:  \
-        pkg/apis/kubedirector.bluedata.io/v1alpha1/kubedirectorapp_types.go \
-        pkg/apis/kubedirector.bluedata.io/v1alpha1/kubedirectorcluster_types.go \
-        pkg/apis/kubedirector.bluedata.io/v1alpha1/kubedirectorconfig_types.go
+pkg/apis/kubedirector.hpe.com/v1beta1/zz_generated.deepcopy.go:  \
+        pkg/apis/kubedirector.hpe.com/v1beta1/kubedirectorapp_types.go \
+        pkg/apis/kubedirector.hpe.com/v1beta1/kubedirectorcluster_types.go \
+        pkg/apis/kubedirector.hpe.com/v1beta1/kubedirectorconfig_types.go
 	@test -d vendor || dep ensure -v
 	operator-sdk generate k8s
 
@@ -98,9 +98,9 @@ deploy:
 
 	@echo
 	@echo \* Creating custom resource definitions...
-	kubectl create -f deploy/kubedirector/kubedirector_v1alpha1_kubedirectorapp_crd.yaml
-	kubectl create -f deploy/kubedirector/kubedirector_v1alpha1_kubedirectorcluster_crd.yaml
-	kubectl create -f deploy/kubedirector/kubedirector_v1alpha1_kubedirectorconfig_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector_v1beta1_kubedirectorapp_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector_v1beta1_kubedirectorcluster_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector_v1beta1_kubedirectorconfig_crd.yaml
 	@echo
 	@echo \* Creating role and service account...
 	kubectl create -f deploy/kubedirector/rbac.yaml
@@ -261,9 +261,9 @@ undeploy:
         done; \
         echo; \
         echo \* Deleting custom resource definitions...; \
-        delete_thing customresourcedefinition ${app_resource_name}s.kubedirector.bluedata.io; \
-        delete_thing customresourcedefinition ${cluster_resource_name}s.kubedirector.bluedata.io; \
-        delete_thing customresourcedefinition ${config_resource_name}s.kubedirector.bluedata.io
+        delete_thing customresourcedefinition ${app_resource_name}s.kubedirector.hpe.com; \
+        delete_thing customresourcedefinition ${cluster_resource_name}s.kubedirector.hpe.com; \
+        delete_thing customresourcedefinition ${config_resource_name}s.kubedirector.hpe.com
 	@echo
 	@echo -n \* Waiting for all cluster resources to finish cleanup...
 	@set -e; \
@@ -307,7 +307,7 @@ undeploy:
 
 teardown: undeploy
 
-compile: version-check configcli pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go
+compile: version-check configcli pkg/apis/kubedirector.hpe.com/v1beta1/zz_generated.deepcopy.go
 	-rm -rf ${build_dir}
 	GOOS=linux GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
         go build -o ${build_dir}/bin/${bin_name} ./cmd/manager
@@ -321,7 +321,7 @@ dep:
 clean:
 	-rm -f deploy/kubedirector/rbac.yaml
 	-rm -f deploy/kubedirector/deployment-localbuilt.yaml
-	-rm -f pkg/apis/kubedirector.bluedata.io/v1alpha1/zz_generated.deepcopy.go
+	-rm -f pkg/apis/kubedirector.hpe.com/v1beta1/zz_generated.deepcopy.go
 	-rm -rf ${build_dir}
 
 distclean: clean

@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"time"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 

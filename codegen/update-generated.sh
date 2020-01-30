@@ -15,6 +15,6 @@ docker run --rm \
   "deepcopy" \
   "github.com/bluek8s/kubedirector/pkg/generated" \
   "github.com/bluek8s/kubedirector/pkg/apis" \
-  "kubedirector.bluedata.io:v1alpha1" \
+  "kubedirector.hpe.com:v1beta1" \
   --go-header-file "./tmp/codegen/boilerplate.go.txt" \
   $@

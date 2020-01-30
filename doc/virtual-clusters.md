@@ -31,17 +31,17 @@ To get a report on all services related to a specific virtual cluster, you can u
 
 Below is a line from the output of such a query, in a case where KubeDirector was configured to use LoadBalancer services (which is the default). In this case the Spark master Web dashboard (port 8080) is available through the load-balancer IP 35.197.55.117. The port exposed on the load balancer will be the same as the native container port, 8080. The other information in this line is not relevant for access through the LoadBalancer.
 ```bash
-    svc-kd-rmh58-0  LoadBalancer   10.55.240.105   35.197.55.117    22:30892/TCP,8080:31786/TCP,7077:32194/TCP,8081:31026/TCP   2m48s
+    s-kdss-rmh58-0  LoadBalancer   10.55.240.105   35.197.55.117    22:30892/TCP,8080:31786/TCP,7077:32194/TCP,8081:31026/TCP   2m48s
 ```
 
 As another example, below is a line from a cluster in a different setup where KubeDirector was configured to use NodePort services. It shows that port 8080 on the controller host of a virtual Spark cluster is available on port 30311 of any of the K8s nodes:
 ```bash
-    svc-kd-ggzpd-0   NodePort    10.107.133.249   <none>        22:31394/TCP,8080:30311/TCP,7077:30106/TCP,8081:30499/TCP   12m
+    s-kdss-ggzpd-0   NodePort    10.107.133.249   <none>        22:31394/TCP,8080:30311/TCP,7077:30106/TCP,8081:30499/TCP   12m
 ```
 
 You can use kubectl to examine a specific service resource in order to see more explicitly which ports are for service endpoints. Using "get -o yaml" or "get -o json", rather than "describe", will format the array of endpoints a little more clearly. For example, examining that LoadBalancer service above:
 ```bash
-    kubectl get -o yaml service svc-kd-rmh58-0
+    kubectl get -o yaml service s-kdss-rmh58-0
 ```
 will result output that (among other things) contains an array that explicitly names the various endpoints, such as:
 ```
@@ -54,7 +54,7 @@ will result output that (among other things) contains an array that explicitly n
 
 A few notes about using the example applications:
 * In both the Spark and TensorFlow examples, the password for Jupyter is "admin123".
-* The deployed containers will be running sshd, but they will not initially have any login-capable accounts. For container access as a root user, use "kubectl exec" along with the podname. E.g. "kubectl exec -it kd-vjtrc-0 bash". From there you can reconfigure sshd if you wish.
+* The deployed containers will be running sshd, but they will not initially have any login-capable accounts. For container access as a root user, use "kubectl exec" along with the podname. E.g. "kubectl exec -it kdss-vjtrc-0 bash". From there you can reconfigure sshd if you wish.
 * Clickable links to other IPs within the Spark web dashboard will not work, because Spark is not aware of NodePort ports or LoadBalancer IPs.
 
 #### RESIZING

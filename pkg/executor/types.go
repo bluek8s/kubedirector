@@ -23,24 +23,30 @@ import (
 const (
 	// ClusterLabel is a label placed on every created statefulset, pod, and
 	// service, with a value of the KubeDirectorCluster CR name.
+	// XXX change this, add group
 	ClusterLabel = "kubedirectorcluster"
 	// ClusterRoleLabel is a label placed on every created pod, and
 	// (non-headless) service, with a value of the relevant role ID.
+	// XXX change this, add group
 	ClusterRoleLabel     = "role"
 	headlessServiceLabel = shared.KdDomainBase + "/" + "headless"
 	statefulSetPodLabel  = "statefulset.kubernetes.io/pod-name"
 	storageClassName     = "volume.beta.kubernetes.io/storage-class"
-	// AppContainerName is the name of kubedirector app containers
-	AppContainerName    = "app"
-	pvcName             = "pvc"
-	headlessServiceName = "svc"
-	initContainerName   = "init"
-	execShell           = "bash"
-	configMetaFile      = "/etc/guestconfig/configmeta.json"
-	cgroupFSVolume      = "/sys/fs/cgroup"
-	systemdFSVolume     = "/sys/fs/cgroup/systemd"
-	tmpFSVolSize        = "20Gi"
-	kubedirectorInit    = "/etc/kubedirector.init"
+	// AppContainerName is the name of KubeDirector app containers.
+	AppContainerName = "app"
+	// PvcNamePrefix (along with a hyphen) is prepended to the name of each
+	// member PVC name that is auto-created for a statefulset.
+	PvcNamePrefix         = "p"
+	svcNamePrefix         = "s-"
+	statefulSetNamePrefix = "kdss-"
+	headlessSvcNamePrefix = "kdhs-"
+	initContainerName     = "init"
+	execShell             = "bash"
+	configMetaFile        = "/etc/guestconfig/configmeta.json"
+	cgroupFSVolume        = "/sys/fs/cgroup"
+	systemdFSVolume       = "/sys/fs/cgroup/systemd"
+	tmpFSVolSize          = "20Gi"
+	kubedirectorInit      = "/etc/kubedirector.init"
 )
 
 // Streams for stdin, stdout, stderr of executed commands

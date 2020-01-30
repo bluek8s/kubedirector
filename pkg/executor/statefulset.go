@@ -254,6 +254,7 @@ func getStatefulset(
 	volumeMounts, volumes, volumesErr := generateVolumeMounts(
 		cr,
 		role,
+		PvcNamePrefix,
 		nativeSystemdSupport,
 		persistDirs,
 	)
@@ -278,7 +279,7 @@ func getStatefulset(
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName:    "kd" + "-",
+			GenerateName:    statefulSetNamePrefix,
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labels,
@@ -296,7 +297,13 @@ func getStatefulset(
 				},
 				Spec: v1.PodSpec{
 					AutomountServiceAccountToken: &useServiceAccount,
-					InitContainers:               getInitContainer(cr, role, pvcName, imageID, persistDirs),
+					InitContainers: getInitContainer(
+						cr,
+						role,
+						PvcNamePrefix,
+						imageID,
+						persistDirs,
+					),
 					Containers: []v1.Container{
 						{
 							Name:            AppContainerName,
@@ -312,7 +319,7 @@ func getStatefulset(
 					Volumes: volumes,
 				},
 			},
-			VolumeClaimTemplates: getVolumeClaimTemplate(cr, role, pvcName),
+			VolumeClaimTemplates: getVolumeClaimTemplate(cr, role, PvcNamePrefix),
 		},
 	}, nil
 }
@@ -324,7 +331,7 @@ func getStatefulset(
 func getInitContainer(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
-	pvcName string,
+	pvcNamePrefix string,
 	imageID string,
 	persistDirs []string,
 ) (initContainer []v1.Container) {
@@ -337,7 +344,7 @@ func getInitContainer(
 		return
 	}
 
-	initVolumeMounts := generateInitVolumeMounts(pvcName)
+	initVolumeMounts := generateInitVolumeMounts(pvcNamePrefix)
 	cpus, _ := resource.ParseQuantity("1")
 	mem, _ := resource.ParseQuantity("512Mi")
 	initContainer = []v1.Container{
@@ -376,7 +383,7 @@ func getInitContainer(
 func getVolumeClaimTemplate(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
-	pvcName string,
+	pvcNamePrefix string,
 ) (volTemplate []v1.PersistentVolumeClaim) {
 
 	if role.Storage == nil {
@@ -387,7 +394,7 @@ func getVolumeClaimTemplate(
 	volTemplate = []v1.PersistentVolumeClaim{
 		v1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: pvcName,
+				Name: pvcNamePrefix,
 				Annotations: map[string]string{
 					storageClassName: *role.Storage.StorageClass,
 				},
@@ -487,6 +494,7 @@ func generateSecretVolume(
 func generateVolumeMounts(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
+	pvcNamePrefix string,
 	nativeSystemdSupport bool,
 	persistDirs []string,
 ) ([]v1.VolumeMount, []v1.Volume, error) {
@@ -494,7 +502,7 @@ func generateVolumeMounts(
 	var volumes []v1.Volume
 
 	if role.Storage != nil {
-		volumeMounts = generateClaimMounts(pvcName, persistDirs)
+		volumeMounts = generateClaimMounts(pvcNamePrefix, persistDirs)
 	}
 
 	tmpfsVolMnts, tmpfsVols := generateTmpfsSupport(cr)
@@ -524,7 +532,7 @@ func generateVolumeMounts(
 // generateClaimMounts creates the mount specs for all directories that are
 // to be mounted from a persistent volume by an app container.
 func generateClaimMounts(
-	pvcName string,
+	pvcNamePrefix string,
 	persistDirs []string,
 ) []v1.VolumeMount {
 
@@ -532,7 +540,7 @@ func generateClaimMounts(
 	for _, folder := range persistDirs {
 		volumeMount := v1.VolumeMount{
 			MountPath: folder,
-			Name:      pvcName,
+			Name:      pvcNamePrefix,
 			ReadOnly:  false,
 			SubPath:   folder[1:],
 		}
@@ -544,13 +552,13 @@ func generateClaimMounts(
 // generateInitVolumeMounts creates the spec for mounting a persistent volume
 // into an init container.
 func generateInitVolumeMounts(
-	pvcName string,
+	pvcNamePrefix string,
 ) []v1.VolumeMount {
 
 	return []v1.VolumeMount{
 		v1.VolumeMount{
 			MountPath: "/mnt",
-			Name:      pvcName,
+			Name:      pvcNamePrefix,
 			ReadOnly:  false,
 		},
 	}

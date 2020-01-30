@@ -62,7 +62,7 @@ func labelsForStatefulSet(
 ) map[string]string {
 
 	result := labelsForRole(cr, role)
-	result[headlessServiceLabel] = headlessServiceName + "-" + cr.Name
+	result[headlessServiceLabel] = cr.Name
 	return result
 }
 

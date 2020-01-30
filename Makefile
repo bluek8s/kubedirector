@@ -269,14 +269,14 @@ undeploy:
 	@set -e; \
         retries=100; \
         while [ $$retries ]; do \
-            if kubectl get all -l kubedirectorcluster --all-namespaces 2>&1 >/dev/null | grep "No resources found" &> /dev/null; then \
+            if kubectl get all -l kubedirector.hpe.com/kdcluster --all-namespaces 2>&1 >/dev/null | grep "No resources found" &> /dev/null; then \
                 exit 0; \
             else \
                 retries=`expr $$retries - 1`; \
                 if [ $$retries -le 0 ]; then \
                     echo; \
                     echo Some KubeDirector-managed resources seem to remain.; \
-                    echo Use "kubectl get all -l kubedirectorcluster --all-namespaces" to check and do manual cleanup.; \
+                    echo Use "kubectl get all -l kubedirector.hpe.com/kdcluster --all-namespaces" to check and do manual cleanup.; \
                     exit 1; \
                 fi; \
                 sleep 3; \

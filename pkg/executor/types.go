@@ -23,15 +23,27 @@ import (
 const (
 	// ClusterLabel is a label placed on every created statefulset, pod, and
 	// service, with a value of the KubeDirectorCluster CR name.
-	// XXX change this, add group
-	ClusterLabel = "kubedirectorcluster"
+	ClusterLabel = shared.KdDomainBase + "/kdcluster"
+	// ClusterAppLabel is a label placed on every created statefulset, pod,
+	// and service, with a value of the KubeDirectorApp CR name.
+	ClusterAppLabel = shared.KdDomainBase + "/kdapp"
+	// ClusterAppCatalogLabel is a label placed on every created statefulset,
+	// pod, and service, with a value "local" or "system" appropriately.
+	ClusterAppCatalogLabel = shared.KdDomainBase + "/appCatalog"
 	// ClusterRoleLabel is a label placed on every created pod, and
 	// (non-headless) service, with a value of the relevant role ID.
-	// XXX change this, add group
-	ClusterRoleLabel     = "role"
-	headlessServiceLabel = shared.KdDomainBase + "/" + "headless"
-	statefulSetPodLabel  = "statefulset.kubernetes.io/pod-name"
-	storageClassName     = "volume.beta.kubernetes.io/storage-class"
+	ClusterRoleLabel = shared.KdDomainBase + "/role"
+	// HeadlessServiceLabel is a label placed on the statefulset and pods.
+	// Used in a selector on the headless service.
+	HeadlessServiceLabel = shared.KdDomainBase + "/headless"
+
+	// ClusterAppAnnotation is an annotation placed on every created
+	// statefulset, pod, and service, with a value of the KubeDirectorApp's
+	// spec.label.name.
+	ClusterAppAnnotation = shared.KdDomainBase + "/kdapp-prettyName"
+
+	statefulSetPodLabel = "statefulset.kubernetes.io/pod-name"
+	storageClassName    = "volume.beta.kubernetes.io/storage-class"
 	// AppContainerName is the name of KubeDirector app containers.
 	AppContainerName = "app"
 	// PvcNamePrefix (along with a hyphen) is prepended to the name of each

@@ -24,9 +24,9 @@ To guarantee that services provided by this virtual cluster are available, wait 
 
 The resource's status will also show you which standard K8s elements make up the virtual cluster (statefulsets, pods, services, and persistent volume claims). You can use kubectl to examine those in turn. Services are particularly useful to examine as they will describe which K8s node ports or loadbalancer ports are mapped to service endpoints on members of the virtual cluster.
 
-To get a report on all services related to a specific virtual cluster, you can use a form of "kubectl get" that matches against a value of the "kubedirectorcluster" label. For example if your virtual cluster is named "spark-instance", you could perform this query:
+To get a report on all services related to a specific virtual cluster, you can use a form of "kubectl get" that matches against a value of the "kubedirector.hpe.com/kdcluster" label. For example if your virtual cluster is named "spark-instance", you could perform this query:
 ```bash
-    kubectl get services -l kubedirectorcluster=spark-instance
+    kubectl get services -l kubedirector.hpe.com/kdcluster=spark-instance
 ```
 
 Below is a line from the output of such a query, in a case where KubeDirector was configured to use LoadBalancer services (which is the default). In this case the Spark master Web dashboard (port 8080) is available through the load-balancer IP 35.197.55.117. The port exposed on the load balancer will be the same as the native container port, 8080. The other information in this line is not relevant for access through the LoadBalancer.

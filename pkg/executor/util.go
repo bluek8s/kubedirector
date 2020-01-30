@@ -39,6 +39,38 @@ func ownerReferences(
 	}
 }
 
+// annotationsForCluster generates a set of resource labels appropriate for
+// any component of this KDCluster.
+func annotationsForCluster(
+	cr *kdv1.KubeDirectorCluster,
+) map[string]string {
+
+	var result map[string]string
+	appCR, err := catalog.GetApp(cr)
+	if err == nil {
+		result = map[string]string{
+			ClusterAppAnnotation: appCR.Spec.Label.Name,
+		}
+	} else {
+		result = map[string]string{}
+	}
+	return result
+}
+
+// labelsForCluster generates a set of resource labels appropriate for any
+// component of this KDCluster.
+func labelsForCluster(
+	cr *kdv1.KubeDirectorCluster,
+) map[string]string {
+
+	result := map[string]string{
+		ClusterLabel:           cr.Name,
+		ClusterAppLabel:        cr.Spec.AppID,
+		ClusterAppCatalogLabel: *(cr.Spec.AppCatalog),
+	}
+	return result
+}
+
 // labelsForRole generates a set of resource labels appropriate for the
 // given role. These will be propagated to the statefulset, pods, and
 // services related to that role.
@@ -47,10 +79,8 @@ func labelsForRole(
 	role *kdv1.Role,
 ) map[string]string {
 
-	result := map[string]string{
-		ClusterLabel:     cr.Name,
-		ClusterRoleLabel: role.Name,
-	}
+	result := labelsForCluster(cr)
+	result[ClusterRoleLabel] = role.Name
 	return result
 }
 
@@ -62,7 +92,7 @@ func labelsForStatefulSet(
 ) map[string]string {
 
 	result := labelsForRole(cr, role)
-	result[headlessServiceLabel] = cr.Name
+	result[HeadlessServiceLabel] = cr.Name
 	return result
 }
 
@@ -90,7 +120,7 @@ func labelsForService(
 
 	var result map[string]string
 	if role == nil {
-		result = map[string]string{ClusterLabel: cr.Name}
+		result = labelsForCluster(cr)
 	} else {
 		result = labelsForRole(cr, role)
 		for name, value := range role.ServiceLabels {

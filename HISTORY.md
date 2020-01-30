@@ -1,3 +1,10 @@
+# v0.3.2 - Jan 30, 2020
+
+As sometimes happens, it looks like we need a fix for one of those fixes. Cf. [issue #253](https://github.com/bluek8s/kubedirector/issues/253).
+
+If you are coming to this release straight from v0.3.0, make sure to also read the change history for v0.3.1 below.
+
+
 # v0.3.1 - Jan 29, 2020
 
 Primarily we're pushing this release to make some bugfixes public, but there are a few other nice changes included.

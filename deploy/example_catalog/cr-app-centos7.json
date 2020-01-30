@@ -7,6 +7,7 @@
 
     "spec" : {
         "systemdRequired": true,
+        "defaultPersistDirs" : ["/home"],
         "config": {
             "roleServices": [
                 {

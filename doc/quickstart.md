@@ -59,6 +59,13 @@ This will create, in the current namespace for your kubectl configuration:
 
 If you have set the repo to a commit tagged with a KubeDirector release version, then the pre-built KubeDirector deployed in this way will use an image tied to that exact commit. Otherwise the pre-built KubeDirector image will be an "unstable" version associated with the tip of the master branch. If using an "unstable" image you should keep your local copy of the repo close to the tip of master to prevent inconsistencies.
 
+To see the YAML files that are used by "make deploy" to create these resources, look under the "deploy" directory. A few notes:
+* The core resources needed to run KubeDirector are in "deploy/kubedirector".
+* "deploy/kubedirector/deployment-prebuilt.yaml" will be used to create the KubeDirector deployment if you have **not** built KubeDirector locally. Examine that file and particularly take note of comments about an optional liveness probe.
+* "deploy/kubedirector/deployment-localbuilt.yaml" will be used to create the KubeDirector deployment if you **have** built KubeDirector locally. This file is generated at "make build" time from the template at "deploy/operator.yaml", which you may wish to modify if you are building KubeDirector.
+* "deploy/kubedirector/rbac.yaml" is generated at "make deploy" time, modifying the template from "deploy/kubedirector/rbac-default.yaml" to use the namespace of your current kubectl context.
+* "deploy/example_catalog" contains the example set of KubeDirectorApps.
+
 Once KubeDirector is deployed, you may wish to observe its activity by using "kubectl logs -f" with the KubeDirector pod name (which is printed for you at the end of "make deploy"). This will continuously tail the KubeDirector log.
 
 #### CONFIGURING KUBEDIRECTOR

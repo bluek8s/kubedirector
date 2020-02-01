@@ -420,11 +420,14 @@ func getStartupScript(
 			Command: []string{
 				"/bin/bash",
 				"-c",
-				"sed \"s/^search \\([^ ]\\+\\)/search " +
+				"exec 2>>/tmp/kd-postcluster.log; set -x;" +
+					"Retries=60; while [[ $Retries && ! -s /etc/resolv.conf ]]; do " +
+					"sleep 1; Retries=$(expr $Retries - 1); done; " +
+					"sed \"s/^search \\([^ ]\\+\\)/search " +
 					cr.Status.ClusterService +
-					".\\1 \\1/\" /etc/resolv.conf > /etc/resolv.conf.new;" +
-					"cat /etc/resolv.conf.new > /etc/resolv.conf;" +
-					"rm /etc/resolv.conf.new;" +
+					".\\1 \\1/\" /etc/resolv.conf > /tmp/resolv.conf.new && " +
+					"cat /tmp/resolv.conf.new > /etc/resolv.conf;" +
+					"rm /tmp/resolv.conf.new;" +
 					"chmod 755 /run;" +
 					"exit 0",
 			},

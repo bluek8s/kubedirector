@@ -27,7 +27,7 @@ const (
 	validatorServiceName = "kubedirector-validator"
 	validatorWebhook     = "kubedirector-webhook"
 	validatorSecret      = "kubedirector-validator-secret"
-	webhookHandlerName   = "validate-cr.kubedirector.bluedata.io"
+	webhookHandlerName   = "validate-cr.kubedirector.hpe.com"
 	validationPort       = 8443
 	validationPath       = "/validate"
 	healthPath           = "/healthz"

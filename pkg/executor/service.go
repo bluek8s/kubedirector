@@ -17,7 +17,7 @@ package executor
 import (
 	"context"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
@@ -37,7 +37,6 @@ func CreateHeadlessService(
 	cr *kdv1.KubeDirectorCluster,
 ) (*corev1.Service, error) {
 
-	name := headlessServiceName
 	service := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
@@ -47,11 +46,12 @@ func CreateHeadlessService(
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labelsForService(cr, nil),
+			Annotations:     annotationsForCluster(cr),
 		},
 		Spec: corev1.ServiceSpec{
 			ClusterIP: "None",
 			Selector: map[string]string{
-				headlessServiceLabel: name + "-" + cr.Name,
+				HeadlessServiceLabel: cr.Name,
 			},
 			PublishNotReadyAddresses: true,
 			Ports: []corev1.ServicePort{
@@ -63,7 +63,7 @@ func CreateHeadlessService(
 		},
 	}
 	if cr.Status.ClusterService == "" {
-		service.ObjectMeta.GenerateName = name + "-"
+		service.ObjectMeta.GenerateName = headlessSvcNamePrefix
 	} else {
 		service.ObjectMeta.Name = cr.Status.ClusterService
 	}
@@ -113,10 +113,11 @@ func CreatePodService(
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            serviceName(podName),
+			Name:            svcNamePrefix + podName,
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labelsForService(cr, role),
+			Annotations:     annotationsForCluster(cr),
 		},
 		Spec: corev1.ServiceSpec{
 			Selector:                 map[string]string{statefulSetPodLabel: podName},
@@ -223,15 +224,6 @@ func DeletePodService(
 	}
 
 	return shared.Client().Delete(context.TODO(), toDelete)
-}
-
-// serviceName is a utility function for generating the name of a service
-// from a given base string.
-func serviceName(
-	baseName string,
-) string {
-
-	return "svc-" + baseName
 }
 
 // UpdateService updates a service

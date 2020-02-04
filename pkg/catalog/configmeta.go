@@ -188,7 +188,7 @@ func clusterAttachments(
 				)
 			}
 		}
-		domain := clusterToAttach.Status.ClusterService + "." + clusterToAttach.Namespace + shared.DomainBase
+		domain := clusterToAttach.Status.ClusterService + "." + clusterToAttach.Namespace + shared.GetSvcClusterDomainBase()
 		membersForRole := make(map[string][]*kdv1.MemberStatus)
 		for _, roleInfo := range clusterToAttach.Status.Roles {
 			var membersStatus []*kdv1.MemberStatus
@@ -352,7 +352,7 @@ func ConfigmetaGenerator(
 	// returned function, since we won't always actually need to call the
 	// function. However it's really handy to know up front if any errors
 	// would be generated.
-	domain := cr.Status.ClusterService + "." + cr.Namespace + shared.DomainBase
+	domain := cr.Status.ClusterService + "." + cr.Namespace + shared.GetSvcClusterDomainBase()
 	perNodeConfig := make(map[string]*node)
 	c, _ := clusterBaseConfig(cr, appCR, membersForRole, domain)
 	for roleName, members := range membersForRole {

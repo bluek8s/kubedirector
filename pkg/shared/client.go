@@ -44,9 +44,6 @@ var (
 	eventRecorder record.EventRecorder
 
 	log = logf.Log.WithName("kubedirector")
-
-	//DomainBase some comment
-	DomainBase = ""
 )
 
 // init ...

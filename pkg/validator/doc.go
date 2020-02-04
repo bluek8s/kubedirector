@@ -16,7 +16,7 @@
 //
 // InitValidationServer and StartValidationServer are called from the main
 // function of KubeDirector. This starts an independent webserver process to
-// field validation requests. Then, when resources in kubedirector.bluedata.io
+// field validation requests. Then, when resources in kubedirector.hpe.com
 // (KubeDirectorCluster and KubeDirectorApp) are created/changed/deleted,
 // the validation function will be invoked to check the proposed operation.
 package validator

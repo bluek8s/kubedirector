@@ -1,5 +1,5 @@
 {
-    "apiVersion": "kubedirector.bluedata.io/v1alpha1",
+    "apiVersion": "kubedirector.hpe.com/v1beta1",
     "kind": "KubeDirectorApp",
     "metadata": {
         "name" : "centos7x"
@@ -7,6 +7,7 @@
 
     "spec" : {
         "systemdRequired": true,
+        "defaultPersistDirs" : ["/home"],
         "config": {
             "roleServices": [
                 {

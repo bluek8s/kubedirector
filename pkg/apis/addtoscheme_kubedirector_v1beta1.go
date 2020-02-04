@@ -12,8 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package v1alpha1 contains API Schema definitions for the kubedirector v1alpha1 API group
-package v1alpha1
+package apis
 
-// +k8s:deepcopy-gen=package,register
-// +groupName=kubedirector.bluedata.io
+import (
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
+)
+
+func init() {
+	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
+	AddToSchemes = append(AddToSchemes, kdv1.SchemeBuilder.AddToScheme)
+}

@@ -112,20 +112,13 @@ func createAdmissionService(
 		return nil
 	}
 
+	// Webhook handler with a "fail" failure policy; these operations
+	// will NOT be allowed even when the handler is down.
+	// Use the v1beta1 version until our K8s version support floor is 1.16 or
+	// better.
+	failurePolicy := v1beta1.Fail
 	webhookHandler := v1beta1.Webhook{
 		Name: webhookHandlerName,
-		Rules: []v1beta1.RuleWithOperations{{
-			Operations: []v1beta1.OperationType{
-				v1beta1.Create,
-				v1beta1.Update,
-				v1beta1.Delete,
-			},
-			Rule: v1beta1.Rule{
-				APIGroups:   []string{"kubedirector.bluedata.io"},
-				APIVersions: []string{"v1alpha1"},
-				Resources:   []string{"*"},
-			},
-		}},
 		ClientConfig: v1beta1.WebhookClientConfig{
 			Service: &v1beta1.ServiceReference{
 				Namespace: namespace,
@@ -134,6 +127,32 @@ func createAdmissionService(
 			},
 			CABundle: signingCert,
 		},
+		Rules: []v1beta1.RuleWithOperations{
+			// For kubedirectorclusters and kubedirectorconfigs, we don't
+			// actually do any delete validation, but if our whole operator is
+			// down (most likely failure case) the object won't go away
+			// because the reconciler won't remove its finalizer. And you
+			// can't manually remove the finalizer without doing an update. So
+			// let's head all of that off by just registering for Delete
+			// (with Fail failure policy) for those resources too.
+			{
+				Operations: []v1beta1.OperationType{
+					v1beta1.Create,
+					v1beta1.Update,
+					v1beta1.Delete,
+				},
+				Rule: v1beta1.Rule{
+					APIGroups:   []string{"kubedirector.hpe.com"},
+					APIVersions: []string{"v1beta1"},
+					Resources: []string{
+						"kubedirectorconfigs",
+						"kubedirectorapps",
+						"kubedirectorclusters",
+					},
+				},
+			},
+		},
+		FailurePolicy: &failurePolicy,
 	}
 
 	validator := &v1beta1.MutatingWebhookConfiguration{

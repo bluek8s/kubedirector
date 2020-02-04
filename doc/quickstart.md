@@ -4,7 +4,7 @@ You will need a K8s (Kubernetes) cluster for deploying KubeDirector and KubeDire
 
 We usually run KubeDirector on Google Kubernetes Engine; see [gke-notes.md](gke-notes.md) for GKE-specific elaborations on the various steps in this document. Or if you would rather use Amazon Elastic Container Service for Kubernetes, see [eks-notes.md](eks-notes.md). We have also run it on DigitalOcean Kubernetes without issues.
 
-We have also run KubeDirector on a local K8s installation created with RPMs from kubernetes.io, so this is another possible approach. If you are going this route, you will need to ensure that [admission webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites) are enabled and that root-user containers are allowed. If you are using [kubeadm](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/), you shouldn't have to explicitly worry about those requirements -- its default configuration should be good.
+We have also run KubeDirector on a local K8s installation created with RPMs from kubernetes.io, so this is another possible approach. If you are going this route, you will need to ensure that [admission webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites) are enabled. If you are using [kubeadm](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/), you shouldn't have to explicitly worry about those requirements -- its default configuration should be good.
 
 Note that we generally do not recommend KubeDirector deployment on OpenShift for new KubeDirector users/developers, because of a [variety of issues](https://github.com/bluek8s/kubedirector/issues/1).
 
@@ -36,13 +36,13 @@ So if you intend to later work with the KubeDirector source, you would clone the
     git clone https://github.com/bluek8s/kubedirector
 ```
 
-If you want to work with a specific released version of KubeDirector (instead of the tip of the master branch), now is the time to switch the repo to that. This is recommended, especially for your first time trying out KubeDirector. At the time of last updating this doc, the most recent KubeDirector release was v0.3.0; you can set the repo to that release as follows:
+If you want to work with a specific released version of KubeDirector (instead of the tip of the master branch), now is the time to switch the repo to that. This is recommended, especially for your first time trying out KubeDirector. At the time of last updating this doc, the most recent KubeDirector release was v0.3.2; you can set the repo to that release as follows:
 ```bash
     cd kubedirector
-    git checkout v0.3.0
+    git checkout v0.3.2
 ```
 
-If you have switched to a tagged version of KubeDirector in your local repo, make sure that when you read the doc files (like this one) you reference the files that are consistent with that version. The files in your local repo will be consistent; you could also reference the online files at a particular tag, for example the [doc files for v0.3.0](https://github.com/bluek8s/kubedirector/tree/v0.3.0/doc).
+If you have switched to a tagged version of KubeDirector in your local repo, make sure that when you read the doc files (like this one) you reference the files that are consistent with that version. The files in your local repo will be consistent; you could also reference the online files at a particular tag, for example the [doc files for v0.3.2](https://github.com/bluek8s/kubedirector/tree/v0.3.2/doc).
 
 Now you can deploy KubeDirector:
 ```bash
@@ -58,6 +58,13 @@ This will create, in the current namespace for your kubectl configuration:
 * an example set of KubeDirector app types
 
 If you have set the repo to a commit tagged with a KubeDirector release version, then the pre-built KubeDirector deployed in this way will use an image tied to that exact commit. Otherwise the pre-built KubeDirector image will be an "unstable" version associated with the tip of the master branch. If using an "unstable" image you should keep your local copy of the repo close to the tip of master to prevent inconsistencies.
+
+To see the YAML files that are used by "make deploy" to create these resources, look under the "deploy" directory. A few notes:
+* The core resources needed to run KubeDirector are in "deploy/kubedirector".
+* "deploy/kubedirector/deployment-prebuilt.yaml" will be used to create the KubeDirector deployment if you have **not** built KubeDirector locally. Examine that file and particularly take note of comments about an optional liveness probe.
+* "deploy/kubedirector/deployment-localbuilt.yaml" will be used to create the KubeDirector deployment if you **have** built KubeDirector locally. This file is generated at "make build" time from the template at "deploy/operator.yaml", which you may wish to modify if you are building KubeDirector.
+* "deploy/kubedirector/rbac.yaml" is generated at "make deploy" time, modifying the template from "deploy/kubedirector/rbac-default.yaml" to use the namespace of your current kubectl context.
+* "deploy/example_catalog" contains the example set of KubeDirectorApps.
 
 Once KubeDirector is deployed, you may wish to observe its activity by using "kubectl logs -f" with the KubeDirector pod name (which is printed for you at the end of "make deploy"). This will continuously tail the KubeDirector log.
 

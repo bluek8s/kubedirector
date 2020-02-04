@@ -22,7 +22,7 @@ import (
 const (
 	// KubeDirectorFinalizerID is added to KubeDirector objects' finalizers
 	// to prevent them from being deleted before we can clean up.
-	KubeDirectorFinalizerID = "kubedirector.bluedata.io/cleanup"
+	KubeDirectorFinalizerID = "kubedirector.hpe.com/cleanup"
 )
 
 // KubeDirectorObject is an interface that most KubeDirector CRs implement.

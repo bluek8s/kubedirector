@@ -17,6 +17,20 @@ spec:
         - name: kubedirector
           # Replace this with the built image name
           image: REPLACE_IMAGE
+          # A liveness probe is desirable for in-use deployments, but if you
+          # are doing iterations of "make redeploy" during development then
+          # then you may inadvertently trigger the probe. Uncomment the
+          # following block if you want to enable the probe.
+          #livenessProbe:
+          #  httpGet:
+          #    path: /healthz
+          #    port: 8443
+          #    scheme: HTTPS
+          #  initialDelaySeconds: 10
+          #  periodSeconds: 10
+          #  timeoutSeconds: 10
+          #  successThreshold: 1
+          #  failureThreshold: 3
           ports:
           - containerPort: 60000
             name: metrics

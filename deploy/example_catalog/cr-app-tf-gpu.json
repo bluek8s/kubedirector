@@ -1,0 +1,76 @@
+{
+    "apiVersion": "kubedirector.hpe.com/v1beta1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name" : "jupyter-notebook"
+    },
+
+    "spec" : {
+        "systemdRequired": true,
+        "config": {
+            "roleServices": [
+                {
+                    "serviceIDs": [
+                        "ssh",
+                        "jupyter-nb"
+                    ],
+                    "roleID": "controller"
+                },
+                {
+                    "serviceIDs": [
+                        "ssh"
+                    ],
+                    "roleID": "worker"
+                }
+            ],
+            "selectedRoles": [
+                "controller",
+                "worker"
+            ]
+        },
+        "label": {
+            "name": "Tensorflow distributed 1.9 on CPU with jupyter notebook & centos7x",
+            "description": "TensorFlow1.9 CPU with centos7x"
+        },
+        "distroID": "bluedata/tf-jupyter-notebook",
+        "version": "1.8",
+        "configSchemaVersion": 7,
+        "services": [
+            {
+                "endpoint": {
+                    "port": 22,
+                    "isDashboard": false
+                },
+                "id": "ssh",
+                "label": {
+                    "name": "SSH"
+                }
+            },
+            {
+                "endpoint": {
+                    "urlScheme": "http",
+                    "path": "/",
+                    "isDashboard": true,
+                    "port": 8888
+                },
+                "id": "jupyter-nb",
+                "label": {
+                    "name": "Jupyter Notebook"
+                }
+            }
+        ],
+        "defaultConfigPackage": null,
+        "roles": [
+            {
+                "imageRepoTag": "docker.io/bluedata/tfmodel-gpu:1.0",
+                "cardinality": "1",
+                "id": "controller"
+            },
+            {
+                "imageRepoTag": "docker.io/bluedata/tfmodel-gpu:1.0",
+                "cardinality": "0+",
+                "id": "worker"
+            }
+        ]
+    }
+}

@@ -14,8 +14,4 @@ spec:
       limits:
         memory: "4Gi"
         cpu: "2"
-        nvidia.com/gpu: "1"        
-    env:
-      - name : "LD_LIBRARY_PATH"
-        value: "/usr/local/nvidia/lib64"
-        
+        nvidia.com/gpu: "1"

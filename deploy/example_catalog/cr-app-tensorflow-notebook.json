@@ -48,7 +48,7 @@
                 "cardinality": "1",
                 "id": "controller",
                 "minResources":{
-                    "nvidia.com/gpu": 1
+                    "nvidia.com/gpu": "1"
                 }
             }
         ]

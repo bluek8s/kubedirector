@@ -10,15 +10,12 @@ spec:
       requests:
         memory: "4Gi"
         cpu: "2"
+        nvidia.com/gpu: "1"        
       limits:
         memory: "4Gi"
         cpu: "2"
-  - id: worker
-    members: 1
-    resources:
-      requests:
-        memory: "4Gi"
-        cpu: "2"
-      limits:
-        memory: "4Gi"
-        cpu: "2"
+        nvidia.com/gpu: "1"        
+    env:
+      - name : "LD_LIBRARY_PATH"
+        value: "/usr/local/nvidia/lib64"
+        

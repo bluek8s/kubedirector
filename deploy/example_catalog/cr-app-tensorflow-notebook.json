@@ -2,50 +2,33 @@
     "apiVersion": "kubedirector.bluedata.io/v1alpha1",
     "kind": "KubeDirectorApp",
     "metadata": {
-        "name" : "ml-jupyter-notebook"
+        "name": "ml-jupyter-notebook"
     },
 
-    "spec" : {
+    "spec": {
         "systemdRequired": true,
         "config": {
             "roleServices": [
                 {
                     "serviceIDs": [
-                        "ssh",
                         "jupyter-nb"
                     ],
                     "roleID": "controller"
-                },
-                {
-                    "serviceIDs": [
-                        "ssh"
-                    ],
-                    "roleID": "worker"
                 }
             ],
             "selectedRoles": [
-                "controller",
-                "worker"
+                "controller"
             ]
         },
         "label": {
-            "name": "Tensorflow 1.14 on GPU with jupyter notebook & centos7x",
-            "description": "Tensorflow 1.14 GPU with jupyter notebook & centos7x"
+            "name": "Tensorflow GPU with jupyter notebook",
+            "description": "TensorFlow GPU with jupyter notebook"
         },
-        "distroID": "bluedata/jupyter-notebook",
-        "version": "1.8",
+        "defaultImageRepoTag": "tensorflow/tensorflow:latest-gpu-py3-jupyter",
+        "distroID": "tensorflow/tensorflow:latest-gpu-py3-jupyter",
+        "version": "latest-gpu-py3-jupyter",
         "configSchemaVersion": 7,
         "services": [
-            {
-                "endpoint": {
-                    "port": 22,
-                    "isDashboard": false
-                },
-                "id": "ssh",
-                "label": {
-                    "name": "SSH"
-                }
-            },
             {
                 "endpoint": {
                     "urlScheme": "http",
@@ -59,18 +42,14 @@
                 }
             }
         ],
-        "defaultConfigPackage": {
-            "packageURL" : "file:///opt/configscripts/appconfig-1.8.tgz"
-        },
-        "defaultImageRepoTag": "docker.io/bluedata/tensorflow-notebook:1.4",
+        "defaultConfigPackage": null,
         "roles": [
             {
                 "cardinality": "1",
-                "id": "controller"
-            },
-            {
-                "cardinality": "0+",
-                "id": "worker"
+                "id": "controller",
+                "minResources":{
+                    "nvidia.com/gpu": 1
+                }
             }
         ]
     }

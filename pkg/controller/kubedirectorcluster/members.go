@@ -25,7 +25,7 @@ import (
 
 	"github.com/go-logr/logr"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
@@ -188,16 +188,28 @@ func handleCreatePendingMembers(
 			defer wgRunning.Done()
 			pod, podGetErr := observer.GetPod(cr.Namespace, m.Pod)
 			if podGetErr != nil {
-				// Can't get the pod. Skip it and try again later.
-				shared.LogErrorf(
-					reqLogger,
-					podGetErr,
-					cr,
-					shared.EventReasonMember,
-					"failed to find member{%s} in role{%s}",
-					m.Pod,
-					role.roleStatus.Name,
-				)
+				// Can't get the pod. Skip it and try again later. This is
+				// not necessarily an error; K8s might be slow.
+				if errors.IsNotFound(podGetErr) {
+					shared.LogInfof(
+						reqLogger,
+						cr,
+						shared.EventReasonMember,
+						"failed to find member{%s} in role{%s}; will retry",
+						m.Pod,
+						role.roleStatus.Name,
+					)
+				} else {
+					shared.LogErrorf(
+						reqLogger,
+						podGetErr,
+						cr,
+						shared.EventReasonMember,
+						"failed to find member{%s} in role{%s}",
+						m.Pod,
+						role.roleStatus.Name,
+					)
+				}
 				return
 			}
 			if pod.Status.Phase == corev1.PodRunning {

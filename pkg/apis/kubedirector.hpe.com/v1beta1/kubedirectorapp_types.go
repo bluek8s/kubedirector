@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1alpha1
+package v1beta1
 
 import (
 	v1 "k8s.io/api/core/v1"
@@ -31,7 +31,7 @@ type KubeDirectorAppSpec struct {
 	Services            []Service       `json:"services"`
 	NodeRoles           []NodeRole      `json:"roles"`
 	Config              NodeGroupConfig `json:"config"`
-	DefaultPersistDirs  *[]string       `json:"defaultPersistDirs"`
+	DefaultPersistDirs  *[]string       `json:"defaultPersistDirs,omitempty"`
 	Capabilities        []v1.Capability `json:"capabilities"`
 	SystemdRequired     bool            `json:"systemdRequired"`
 }
@@ -43,9 +43,8 @@ type KubeDirectorAppSpec struct {
 // +kubebuilder:subresource:status
 type KubeDirectorApp struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec KubeDirectorAppSpec `json:"spec,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              KubeDirectorAppSpec `json:"spec"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -53,7 +52,7 @@ type KubeDirectorApp struct {
 // KubeDirectorAppList contains a list of KubeDirectorApp
 type KubeDirectorAppList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []KubeDirectorApp `json:"items"`
 }
 
@@ -103,8 +102,8 @@ type NodeRole struct {
 	Cardinality  string           `json:"cardinality"`
 	ImageRepoTag *string          `json:"imageRepoTag,omitempty"`
 	SetupPackage SetupPackage     `json:"configPackage,omitempty"`
-	PersistDirs  *[]string        `json:"persistDirs"`
-	MinResources *v1.ResourceList `json:"minResources"`
+	PersistDirs  *[]string        `json:"persistDirs,omitempty"`
+	MinResources *v1.ResourceList `json:"minResources,omitempty"`
 }
 
 // NodeGroupConfig identifies a set of roles, and the services on those roles.
@@ -114,7 +113,7 @@ type NodeRole struct {
 type NodeGroupConfig struct {
 	RoleServices   []RoleService     `json:"roleServices"`
 	SelectedRoles  []string          `json:"selectedRoles"`
-	ConfigMetadata map[string]string `json:"configMeta"`
+	ConfigMetadata map[string]string `json:"configMeta,omitempty"`
 }
 
 // RoleService associates a service with a role.

@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"strings"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	v1 "k8s.io/api/core/v1"
@@ -146,8 +146,9 @@ func PortsForRole(
 				if shared.StringInList(service.ID, roleService.ServiceIDs) {
 					if service.Endpoint.Port != nil {
 						servicePortInfo := ServicePortInfo{
-							ID:   service.ID,
-							Port: *(service.Endpoint.Port),
+							ID:        service.ID,
+							Port:      *(service.Endpoint.Port),
+							URLScheme: service.Endpoint.URLScheme,
 						}
 						result = append(result, servicePortInfo)
 					}

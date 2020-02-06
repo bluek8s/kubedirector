@@ -15,71 +15,65 @@
 package shared
 
 import (
-	"context"
-
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
 	// KubeDirectorFinalizerID is added to KubeDirector objects' finalizers
 	// to prevent them from being deleted before we can clean up.
-	KubeDirectorFinalizerID = "kubedirector.bluedata.io/cleanup"
+	KubeDirectorFinalizerID = "kubedirector.hpe.com/cleanup"
 )
 
 // KubeDirectorObject is an interface that most KubeDirector CRs implement.
 // Currently it's used to add/remove the KubeDirector finalizer from
 // KubeDirector resources.
 type KubeDirectorObject interface {
-	GetFinalizers() []string
-	SetFinalizers(finalizers []string)
 	runtime.Object
+	metav1.Object
+}
+
+// HasFinalizer checks whether the KubeDirector finalizer is among the CR's
+// finalizers list.
+func HasFinalizer(
+	cr KubeDirectorObject,
+) bool {
+
+	finalizers := cr.GetFinalizers()
+	for _, f := range finalizers {
+		if f == KubeDirectorFinalizerID {
+			return true
+		}
+	}
+	return false
 }
 
 // RemoveFinalizer removes the KubeDirector finalizer from the CR's finalizers
 // list (if it is in there).
 func RemoveFinalizer(
 	cr KubeDirectorObject,
-) error {
+) {
 
-	found := false
 	finalizers := cr.GetFinalizers()
 	for i, f := range finalizers {
 		if f == KubeDirectorFinalizerID {
 			cr.SetFinalizers(append(finalizers[:i], finalizers[i+1:]...))
-			found = true
-			break
+			return
 		}
 	}
-	if !found {
-		return nil
-	}
-
-	// See https://github.com/bluek8s/kubedirector/issues/194
-	// Migrate Client().Update() calls back to Patch() calls.
-	return Client().Update(context.TODO(), cr)
 }
 
 // EnsureFinalizer adds the KubeDirector finalizer into the CR's finalizers
 // list (if it is not in there).
 func EnsureFinalizer(
 	cr KubeDirectorObject,
-) error {
+) {
 
-	found := false
 	finalizers := cr.GetFinalizers()
 	for _, f := range finalizers {
 		if f == KubeDirectorFinalizerID {
-			found = true
-			break
+			return
 		}
 	}
-	if found {
-		return nil
-	}
-
 	cr.SetFinalizers(append(finalizers, KubeDirectorFinalizerID))
-
-	// See https://github.com/bluek8s/kubedirector/issues/194
-	// Migrate Client().Update() calls back to Patch() calls.
-	return Client().Update(context.TODO(), cr)
 }

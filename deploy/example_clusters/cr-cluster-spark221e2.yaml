@@ -1,4 +1,4 @@
-apiVersion: "kubedirector.bluedata.io/v1alpha1"
+apiVersion: "kubedirector.hpe.com/v1beta1"
 kind: "KubeDirectorCluster"
 metadata:
   name: "spark-instance"

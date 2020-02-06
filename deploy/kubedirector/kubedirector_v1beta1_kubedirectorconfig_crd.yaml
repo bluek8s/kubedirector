@@ -1,20 +1,23 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: kubedirectorconfigs.kubedirector.bluedata.io
+  name: kubedirectorconfigs.kubedirector.hpe.com
 spec:
-  group: kubedirector.bluedata.io
-  version: v1alpha1
+  group: kubedirector.hpe.com
+  version: v1beta1
   names:
     kind: KubeDirectorConfig
     listKind: KubeDirectorConfigList
     plural: kubedirectorconfigs
     singular: kubedirectorconfig
+    shortNames:
+      - kdconfig
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
+      type: object
       required: [apiVersion, kind, metadata]
       properties:
         apiVersion:
@@ -22,11 +25,14 @@ spec:
         kind:
           type: string
         metadata:
+          type: object
           properties:
             name:
               type: string
               pattern: '^kd-global-config$'
         spec:
+          type: object
+          nullable: true
           properties:
             defaultStorageClassName:
               type: string
@@ -41,6 +47,8 @@ spec:
             clusterSvcDomainBase:
               type: string
         status:
+          type: object
+          nullable: true
           properties:
             generationUID:
               type: string

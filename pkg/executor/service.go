@@ -17,7 +17,7 @@ package executor
 import (
 	"context"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
@@ -37,7 +37,6 @@ func CreateHeadlessService(
 	cr *kdv1.KubeDirectorCluster,
 ) (*corev1.Service, error) {
 
-	name := headlessServiceName
 	service := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
@@ -46,12 +45,13 @@ func CreateHeadlessService(
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
-			Labels:          labelsForService(cr),
+			Labels:          labelsForService(cr, nil),
+			Annotations:     annotationsForCluster(cr),
 		},
 		Spec: corev1.ServiceSpec{
 			ClusterIP: "None",
 			Selector: map[string]string{
-				headlessServiceLabel: name + "-" + cr.Name,
+				HeadlessServiceLabel: cr.Name,
 			},
 			PublishNotReadyAddresses: true,
 			Ports: []corev1.ServicePort{
@@ -63,7 +63,7 @@ func CreateHeadlessService(
 		},
 	}
 	if cr.Status.ClusterService == "" {
-		service.ObjectMeta.GenerateName = name + "-"
+		service.ObjectMeta.GenerateName = headlessSvcNamePrefix
 	} else {
 		service.ObjectMeta.Name = cr.Status.ClusterService
 	}
@@ -113,13 +113,14 @@ func CreatePodService(
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            serviceName(podName),
+			Name:            svcNamePrefix + podName,
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
-			Labels:          labelsForService(cr),
+			Labels:          labelsForService(cr, role),
+			Annotations:     annotationsForCluster(cr),
 		},
 		Spec: corev1.ServiceSpec{
-			Selector:                 labelsForPod(cr, role, podName),
+			Selector:                 map[string]string{statefulSetPodLabel: podName},
 			Type:                     serviceType,
 			PublishNotReadyAddresses: true,
 		},
@@ -127,7 +128,7 @@ func CreatePodService(
 	for _, portInfo := range portInfoList {
 		servicePort := corev1.ServicePort{
 			Port: portInfo.Port,
-			Name: portInfo.ID,
+			Name: createPortNameForService(portInfo),
 		}
 		service.Spec.Ports = append(service.Spec.Ports, servicePort)
 	}
@@ -225,15 +226,6 @@ func DeletePodService(
 	return shared.Client().Delete(context.TODO(), toDelete)
 }
 
-// serviceName is a utility function for generating the name of a service
-// from a given base string.
-func serviceName(
-	baseName string,
-) string {
-
-	return "svc-" + baseName
-}
-
 // UpdateService updates a service
 func UpdateService(
 	reqLogger logr.Logger,
@@ -283,7 +275,6 @@ func UpdateService(
 	}
 
 	currentService.Spec.Type = service.Spec.Type
-	currentService.Annotations = service.Annotations
 	err = shared.Client().Update(context.TODO(), currentService)
 	if err != nil {
 		shared.LogErrorf(

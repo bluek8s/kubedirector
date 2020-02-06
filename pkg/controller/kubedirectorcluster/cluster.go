@@ -15,11 +15,12 @@
 package kubedirectorcluster
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"time"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.bluedata.io/v1alpha1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
@@ -42,6 +43,99 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	cr *kdv1.KubeDirectorCluster,
 ) error {
 
+	// Memoize state of the incoming object.
+	hadFinalizer := shared.HasFinalizer(cr)
+	oldStatus := cr.Status.DeepCopy()
+
+	// Make sure we have a Status object to work with.
+	if cr.Status == nil {
+		cr.Status = &kdv1.KubeDirectorClusterStatus{}
+		cr.Status.Roles = make([]kdv1.RoleStatus, 0)
+	}
+
+	// Set a defer func to write new status and/or finalizers if they change.
+	defer func() {
+		nowHasFinalizer := shared.HasFinalizer(cr)
+		// Bail out if nothing has changed.
+		statusChanged := !reflect.DeepEqual(cr.Status, oldStatus)
+		finalizersChanged := (hadFinalizer != nowHasFinalizer)
+		if !(statusChanged || finalizersChanged) {
+			return
+		}
+		// Write back the status. Don't exit this reconciler until we
+		// succeed (will block other reconcilers for this resource).
+		wait := time.Second
+		maxWait := 4096 * time.Second
+		for {
+			// If status has changed, write it back.
+			var updateErr error
+			if statusChanged {
+				cr.Status.GenerationUID = uuid.New().String()
+				ClusterStatusGens.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
+				updateErr = executor.UpdateClusterStatus(cr)
+				// If this succeeded, no need to do it again on next iteration
+				// if we're just cycling because of a failure to update the
+				// finalizer.
+				if updateErr == nil {
+					statusChanged = false
+				}
+			}
+			// If any necessary status update worked, let's also update
+			// finalizers if necessary.
+			if (updateErr == nil) && finalizersChanged {
+				// See https://github.com/bluek8s/kubedirector/issues/194
+				// Migrate Client().Update() calls back to Patch() calls.
+				updateErr = shared.Client().Update(context.TODO(), cr)
+			}
+			// Bail out if we're done.
+			if updateErr == nil {
+				return
+			}
+			// Some necessary update failed. If the cluster has been deleted,
+			// that's ok... otherwise we'll try again.
+			currentCluster, currentClusterErr := observer.GetCluster(
+				cr.Namespace,
+				cr.Name,
+			)
+			if currentClusterErr != nil {
+				if errors.IsNotFound(currentClusterErr) {
+					return
+				}
+			} else {
+				// If we got a conflict error, update the CR with its current
+				// form, restore our desired status/finalizers, and try again
+				// immediately.
+				if errors.IsConflict(updateErr) {
+					currentCluster.Status = cr.Status
+					currentHasFinalizer := shared.HasFinalizer(currentCluster)
+					if currentHasFinalizer {
+						if !nowHasFinalizer {
+							shared.RemoveFinalizer(currentCluster)
+						}
+					} else {
+						if nowHasFinalizer {
+							shared.EnsureFinalizer(currentCluster)
+						}
+					}
+					*cr = *currentCluster
+					continue
+				}
+			}
+			if wait < maxWait {
+				wait = wait * 2
+			}
+			shared.LogErrorf(
+				reqLogger,
+				updateErr,
+				cr,
+				shared.EventReasonCluster,
+				"trying status update again in %v; failed",
+				wait,
+			)
+			time.Sleep(wait)
+		}
+	}()
+
 	// We use a finalizer to maintain KubeDirector state consistency;
 	// e.g. app references and ClusterStatusGens.
 	doExit, finalizerErr := r.handleFinalizers(reqLogger, cr)
@@ -52,68 +146,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return nil
 	}
 
-	// Make sure we have a Status object to work with.
-	if cr.Status == nil {
-		cr.Status = &kdv1.KubeDirectorClusterStatus{}
-		cr.Status.Roles = make([]kdv1.RoleStatus, 0)
-	}
-
-	// Set up logic to update status as necessary when reconciler exits.
-	oldStatus := cr.Status.DeepCopy()
-	defer func() {
-		if !reflect.DeepEqual(cr.Status, oldStatus) {
-			// Write back the status. Don't exit this reconciler until we
-			// succeed (will block other reconcilers for this resource).
-			wait := time.Second
-			maxWait := 4096 * time.Second
-			for {
-				cr.Status.GenerationUID = uuid.New().String()
-				ClusterStatusGens.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
-				updateErr := executor.UpdateClusterStatus(cr)
-				if updateErr == nil {
-					return
-				}
-				// Update failed. If the cluster has been or is being
-				// deleted, that's ok... otherwise wait and try again.
-				currentCluster, currentClusterErr := observer.GetCluster(
-					cr.Namespace,
-					cr.Name,
-				)
-				if currentClusterErr != nil {
-					if errors.IsNotFound(currentClusterErr) {
-						return
-					}
-				} else {
-					if currentCluster.DeletionTimestamp != nil {
-						return
-					}
-					if errors.IsConflict(updateErr) {
-						// If the update failed with a ResourceVersion
-						// conflict then we need to use the current
-						// version of the cluster. Otherwise, the status
-						// update will never succeed and this loop will
-						// never terminate.
-						currentCluster.Status = cr.Status
-						*cr = *currentCluster
-						continue
-					}
-				}
-				if wait < maxWait {
-					wait = wait * 2
-				}
-				shared.LogErrorf(
-					reqLogger,
-					updateErr,
-					cr,
-					shared.EventReasonCluster,
-					"trying status update again in %v; failed",
-					wait,
-				)
-				time.Sleep(wait)
-			}
-		}
-	}()
-
 	// For a new CR just update the status state/gen.
 	shouldProcessCR, processErr := r.handleNewCluster(reqLogger, cr)
 	if processErr != nil {
@@ -123,14 +155,16 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return nil
 	}
 
+	// Define a common error function for sync problems.
 	errLog := func(domain string, err error) {
 		shared.LogErrorf(
 			reqLogger,
 			err,
 			cr,
 			shared.EventReasonCluster,
-			"failed to sync %s",
+			"failed to sync %s: %v",
 			domain,
+			err,
 		)
 	}
 
@@ -281,8 +315,10 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 	return true, nil
 }
 
-// handleFinalizers will remove our finalizer if deletion has been requested.
-// Otherwise it will add our finalizer if it is absent.
+// handleFinalizers will, if deletion has been requested, try to do any
+// cleanup and then remove our finalizer from the in-memory CR. If deletion
+// has NOT been requested then it will add our finalizer to the in-memory CR
+// if it is absent.
 func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
@@ -291,17 +327,14 @@ func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 	if cr.DeletionTimestamp != nil {
 		// If a deletion has been requested, while ours (or other) finalizers
 		// existed on the CR, go ahead and remove our finalizer.
-		removeErr := shared.RemoveFinalizer(cr)
-		if removeErr == nil {
-			shared.LogInfo(
-				reqLogger,
-				cr,
-				shared.EventReasonCluster,
-				"greenlighting for deletion",
-			)
-		}
-		// Also clear the status gen from our cache, regardless of whether
-		// finalizer modification succeeded.
+		shared.RemoveFinalizer(cr)
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonCluster,
+			"greenlighting for deletion",
+		)
+		// Also clear the status gen from our cache.
 		ClusterStatusGens.DeleteStatusGen(cr.UID)
 		shared.RemoveClusterAppReference(
 			cr.Namespace,
@@ -309,14 +342,11 @@ func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 			*(cr.Spec.AppCatalog),
 			cr.Spec.AppID,
 		)
-		return true, removeErr
+		return true, nil
 	}
 
 	// If our finalizer doesn't exist on the CR, put it in there.
-	ensureErr := shared.EnsureFinalizer(cr)
-	if ensureErr != nil {
-		return true, ensureErr
-	}
+	shared.EnsureFinalizer(cr)
 
 	return false, nil
 }

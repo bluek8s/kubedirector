@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1alpha1
+package v1beta1
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -27,10 +27,10 @@ import (
 // +k8s:openapi-gen=true
 type KubeDirectorClusterSpec struct {
 	AppID         string    `json:"app"`
-	AppCatalog    *string   `json:"appCatalog"`
-	ServiceType   *string   `json:"serviceType"`
+	AppCatalog    *string   `json:"appCatalog,omitempty"`
+	ServiceType   *string   `json:"serviceType,omitempty"`
 	Roles         []Role    `json:"roles"`
-	DefaultSecret *KDSecret `json:"defaultSecret"`
+	DefaultSecret *KDSecret `json:"defaultSecret,omitempty"`
 }
 
 // KubeDirectorClusterStatus defines the observed state of KubeDirectorCluster.
@@ -54,11 +54,10 @@ type KubeDirectorClusterStatus struct {
 // +k8s:openapi-gen=true
 type KubeDirectorCluster struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec    KubeDirectorClusterSpec    `json:"spec,omitempty"`
-	Status  *KubeDirectorClusterStatus `json:"status,omitempty"`
-	AppSpec *KubeDirectorApp           `json:"-"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              KubeDirectorClusterSpec    `json:"spec"`
+	Status            *KubeDirectorClusterStatus `json:"status,omitempty"`
+	AppSpec           *KubeDirectorApp           `json:"-"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -66,7 +65,7 @@ type KubeDirectorCluster struct {
 // KubeDirectorClusterList is the top-level list type for virtual cluster CRs.
 type KubeDirectorClusterList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []KubeDirectorCluster `json:"items"`
 }
 
@@ -105,19 +104,21 @@ type FileInjections struct {
 // defined by the cluster's KubeDirectorApp) set of service endpoints.
 type Role struct {
 	Name           string                      `json:"id"`
-	Members        *int32                      `json:"members"`
+	PodLabels      map[string]string           `json:"podLabels,omitempty"`
+	ServiceLabels  map[string]string           `json:"serviceLabels,omitempty"`
+	Members        *int32                      `json:"members,omitempty"`
 	Resources      corev1.ResourceRequirements `json:"resources"`
 	Storage        *ClusterStorage             `json:"storage,omitempty"`
 	EnvVars        []corev1.EnvVar             `json:"env,omitempty"`
 	FileInjections []FileInjections            `json:"fileInjections,omitempty"`
-	Secret         *KDSecret                   `json:"secret"`
+	Secret         *KDSecret                   `json:"secret,omitempty"`
 }
 
 // ClusterStorage defines the persistent storage size/type, if any, to be used
 // for certain specified directories of each container filesystem in a role.
 type ClusterStorage struct {
 	Size         string  `json:"size"`
-	StorageClass *string `json:"storageClassName"`
+	StorageClass *string `json:"storageClassName,omitempty"`
 }
 
 // RoleStatus describes the component objects of a virtual cluster role.

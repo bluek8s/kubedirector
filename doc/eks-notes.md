@@ -4,8 +4,10 @@ If you intend to deploy KubeDirector on EKS, you will need to have AWS credentia
 
 The [Getting Started with Amazon EKS](https://docs.aws.amazon.com/eks/latest/userguide/getting-started.html) guide will walk you through all first-time setup as well as the process of creating a cluster. Both the AWS Management Console (web UI) process as well as the eksctl (command-line) process will work fine, but we recommend becoming familiar with the eksctl process if you will be repeatedly deploying EKS clusters.
 
-Two important notes to be aware of when creating an EKS cluster:
-* Be sure to specify Kubernetes version 1.12 or later.
+As part of this process you will have a choice whether or not to use "AWS Fargate". For example, in the eksctl docs the cluster creation section has two tabs "AWS Fargate-only cluster" and "Cluster with Linux-only workloads". You may wish to follow the available links to read more about Fargate. FWIW we do *not* yet use Fargate when testing KubeDirector deployment and any EKS-related docs in this repo are currently written in the context of a non-Fargate deployment.
+
+Two other important notes to be aware of when creating an EKS cluster:
+* Be sure to specify Kubernetes version 1.14 or later.
 * Choose a worker [instance type](https://aws.amazon.com/ec2/instance-types/) with enough resources to host at least one virtual cluster member. The example type t3.medium is probably too small; consider using t3.xlarge or an m5 instance type.
 
 Use of eksctl and the AWS Management Console can be somewhat intermixed, because in the end they are just manipulating standard AWS resources, but this doc will assume you're just using one process or the other.
@@ -24,20 +26,7 @@ From here you can proceed to deploy KubeDirector as described in [quickstart.md]
 
 #### CONFIGURING KUBEDIRECTOR
 
-After deploying KubeDirector but before creating virtual clusters, you may wish to create a KubeDirectorConfig object as described in [quickstart.md](quickstart.md).
-
-This is particularly useful to address [an issue with storage classes](https://github.com/kubernetes/kubernetes/issues/34583) that is peculiar to EKS. In EKS, a storage class that will be used for container persistent storage must have its volumeBindingMode property set to the value "WaitForFirstConsumer". However, the "gp2" storage class that is the default in EKS clusters is not currently configured this way.
-
-The volumeBindingMode property of an existing storage class cannot be modified, so to deal with this issue you must create another storage class and then either set it as the K8s default or else explicitly configure KubeDirector to use it.
-
-A YAML file is available in the "deploy/example_configs" subdirectory to address this issue. It creates a storage class with the necessary property, and also creates a KubeDirectorConfig to direct KubeDirector to use that storage class. You can use kubectl to apply this solution:
-```
-    kubectl create -f deploy/example_configs/eks-gp2-for-kd.yaml
-```
-
-If you teardown and then re-deploy KubeDirector, you will need to repeat this step before using persistent storage.
-
-Note: if that command fails by rejecting the storage class creation, it may be the case that you are not using Kubernetes version 1.12 or later (as required) in your EKS cluster.
+In older versions of EKS it was necessary to create a particular KubeDirector config object if you intended to use persistent storage. That seems to no longer be necessary, but if you are experiencing issues with persistent volumes then you may want to refer to the content of this section in an [older version of this doc](https://github.com/bluek8s/kubedirector/blob/v0.3.0/doc/eks-notes.md).
 
 #### WORKING WITH KUBEDIRECTOR
 
@@ -54,7 +43,7 @@ If you now want to completely delete your EKS cluster, you can.
 
 If are using the AWS Management Console process, you should delete the cluster in the Amazon EKS console UI and delete the CloudFormation stack used to create the worker nodes. You can also delete the CloudFormation stack used to create the cluster VPC, or you can leave it for re-use with future clusters.
 
-If you are using the eksctl process, the "eksctl delete cluster" command should clean up all resources it created.
+If you are using the eksctl process, the "eksctl delete cluster" command should clean up all resources it created. Note that doing this immediately after deleting LoadBalancer-type services may fail with an error about "cannot delete orphan ELB Security Groups"; wait a few minutes and try again.
 
 The "eksctl delete cluster" command will also delete the related context from your kubectl config, but if you are using the AWS Management Console process you will need to do this cleanup yourself. You can use "kubectl config get-contexts" to see which contexts exist, and then use "kubectl config delete-context" to remove the context associated with the deleted cluster.
 

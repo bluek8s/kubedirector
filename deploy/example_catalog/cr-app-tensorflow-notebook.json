@@ -2,7 +2,10 @@
     "apiVersion": "kubedirector.bluedata.io/v1alpha1",
     "kind": "KubeDirectorApp",
     "metadata": {
-        "name": "ml-jupyter-notebook"
+        "name": "ml-jupyter-notebook",
+        "annotations": {
+            "token":"execute this command to get the authentication token 'kubectl exec <pod-name> jupyter notebook list'"
+        }
     },
 
     "spec": {

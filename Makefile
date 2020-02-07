@@ -310,7 +310,7 @@ teardown: undeploy
 compile: version-check configcli pkg/apis/kubedirector.hpe.com/v1beta1/zz_generated.deepcopy.go
 	-rm -rf ${build_dir}
 	GOOS=linux GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
-        go build -o ${build_dir}/bin/${bin_name} ./cmd/manager
+        go build -gcflags "all=-trimpath=$$GOPATH" -o ${build_dir}/bin/${bin_name} ./cmd/manager
 
 format:
 	go fmt $(shell go list ./... | grep -v /vendor/)

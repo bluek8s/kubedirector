@@ -71,6 +71,56 @@ func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(obj.ValueStr)
 }
 
+// validateSpecChange is only called when an update is changing the spec. It
+// enforces that the cluster spec may not be modified if the previous spec
+// change has not been seen by the reconciler. (This invariant is required
+// for some error-handling cases.) If the spec is being modified & that's ok,
+// will return a patch to change the cluster overall status to "spec modified".
+func validateSpecChange(
+	cr *kdv1.KubeDirectorCluster,
+	prevCr *kdv1.KubeDirectorCluster,
+	valErrors []string,
+	patches []clusterPatchSpec,
+) ([]string, []clusterPatchSpec) {
+
+	// If this is an update and the reconciler has not yet created the status
+	// stanza, that's a problem.
+	if cr.Status == nil {
+		valErrors = append(
+			valErrors,
+			multipleSpecChange,
+		)
+		return valErrors, patches
+	}
+
+	stringStateModified := string(kubedirectorcluster.ClusterSpecModified)
+
+	// Spec change not allowed if the overall cluster state is still
+	// "spec modified".
+	if cr.Status.State == stringStateModified {
+		valErrors = append(
+			valErrors,
+			multipleSpecChange,
+		)
+		return valErrors, patches
+	}
+
+	// Spec is changing and that's OK. Update state to indicate a modify is
+	// waiting for the reconciler to pick it up.
+	newState := stringStateModified
+	patches = append(
+		patches,
+		clusterPatchSpec{
+			Op:   "replace",
+			Path: "/status/state",
+			Value: clusterPatchValue{
+				ValueStr: &newState,
+			},
+		},
+	)
+	return valErrors, patches
+}
+
 // validateCardinality checks the member count specified for a role in the
 // cluster CR against the cardinality value from the app CR. Any generated
 // error messages will be added to the input list and returned. If there were
@@ -781,7 +831,9 @@ func admitClusterCR(
 
 	// Shortcut out of here if the spec is not being changed. Among other
 	// things this allows KD to update status or metadata even if the
-	// referenced app is bad/gone.
+	// referenced app is bad/gone. Note that we can't just check the
+	// metadata generation number here because that is incremented after this
+	// validator sees the request.
 	if ar.Request.Operation == v1beta1.Update {
 		if reflect.DeepEqual(clusterCR.Spec, prevClusterCR.Spec) {
 			admitResponse.Allowed = true
@@ -800,6 +852,12 @@ func admitClusterCR(
 		return &admitResponse
 	}
 
+	// Validate that it's OK to change the spec. Note that this check assumes
+	// that the above "shortcut" is in place, i.e. we are only calling this
+	// if the spec is changing.
+	if ar.Request.Operation == v1beta1.Update {
+		valErrors, patches = validateSpecChange(&clusterCR, &prevClusterCR, valErrors, patches)
+	}
 	// Validate cardinality and generate patches for defaults members values.
 	valErrors, patches = validateCardinality(&clusterCR, appCR, valErrors, patches)
 

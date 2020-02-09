@@ -25,6 +25,10 @@ const (
 	clusterCreating clusterState = "creating"
 	clusterUpdating              = "updating"
 	clusterReady                 = "ready"
+	// ClusterSpecModified is exported because it is actually only used by
+	// the validator; declaring it here just to keep all cluster states in
+	// one spot.
+	ClusterSpecModified = "spec modified"
 )
 
 type clusterStateInternal int

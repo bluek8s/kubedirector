@@ -37,6 +37,8 @@ const (
 	appKey  = "app.pem"
 	rootCrt = "ca.crt"
 
+	multipleSpecChange = "Change to spec not allowed before previous spec change has been processed."
+
 	invalidAppMessage  = "Invalid app(%s). This app resource ID has not been registered."
 	invalidCardinality = "Invalid member count for role(%s). Specified member count:%d Role cardinality:%s"
 	invalidRole        = "Invalid role(%s) in app(%s) specified. Valid roles: \"%s\""

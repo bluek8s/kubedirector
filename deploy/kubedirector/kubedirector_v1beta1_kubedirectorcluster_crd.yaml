@@ -215,3 +215,10 @@ spec:
                           type: string
                         state:
                           type: string
+                        stateDetail:
+                          type: object
+                          properties:
+                            configErrorDetail:
+                              type: string
+                            lastGenerationUpdate:
+                              type: integer

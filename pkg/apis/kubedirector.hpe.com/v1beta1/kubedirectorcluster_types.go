@@ -137,11 +137,19 @@ type RoleStatus struct {
 
 // MemberStatus describes the component objects of a virtual cluster member.
 type MemberStatus struct {
-	Pod     string `json:"pod"`
-	Service string `json:"service"`
-	PVC     string `json:"pvc,omitempty"`
-	State   string `json:"state"`
-	NodeID  int64  `json:"nodeID"`
+	Pod         string            `json:"pod"`
+	Service     string            `json:"service"`
+	PVC         string            `json:"pvc,omitempty"`
+	State       string            `json:"state"`
+	StateDetail MemberStateDetail `json:"stateDetail,omitempty"`
+	NodeID      int64             `json:"nodeID"`
+}
+
+// MemberStateDetail digs into detail about the management of configmeta and
+// app scripts in the member.
+type MemberStateDetail struct {
+	ConfigErrorDetail    *string `json:"configErrorDetail,omitempty"`
+	LastGenerationUpdate *int64  `json:"lastGenerationUpdate,omitempty"`
 }
 
 func init() {

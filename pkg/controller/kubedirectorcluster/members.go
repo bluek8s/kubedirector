@@ -104,6 +104,19 @@ func handleReadyMembers(
 	for _, member := range ready {
 		go func(m *kdv1.MemberStatus) {
 			defer wgReady.Done()
+			// If this pod never got configmeta (because it has no setup
+			// package), it doesn't need an update.
+			if m.StateDetail.LastGenerationUpdate == nil {
+				shared.LogInfof(
+					reqLogger,
+					cr,
+					shared.EventReasonMember,
+					"config update skipped for member{%s} in role{%s}",
+					m.Pod,
+					role.roleStatus.Name,
+				)
+				return
+			}
 			pod, podGetErr := observer.GetPod(cr.Namespace, m.Pod)
 			if podGetErr != nil {
 				// Can't get the pod. Skip it and try again later.
@@ -148,6 +161,7 @@ func handleReadyMembers(
 				allReadyFinished = false
 				return
 			}
+			m.StateDetail.LastGenerationUpdate = &cr.Generation
 		}(member)
 	}
 	wgReady.Wait()
@@ -274,6 +288,11 @@ func handleCreatingMembers(
 						role.roleStatus.Name,
 					)
 					m.State = string(memberConfigError)
+					statusErrMsg := fmt.Sprintf(
+						"failed requested file injections: %s",
+						injectErr.Error(),
+					)
+					m.StateDetail.ConfigErrorDetail = &statusErrMsg
 					return
 				}
 			}
@@ -283,7 +302,7 @@ func handleCreatingMembers(
 				// ready notifications to itself below. The next reconciler cycle
 				// will handle this appropriately.
 				m.State = string(memberConfigured)
-
+				m.StateDetail.ConfigErrorDetail = nil
 				shared.LogInfof(
 					reqLogger,
 					cr,
@@ -301,6 +320,7 @@ func handleCreatingMembers(
 				cr,
 				setupURL,
 				m.Pod,
+				&m.StateDetail,
 				role.roleStatus.Name,
 				configmetaGenerator,
 			)
@@ -326,6 +346,11 @@ func handleCreatingMembers(
 					role.roleStatus.Name,
 				)
 				m.State = string(memberConfigError)
+				statusErrMsg := fmt.Sprintf(
+					"execution of app config failed: %s",
+					configErr.Error(),
+				)
+				m.StateDetail.ConfigErrorDetail = &statusErrMsg
 				return
 			}
 			shared.LogInfof(
@@ -339,6 +364,7 @@ func handleCreatingMembers(
 			// Set a temporary state used below so we won't send notifies
 			// to this member yet.
 			m.State = string(memberConfigured)
+			m.StateDetail.ConfigErrorDetail = nil
 		}(member)
 	}
 	wgSetup.Wait()
@@ -814,6 +840,7 @@ func appConfig(
 	cr *kdv1.KubeDirectorCluster,
 	setupURL string,
 	podName string,
+	stateDetail *kdv1.MemberStateDetail,
 	roleName string,
 	configmetaGenerator func(string) string,
 ) (bool, error) {
@@ -867,6 +894,7 @@ func appConfig(
 	if configmetaErr != nil {
 		return true, configmetaErr
 	}
+	stateDetail.LastGenerationUpdate = &cr.Generation
 	// Set up configcli package for this member (if not set up already).
 	prepErr := setupNodePrep(reqLogger, cr, podName)
 	if prepErr != nil {

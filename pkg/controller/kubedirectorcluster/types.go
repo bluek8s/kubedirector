@@ -43,13 +43,13 @@ const (
 type memberState string
 
 const (
-	memberCreatePending memberState = "create_pending"
+	memberCreatePending memberState = "create pending"
 	memberCreating                  = "creating"
-	memberConfigured                = "configured_internal" // not externally visible
+	memberConfigured                = "configured" // not externally visible
 	memberReady                     = "ready"
-	memberDeletePending             = "delete_pending"
+	memberDeletePending             = "delete pending"
 	memberDeleting                  = "deleting"
-	memberConfigError               = "config_error"
+	memberConfigError               = "config error"
 )
 
 const (

@@ -45,18 +45,15 @@ func syncMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	roles []*roleInfo,
-	membersHaveChanged bool,
 	configmetaGenerator func(string) string,
 ) error {
 
-	// Notify current ready members about membership changes.
+	// Update configmeta in current ready members if necessary.
 	readyMembersUpdated := true
-	if membersHaveChanged {
-		for _, r := range roles {
-			if _, ok := r.membersByState[memberReady]; ok {
-				readyMembersUpdated = readyMembersUpdated &&
-					handleReadyMembers(reqLogger, cr, r, configmetaGenerator)
-			}
+	for _, r := range roles {
+		if _, ok := r.membersByState[memberReady]; ok {
+			readyMembersUpdated = readyMembersUpdated &&
+				handleReadyMembers(reqLogger, cr, r, configmetaGenerator)
 		}
 	}
 	if !readyMembersUpdated {
@@ -115,6 +112,11 @@ func handleReadyMembers(
 					m.Pod,
 					role.roleStatus.Name,
 				)
+				return
+			}
+			// If this pod has already been updated on a previous handler
+			// pass, skip it.
+			if *m.StateDetail.LastGenerationUpdate == *cr.Status.SpecGenerationToProcess {
 				return
 			}
 			pod, podGetErr := observer.GetPod(cr.Namespace, m.Pod)
@@ -752,7 +754,9 @@ func injectFiles(
 }
 
 // notifyReadyNodes sends a lifecycle event notification to all ready nodes
-// in the cluster, informing about changes in the indicated role.
+// in the cluster, informing about changes in the indicated role. If a notify
+// can't be performed, the notify is placed in the member's list of pending
+// notifies.
 func notifyReadyNodes(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
@@ -809,7 +813,7 @@ func notifyReadyNodes(
 						return
 					}
 
-					configErr := appReConfig(reqLogger, cr, m.Pod, r.roleStatus.Name, role)
+					configErr := appReConfig(reqLogger, cr, m.Pod, &m.StateDetail, r.roleStatus.Name, role)
 					if configErr != nil {
 						shared.LogErrorf(
 							reqLogger,
@@ -930,6 +934,7 @@ func appReConfig(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
+	stateDetail *kdv1.MemberStateDetail,
 	roleName string,
 	otherRole *roleInfo,
 ) error {
@@ -959,19 +964,17 @@ func appReConfig(
 	}
 
 	// Compose and run the command line.
-	cmd := strings.Join(
-		[]string{
-			appPrepStartscript,
-			"--" + op,
-			"--nodegroup 1", // currently only 1 nodegroup possible
-			"--role",
-			otherRole.roleStatus.Name,
-			"--fqdns",
-			deltaFqdns,
-		},
-		" ",
-	)
-	return executor.RunScript(
+	cmdComponents := []string{
+		appPrepStartscript,
+		"--" + op,
+		"--nodegroup 1", // currently only 1 nodegroup possible
+		"--role",
+		otherRole.roleStatus.Name,
+		"--fqdns",
+		deltaFqdns,
+	}
+	cmd := strings.Join(cmdComponents, " ")
+	notifyResult := executor.RunScript(
 		reqLogger,
 		cr,
 		cr.Namespace,
@@ -980,6 +983,20 @@ func appReConfig(
 		"app reconfig",
 		strings.NewReader(cmd),
 	)
+	// XXX Note that we don't distinguish here between pod-down/unreachable
+	// and the case where the script runs but actually returns an error.
+	// Arguably in the latter case we should transition this node to a
+	// config error state.
+	if notifyResult != nil {
+		notifyDesc := kdv1.NotificationDesc{
+			Arguments: cmdComponents[1:],
+		}
+		stateDetail.PendingNotifyCmds = append(
+			stateDetail.PendingNotifyCmds,
+			notifyDesc,
+		)
+	}
+	return notifyResult
 }
 
 // fqdnsList generates a comma-separated list of FQDNs given a list of members.

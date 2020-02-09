@@ -183,10 +183,18 @@ spec:
             memberStateRollup:
               type: object
               properties:
-                configErrors:
+                membershipChanging:
+                  type: boolean
+                configCmdErrors:
+                  type: boolean
+                pendingConfigDataUpdates:
+                  type: boolean
+                pendingNotifyCmds:
                   type: boolean
             generationUID:
               type: string
+            specGenerationToProcess:
+              type: integer
             clusterService:
               type: string
             lastNodeID:
@@ -222,3 +230,12 @@ spec:
                               type: string
                             lastGenerationUpdate:
                               type: integer
+                            pendingNotifyCmds:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  arguments:
+                                    type: array
+                                    items:
+                                      type: string

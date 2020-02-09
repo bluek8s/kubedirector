@@ -72,10 +72,11 @@ func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
 }
 
 // validateSpecChange is only called when an update is changing the spec. It
-// enforces that the cluster spec may not be modified if the previous spec
-// change has not been seen by the reconciler. (This invariant is required
-// for some error-handling cases.) If the spec is being modified & that's ok,
-// will return a patch to change the cluster overall status to "spec modified".
+// enforces that the cluster spec may not be modified if there are pending
+// member notifies or if the previous spec change has not been seen by the
+// reconciler. (These invariants are required for some error-handling cases.)
+// If the spec is being modified & that's ok, will return a patch to change
+// the cluster overall status to "spec modified".
 func validateSpecChange(
 	cr *kdv1.KubeDirectorCluster,
 	prevCr *kdv1.KubeDirectorCluster,
@@ -89,6 +90,15 @@ func validateSpecChange(
 		valErrors = append(
 			valErrors,
 			multipleSpecChange,
+		)
+		return valErrors, patches
+	}
+
+	// Spec change not allowed if pending notifies.
+	if cr.Status.MemberStateRollup.PendingNotifyCmds {
+		valErrors = append(
+			valErrors,
+			pendingNotifies,
 		)
 		return valErrors, patches
 	}
@@ -858,6 +868,7 @@ func admitClusterCR(
 	if ar.Request.Operation == v1beta1.Update {
 		valErrors, patches = validateSpecChange(&clusterCR, &prevClusterCR, valErrors, patches)
 	}
+
 	// Validate cardinality and generate patches for defaults members values.
 	valErrors, patches = validateCardinality(&clusterCR, appCR, valErrors, patches)
 

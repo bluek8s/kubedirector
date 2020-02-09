@@ -52,6 +52,13 @@ const (
 	memberConfigError               = "config error"
 )
 
+var transitionalMemberStates = []string{
+	string(memberCreatePending),
+	string(memberCreating),
+	string(memberDeletePending),
+	string(memberDeleting),
+}
+
 const (
 	configMetaFile      = "/etc/guestconfig/configmeta.json"
 	configcliSrcFile    = "/home/kubedirector/configcli.tgz"

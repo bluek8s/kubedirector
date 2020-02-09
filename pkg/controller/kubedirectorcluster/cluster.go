@@ -219,8 +219,10 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return configMetaErr
 	}
 
-	membersHaveChanged := (state == clusterMembersChangedUnready)
-	membersErr := syncMembers(reqLogger, cr, roles, membersHaveChanged, configmetaGen)
+	if state == clusterMembersChangedUnready {
+		cr.Status.SpecGenerationToProcess = &cr.Generation
+	}
+	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
 	if membersErr != nil {
 		errLog("members", membersErr)
 		return membersErr
@@ -235,12 +237,33 @@ func updateStateRollup(
 	cr *kdv1.KubeDirectorCluster,
 ) {
 
-	cr.Status.MemberStateRollup.ConfigErrors = false
+	cr.Status.MemberStateRollup.MembershipChanging = false
+	cr.Status.MemberStateRollup.ConfigCmdErrors = false
+	cr.Status.MemberStateRollup.PendingConfigDataUpdates = false
+	cr.Status.MemberStateRollup.PendingNotifyCmds = false
 	for _, roleStatus := range cr.Status.Roles {
 		for _, memberStatus := range roleStatus.Members {
+			if shared.StringInList(memberStatus.State, transitionalMemberStates) {
+				cr.Status.MemberStateRollup.MembershipChanging = true
+			}
 			if memberStatus.State == string(memberConfigError) {
-				cr.Status.MemberStateRollup.ConfigErrors = true
-				return
+				cr.Status.MemberStateRollup.ConfigCmdErrors = true
+			}
+			if memberStatus.State == string(memberReady) {
+				// SpecGenerationToProcess should always be non-nil if we have
+				// a ready member, but let's be paranoid.
+				if cr.Status.SpecGenerationToProcess != nil {
+					// Similarly the LastGenerationUpdate of a ready member
+					// should always be non-nil but eh.
+					if memberStatus.StateDetail.LastGenerationUpdate == nil {
+						cr.Status.MemberStateRollup.PendingConfigDataUpdates = true
+					} else if *cr.Status.SpecGenerationToProcess != *memberStatus.StateDetail.LastGenerationUpdate {
+						cr.Status.MemberStateRollup.PendingConfigDataUpdates = true
+					}
+				}
+			}
+			if len(memberStatus.StateDetail.PendingNotifyCmds) != 0 {
+				cr.Status.MemberStateRollup.PendingNotifyCmds = true
 			}
 		}
 	}

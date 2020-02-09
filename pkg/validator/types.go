@@ -38,6 +38,7 @@ const (
 	rootCrt = "ca.crt"
 
 	multipleSpecChange = "Change to spec not allowed before previous spec change has been processed."
+	pendingNotifies    = "Change to spec not allowed because some members have not processed notifications of previous change."
 
 	invalidAppMessage  = "Invalid app(%s). This app resource ID has not been registered."
 	invalidCardinality = "Invalid member count for role(%s). Specified member count:%d Role cardinality:%s"

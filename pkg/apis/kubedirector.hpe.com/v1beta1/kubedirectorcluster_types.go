@@ -38,12 +38,13 @@ type KubeDirectorClusterSpec struct {
 // indicates ongoing operations of cluster creation or reconfiguration.
 // +k8s:openapi-gen=true
 type KubeDirectorClusterStatus struct {
-	State             string       `json:"state"`
-	MemberStateRollup StateRollup  `json:"memberStateRollup"`
-	GenerationUID     string       `json:"generationUID"`
-	ClusterService    string       `json:"clusterService"`
-	LastNodeID        int64        `json:"lastNodeID"`
-	Roles             []RoleStatus `json:"roles"`
+	State                   string       `json:"state"`
+	MemberStateRollup       StateRollup  `json:"memberStateRollup"`
+	GenerationUID           string       `json:"generationUID"`
+	SpecGenerationToProcess *int64       `json:"specGenerationToProcess,omitempty"`
+	ClusterService          string       `json:"clusterService"`
+	LastNodeID              int64        `json:"lastNodeID"`
+	Roles                   []RoleStatus `json:"roles"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -118,7 +119,10 @@ type Role struct {
 // StateRollup surfaces whether any per-member statuses have problems that
 // should be investigated.
 type StateRollup struct {
-	ConfigErrors bool `json:"configErrors"`
+	MembershipChanging       bool `json:"membershipChanging"`
+	ConfigCmdErrors          bool `json:"configCmdErrors"`
+	PendingConfigDataUpdates bool `json:"pendingConfigDataUpdates"`
+	PendingNotifyCmds        bool `json:"pendingNotifyCmds"`
 }
 
 // ClusterStorage defines the persistent storage size/type, if any, to be used
@@ -148,8 +152,14 @@ type MemberStatus struct {
 // MemberStateDetail digs into detail about the management of configmeta and
 // app scripts in the member.
 type MemberStateDetail struct {
-	ConfigErrorDetail    *string `json:"configErrorDetail,omitempty"`
-	LastGenerationUpdate *int64  `json:"lastGenerationUpdate,omitempty"`
+	ConfigErrorDetail    *string            `json:"configErrorDetail,omitempty"`
+	LastGenerationUpdate *int64             `json:"lastGenerationUpdate,omitempty"`
+	PendingNotifyCmds    []NotificationDesc `json:"PendingNotifyCmds,omitempty"`
+}
+
+// NotificationDesc contains the info necessary to perform a notify command.
+type NotificationDesc struct {
+	Arguments []string `json:"arguments,omitempty"`
 }
 
 func init() {

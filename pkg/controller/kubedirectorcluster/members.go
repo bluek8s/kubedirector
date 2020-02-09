@@ -175,10 +175,10 @@ func handleReadyMembers(
 }
 
 // handleCreatePendingMembers operates on all members in the role that are
-// currently in the create_pending state. It first adjusts the statefulset
+// currently in the create pending state. It first adjusts the statefulset
 // replicas count as necessary, then checks each new member to see if it is
 // running. If so, it moves it to the creating state. It is quite possible for
-// members to be left in the create_pending state across multiple reconciler
+// members to be left in the create pending state across multiple reconciler
 // passes.
 func handleCreatePendingMembers(
 	reqLogger logr.Logger,
@@ -489,9 +489,9 @@ func handleDeletingMembers(
 }
 
 // handleDeletePendingMembers operates on all members in the role that are
-// currently in the delete_pending state. It first notifies all ready members
+// currently in the delete pending state. It first notifies all ready members
 // in the cluster of the impending deletion; then it moves all of these
-// delete_pending members to the deleting state.
+// delete pending members to the deleting state.
 func handleDeletePendingMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,

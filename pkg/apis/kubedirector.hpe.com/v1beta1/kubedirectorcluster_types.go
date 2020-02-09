@@ -38,11 +38,12 @@ type KubeDirectorClusterSpec struct {
 // indicates ongoing operations of cluster creation or reconfiguration.
 // +k8s:openapi-gen=true
 type KubeDirectorClusterStatus struct {
-	State          string       `json:"state"`
-	GenerationUID  string       `json:"generationUID"`
-	ClusterService string       `json:"clusterService"`
-	LastNodeID     int64        `json:"lastNodeID"`
-	Roles          []RoleStatus `json:"roles"`
+	State             string       `json:"state"`
+	MemberStateRollup StateRollup  `json:"memberStateRollup"`
+	GenerationUID     string       `json:"generationUID"`
+	ClusterService    string       `json:"clusterService"`
+	LastNodeID        int64        `json:"lastNodeID"`
+	Roles             []RoleStatus `json:"roles"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -112,6 +113,12 @@ type Role struct {
 	EnvVars        []corev1.EnvVar             `json:"env,omitempty"`
 	FileInjections []FileInjections            `json:"fileInjections,omitempty"`
 	Secret         *KDSecret                   `json:"secret,omitempty"`
+}
+
+// StateRollup surfaces whether any per-member statuses have problems that
+// should be investigated.
+type StateRollup struct {
+	ConfigErrors bool `json:"configErrors"`
 }
 
 // ClusterStorage defines the persistent storage size/type, if any, to be used

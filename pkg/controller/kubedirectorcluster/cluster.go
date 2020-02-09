@@ -55,6 +55,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 
 	// Set a defer func to write new status and/or finalizers if they change.
 	defer func() {
+		updateStateRollup(cr)
 		nowHasFinalizer := shared.HasFinalizer(cr)
 		// Bail out if nothing has changed.
 		statusChanged := !reflect.DeepEqual(cr.Status, oldStatus)
@@ -226,6 +227,23 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	}
 
 	return nil
+}
+
+// updateStateRollup examines current per-member status and sets the top-level
+// config rollup appropriately.
+func updateStateRollup(
+	cr *kdv1.KubeDirectorCluster,
+) {
+
+	cr.Status.MemberStateRollup.ConfigErrors = false
+	for _, roleStatus := range cr.Status.Roles {
+		for _, memberStatus := range roleStatus.Members {
+			if memberStatus.State == string(memberConfigError) {
+				cr.Status.MemberStateRollup.ConfigErrors = true
+				return
+			}
+		}
+	}
 }
 
 // handleNewCluster looks in the cache for the last-known status generation

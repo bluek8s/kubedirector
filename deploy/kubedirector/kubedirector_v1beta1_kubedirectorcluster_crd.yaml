@@ -180,6 +180,11 @@ spec:
           properties:
             state:
               type: string
+            memberStateRollup:
+              type: object
+              properties:
+                configErrors:
+                  type: boolean
             generationUID:
               type: string
             clusterService:

@@ -234,6 +234,8 @@ spec:
                               type: integer
                             initialConfigGeneration:
                               type: integer
+                            configuringContainer:
+                              type: string
                             lastConfiguredContainer:
                               type: string
                             lastKnownContainerState:

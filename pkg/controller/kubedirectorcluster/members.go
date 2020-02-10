@@ -31,7 +31,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // syncMembers is responsible for adding or deleting members. It and
@@ -122,11 +122,12 @@ func syncMemberNotifies(
 			var newQueue []*kdv1.NotificationDesc
 			for _, notify := range m.StateDetail.PendingNotifyCmds {
 				cmd := appPrepStartscript + " " + strings.Join(notify.Arguments, " ")
-				_, notifyError := executor.RunScript(
+				notifyError := executor.RunScript(
 					reqLogger,
 					cr,
 					cr.Namespace,
 					m.Pod,
+					m.StateDetail.LastConfiguredContainer,
 					executor.AppContainerName,
 					"app reconfig",
 					strings.NewReader(cmd),
@@ -210,11 +211,12 @@ func handleReadyMembers(
 				return
 			}
 			configmeta := configmetaGenerator(m.Pod)
-			_, createFileErr := executor.CreateFile(
+			createFileErr := executor.CreateFile(
 				reqLogger,
 				cr,
 				cr.Namespace,
 				m.Pod,
+				m.StateDetail.LastConfiguredContainer,
 				executor.AppContainerName,
 				configMetaFile,
 				strings.NewReader(configmeta),
@@ -275,7 +277,7 @@ func handleCreatePendingMembers(
 			if podGetErr != nil {
 				// Can't get the pod. Skip it and try again later. This is
 				// not necessarily an error; K8s might be slow.
-				if errors.IsNotFound(podGetErr) {
+				if apierrors.IsNotFound(podGetErr) {
 					shared.LogInfof(
 						reqLogger,
 						cr,
@@ -298,10 +300,17 @@ func handleCreatePendingMembers(
 				return
 			}
 			if pod.Status.Phase == corev1.PodRunning {
-				m.State = string(memberCreating)
-				// We don't need to update membersByState; the newly
-				// creating-state members will be processed on a subsequent
-				// reconciler pass.
+				for _, containerStatus := range pod.Status.ContainerStatuses {
+					if (containerStatus.Name == executor.AppContainerName) &&
+						(containerStatus.ContainerID != "") {
+						m.StateDetail.ConfiguringContainer = containerStatus.ContainerID
+						m.State = string(memberCreating)
+						// We don't need to update membersByState; the newly
+						// creating-state members will be processed on a
+						// subsequent reconciler pass.
+						return
+					}
+				}
 			}
 		}(member)
 	}
@@ -345,9 +354,17 @@ func handleCreatingMembers(
 		go func(m *kdv1.MemberStatus) {
 			defer wgSetup.Done()
 
+			containerID := m.StateDetail.ConfiguringContainer
+			setFinalState := func(state memberState, errorDetail *string) {
+				m.State = string(state)
+				m.StateDetail.LastConfiguredContainer = containerID
+				m.StateDetail.ConfiguringContainer = ""
+				m.StateDetail.ConfigErrorDetail = errorDetail
+			}
+
 			// Check to see if we have to inject one or more files for this member
 			if len(role.roleSpec.FileInjections) != 0 {
-				injectErr := injectFiles(reqLogger, cr, m.Pod, role)
+				injectErr := injectFiles(reqLogger, cr, m.Pod, containerID, role)
 				if injectErr != nil {
 					shared.LogErrorf(
 						reqLogger,
@@ -358,12 +375,11 @@ func handleCreatingMembers(
 						m.Pod,
 						role.roleStatus.Name,
 					)
-					m.State = string(memberConfigError)
 					statusErrMsg := fmt.Sprintf(
 						"failed requested file injections: %s",
 						injectErr.Error(),
 					)
-					m.StateDetail.ConfigErrorDetail = &statusErrMsg
+					setFinalState(memberConfigError, &statusErrMsg)
 					return
 				}
 			}
@@ -372,8 +388,7 @@ func handleCreatingMembers(
 				// Leave this in memberConfigured state so, we don't send
 				// ready notifications to itself below. The next reconciler cycle
 				// will handle this appropriately.
-				m.State = string(memberConfigured)
-				m.StateDetail.ConfigErrorDetail = nil
+				setFinalState(memberConfigured, nil)
 				shared.LogInfof(
 					reqLogger,
 					cr,
@@ -391,6 +406,7 @@ func handleCreatingMembers(
 				cr,
 				setupURL,
 				m.Pod,
+				containerID,
 				&m.StateDetail,
 				role.roleStatus.Name,
 				configmetaGenerator,
@@ -406,6 +422,8 @@ func handleCreatingMembers(
 				)
 				return
 			}
+			// Snapshot the config info regardless of success/failure.
+			m.StateDetail.InitialConfigGeneration = m.StateDetail.LastConfigDataGeneration
 			if configErr != nil {
 				shared.LogErrorf(
 					reqLogger,
@@ -416,12 +434,11 @@ func handleCreatingMembers(
 					m.Pod,
 					role.roleStatus.Name,
 				)
-				m.State = string(memberConfigError)
 				statusErrMsg := fmt.Sprintf(
 					"execution of app config failed: %s",
 					configErr.Error(),
 				)
-				m.StateDetail.ConfigErrorDetail = &statusErrMsg
+				setFinalState(memberConfigError, &statusErrMsg)
 				return
 			}
 			shared.LogInfof(
@@ -434,8 +451,7 @@ func handleCreatingMembers(
 			)
 			// Set a temporary state used below so we won't send notifies
 			// to this member yet.
-			m.State = string(memberConfigured)
-			m.StateDetail.ConfigErrorDetail = nil
+			setFinalState(memberConfigured, nil)
 		}(member)
 	}
 	wgSetup.Wait()
@@ -489,7 +505,7 @@ func handleDeletingMembers(
 			if podGetErr == nil {
 				// Pod isn't gone yet. Skip it.
 				return
-			} else if !errors.IsNotFound(podGetErr) {
+			} else if !apierrors.IsNotFound(podGetErr) {
 				// Some error other than "not found". Skip pod and try again
 				// later.
 				shared.LogErrorf(
@@ -509,7 +525,7 @@ func handleDeletingMembers(
 					cr.Namespace,
 					m.Service,
 				)
-				if serviceDelErr == nil || errors.IsNotFound(serviceDelErr) {
+				if serviceDelErr == nil || apierrors.IsNotFound(serviceDelErr) {
 					m.Service = ""
 				} else {
 					shared.LogErrorf(
@@ -527,7 +543,7 @@ func handleDeletingMembers(
 					cr.Namespace,
 					m.PVC,
 				)
-				if pvcDelErr == nil || errors.IsNotFound(pvcDelErr) {
+				if pvcDelErr == nil || apierrors.IsNotFound(pvcDelErr) {
 					m.PVC = ""
 				} else {
 					shared.LogErrorf(
@@ -655,15 +671,17 @@ func setupNodePrep(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
+	expectedContainerID string,
 ) error {
 
 	// Check to see if the destination file exists already, in which case just
 	// return. Also bail out if we cannot manage to check file existence.
-	_, fileExists, fileError := executor.IsFileExists(
+	fileExists, fileError := executor.IsFileExists(
 		reqLogger,
 		cr,
 		cr.Namespace,
 		podName,
+		expectedContainerID,
 		executor.AppContainerName,
 		configcliTestFile,
 	)
@@ -683,11 +701,12 @@ func setupNodePrep(
 		)
 	}
 	defer nodePrepFile.Close()
-	_, createErr := executor.CreateFile(
+	createErr := executor.CreateFile(
 		reqLogger,
 		cr,
 		cr.Namespace,
 		podName,
+		expectedContainerID,
 		executor.AppContainerName,
 		configcliDestFile,
 		bufio.NewReader(nodePrepFile),
@@ -696,17 +715,17 @@ func setupNodePrep(
 		return createErr
 	}
 
-	// Install it,
-	_, installErr := executor.RunScript(
+	// Install it.
+	return executor.RunScript(
 		reqLogger,
 		cr,
 		cr.Namespace,
 		podName,
+		expectedContainerID,
 		executor.AppContainerName,
 		"configcli setup",
 		strings.NewReader(configcliInstallCmd),
 	)
-	return installErr
 }
 
 // setupAppConfig injects the app setup package (if any) into the member's
@@ -716,16 +735,18 @@ func setupAppConfig(
 	cr *kdv1.KubeDirectorCluster,
 	setupURL string,
 	podName string,
+	expectedContainerID string,
 	roleName string,
 ) error {
 
 	// Check to see if the destination file exists already, in which case just
 	// return. Also bail out if we cannot manage to check file existence.
-	_, fileExists, fileError := executor.IsFileExists(
+	fileExists, fileError := executor.IsFileExists(
 		reqLogger,
 		cr,
 		cr.Namespace,
 		podName,
+		expectedContainerID,
 		executor.AppContainerName,
 		appPrepStartscript,
 	)
@@ -737,25 +758,26 @@ func setupAppConfig(
 
 	// Fetch and install it.
 	cmd := strings.Replace(appPrepInitCmd, "{{APP_CONFIG_URL}}", setupURL, -1)
-	_, setupErr := executor.RunScript(
+	return executor.RunScript(
 		reqLogger,
 		cr,
 		cr.Namespace,
 		podName,
+		expectedContainerID,
 		executor.AppContainerName,
 		"app config setup",
 		strings.NewReader(cmd),
 	)
-	return setupErr
 }
 
 // injectFiles injects one or more files as specified through role spec
 // Each file will be downloaded to the specified location inside the pod and
-// file permissions and ownership will be updated based on the spec
+// file permissions and ownership will be updated based on the spec.
 func injectFiles(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
+	expectedContainerID string,
 	role *roleInfo,
 ) error {
 
@@ -795,11 +817,12 @@ func injectFiles(
 			}
 		}
 		// Away we go!
-		_, err := executor.RunScript(
+		err := executor.RunScript(
 			reqLogger,
 			cr,
 			cr.Namespace,
 			podName,
+			expectedContainerID,
 			executor.AppContainerName,
 			"file injection ("+destFile+")",
 			strings.NewReader(fileInjectCmd),
@@ -881,6 +904,7 @@ func appConfig(
 	cr *kdv1.KubeDirectorCluster,
 	setupURL string,
 	podName string,
+	expectedContainerID string,
 	stateDetail *kdv1.MemberStateDetail,
 	roleName string,
 	configmetaGenerator func(string) string,
@@ -890,11 +914,12 @@ func appConfig(
 	// will check back periodically. So let's have a look at the existing
 	// status if any.
 	var statusStrB strings.Builder
-	containerID, fileExists, fileError := executor.ReadFile(
+	fileExists, fileError := executor.ReadFile(
 		reqLogger,
 		cr,
 		cr.Namespace,
 		podName,
+		expectedContainerID,
 		executor.AppContainerName,
 		appPrepConfigStatus,
 		&statusStrB,
@@ -913,14 +938,7 @@ func appConfig(
 		// All done, what status did we get?
 		status, convErr := strconv.Atoi(statusStr)
 		if convErr == nil && status == 0 {
-			stateDetail.InitialConfigGeneration = stateDetail.LastConfigDataGeneration
-			if containerID != nil {
-				stateDetail.LastConfiguredContainer = *containerID
-			} else {
-				// Really would be weird for this to happen if the file read
-				// succeeded, but ok.
-				stateDetail.LastConfiguredContainer = ""
-			}
+
 			return true, nil
 		}
 		statusErr := fmt.Errorf(
@@ -930,12 +948,13 @@ func appConfig(
 		return true, statusErr
 	}
 	// We haven't successfully started the configure script yet.
-	// First upload the configmeta file
-	_, configmetaErr := executor.CreateFile(
+	// First upload the configmeta file.
+	configmetaErr := executor.CreateFile(
 		reqLogger,
 		cr,
 		cr.Namespace,
 		podName,
+		expectedContainerID,
 		executor.AppContainerName,
 		configMetaFile,
 		strings.NewReader(configmetaGenerator(podName)),
@@ -943,23 +962,25 @@ func appConfig(
 	if configmetaErr != nil {
 		return true, configmetaErr
 	}
+	// Successfully injected configmeta so record that.
 	stateDetail.LastConfigDataGeneration = &cr.Generation
 	// Set up configcli package for this member (if not set up already).
-	prepErr := setupNodePrep(reqLogger, cr, podName)
+	prepErr := setupNodePrep(reqLogger, cr, podName, expectedContainerID)
 	if prepErr != nil {
 		return true, prepErr
 	}
 	// Make sure the necessary app-specific materials are in place.
-	setupErr := setupAppConfig(reqLogger, cr, setupURL, podName, roleName)
+	setupErr := setupAppConfig(reqLogger, cr, setupURL, podName, expectedContainerID, roleName)
 	if setupErr != nil {
 		return true, setupErr
 	}
 	// Now kick off the initial config.
-	_, cmdErr := executor.RunScript(
+	cmdErr := executor.RunScript(
 		reqLogger,
 		cr,
 		cr.Namespace,
 		podName,
+		expectedContainerID,
 		executor.AppContainerName,
 		"app config",
 		strings.NewReader(appPrepConfigRunCmd),

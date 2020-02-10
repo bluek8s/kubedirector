@@ -35,27 +35,28 @@ import (
 // IsFileExists probes whether the given pod's filesystem contains something
 // at the indicated filepath. The returned boolean will be true if the file
 // was found. If false, the returned error will be nil if the file is known to
-// be missing, or non-nil if the probe failed to execute. The returned string
-// pointer is the container ID if successfully found.
+// be missing, or non-nil if the probe failed to execute.
 func IsFileExists(
 	reqLogger logr.Logger,
 	obj runtime.Object,
 	namespace string,
 	podName string,
+	expectedContainerID string,
 	containerName string,
 	filePath string,
-) (*string, bool, error) {
+) (bool, error) {
 
 	command := []string{"test", "-f", filePath}
 	// We only need the exit status, but we have to supply at least one
 	// stream to avoid an error.
 	var stdOut bytes.Buffer
 	ioStreams := &Streams{Out: &stdOut}
-	containerID, execErr := ExecCommand(
+	execErr := ExecCommand(
 		reqLogger,
 		obj,
 		namespace,
 		podName,
+		expectedContainerID,
 		containerName,
 		command,
 		ioStreams,
@@ -68,38 +69,39 @@ func IsFileExists(
 			// code of 1, this means that the file existence check completed
 			// successfully, but the file does not exist.
 			if coe.ExitStatus() == 1 {
-				return containerID, false, nil
+				return false, nil
 			}
 		}
 		// Some error, other than file does not exist, occured.
-		return containerID, false, execErr
+		return false, execErr
 	}
 	// The file exists.
-	return containerID, true, nil
+	return true, nil
 }
 
 // CreateDir creates a directory (and any parent directors) in the filesystem
-// of the given pod. The return value is a pointer to the container ID (if
-// successfully found) and any error.
+// of the given pod.
 func CreateDir(
 	reqLogger logr.Logger,
 	obj runtime.Object,
 	namespace string,
 	podName string,
+	expectedContainerID string,
 	containerName string,
 	dirName string,
-) (*string, error) {
+) error {
 
 	command := []string{"mkdir", "-p", dirName}
 	// We only need the exit status, but we have to supply at least one
 	// stream to avoid an error.
 	var stdErr bytes.Buffer
 	ioStreams := &Streams{ErrOut: &stdErr}
-	containerID, err := ExecCommand(
+	err := ExecCommand(
 		reqLogger,
 		obj,
 		namespace,
 		podName,
+		expectedContainerID,
 		containerName,
 		command,
 		ioStreams,
@@ -110,20 +112,20 @@ func CreateDir(
 			err.Error(),
 		)
 	}
-	return containerID, err
+	return err
 }
 
-// RemoveDir removes a directory. The return value is a pointer to the
-// container ID (if successfully found) and any error.
+// RemoveDir removes a directory.
 func RemoveDir(
 	reqLogger logr.Logger,
 	obj runtime.Object,
 	namespace string,
 	podName string,
+	expectedContainerID string,
 	containerName string,
 	dirName string,
 	ignoreNotEmpty bool,
-) (*string, error) {
+) error {
 
 	var command []string
 	if ignoreNotEmpty {
@@ -136,11 +138,12 @@ func RemoveDir(
 	// stream to avoid an error.
 	var stdErr bytes.Buffer
 	ioStreams := &Streams{ErrOut: &stdErr}
-	containerID, err := ExecCommand(
+	err := ExecCommand(
 		reqLogger,
 		obj,
 		namespace,
 		podName,
+		expectedContainerID,
 		containerName,
 		command,
 		ioStreams,
@@ -153,32 +156,33 @@ func RemoveDir(
 			err = fmt.Errorf("rmdir failed: %s", errStr)
 		}
 	}
-	return containerID, err
+	return err
 }
 
 // CreateFile takes the stream from the given reader, and writes it to the
-// indicated filepath in the filesystem of the given pod. The return value is
-// a pointer to the container ID (if successfully found) and any error.
+// indicated filepath in the filesystem of the given pod.
 func CreateFile(
 	reqLogger logr.Logger,
 	obj runtime.Object,
 	namespace string,
 	podName string,
+	expectedContainerID string,
 	containerName string,
 	filePath string,
 	reader io.Reader,
-) (*string, error) {
+) error {
 
-	containerID, createDirErr := CreateDir(
+	createDirErr := CreateDir(
 		reqLogger,
 		obj,
 		namespace,
 		podName,
+		expectedContainerID,
 		containerName,
 		filepath.Dir(filePath),
 	)
 	if createDirErr != nil {
-		return containerID, createDirErr
+		return createDirErr
 	}
 
 	command := []string{"tee", filePath}
@@ -198,6 +202,7 @@ func CreateFile(
 		obj,
 		namespace,
 		podName,
+		expectedContainerID,
 		containerName,
 		command,
 		ioStreams,
@@ -213,10 +218,11 @@ func ReadFile(
 	obj runtime.Object,
 	namespace string,
 	podName string,
+	expectedContainerID string,
 	containerName string,
 	filePath string,
 	writer io.Writer,
-) (*string, bool, error) {
+) (bool, error) {
 
 	command := []string{"cat", filePath}
 	ioStreams := &Streams{
@@ -230,11 +236,12 @@ func ReadFile(
 		filePath,
 		podName,
 	)
-	containerID, execErr := ExecCommand(
+	execErr := ExecCommand(
 		reqLogger,
 		obj,
 		namespace,
 		podName,
+		expectedContainerID,
 		containerName,
 		command,
 		ioStreams,
@@ -243,26 +250,26 @@ func ReadFile(
 		coe, iscoe := execErr.(exec.CodeExitError)
 		if iscoe {
 			if coe.ExitStatus() == 1 {
-				return containerID, false, nil
+				return false, nil
 			}
 		}
-		return containerID, false, execErr
+		return false, execErr
 	}
-	return containerID, true, nil
+	return true, nil
 }
 
 // RunScript takes the stream from the given reader, and executes it as a
-// shell script in the given pod. The return value is a pointer to the
-// container ID (if successfully found) and any error.
+// shell script in the given pod.
 func RunScript(
 	reqLogger logr.Logger,
 	obj runtime.Object,
 	namespace string,
 	podName string,
+	expectedContainerID string,
 	containerName string,
 	description string,
 	reader io.Reader,
-) (*string, error) {
+) error {
 
 	command := []string{execShell}
 	ioStreams := &Streams{
@@ -281,6 +288,7 @@ func RunScript(
 		obj,
 		namespace,
 		podName,
+		expectedContainerID,
 		containerName,
 		command,
 		ioStreams,
@@ -289,19 +297,17 @@ func RunScript(
 
 // ExecCommand is a utility function for executing a command in a pod. It
 // uses the given ioStreams to provide the command inputs and accept the
-// command outputs. The return value is a pointer to the container ID (if
-// successfully found) and any error.
+// command outputs.
 func ExecCommand(
 	reqLogger logr.Logger,
 	obj runtime.Object,
 	namespace string,
 	podName string,
+	expectedContainerID string,
 	containerName string,
 	command []string,
 	ioStreams *Streams,
-) (*string, error) {
-
-	var foundContainerID *string
+) error {
 
 	pod, podErr := observer.GetPod(namespace, podName)
 	if podErr != nil {
@@ -313,38 +319,35 @@ func ExecCommand(
 			"could not find pod{%s}",
 			podName,
 		)
-		return foundContainerID, fmt.Errorf(
+		return fmt.Errorf(
 			"pod{%v} does not exist",
 			podName,
 		)
 	}
 
+	foundContainer := false
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		if containerStatus.Name == containerName {
-			foundContainerID = &containerStatus.ContainerID
-		}
-	}
-
-	if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
-		return foundContainerID, fmt.Errorf(
-			"cannot connect to pod{%v} in phase %v",
-			podName,
-			pod.Status.Phase,
-		)
-	}
-
-	foundContainer := false
-	for _, container := range pod.Spec.Containers {
-		if container.Name == containerName {
 			foundContainer = true
+			if containerStatus.ContainerID != expectedContainerID {
+				return errors.New("container ID changed during configuration")
+			}
 			break
 		}
 	}
 	if !foundContainer {
-		return foundContainerID, fmt.Errorf(
+		return fmt.Errorf(
 			"container{%s} does not exist in pod{%v}",
 			containerName,
 			podName,
+		)
+	}
+
+	if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
+		return fmt.Errorf(
+			"cannot connect to pod{%v} in phase %v",
+			podName,
+			pod.Status.Phase,
 		)
 	}
 
@@ -375,7 +378,7 @@ func ExecCommand(
 			shared.EventReasonNoEvent,
 			"failed to init the executor",
 		)
-		return foundContainerID, errors.New("failed to initialize command executor")
+		return errors.New("failed to initialize command executor")
 	}
 	execErr := exec.Stream(remotecommand.StreamOptions{
 		Tty:    false,
@@ -384,5 +387,5 @@ func ExecCommand(
 		Stderr: ioStreams.ErrOut,
 	})
 
-	return foundContainerID, execErr
+	return execErr
 }

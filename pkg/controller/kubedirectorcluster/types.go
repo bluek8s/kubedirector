@@ -45,8 +45,8 @@ type memberState string
 const (
 	memberCreatePending memberState = "create pending"
 	memberCreating                  = "creating"
-	memberConfigured                = "configured" // not externally visible
-	memberReady                     = "ready"
+	memberConfigured                = "configured-internal" // not externally visible
+	memberReady                     = "configured"
 	memberDeletePending             = "delete pending"
 	memberDeleting                  = "deleting"
 	memberConfigError               = "config error"
@@ -63,7 +63,7 @@ const (
 	containerRunning    = "running"
 	containerWaiting    = "waiting"
 	containerTerminated = "terminated"
-	containerMissing    = "missing"
+	containerMissing    = "absent"
 	containerUnknown    = "unknown"
 )
 

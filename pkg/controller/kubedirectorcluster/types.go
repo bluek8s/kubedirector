@@ -52,9 +52,11 @@ const (
 	memberConfigError               = "config error"
 )
 
-var transitionalMemberStates = []string{
+var creatingMemberStates = []string{
 	string(memberCreatePending),
 	string(memberCreating),
+}
+var deletingMemberStates = []string{
 	string(memberDeletePending),
 	string(memberDeleting),
 }

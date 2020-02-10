@@ -286,11 +286,28 @@ func updateStateRollup(
 	cr.Status.MemberStateRollup.ConfigCmdErrors = false
 	cr.Status.MemberStateRollup.PendingConfigDataUpdates = false
 	cr.Status.MemberStateRollup.PendingNotifyCmds = false
+
+	checkMemberDown := func(memberStatus kdv1.MemberStatus) {
+		if (memberStatus.StateDetail.LastKnownContainerState == containerTerminated) ||
+			(memberStatus.StateDetail.LastKnownContainerState == containerMissing) {
+			cr.Status.MemberStateRollup.MembersDown = true
+		}
+	}
+
 	for _, roleStatus := range cr.Status.Roles {
 		for _, memberStatus := range roleStatus.Members {
-			if shared.StringInList(memberStatus.State, transitionalMemberStates) {
-				cr.Status.MemberStateRollup.MembershipChanging = true
-			} else if memberStatus.State == string(memberReady) {
+			switch memberState(memberStatus.State) {
+			case memberCreating:
+				checkMemberDown(memberStatus)
+				fallthrough
+			case memberCreatePending:
+				// DO NOT check member down here; missing container is OK.
+				// Only treat "creation" as a membership change if it is new.
+				if memberStatus.StateDetail.LastConfiguredContainer == "" {
+					cr.Status.MemberStateRollup.MembershipChanging = true
+				}
+			case memberReady:
+				checkMemberDown(memberStatus)
 				// SpecGenerationToProcess should always be non-nil if we have
 				// a ready member, but let's be paranoid.
 				if cr.Status.SpecGenerationToProcess != nil {
@@ -302,12 +319,15 @@ func updateStateRollup(
 						cr.Status.MemberStateRollup.PendingConfigDataUpdates = true
 					}
 				}
-			} else if memberStatus.State == string(memberConfigError) {
+			case memberDeletePending:
+				checkMemberDown(memberStatus)
+				fallthrough
+			case memberDeleting:
+				// DO NOT check member down here; missing container is OK.
+				cr.Status.MemberStateRollup.MembershipChanging = true
+			case memberConfigError:
+				checkMemberDown(memberStatus)
 				cr.Status.MemberStateRollup.ConfigCmdErrors = true
-			}
-			if (memberStatus.StateDetail.LastKnownContainerState == containerTerminated) ||
-				(memberStatus.StateDetail.LastKnownContainerState == containerMissing) {
-				cr.Status.MemberStateRollup.MembersDown = true
 			}
 			if len(memberStatus.StateDetail.PendingNotifyCmds) != 0 {
 				cr.Status.MemberStateRollup.PendingNotifyCmds = true

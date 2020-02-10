@@ -120,7 +120,7 @@ func syncMemberNotifies(
 			var newQueue []*kdv1.NotificationDesc
 			for _, notify := range m.StateDetail.PendingNotifyCmds {
 				cmd := appPrepStartscript + " " + strings.Join(notify.Arguments, " ")
-				notifyError := executor.RunScript(
+				_, notifyError := executor.RunScript(
 					reqLogger,
 					cr,
 					cr.Namespace,
@@ -208,7 +208,7 @@ func handleReadyMembers(
 				return
 			}
 			configmeta := configmetaGenerator(m.Pod)
-			createFileErr := executor.CreateFile(
+			_, createFileErr := executor.CreateFile(
 				reqLogger,
 				cr,
 				cr.Namespace,
@@ -657,7 +657,7 @@ func setupNodePrep(
 
 	// Check to see if the destination file exists already, in which case just
 	// return. Also bail out if we cannot manage to check file existence.
-	fileExists, fileError := executor.IsFileExists(
+	_, fileExists, fileError := executor.IsFileExists(
 		reqLogger,
 		cr,
 		cr.Namespace,
@@ -681,7 +681,7 @@ func setupNodePrep(
 		)
 	}
 	defer nodePrepFile.Close()
-	createErr := executor.CreateFile(
+	_, createErr := executor.CreateFile(
 		reqLogger,
 		cr,
 		cr.Namespace,
@@ -695,7 +695,7 @@ func setupNodePrep(
 	}
 
 	// Install it,
-	return executor.RunScript(
+	_, installErr := executor.RunScript(
 		reqLogger,
 		cr,
 		cr.Namespace,
@@ -704,6 +704,7 @@ func setupNodePrep(
 		"configcli setup",
 		strings.NewReader(configcliInstallCmd),
 	)
+	return installErr
 }
 
 // setupAppConfig injects the app setup package (if any) into the member's
@@ -718,7 +719,7 @@ func setupAppConfig(
 
 	// Check to see if the destination file exists already, in which case just
 	// return. Also bail out if we cannot manage to check file existence.
-	fileExists, fileError := executor.IsFileExists(
+	_, fileExists, fileError := executor.IsFileExists(
 		reqLogger,
 		cr,
 		cr.Namespace,
@@ -734,7 +735,7 @@ func setupAppConfig(
 
 	// Fetch and install it.
 	cmd := strings.Replace(appPrepInitCmd, "{{APP_CONFIG_URL}}", setupURL, -1)
-	return executor.RunScript(
+	_, setupErr := executor.RunScript(
 		reqLogger,
 		cr,
 		cr.Namespace,
@@ -743,6 +744,7 @@ func setupAppConfig(
 		"app config setup",
 		strings.NewReader(cmd),
 	)
+	return setupErr
 }
 
 // injectFiles injects one or more files as specified through role spec
@@ -791,7 +793,7 @@ func injectFiles(
 			}
 		}
 		// Away we go!
-		err := executor.RunScript(
+		_, err := executor.RunScript(
 			reqLogger,
 			cr,
 			cr.Namespace,
@@ -886,7 +888,7 @@ func appConfig(
 	// will check back periodically. So let's have a look at the existing
 	// status if any.
 	var statusStrB strings.Builder
-	fileExists, fileError := executor.ReadFile(
+	containerID, fileExists, fileError := executor.ReadFile(
 		reqLogger,
 		cr,
 		cr.Namespace,
@@ -910,6 +912,13 @@ func appConfig(
 		status, convErr := strconv.Atoi(statusStr)
 		if convErr == nil && status == 0 {
 			stateDetail.InitialConfigGeneration = stateDetail.LastConfigDataGeneration
+			if containerID != nil {
+				stateDetail.LastConfiguredContainer = *containerID
+			} else {
+				// Really would be weird for this to happen if the file read
+				// succeeded, but ok.
+				stateDetail.LastConfiguredContainer = ""
+			}
 			return true, nil
 		}
 		statusErr := fmt.Errorf(
@@ -920,7 +929,7 @@ func appConfig(
 	}
 	// We haven't successfully started the configure script yet.
 	// First upload the configmeta file
-	configmetaErr := executor.CreateFile(
+	_, configmetaErr := executor.CreateFile(
 		reqLogger,
 		cr,
 		cr.Namespace,
@@ -944,7 +953,7 @@ func appConfig(
 		return true, setupErr
 	}
 	// Now kick off the initial config.
-	cmdErr := executor.RunScript(
+	_, cmdErr := executor.RunScript(
 		reqLogger,
 		cr,
 		cr.Namespace,
@@ -976,7 +985,7 @@ func queueNotify(
 	deltaFqdns := ""
 	if creating, ok := modifiedRole.membersByState[memberCreating]; ok {
 		// Members in this list are either marked with the creating state
-		// or configured_internal. The fqdnsList function will appropriately
+		// or configured state. The fqdnsList function will appropriately
 		// skip the ones in the creating state since they are unconfigured.
 		op = "addnodes"
 		deltaFqdns = fqdnsList(cr, creating)

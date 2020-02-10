@@ -232,6 +232,8 @@ spec:
                               type: integer
                             initialConfigGeneration:
                               type: integer
+                            lastConfiguredContainer:
+                              type: string
                             pendingNotifyCmds:
                               type: array
                               items:

@@ -185,6 +185,8 @@ spec:
               properties:
                 membershipChanging:
                   type: boolean
+                membersDown:
+                  type: boolean
                 configCmdErrors:
                   type: boolean
                 pendingConfigDataUpdates:
@@ -233,6 +235,8 @@ spec:
                             initialConfigGeneration:
                               type: integer
                             lastConfiguredContainer:
+                              type: string
+                            lastKnownContainerState:
                               type: string
                             pendingNotifyCmds:
                               type: array

@@ -120,6 +120,7 @@ type Role struct {
 // should be investigated.
 type StateRollup struct {
 	MembershipChanging       bool `json:"membershipChanging"`
+	MembersDown              bool `json:"membersDown"`
 	ConfigCmdErrors          bool `json:"configCmdErrors"`
 	PendingConfigDataUpdates bool `json:"pendingConfigDataUpdates"`
 	PendingNotifyCmds        bool `json:"pendingNotifyCmds"`
@@ -156,6 +157,7 @@ type MemberStateDetail struct {
 	LastConfigDataGeneration *int64              `json:"lastConfigDataGeneration,omitempty"`
 	InitialConfigGeneration  *int64              `json:"initialConfigGeneration,omitempty"`
 	LastConfiguredContainer  string              `json:"lastConfiguredContainer,omitempty"`
+	LastKnownContainerState  string              `json:"lastKnownContainerState,omitempty"`
 	PendingNotifyCmds        []*NotificationDesc `json:"pendingNotifyCmds,omitempty"`
 }
 

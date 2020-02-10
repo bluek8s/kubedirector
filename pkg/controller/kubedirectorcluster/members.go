@@ -97,10 +97,12 @@ func syncMemberNotifies(
 ) {
 
 	var membersToProcess []*kdv1.MemberStatus
-	for _, roleStatus := range cr.Status.Roles {
+	numRoleStatuses := len(cr.Status.Roles)
+	for i := 0; i < numRoleStatuses; i++ {
+		roleStatus := &(cr.Status.Roles[i])
 		numMembers := len(roleStatus.Members)
-		for i := 0; i < numMembers; i++ {
-			memberStatus := &(roleStatus.Members[i])
+		for j := 0; j < numMembers; j++ {
+			memberStatus := &(roleStatus.Members[j])
 			if len(memberStatus.StateDetail.PendingNotifyCmds) != 0 {
 				if memberStatus.State == string(memberReady) {
 					membersToProcess = append(membersToProcess, memberStatus)

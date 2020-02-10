@@ -60,6 +60,14 @@ var transitionalMemberStates = []string{
 }
 
 const (
+	containerRunning    = "running"
+	containerWaiting    = "waiting"
+	containerTerminated = "terminated"
+	containerMissing    = "missing"
+	containerUnknown    = "unknown"
+)
+
+const (
 	configMetaFile      = "/etc/guestconfig/configmeta.json"
 	configcliSrcFile    = "/home/kubedirector/configcli.tgz"
 	configcliDestFile   = "/tmp/configcli.tgz"

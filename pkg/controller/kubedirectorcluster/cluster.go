@@ -170,6 +170,8 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		)
 	}
 
+	checkContainerStates(cr)
+
 	clusterServiceErr := syncClusterService(reqLogger, cr)
 	if clusterServiceErr != nil {
 		errLog("cluster service", clusterServiceErr)
@@ -232,6 +234,47 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	return nil
 }
 
+// checkContainerStates updates the lastKnownContainerState in each member
+// status.
+func checkContainerStates(
+	cr *kdv1.KubeDirectorCluster,
+) {
+
+	numRoleStatuses := len(cr.Status.Roles)
+	for i := 0; i < numRoleStatuses; i++ {
+		roleStatus := &(cr.Status.Roles[i])
+		numMemberStatuses := len(roleStatus.Members)
+		for j := 0; j < numMemberStatuses; j++ {
+			memberStatus := &(roleStatus.Members[j])
+			if memberStatus.Pod != "" {
+				memberStatus.StateDetail.LastKnownContainerState = containerMissing
+				pod, podErr := observer.GetPod(cr.Namespace, memberStatus.Pod)
+				if podErr == nil {
+					for _, containerStatus := range pod.Status.ContainerStatuses {
+						if containerStatus.Name == executor.AppContainerName {
+							if containerStatus.State.Running != nil {
+								memberStatus.StateDetail.LastKnownContainerState = containerRunning
+							} else if containerStatus.State.Waiting != nil {
+								memberStatus.StateDetail.LastKnownContainerState = containerWaiting
+							} else if containerStatus.State.Terminated != nil {
+								memberStatus.StateDetail.LastKnownContainerState = containerTerminated
+							} else {
+								memberStatus.StateDetail.LastKnownContainerState = containerUnknown
+							}
+							continue
+						}
+					}
+				} else {
+					if !errors.IsNotFound(podErr) {
+						memberStatus.StateDetail.LastKnownContainerState = containerUnknown
+					}
+					continue
+				}
+			}
+		}
+	}
+}
+
 // updateStateRollup examines current per-member status and sets the top-level
 // config rollup appropriately.
 func updateStateRollup(
@@ -239,6 +282,7 @@ func updateStateRollup(
 ) {
 
 	cr.Status.MemberStateRollup.MembershipChanging = false
+	cr.Status.MemberStateRollup.MembersDown = false
 	cr.Status.MemberStateRollup.ConfigCmdErrors = false
 	cr.Status.MemberStateRollup.PendingConfigDataUpdates = false
 	cr.Status.MemberStateRollup.PendingNotifyCmds = false
@@ -246,11 +290,7 @@ func updateStateRollup(
 		for _, memberStatus := range roleStatus.Members {
 			if shared.StringInList(memberStatus.State, transitionalMemberStates) {
 				cr.Status.MemberStateRollup.MembershipChanging = true
-			}
-			if memberStatus.State == string(memberConfigError) {
-				cr.Status.MemberStateRollup.ConfigCmdErrors = true
-			}
-			if memberStatus.State == string(memberReady) {
+			} else if memberStatus.State == string(memberReady) {
 				// SpecGenerationToProcess should always be non-nil if we have
 				// a ready member, but let's be paranoid.
 				if cr.Status.SpecGenerationToProcess != nil {
@@ -262,6 +302,12 @@ func updateStateRollup(
 						cr.Status.MemberStateRollup.PendingConfigDataUpdates = true
 					}
 				}
+			} else if memberStatus.State == string(memberConfigError) {
+				cr.Status.MemberStateRollup.ConfigCmdErrors = true
+			}
+			if (memberStatus.StateDetail.LastKnownContainerState == containerTerminated) ||
+				(memberStatus.StateDetail.LastKnownContainerState == containerMissing) {
+				cr.Status.MemberStateRollup.MembersDown = true
 			}
 			if len(memberStatus.StateDetail.PendingNotifyCmds) != 0 {
 				cr.Status.MemberStateRollup.PendingNotifyCmds = true

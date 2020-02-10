@@ -121,6 +121,8 @@ type Role struct {
 type StateRollup struct {
 	MembershipChanging       bool `json:"membershipChanging"`
 	MembersDown              bool `json:"membersDown"`
+	MembersWaiting           bool `json:"membersWaiting"`
+	MembersRestarting        bool `json:"membersRestarting"`
 	ConfigCmdErrors          bool `json:"configCmdErrors"`
 	PendingConfigDataUpdates bool `json:"pendingConfigDataUpdates"`
 	PendingNotifyCmds        bool `json:"pendingNotifyCmds"`

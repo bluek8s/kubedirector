@@ -187,6 +187,10 @@ spec:
                   type: boolean
                 membersDown:
                   type: boolean
+                membersWaiting:
+                  type: boolean
+                membersRestarting:
+                  type: boolean
                 configCmdErrors:
                   type: boolean
                 pendingConfigDataUpdates:

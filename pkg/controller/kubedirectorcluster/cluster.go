@@ -283,6 +283,8 @@ func updateStateRollup(
 
 	cr.Status.MemberStateRollup.MembershipChanging = false
 	cr.Status.MemberStateRollup.MembersDown = false
+	cr.Status.MemberStateRollup.MembersWaiting = false
+	cr.Status.MemberStateRollup.MembersRestarting = false
 	cr.Status.MemberStateRollup.ConfigCmdErrors = false
 	cr.Status.MemberStateRollup.PendingConfigDataUpdates = false
 	cr.Status.MemberStateRollup.PendingNotifyCmds = false
@@ -302,19 +304,21 @@ func updateStateRollup(
 				fallthrough
 			case memberCreatePending:
 				// DO NOT check member down here; missing container is OK.
-				// Only treat "creation" as a membership change if it is new.
+				// See if this member is new or is "rebooting".
 				if memberStatus.StateDetail.LastConfiguredContainer == "" {
 					cr.Status.MemberStateRollup.MembershipChanging = true
+				} else {
+					cr.Status.MemberStateRollup.MembersRestarting = true
 				}
 			case memberReady:
 				checkMemberDown(memberStatus)
 				// SpecGenerationToProcess should always be non-nil if we have
 				// a ready member, but let's be paranoid.
 				if cr.Status.SpecGenerationToProcess != nil {
-					// Similarly the LastConfigDataGeneration of a ready member
-					// should always be non-nil but eh.
+					// LastConfigDataGeneration of a ready member will be nil
+					// if it has no setup package.
 					if memberStatus.StateDetail.LastConfigDataGeneration == nil {
-						cr.Status.MemberStateRollup.PendingConfigDataUpdates = true
+						cr.Status.MemberStateRollup.PendingConfigDataUpdates = false
 					} else if *cr.Status.SpecGenerationToProcess != *memberStatus.StateDetail.LastConfigDataGeneration {
 						cr.Status.MemberStateRollup.PendingConfigDataUpdates = true
 					}
@@ -328,6 +332,9 @@ func updateStateRollup(
 			case memberConfigError:
 				checkMemberDown(memberStatus)
 				cr.Status.MemberStateRollup.ConfigCmdErrors = true
+			}
+			if memberStatus.StateDetail.LastKnownContainerState == containerWaiting {
+				cr.Status.MemberStateRollup.MembersWaiting = true
 			}
 			if len(memberStatus.StateDetail.PendingNotifyCmds) != 0 {
 				cr.Status.MemberStateRollup.PendingNotifyCmds = true

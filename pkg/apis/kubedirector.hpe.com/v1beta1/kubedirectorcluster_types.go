@@ -152,9 +152,10 @@ type MemberStatus struct {
 // MemberStateDetail digs into detail about the management of configmeta and
 // app scripts in the member.
 type MemberStateDetail struct {
-	ConfigErrorDetail    *string            `json:"configErrorDetail,omitempty"`
-	LastGenerationUpdate *int64             `json:"lastGenerationUpdate,omitempty"`
-	PendingNotifyCmds    []NotificationDesc `json:"PendingNotifyCmds,omitempty"`
+	ConfigErrorDetail        *string             `json:"configErrorDetail,omitempty"`
+	LastConfigDataGeneration *int64              `json:"lastConfigDataGeneration,omitempty"`
+	InitialConfigGeneration  *int64              `json:"initialConfigGeneration,omitempty"`
+	PendingNotifyCmds        []*NotificationDesc `json:"pendingNotifyCmds,omitempty"`
 }
 
 // NotificationDesc contains the info necessary to perform a notify command.

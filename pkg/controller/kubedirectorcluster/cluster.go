@@ -55,6 +55,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 
 	// Set a defer func to write new status and/or finalizers if they change.
 	defer func() {
+		syncMemberNotifies(reqLogger, cr)
 		updateStateRollup(cr)
 		nowHasFinalizer := shared.HasFinalizer(cr)
 		// Bail out if nothing has changed.
@@ -253,11 +254,11 @@ func updateStateRollup(
 				// SpecGenerationToProcess should always be non-nil if we have
 				// a ready member, but let's be paranoid.
 				if cr.Status.SpecGenerationToProcess != nil {
-					// Similarly the LastGenerationUpdate of a ready member
+					// Similarly the LastConfigDataGeneration of a ready member
 					// should always be non-nil but eh.
-					if memberStatus.StateDetail.LastGenerationUpdate == nil {
+					if memberStatus.StateDetail.LastConfigDataGeneration == nil {
 						cr.Status.MemberStateRollup.PendingConfigDataUpdates = true
-					} else if *cr.Status.SpecGenerationToProcess != *memberStatus.StateDetail.LastGenerationUpdate {
+					} else if *cr.Status.SpecGenerationToProcess != *memberStatus.StateDetail.LastConfigDataGeneration {
 						cr.Status.MemberStateRollup.PendingConfigDataUpdates = true
 					}
 				}

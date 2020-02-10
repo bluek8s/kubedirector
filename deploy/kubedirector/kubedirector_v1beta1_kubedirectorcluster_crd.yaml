@@ -228,7 +228,9 @@ spec:
                           properties:
                             configErrorDetail:
                               type: string
-                            lastGenerationUpdate:
+                            lastConfigDataGeneration:
+                              type: integer
+                            initialConfigGeneration:
                               type: integer
                             pendingNotifyCmds:
                               type: array

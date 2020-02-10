@@ -34,13 +34,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
-// syncMembers is responsible for adding or deleting members. It is the only
-// function in this file that is invoked from another file (from the
-// syncCluster function in cluster.go). Along with k8s interactions (changing
-// statefulset replica count), this involves notifying existing members about
-// additions/deletions, and doing any necessary agent installation and/or
-// triggering application setup. This function will modify the member status
-// data structures to update their states.
+// syncMembers is responsible for adding or deleting members. It and
+// syncMemberNotifies are the only functions in this file that are invoked
+// from another file (from the syncCluster function in cluster.go). Along with
+// k8s interactions (changing statefulset replica count), this involves
+// creating notifications to existing members about additions/deletions,
+// injecting configmeta data into members, and triggering application setup.
+// This function will modify the member status data structures to update their
+// states.
 func syncMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
@@ -84,6 +85,72 @@ func syncMembers(
 	return nil
 }
 
+// syncMemberNotifies is responsible processing any existing member
+// notification queues. It and syncMembers are the only functions in this file
+// that are invoked from another file (from the syncCluster function in
+// cluster.go). Along with executing the notify commands into members, this
+// function will modify the member status data structures to update their
+// notification queues.
+func syncMemberNotifies(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+) {
+
+	var membersToProcess []*kdv1.MemberStatus
+	for _, roleStatus := range cr.Status.Roles {
+		numMembers := len(roleStatus.Members)
+		for i := 0; i < numMembers; i++ {
+			memberStatus := &(roleStatus.Members[i])
+			if len(memberStatus.StateDetail.PendingNotifyCmds) != 0 {
+				if memberStatus.State == string(memberReady) {
+					membersToProcess = append(membersToProcess, memberStatus)
+				}
+			}
+		}
+	}
+	numToProcess := len(membersToProcess)
+	if numToProcess == 0 {
+		return
+	}
+	var wgReady sync.WaitGroup
+	wgReady.Add(numToProcess)
+	for _, member := range membersToProcess {
+		go func(m *kdv1.MemberStatus) {
+			defer wgReady.Done()
+			var newQueue []*kdv1.NotificationDesc
+			for _, notify := range m.StateDetail.PendingNotifyCmds {
+				cmd := appPrepStartscript + " " + strings.Join(notify.Arguments, " ")
+				notifyError := executor.RunScript(
+					reqLogger,
+					cr,
+					cr.Namespace,
+					m.Pod,
+					executor.AppContainerName,
+					"app reconfig",
+					strings.NewReader(cmd),
+				)
+				// XXX Note that we don't distinguish here between pod-down
+				// or unreachable and the case where the script runs but
+				// actually returns an error. Arguably in the latter case we
+				// should transition this node to a config error state.
+				if notifyError != nil {
+					newQueue = append(newQueue, notify)
+					shared.LogErrorf(
+						reqLogger,
+						notifyError,
+						cr,
+						shared.EventReasonMember,
+						"failed to notify member{%s} about member changes",
+						m.Pod,
+					)
+				}
+			}
+			m.StateDetail.PendingNotifyCmds = newQueue
+		}(member)
+	}
+	wgReady.Wait()
+}
+
 // handleReadyMembers operates on all members in the role that are currently
 // in the ready state. It will update the configmeta inside each guest with
 // the latest content.
@@ -103,7 +170,7 @@ func handleReadyMembers(
 			defer wgReady.Done()
 			// If this pod never got configmeta (because it has no setup
 			// package), it doesn't need an update.
-			if m.StateDetail.LastGenerationUpdate == nil {
+			if m.StateDetail.LastConfigDataGeneration == nil {
 				shared.LogInfof(
 					reqLogger,
 					cr,
@@ -116,7 +183,7 @@ func handleReadyMembers(
 			}
 			// If this pod has already been updated on a previous handler
 			// pass, skip it.
-			if *m.StateDetail.LastGenerationUpdate == *cr.Status.SpecGenerationToProcess {
+			if *m.StateDetail.LastConfigDataGeneration == *cr.Status.SpecGenerationToProcess {
 				return
 			}
 			pod, podGetErr := observer.GetPod(cr.Namespace, m.Pod)
@@ -163,7 +230,7 @@ func handleReadyMembers(
 				allReadyFinished = false
 				return
 			}
-			m.StateDetail.LastGenerationUpdate = &cr.Generation
+			m.StateDetail.LastConfigDataGeneration = &cr.Generation
 		}(member)
 	}
 	wgReady.Wait()
@@ -371,15 +438,8 @@ func handleCreatingMembers(
 	}
 	wgSetup.Wait()
 
-	// Now let any ready nodes know that some new nodes have appeared.
-	if !notifyReadyNodes(reqLogger, cr, role, allRoles) {
-		shared.LogInfo(
-			reqLogger,
-			cr,
-			shared.EventReasonCluster,
-			"failed to notify all ready nodes for addnodes event",
-		)
-	}
+	// Generate the notifications for all current ready nodes.
+	generateNotifies(reqLogger, cr, role, allRoles)
 
 	// All done, change state for the ones that we configured. We don't need
 	// to update membersByState because these members won't be processed again
@@ -499,14 +559,8 @@ func handleDeletePendingMembers(
 	allRoles []*roleInfo,
 ) {
 
-	if !notifyReadyNodes(reqLogger, cr, role, allRoles) {
-		shared.LogInfo(
-			reqLogger,
-			cr,
-			shared.EventReasonCluster,
-			"failed to notify all ready nodes for delnodes event",
-		)
-	}
+	// Generate the notifications for all current ready nodes.
+	generateNotifies(reqLogger, cr, role, allRoles)
 
 	// All done, change state.
 	for _, member := range role.membersByState[memberDeletePending] {
@@ -753,29 +807,16 @@ func injectFiles(
 	return nil
 }
 
-// notifyReadyNodes sends a lifecycle event notification to all ready nodes
-// in the cluster, informing about changes in the indicated role. If a notify
-// can't be performed, the notify is placed in the member's list of pending
-// notifies.
-func notifyReadyNodes(
+// generateNotifies prepares the info for handling a lifecycle event to all
+// currently ready nodes, and adds the info to each such node's notification
+// queue.
+func generateNotifies(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 	allRoles []*roleInfo,
-) bool {
+) {
 
-	totalReady := 0
-	for _, rCheck := range allRoles {
-		if ready, ok := rCheck.membersByState[memberReady]; ok {
-			totalReady += len(ready)
-		}
-	}
-	if totalReady == 0 {
-		return true
-	}
-	allNotifyFinished := true
-	var wgReady sync.WaitGroup
-	wgReady.Add(totalReady)
 	for _, otherRole := range allRoles {
 		if len(otherRole.membersByState[memberReady]) == 0 {
 			// This is not just an optimization; note also that in the case
@@ -795,44 +836,36 @@ func notifyReadyNodes(
 			)
 			setupURL = ""
 		}
+		if setupURL == "" {
+			// No notification necessary for any member in this role.
+			shared.LogInfof(
+				reqLogger,
+				cr,
+				shared.EventReasonRole,
+				"notify skipped for members in role{%s}",
+				otherRole.roleStatus.Name,
+			)
+			continue
+		}
 		if ready, ok := otherRole.membersByState[memberReady]; ok {
 			for _, member := range ready {
-				go func(m *kdv1.MemberStatus, r *roleInfo) {
-					defer wgReady.Done()
-
-					if setupURL == "" {
-						// No notification necessary for this role
-						shared.LogInfof(
-							reqLogger,
-							cr,
-							shared.EventReasonMember,
-							"notify skipped for member{%s} in role{%s}",
-							m.Pod,
-							r.roleStatus.Name,
-						)
-						return
+				// For a ready node, initialConfigGeneration should always be
+				// set, but we'll be paranoid.
+				if member.StateDetail.InitialConfigGeneration != nil {
+					if *member.StateDetail.InitialConfigGeneration == cr.Generation {
+						// This node already knows about any members in this
+						// spec. Don't notify it.
+						continue
 					}
-
-					configErr := appReConfig(reqLogger, cr, m.Pod, &m.StateDetail, r.roleStatus.Name, role)
-					if configErr != nil {
-						shared.LogErrorf(
-							reqLogger,
-							configErr,
-							cr,
-							shared.EventReasonMember,
-							"failed to notify member{%s} in role{%s}",
-							m.Pod,
-							role.roleStatus.Name,
-						)
-						allNotifyFinished = false
-						return
-					}
-				}(member, otherRole)
+				}
+				queueNotify(
+					cr,
+					&member.StateDetail,
+					role,
+				)
 			}
 		}
 	}
-	wgReady.Wait()
-	return allNotifyFinished
 }
 
 // appConfig does the initial run of a member's app setup script, including
@@ -876,6 +909,7 @@ func appConfig(
 		// All done, what status did we get?
 		status, convErr := strconv.Atoi(statusStr)
 		if convErr == nil && status == 0 {
+			stateDetail.InitialConfigGeneration = stateDetail.LastConfigDataGeneration
 			return true, nil
 		}
 		statusErr := fmt.Errorf(
@@ -898,7 +932,7 @@ func appConfig(
 	if configmetaErr != nil {
 		return true, configmetaErr
 	}
-	stateDetail.LastGenerationUpdate = &cr.Generation
+	stateDetail.LastConfigDataGeneration = &cr.Generation
 	// Set up configcli package for this member (if not set up already).
 	prepErr := setupNodePrep(reqLogger, cr, podName)
 	if prepErr != nil {
@@ -925,25 +959,22 @@ func appConfig(
 	return false, nil
 }
 
-// appReConfig notifies a member's app setup script, if any, about cluster
-// lifecycle events after initial configuration. We are notifying about new
-// members either being added to the otherRole (if it has members in
-// creating state) or being removed (if it has members in delete_pending
-// state).
-func appReConfig(
-	reqLogger logr.Logger,
+// queueNotify prepares the info for handling a lifecycle event to a currently
+// ready node, and adds the info to the node's notification queue. We are
+// notifying about new members either being added to the modifiedRole (if it
+// has members in creating state) or being removed (if it has members in
+// delete pending state).
+func queueNotify(
 	cr *kdv1.KubeDirectorCluster,
-	podName string,
 	stateDetail *kdv1.MemberStateDetail,
-	roleName string,
-	otherRole *roleInfo,
-) error {
+	modifiedRole *roleInfo,
+) {
 
 	// Figure out which lifecycle event we're dealing with, and collect the
 	// FQDNs of the affected members.
 	op := ""
 	deltaFqdns := ""
-	if creating, ok := otherRole.membersByState[memberCreating]; ok {
+	if creating, ok := modifiedRole.membersByState[memberCreating]; ok {
 		// Members in this list are either marked with the creating state
 		// or configured_internal. The fqdnsList function will appropriately
 		// skip the ones in the creating state since they are unconfigured.
@@ -951,7 +982,7 @@ func appReConfig(
 		deltaFqdns = fqdnsList(cr, creating)
 	}
 	if op == "" {
-		if deletePending, ok := otherRole.membersByState[memberDeletePending]; ok {
+		if deletePending, ok := modifiedRole.membersByState[memberDeletePending]; ok {
 			op = "delnodes"
 			deltaFqdns = fqdnsList(cr, deletePending)
 		}
@@ -960,43 +991,24 @@ func appReConfig(
 		// No nodes actually being created/deleted. One example of this
 		// is in the creating case where none have been successfully
 		// configured.
-		return nil
+		return
 	}
-
-	// Compose and run the command line.
-	cmdComponents := []string{
-		appPrepStartscript,
+	// Compose the notify command arguments.
+	arguments := []string{
 		"--" + op,
 		"--nodegroup 1", // currently only 1 nodegroup possible
 		"--role",
-		otherRole.roleStatus.Name,
+		modifiedRole.roleStatus.Name,
 		"--fqdns",
 		deltaFqdns,
 	}
-	cmd := strings.Join(cmdComponents, " ")
-	notifyResult := executor.RunScript(
-		reqLogger,
-		cr,
-		cr.Namespace,
-		podName,
-		executor.AppContainerName,
-		"app reconfig",
-		strings.NewReader(cmd),
-	)
-	// XXX Note that we don't distinguish here between pod-down/unreachable
-	// and the case where the script runs but actually returns an error.
-	// Arguably in the latter case we should transition this node to a
-	// config error state.
-	if notifyResult != nil {
-		notifyDesc := kdv1.NotificationDesc{
-			Arguments: cmdComponents[1:],
-		}
-		stateDetail.PendingNotifyCmds = append(
-			stateDetail.PendingNotifyCmds,
-			notifyDesc,
-		)
+	notifyDesc := kdv1.NotificationDesc{
+		Arguments: arguments,
 	}
-	return notifyResult
+	stateDetail.PendingNotifyCmds = append(
+		stateDetail.PendingNotifyCmds,
+		&notifyDesc,
+	)
 }
 
 // fqdnsList generates a comma-separated list of FQDNs given a list of members.

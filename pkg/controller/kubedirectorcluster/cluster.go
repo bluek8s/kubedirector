@@ -170,7 +170,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		)
 	}
 
-	checkContainerStates(cr)
+	checkContainerStates(reqLogger, cr)
 
 	clusterServiceErr := syncClusterService(reqLogger, cr)
 	if clusterServiceErr != nil {
@@ -235,8 +235,10 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 }
 
 // checkContainerStates updates the lastKnownContainerState in each member
-// status.
+// status. It will also move ready or config-error nodes back to create pending
+// status if their container ID has changed.
 func checkContainerStates(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 ) {
 
@@ -246,12 +248,14 @@ func checkContainerStates(
 		numMemberStatuses := len(roleStatus.Members)
 		for j := 0; j < numMemberStatuses; j++ {
 			memberStatus := &(roleStatus.Members[j])
+			containerID := ""
 			if memberStatus.Pod != "" {
 				memberStatus.StateDetail.LastKnownContainerState = containerMissing
 				pod, podErr := observer.GetPod(cr.Namespace, memberStatus.Pod)
 				if podErr == nil {
 					for _, containerStatus := range pod.Status.ContainerStatuses {
 						if containerStatus.Name == executor.AppContainerName {
+							containerID = containerStatus.ContainerID
 							if containerStatus.State.Running != nil {
 								memberStatus.StateDetail.LastKnownContainerState = containerRunning
 							} else if containerStatus.State.Waiting != nil {
@@ -261,14 +265,35 @@ func checkContainerStates(
 							} else {
 								memberStatus.StateDetail.LastKnownContainerState = containerUnknown
 							}
-							continue
+							break
 						}
 					}
 				} else {
 					if !errors.IsNotFound(podErr) {
 						memberStatus.StateDetail.LastKnownContainerState = containerUnknown
 					}
-					continue
+				}
+				if (memberStatus.State == string(memberReady)) ||
+					(memberStatus.State == string(memberConfigError)) {
+					if containerID != memberStatus.StateDetail.LastConfiguredContainer {
+						memberStatus.State = string(memberCreatePending)
+						if memberStatus.PVC != "" {
+							// No persistent storage, so any previously uploaded
+							// stuff has been lost.
+							memberStatus.StateDetail.LastConfigDataGeneration = nil
+							memberStatus.StateDetail.InitialConfigGeneration = nil
+							// We will completely rerun the config, so drop any
+							// pending notifies.
+							memberStatus.StateDetail.PendingNotifyCmds = []*kdv1.NotificationDesc{}
+						}
+						shared.LogInfof(
+							reqLogger,
+							cr,
+							shared.EventReasonMember,
+							"container ID has changed; refreshing member{%s} configuration",
+							memberStatus.Pod,
+						)
+					}
 				}
 			}
 		}

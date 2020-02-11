@@ -189,27 +189,7 @@ func handleReadyMembers(
 			if *m.StateDetail.LastConfigDataGeneration == *cr.Status.SpecGenerationToProcess {
 				return
 			}
-			pod, podGetErr := observer.GetPod(cr.Namespace, m.Pod)
-			if podGetErr != nil {
-				// Can't get the pod. Skip it and try again later.
-				shared.LogErrorf(
-					reqLogger,
-					podGetErr,
-					cr,
-					shared.EventReasonMember,
-					"failed to find member{%s} in role{%s}",
-					m.Pod,
-					role.roleStatus.Name,
-				)
-				allReadyFinished = false
-				return
-			}
-			// Only attempt to push the file if the pod is running.
-			if pod.Status.Phase != corev1.PodRunning {
-				// We don't treat this as a problem; pod will get updated
-				// later.
-				return
-			}
+			// Drop in the new configmeta.
 			configmeta := configmetaGenerator(m.Pod)
 			createFileErr := executor.CreateFile(
 				reqLogger,
@@ -356,6 +336,14 @@ func handleCreatingMembers(
 
 			containerID := m.StateDetail.ConfiguringContainer
 			setFinalState := func(state memberState, errorDetail *string) {
+				if state == memberConfigured {
+					// If this is a restarted container, we don't want to
+					// send anyone notifications about it (because they
+					// already know). Go straight to the ready state.
+					if m.StateDetail.LastConfiguredContainer != "" {
+						state = memberReady
+					}
+				}
 				m.State = string(state)
 				m.StateDetail.LastConfiguredContainer = containerID
 				m.StateDetail.ConfiguringContainer = ""
@@ -456,7 +444,8 @@ func handleCreatingMembers(
 	}
 	wgSetup.Wait()
 
-	// Generate the notifications for all current ready nodes.
+	// Generate the notifications for the members just marked "configured",
+	// to later send to any ready nodes that aren't up-to-date.
 	generateNotifies(reqLogger, cr, role, allRoles)
 
 	// All done, change state for the ones that we configured. We don't need
@@ -577,7 +566,8 @@ func handleDeletePendingMembers(
 	allRoles []*roleInfo,
 ) {
 
-	// Generate the notifications for all current ready nodes.
+	// Generate the notifications for these members, to later send to any
+	// ready nodes that aren't up-to-date.
 	generateNotifies(reqLogger, cr, role, allRoles)
 
 	// All done, change state.
@@ -910,42 +900,51 @@ func appConfig(
 	configmetaGenerator func(string) string,
 ) (bool, error) {
 
-	// For initial configuration, startscript will run asynchronously and we
-	// will check back periodically. So let's have a look at the existing
-	// status if any.
-	var statusStrB strings.Builder
-	fileExists, fileError := executor.ReadFile(
-		reqLogger,
-		cr,
-		cr.Namespace,
-		podName,
-		expectedContainerID,
-		executor.AppContainerName,
-		appPrepConfigStatus,
-		&statusStrB,
-	)
-	if fileError != nil {
-		return true, fileError
-	}
-
-	if fileExists {
-		// Configure script was previously started.
-		statusStr := statusStrB.String()
-		if statusStr == "" {
-			// Script is still running.
-			return false, nil
-		}
-		// All done, what status did we get?
-		status, convErr := strconv.Atoi(statusStr)
-		if convErr == nil && status == 0 {
-
-			return true, nil
-		}
-		statusErr := fmt.Errorf(
-			"configure failed with exit status {%s}",
-			statusStr,
+	// If a config error detail already exists, this is a restart of a member
+	// that had been in config error state. In that case we won't try
+	// checking the existing state within the guest.
+	if stateDetail.ConfigErrorDetail != nil {
+		// Clean up for the retry.
+		stateDetail.ConfigErrorDetail = nil
+		stateDetail.InitialConfigGeneration = nil
+		stateDetail.PendingNotifyCmds = []*kdv1.NotificationDesc{}
+	} else {
+		// For initial configuration, startscript will run asynchronously and we
+		// will check back periodically. So let's have a look at the existing
+		// status if any.
+		var statusStrB strings.Builder
+		fileExists, fileError := executor.ReadFile(
+			reqLogger,
+			cr,
+			cr.Namespace,
+			podName,
+			expectedContainerID,
+			executor.AppContainerName,
+			appPrepConfigStatus,
+			&statusStrB,
 		)
-		return true, statusErr
+		if fileError != nil {
+			return true, fileError
+		}
+		if fileExists {
+			// Configure script was previously started.
+			statusStr := statusStrB.String()
+			if statusStr == "" {
+				// Script is still running.
+				return false, nil
+			}
+			// All done, what status did we get?
+			status, convErr := strconv.Atoi(statusStr)
+			if convErr == nil && status == 0 {
+
+				return true, nil
+			}
+			statusErr := fmt.Errorf(
+				"configure failed with exit status {%s}",
+				statusStr,
+			)
+			return true, statusErr
+		}
 	}
 	// We haven't successfully started the configure script yet.
 	// First upload the configmeta file.

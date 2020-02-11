@@ -376,9 +376,12 @@ func handleDeletingMembers(
 	role *roleInfo,
 ) {
 
-	// Fix statefulset if necessary.
-	if !checkMemberCount(reqLogger, cr, role) {
-		return
+	// Fix statefulset if necessary. Note that the statefulset might not exist
+	// in this case, so check that.
+	if role.statefulSet != nil {
+		if !checkMemberCount(reqLogger, cr, role) {
+			return
+		}
 	}
 	// We won't call replicasSynced here. We've already sent out the delete
 	// notifies, so it wouldn't help batch those up. And it's nice to be

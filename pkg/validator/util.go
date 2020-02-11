@@ -82,7 +82,7 @@ func createWebhookService(
 			},
 		},
 	}
-	return shared.Client().Create(context.TODO(), service)
+	return shared.Create(context.TODO(), service)
 }
 
 // createAdmissionService creates our MutatingWebhookConfiguration resource
@@ -167,7 +167,7 @@ func createAdmissionService(
 		Webhooks: []v1beta1.Webhook{webhookHandler},
 	}
 
-	return shared.Client().Create(context.TODO(), validator)
+	return shared.Create(context.TODO(), validator)
 }
 
 // createCertsSecret creates a self-signed certificate and stores it as a
@@ -218,7 +218,7 @@ func createCertsSecret(
 		},
 	}
 
-	result := shared.Client().Create(context.TODO(), secret)
+	result := shared.Create(context.TODO(), secret)
 
 	return secret, result
 }

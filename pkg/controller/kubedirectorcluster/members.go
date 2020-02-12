@@ -16,6 +16,7 @@ package kubedirectorcluster
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -927,23 +928,35 @@ func appConfig(
 			return true, fileError
 		}
 		if fileExists {
-			// Configure script was previously started.
+			// Configure script was previously started. Extract the container
+			// ID where it is/was run, and see if we have a final config status.
 			statusStr := statusStrB.String()
-			if statusStr == "" {
-				// Script is still running.
-				return false, nil
+			splitPoint := strings.LastIndex(statusStr, "=")
+			if splitPoint == -1 {
+				// That's odd. It's not the file that we wrote...
+				err := errors.New("configure failed with malformed status file")
+				return true, err
 			}
-			// All done, what status did we get?
-			status, convErr := strconv.Atoi(statusStr)
-			if convErr == nil && status == 0 {
-
-				return true, nil
+			configContainerID, configStatus := statusStr[:splitPoint], statusStr[splitPoint+1:]
+			if configStatus == "" {
+				// Script isn't done. But was it interrupted by a container
+				// restart? If not we will return and check again later; if so
+				// we will fall through and try to start setup from scratch.
+				if configContainerID == expectedContainerID {
+					return false, nil
+				}
+			} else {
+				// All done, what status did we get?
+				status, convErr := strconv.Atoi(configStatus)
+				if convErr == nil && status == 0 {
+					return true, nil
+				}
+				statusErr := fmt.Errorf(
+					"configure failed with exit status {%s}",
+					configStatus,
+				)
+				return true, statusErr
 			}
-			statusErr := fmt.Errorf(
-				"configure failed with exit status {%s}",
-				statusStr,
-			)
-			return true, statusErr
 		}
 	}
 	// We haven't successfully started the configure script yet.
@@ -974,6 +987,7 @@ func appConfig(
 		return true, setupErr
 	}
 	// Now kick off the initial config.
+	cmd := fmt.Sprintf(appPrepConfigRunCmd, expectedContainerID)
 	cmdErr := executor.RunScript(
 		reqLogger,
 		cr,
@@ -982,7 +996,7 @@ func appConfig(
 		expectedContainerID,
 		executor.AppContainerName,
 		"app config",
-		strings.NewReader(appPrepConfigRunCmd),
+		strings.NewReader(cmd),
 	)
 	if cmdErr != nil {
 		return true, cmdErr

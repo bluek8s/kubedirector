@@ -32,7 +32,6 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/validator"
 	"github.com/bluek8s/kubedirector/version"
 
-	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	"github.com/operator-framework/operator-sdk/pkg/metrics"
 	"github.com/operator-framework/operator-sdk/pkg/restmapper"
@@ -81,16 +80,21 @@ func main() {
 
 	printVersion()
 
-	// Become the leader before proceeding.
 	ctx := context.TODO()
-	leaderErr := leader.Become(ctx, "kubedirector-lock")
-	if leaderErr != nil {
-		log.Error(
-			leaderErr,
-			"failed to become \"leader\"... is another KubeDirector active?",
-		)
-		os.Exit(1)
-	}
+
+	// Become the leader before proceeding.
+	// XXX Actually let's not. This has bugs in current operator SDK; cf.
+	// https://github.com/bluek8s/kubedirector/issues/265
+	// We can and should return to doing this when we move to a version of the
+	// SDK where this is more reliable.
+	// leaderErr := leader.Become(ctx, "kubedirector-lock")
+	// if leaderErr != nil {
+	// 	log.Error(
+	// 		leaderErr,
+	// 		"failed to become \"leader\"... is another KubeDirector active?",
+	// 	)
+	// 	os.Exit(1)
+	// }
 
 	// Create the overall controller-runtime manager. Note that it will watch
 	// all namespaces because of the specified emptystring for Namespace.

@@ -85,7 +85,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			if (updateErr == nil) && finalizersChanged {
 				// See https://github.com/bluek8s/kubedirector/issues/194
 				// Migrate Client().Update() calls back to Patch() calls.
-				updateErr = shared.Client().Update(context.TODO(), cr)
+				updateErr = shared.Update(context.TODO(), cr)
 			}
 			// Bail out if we're done.
 			if updateErr == nil {

@@ -39,5 +39,5 @@ func DeletePVC(
 			Namespace: namespace,
 		},
 	}
-	return shared.Client().Delete(context.TODO(), toDelete)
+	return shared.Delete(context.TODO(), toDelete)
 }

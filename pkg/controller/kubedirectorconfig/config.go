@@ -77,7 +77,7 @@ func (r *ReconcileKubeDirectorConfig) syncConfig(
 			if statusChanged {
 				cr.Status.GenerationUID = uuid.New().String()
 				StatusGens.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
-				updateErr = shared.Client().Status().Update(context.TODO(), cr)
+				updateErr = shared.StatusUpdate(context.TODO(), cr)
 				// If this succeeded, no need to do it again on next iteration
 				// if we're just cycling because of a failure to update the
 				// finalizer.
@@ -90,7 +90,7 @@ func (r *ReconcileKubeDirectorConfig) syncConfig(
 			if (updateErr == nil) && finalizersChanged {
 				// See https://github.com/bluek8s/kubedirector/issues/194
 				// Migrate Client().Update() calls back to Patch() calls.
-				updateErr = shared.Client().Update(context.TODO(), cr)
+				updateErr = shared.Update(context.TODO(), cr)
 			}
 			// Bail out if we're done.
 			if updateErr == nil {

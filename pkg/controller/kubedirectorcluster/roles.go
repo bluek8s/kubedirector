@@ -349,7 +349,9 @@ func handleRoleReCreate(
 			member := &(role.roleStatus.Members[i])
 			switch memberState(member.State) {
 			case memberDeletePending:
+				fallthrough
 			case memberReady:
+				fallthrough
 			case memberConfigError:
 				member.State = string(memberDeletePending)
 			default:

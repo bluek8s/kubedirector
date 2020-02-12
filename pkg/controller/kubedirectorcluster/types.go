@@ -62,11 +62,13 @@ var deletingMemberStates = []string{
 }
 
 const (
-	containerRunning    = "running"
-	containerWaiting    = "waiting"
-	containerTerminated = "terminated"
-	containerMissing    = "absent"
-	containerUnknown    = "unknown"
+	containerRunning      = "running"
+	containerWaiting      = "waiting"
+	containerInitializing = "initializing"
+	containerUnresponsive = "unresponsive"
+	containerTerminated   = "terminated"
+	containerMissing      = "absent"
+	containerUnknown      = "unknown"
 )
 
 const (

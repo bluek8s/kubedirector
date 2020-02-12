@@ -27,6 +27,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -261,9 +262,36 @@ func checkContainerStates(
 						if containerStatus.Name == executor.AppContainerName {
 							containerID = containerStatus.ContainerID
 							if containerStatus.State.Running != nil {
-								memberStatus.StateDetail.LastKnownContainerState = containerRunning
+								if (cr.Status.SpecGenerationToProcess != nil) &&
+									(memberStatus.StateDetail.LastConfigDataGeneration != nil) &&
+									(*cr.Status.SpecGenerationToProcess != *memberStatus.StateDetail.LastConfigDataGeneration) {
+									memberStatus.StateDetail.LastKnownContainerState = containerUnresponsive
+								} else if len(memberStatus.StateDetail.PendingNotifyCmds) != 0 {
+									memberStatus.StateDetail.LastKnownContainerState = containerUnresponsive
+								} else {
+									memberStatus.StateDetail.LastKnownContainerState = containerUnknown
+									for _, condition := range pod.Status.Conditions {
+										if condition.Type == corev1.PodReady {
+											switch condition.Status {
+											case corev1.ConditionTrue:
+												memberStatus.StateDetail.LastKnownContainerState = containerRunning
+											case corev1.ConditionFalse:
+												memberStatus.StateDetail.LastKnownContainerState = containerUnresponsive
+											}
+											break
+										}
+									}
+								}
 							} else if containerStatus.State.Waiting != nil {
-								memberStatus.StateDetail.LastKnownContainerState = containerWaiting
+								// Don't rely on the waiting state Reason here
+								// to determine if init is running; it's an
+								// arbitrary string we possibly can't depend on.
+								if (len(pod.Status.InitContainerStatuses) != 0) &&
+									(pod.Status.InitContainerStatuses[0].State.Terminated == nil) {
+									memberStatus.StateDetail.LastKnownContainerState = containerInitializing
+								} else {
+									memberStatus.StateDetail.LastKnownContainerState = containerWaiting
+								}
 							} else if containerStatus.State.Terminated != nil {
 								memberStatus.StateDetail.LastKnownContainerState = containerTerminated
 							} else {
@@ -281,7 +309,14 @@ func checkContainerStates(
 					(memberStatus.State == string(memberConfigError)) {
 					if containerID != memberStatus.StateDetail.LastConfiguredContainer {
 						memberStatus.State = string(memberCreatePending)
-						if memberStatus.PVC != "" {
+						if memberStatus.PVC == "" {
+							shared.LogInfof(
+								reqLogger,
+								cr,
+								shared.EventReasonMember,
+								"container ID has changed for member{%s}; no persistent storage, will re-run setup",
+								memberStatus.Pod,
+							)
 							// No persistent storage, so any previously uploaded
 							// stuff has been lost.
 							memberStatus.StateDetail.LastConfigDataGeneration = nil
@@ -289,14 +324,15 @@ func checkContainerStates(
 							// We will completely rerun the config, so drop any
 							// pending notifies.
 							memberStatus.StateDetail.PendingNotifyCmds = []*kdv1.NotificationDesc{}
+						} else {
+							shared.LogInfof(
+								reqLogger,
+								cr,
+								shared.EventReasonMember,
+								"container ID has changed for member{%s}; will re-check setup",
+								memberStatus.Pod,
+							)
 						}
-						shared.LogInfof(
-							reqLogger,
-							cr,
-							shared.EventReasonMember,
-							"container ID has changed; refreshing member{%s} configuration",
-							memberStatus.Pod,
-						)
 					}
 				}
 			}
@@ -314,12 +350,11 @@ func updateStateRollup(
 	cr.Status.MemberStateRollup.MembersDown = false
 	cr.Status.MemberStateRollup.MembersWaiting = false
 	cr.Status.MemberStateRollup.MembersRestarting = false
-	cr.Status.MemberStateRollup.ConfigCmdErrors = false
-	cr.Status.MemberStateRollup.PendingConfigDataUpdates = false
-	cr.Status.MemberStateRollup.PendingNotifyCmds = false
+	cr.Status.MemberStateRollup.ConfigErrors = false
 
 	checkMemberDown := func(memberStatus kdv1.MemberStatus) {
 		if (memberStatus.StateDetail.LastKnownContainerState == containerTerminated) ||
+			(memberStatus.StateDetail.LastKnownContainerState == containerUnresponsive) ||
 			(memberStatus.StateDetail.LastKnownContainerState == containerMissing) {
 			cr.Status.MemberStateRollup.MembersDown = true
 		}
@@ -341,17 +376,6 @@ func updateStateRollup(
 				}
 			case memberReady:
 				checkMemberDown(memberStatus)
-				// SpecGenerationToProcess should always be non-nil if we have
-				// a ready member, but let's be paranoid.
-				if cr.Status.SpecGenerationToProcess != nil {
-					// LastConfigDataGeneration of a ready member will be nil
-					// if it has no setup package.
-					if memberStatus.StateDetail.LastConfigDataGeneration == nil {
-						cr.Status.MemberStateRollup.PendingConfigDataUpdates = false
-					} else if *cr.Status.SpecGenerationToProcess != *memberStatus.StateDetail.LastConfigDataGeneration {
-						cr.Status.MemberStateRollup.PendingConfigDataUpdates = true
-					}
-				}
 			case memberDeletePending:
 				checkMemberDown(memberStatus)
 				fallthrough
@@ -360,13 +384,10 @@ func updateStateRollup(
 				cr.Status.MemberStateRollup.MembershipChanging = true
 			case memberConfigError:
 				checkMemberDown(memberStatus)
-				cr.Status.MemberStateRollup.ConfigCmdErrors = true
+				cr.Status.MemberStateRollup.ConfigErrors = true
 			}
 			if memberStatus.StateDetail.LastKnownContainerState == containerWaiting {
 				cr.Status.MemberStateRollup.MembersWaiting = true
-			}
-			if len(memberStatus.StateDetail.PendingNotifyCmds) != 0 {
-				cr.Status.MemberStateRollup.PendingNotifyCmds = true
 			}
 		}
 	}

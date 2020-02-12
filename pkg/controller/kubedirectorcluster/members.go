@@ -50,17 +50,34 @@ func syncMembers(
 	configmetaGenerator func(string) string,
 ) error {
 
-	// Update configmeta in current ready members if necessary.
-	readyMembersUpdated := true
+	// Update configmeta in current ready members if necessary. These may not
+	// all succeed if any members are down.
 	for _, r := range roles {
 		if _, ok := r.membersByState[memberReady]; ok {
-			readyMembersUpdated = readyMembersUpdated &&
-				handleReadyMembers(reqLogger, cr, r, configmetaGenerator)
+			handleReadyMembers(reqLogger, cr, r, configmetaGenerator)
 		}
 	}
-	if !readyMembersUpdated {
-		// Not an error, we're just not done yet.
-		return nil
+
+	// If any members are still holding onto old configmeta, we can't proceed
+	// to process any membership changes.
+	for _, roleStatus := range cr.Status.Roles {
+		for _, memberStatus := range roleStatus.Members {
+			if memberStatus.StateDetail.LastConfigDataGeneration != nil {
+				// specGenerationToProcess is non-nil if we are calling
+				// syncMembers.
+				if *memberStatus.StateDetail.LastConfigDataGeneration !=
+					*cr.Status.SpecGenerationToProcess {
+					// Not an error, we're just not done yet.
+					shared.LogInfo(
+						reqLogger,
+						cr,
+						shared.EventReasonCluster,
+						"cluster spec change processing blocked on member updates",
+					)
+					return nil
+				}
+			}
+		}
 	}
 
 	// Do the state-appropriate actions for each member in each role.
@@ -163,10 +180,9 @@ func handleReadyMembers(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 	configmetaGenerator func(string) string,
-) bool {
+) {
 
 	ready := role.membersByState[memberReady]
-	allReadyFinished := true
 	var wgReady sync.WaitGroup
 	wgReady.Add(len(ready))
 	for _, member := range ready {
@@ -175,14 +191,6 @@ func handleReadyMembers(
 			// If this pod never got configmeta (because it has no setup
 			// package), it doesn't need an update.
 			if m.StateDetail.LastConfigDataGeneration == nil {
-				shared.LogInfof(
-					reqLogger,
-					cr,
-					shared.EventReasonMember,
-					"config update skipped for member{%s} in role{%s}",
-					m.Pod,
-					role.roleStatus.Name,
-				)
 				return
 			}
 			// If this pod has already been updated on a previous handler
@@ -212,18 +220,12 @@ func handleReadyMembers(
 					m.Pod,
 					role.roleStatus.Name,
 				)
-				allReadyFinished = false
 				return
 			}
-			m.StateDetail.LastConfigDataGeneration = &cr.Generation
+			m.StateDetail.LastConfigDataGeneration = cr.Status.SpecGenerationToProcess
 		}(member)
 	}
 	wgReady.Wait()
-	if !allReadyFinished {
-		// Will try again on next reconciler pass.
-		return false
-	}
-	return true
 }
 
 // handleCreatePendingMembers operates on all members in the role that are
@@ -838,6 +840,12 @@ func generateNotifies(
 	allRoles []*roleInfo,
 ) {
 
+	// specGenerationToProcess should always be non-nil in current usage,
+	// but doesn't hurt to check.
+	if cr.Status.SpecGenerationToProcess == nil {
+		return
+	}
+
 	for _, otherRole := range allRoles {
 		if len(otherRole.membersByState[memberReady]) == 0 {
 			// This is not just an optimization; note also that in the case
@@ -873,7 +881,7 @@ func generateNotifies(
 				// For a ready node, initialConfigGeneration should always be
 				// set, but we'll be paranoid.
 				if member.StateDetail.InitialConfigGeneration != nil {
-					if *member.StateDetail.InitialConfigGeneration == cr.Generation {
+					if *member.StateDetail.InitialConfigGeneration == *cr.Status.SpecGenerationToProcess {
 						// This node already knows about any members in this
 						// spec. Don't notify it.
 						continue
@@ -978,7 +986,7 @@ func appConfig(
 		return true, configmetaErr
 	}
 	// Successfully injected configmeta so record that.
-	stateDetail.LastConfigDataGeneration = &cr.Generation
+	stateDetail.LastConfigDataGeneration = cr.Status.SpecGenerationToProcess
 	// Set up configcli package for this member (if not set up already).
 	prepErr := setupNodePrep(reqLogger, cr, podName, expectedContainerID)
 	if prepErr != nil {

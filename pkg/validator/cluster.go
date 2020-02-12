@@ -95,12 +95,16 @@ func validateSpecChange(
 	}
 
 	// Spec change not allowed if pending notifies.
-	if cr.Status.MemberStateRollup.PendingNotifyCmds {
-		valErrors = append(
-			valErrors,
-			pendingNotifies,
-		)
-		return valErrors, patches
+	for _, roleStatus := range cr.Status.Roles {
+		for _, memberStatus := range roleStatus.Members {
+			if len(memberStatus.StateDetail.PendingNotifyCmds) != 0 {
+				valErrors = append(
+					valErrors,
+					pendingNotifies,
+				)
+				return valErrors, patches
+			}
+		}
 	}
 
 	stringStateModified := string(kubedirectorcluster.ClusterSpecModified)

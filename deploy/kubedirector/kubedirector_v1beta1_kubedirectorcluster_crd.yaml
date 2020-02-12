@@ -191,11 +191,7 @@ spec:
                   type: boolean
                 membersRestarting:
                   type: boolean
-                configCmdErrors:
-                  type: boolean
-                pendingConfigDataUpdates:
-                  type: boolean
-                pendingNotifyCmds:
+                configErrors:
                   type: boolean
             generationUID:
               type: string

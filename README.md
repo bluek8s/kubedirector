@@ -38,4 +38,4 @@ Please read through the [CONTRIBUTING](CONTRIBUTING.md) guide before making a pu
 
 # Code of conduct
 
-Participation in the Kubernetes community is governed by the [KubeDirector Code of Conduct](CODE_OF_CONDUCT.md).
+Participation in the KubeDirector community is governed by the [KubeDirector Code of Conduct](CODE_OF_CONDUCT.md).

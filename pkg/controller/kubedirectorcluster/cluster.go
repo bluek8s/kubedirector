@@ -58,8 +58,12 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		syncMemberNotifies(reqLogger, cr)
 		updateStateRollup(cr)
 		nowHasFinalizer := shared.HasFinalizer(cr)
-		// Bail out if nothing has changed.
-		statusChanged := !reflect.DeepEqual(cr.Status, oldStatus)
+		// Bail out if nothing has changed. Note that if we are deleting we
+		// don't care if status has changed.
+		statusChanged := false
+		if (cr.DeletionTimestamp == nil) || nowHasFinalizer {
+			statusChanged = !reflect.DeepEqual(cr.Status, oldStatus)
+		}
 		finalizersChanged := (hadFinalizer != nowHasFinalizer)
 		if !(statusChanged || finalizersChanged) {
 			return

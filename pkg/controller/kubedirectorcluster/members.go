@@ -920,6 +920,13 @@ func appConfig(
 		stateDetail.ConfigErrorDetail = nil
 		stateDetail.InitialConfigGeneration = nil
 		stateDetail.PendingNotifyCmds = []*kdv1.NotificationDesc{}
+		shared.LogInfof(
+			reqLogger,
+			cr,
+			shared.EventReasonMember,
+			"member{%s} was previously in config error state; re-trying setup",
+			podName,
+		)
 	} else {
 		// For initial configuration, startscript will run asynchronously and we
 		// will check back periodically. So let's have a look at the existing
@@ -956,6 +963,13 @@ func appConfig(
 				if configContainerID == expectedContainerID {
 					return false, nil
 				}
+				shared.LogInfof(
+					reqLogger,
+					cr,
+					shared.EventReasonMember,
+					"previous setup for member{%s} interrupted; re-trying setup",
+					podName,
+				)
 			} else {
 				// All done, what status did we get?
 				status, convErr := strconv.Atoi(configStatus)

@@ -88,11 +88,14 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 				}
 			}
 			// If any necessary status update worked, let's also update
-			// finalizers if necessary.
+			// finalizers if necessary. To be safe, don't include the status
+			// stanza in this write.
 			if (updateErr == nil) && finalizersChanged {
 				// See https://github.com/bluek8s/kubedirector/issues/194
 				// Migrate Client().Update() calls back to Patch() calls.
-				updateErr = shared.Update(context.TODO(), cr)
+				crWithoutStatus := cr.DeepCopy()
+				crWithoutStatus.Status = nil
+				updateErr = shared.Update(context.TODO(), crWithoutStatus)
 			}
 			// Bail out if we're done.
 			if updateErr == nil {

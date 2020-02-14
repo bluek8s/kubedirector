@@ -164,6 +164,8 @@ func syncMemberNotifies(
 						"failed to notify member{%s} about member changes",
 						m.Pod,
 					)
+				} else {
+					m.StateDetail.LastSetupGeneration = m.StateDetail.LastConfigDataGeneration
 				}
 			}
 			m.StateDetail.PendingNotifyCmds = newQueue
@@ -413,8 +415,6 @@ func handleCreatingMembers(
 				)
 				return
 			}
-			// Snapshot the config info regardless of success/failure.
-			m.StateDetail.InitialConfigGeneration = m.StateDetail.LastConfigDataGeneration
 			if configErr != nil {
 				shared.LogErrorf(
 					reqLogger,
@@ -878,10 +878,10 @@ func generateNotifies(
 		}
 		if ready, ok := otherRole.membersByState[memberReady]; ok {
 			for _, member := range ready {
-				// For a ready node, initialConfigGeneration should always be
+				// For a ready node, lastNotifyGeneration should always be
 				// set, but we'll be paranoid.
-				if member.StateDetail.InitialConfigGeneration != nil {
-					if *member.StateDetail.InitialConfigGeneration == *cr.Status.SpecGenerationToProcess {
+				if member.StateDetail.LastSetupGeneration != nil {
+					if *member.StateDetail.LastSetupGeneration == *cr.Status.SpecGenerationToProcess {
 						// This node already knows about any members in this
 						// spec. Don't notify it.
 						continue
@@ -918,7 +918,7 @@ func appConfig(
 	if stateDetail.ConfigErrorDetail != nil {
 		// Clean up for the retry.
 		stateDetail.ConfigErrorDetail = nil
-		stateDetail.InitialConfigGeneration = nil
+		stateDetail.LastSetupGeneration = nil
 		stateDetail.PendingNotifyCmds = []*kdv1.NotificationDesc{}
 		shared.LogInfof(
 			reqLogger,
@@ -971,7 +971,13 @@ func appConfig(
 					podName,
 				)
 			} else {
-				// All done, what status did we get?
+				// Setup has previously completed with success or error. If
+				// the current container is the container that setup was run
+				// on, update LastSetupGeneration to indicate that the last
+				// pushed configmeta was processed.
+				if configContainerID == expectedContainerID {
+					stateDetail.LastSetupGeneration = stateDetail.LastConfigDataGeneration
+				}
 				status, convErr := strconv.Atoi(configStatus)
 				if convErr == nil && status == 0 {
 					return true, nil

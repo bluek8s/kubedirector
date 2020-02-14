@@ -323,7 +323,7 @@ func checkContainerStates(
 							// No persistent storage, so any previously uploaded
 							// stuff has been lost.
 							memberStatus.StateDetail.LastConfigDataGeneration = nil
-							memberStatus.StateDetail.InitialConfigGeneration = nil
+							memberStatus.StateDetail.LastSetupGeneration = nil
 							// We will completely rerun the config, so drop any
 							// pending notifies.
 							memberStatus.StateDetail.PendingNotifyCmds = []*kdv1.NotificationDesc{}

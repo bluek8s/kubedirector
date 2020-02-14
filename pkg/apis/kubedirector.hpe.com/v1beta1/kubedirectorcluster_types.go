@@ -155,7 +155,7 @@ type MemberStatus struct {
 type MemberStateDetail struct {
 	ConfigErrorDetail        *string             `json:"configErrorDetail,omitempty"`
 	LastConfigDataGeneration *int64              `json:"lastConfigDataGeneration,omitempty"`
-	InitialConfigGeneration  *int64              `json:"initialConfigGeneration,omitempty"`
+	LastSetupGeneration      *int64              `json:"lastSetupGeneration,omitempty"`
 	ConfiguringContainer     string              `json:"configuringContainer,omitempty"`
 	LastConfiguredContainer  string              `json:"lastConfiguredContainer,omitempty"`
 	LastKnownContainerState  string              `json:"lastKnownContainerState,omitempty"`

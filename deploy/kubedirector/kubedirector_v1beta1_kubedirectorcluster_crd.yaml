@@ -232,7 +232,7 @@ spec:
                               type: string
                             lastConfigDataGeneration:
                               type: integer
-                            initialConfigGeneration:
+                            lastSetupGeneration:
                               type: integer
                             configuringContainer:
                               type: string

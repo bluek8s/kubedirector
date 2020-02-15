@@ -45,7 +45,6 @@ type memberState string
 const (
 	memberCreatePending memberState = "create pending"
 	memberCreating                  = "creating"
-	memberConfigured                = "configured-internal" // not externally visible
 	memberReady                     = "configured"
 	memberDeletePending             = "delete pending"
 	memberDeleting                  = "deleting"

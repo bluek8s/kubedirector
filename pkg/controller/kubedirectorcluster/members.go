@@ -184,7 +184,10 @@ func syncMemberNotifies(
 					m.StateDetail.LastSetupGeneration = m.StateDetail.LastConfigDataGeneration
 				}
 			}
-			m.StateDetail.PendingNotifyCmds = newQueue
+			// Avoid a useless status write if we just rebuilt the same queue.
+			if len(m.StateDetail.PendingNotifyCmds) != len(newQueue) {
+				m.StateDetail.PendingNotifyCmds = newQueue
+			}
 		}(member)
 	}
 	wgReady.Wait()
@@ -357,17 +360,7 @@ func handleCreatingMembers(
 
 			containerID := m.StateDetail.ConfiguringContainer
 			setFinalState := func(state memberState, errorDetail *string) {
-				if state == memberConfigured {
-					// If this is a restarted container, we don't want to
-					// send anyone notifications about it (because they
-					// already know). Go straight to the ready state.
-					if m.StateDetail.LastConfiguredContainer != "" {
-						state = memberReady
-					}
-				}
 				m.State = string(state)
-				m.StateDetail.LastConfiguredContainer = containerID
-				m.StateDetail.ConfiguringContainer = ""
 				m.StateDetail.ConfigErrorDetail = errorDetail
 			}
 
@@ -394,10 +387,7 @@ func handleCreatingMembers(
 			}
 
 			if setupURL == "" {
-				// Leave this in memberConfigured state so, we don't send
-				// ready notifications to itself below. The next reconciler cycle
-				// will handle this appropriately.
-				setFinalState(memberConfigured, nil)
+				setFinalState(memberReady, nil)
 				shared.LogInfof(
 					reqLogger,
 					cr,
@@ -456,23 +446,26 @@ func handleCreatingMembers(
 				m.Pod,
 				role.roleStatus.Name,
 			)
-			// Set a temporary state used below so we won't send notifies
-			// to this member yet.
-			setFinalState(memberConfigured, nil)
+			setFinalState(memberReady, nil)
 		}(member)
 	}
 	wgSetup.Wait()
 
-	// Generate the notifications for the members just marked "configured",
-	// to later send to any ready nodes that aren't up-to-date.
+	// Generate the notifications to later send to any ready members that
+	// aren't up-to-date. Notifications will not be sent about members in this
+	// list still in the creating state, and also will not be sent about
+	// members that already have lastConfiguredContainer set (i.e. are just
+	// reboots) -- see the fqdnsList function.
 	generateNotifies(reqLogger, cr, role, allRoles)
 
-	// All done, change state for the ones that we configured. We don't need
-	// to update membersByState because these members won't be processed again
-	// until a subsequent reconciler pass anyway.
+	// Now update configuringContainer and lastConfiguredContainer for the
+	// any members no longer in creating state. We don't need to update
+	// membersByState because these members won't be processed again until a
+	// subsequent reconciler pass anyway.
 	for _, member := range creating {
-		if member.State == string(memberConfigured) {
-			member.State = string(memberReady)
+		if member.State != string(memberCreating) {
+			member.StateDetail.LastConfiguredContainer = member.StateDetail.ConfiguringContainer
+			member.StateDetail.ConfiguringContainer = ""
 		}
 	}
 }
@@ -903,7 +896,9 @@ func generateNotifies(
 					continue
 				}
 				queueNotify(
+					reqLogger,
 					cr,
+					member.Pod,
 					&member.StateDetail,
 					role,
 				)
@@ -1067,7 +1062,9 @@ func appConfig(
 // has members in creating state) or being removed (if it has members in
 // delete pending state).
 func queueNotify(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
+	podName string,
 	stateDetail *kdv1.MemberStateDetail,
 	modifiedRole *roleInfo,
 ) {
@@ -1076,12 +1073,13 @@ func queueNotify(
 	// FQDNs of the affected members.
 	op := ""
 	deltaFqdns := ""
-	if creating, ok := modifiedRole.membersByState[memberCreating]; ok {
-		// Members in this list are either marked with the creating state
-		// or configured state. The fqdnsList function will appropriately
-		// skip the ones in the creating state since they are unconfigured.
+	if creatingOrCreated, ok := modifiedRole.membersByState[memberCreating]; ok {
+		// At the time this function is called, members in this list are
+		// marked as creating, ready, or config error. The fqdnsList function
+		// will appropriately skip the ones that are still creating, or the
+		// ones in other states that are just reboots.
 		op = "addnodes"
-		deltaFqdns = fqdnsList(cr, creating)
+		deltaFqdns = fqdnsList(cr, creatingOrCreated)
 	}
 	if op == "" {
 		if deletePending, ok := modifiedRole.membersByState[memberDeletePending]; ok {
@@ -1095,6 +1093,14 @@ func queueNotify(
 		// configured.
 		return
 	}
+	shared.LogInfof(
+		reqLogger,
+		cr,
+		shared.EventReasonNoEvent,
+		"will notify member{%s}: %s",
+		podName,
+		op,
+	)
 	// Compose the notify command arguments.
 	arguments := []string{
 		"--" + op,
@@ -1130,9 +1136,16 @@ func fqdnsList(
 	numMembers := len(members)
 	fqdns := make([]string, 0, numMembers)
 	for i := 0; i < numMembers; i++ {
+		// Grab any member in the deletePending state.
+		if members[i].State == memberDeletePending {
+			fqdns = append(fqdns, getMemberFqdn(members[i]))
+			continue
+		}
 		// Skip any member in the creating state, since it has not been
-		// successfully configured.
-		if members[i].State != memberCreating {
+		// successfully configured. Also skip any member with
+		// lastConfiguredContainer already set since it is a reboot.
+		if (members[i].State != memberCreating) &&
+			(members[i].StateDetail.LastConfiguredContainer == "") {
 			fqdns = append(fqdns, getMemberFqdn(members[i]))
 		}
 	}

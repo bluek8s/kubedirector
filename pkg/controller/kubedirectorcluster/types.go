@@ -24,7 +24,11 @@ type clusterState string
 const (
 	clusterCreating clusterState = "creating"
 	clusterUpdating              = "updating"
-	clusterReady                 = "ready"
+	clusterReady                 = "configured"
+	// ClusterSpecModified is exported because it is actually only used by
+	// the validator; declaring it here just to keep all cluster states in
+	// one spot.
+	ClusterSpecModified = "spec modified"
 )
 
 type clusterStateInternal int
@@ -41,11 +45,29 @@ type memberState string
 const (
 	memberCreatePending memberState = "create pending"
 	memberCreating                  = "creating"
-	memberConfigured                = "configured-internal" // not externally visible
 	memberReady                     = "configured"
 	memberDeletePending             = "delete pending"
 	memberDeleting                  = "deleting"
 	memberConfigError               = "config error"
+)
+
+var creatingMemberStates = []string{
+	string(memberCreatePending),
+	string(memberCreating),
+}
+var deletingMemberStates = []string{
+	string(memberDeletePending),
+	string(memberDeleting),
+}
+
+const (
+	containerRunning      = "running"
+	containerWaiting      = "waiting"
+	containerInitializing = "initializing"
+	containerUnresponsive = "unresponsive"
+	containerTerminated   = "terminated"
+	containerMissing      = "absent"
+	containerUnknown      = "unknown"
 )
 
 const (
@@ -67,11 +89,11 @@ const (
 	rm -rf /opt/guestconfig/appconfig.tgz`
 	appPrepConfigStatus = "/opt/guestconfig/configure.status"
 	appPrepConfigRunCmd = `rm -f /opt/guestconfig/configure.* &&
-	touch ` + appPrepConfigStatus + ` &&
+	echo -n %s= > ` + appPrepConfigStatus + ` &&
 	nohup sh -c "` + appPrepStartscript + ` --configure
 	2> /opt/guestconfig/configure.stderr
 	1> /opt/guestconfig/configure.stdout;
-	echo -n $? > ` + appPrepConfigStatus + `" &`
+	echo -n $? >> ` + appPrepConfigStatus + `" &`
 	fileInjectionCommand = `mkdir -p %s && cd %s &&
 	curl -L %s -o %s`
 )

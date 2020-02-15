@@ -100,7 +100,7 @@ func syncClusterRoles(
 			)
 			panic(panicMsg)
 		}
-		if !allRoleMembersReadyOrError(r) {
+		if !allRoleMembersReadyOrError(cr, r) {
 			allMembersReady = false
 		}
 	}
@@ -245,7 +245,7 @@ func calcRoleMembersByState(
 
 // handleRoleCreate deals with a newly specified role. If the desired population
 // is nonzero then it will create an associated statefulset and create the
-// role status and its member statuses (initially as create_pending). Failure
+// role status and its member statuses (initially as create pending). Failure
 // to create a statefulset will be a reconciler-stopping error.
 func handleRoleCreate(
 	reqLogger logr.Logger,
@@ -341,7 +341,7 @@ func handleRoleReCreate(
 		*anyMembersChanged = true
 		// Need to clean up from the old status before we make a new
 		// statefulset. For any pods that had reached "ready" or "error" state,
-		// we should mark them first as "delete_pending" -- we know we have notified
+		// we should mark them first as "delete pending" -- we know we have notified
 		// other pods of these creations, so we should now notify of deletions.
 		// For other pods we can just move them straight into deleting state.
 		numMembers := len(role.roleStatus.Members)
@@ -437,7 +437,7 @@ func handleRoleResize(
 
 	// We won't even be attempting a resize if there are any creating-state
 	// members, so the current set of "requested members" is just ready plus
-	// create_pending.
+	// create pending.
 	prevDesiredPop :=
 		len(role.membersByState[memberReady]) +
 			len(role.membersByState[memberConfigError]) +
@@ -446,7 +446,7 @@ func handleRoleResize(
 		return
 	}
 	if role.desiredPop > prevDesiredPop {
-		// Only expand if no members are in delete_pending or deleting states;
+		// Only expand if no members are in delete pending or deleting states;
 		// we can't use expand to "rescue" a member that is currently being
 		// deleted. (The way statefulsets reuse FQDNs, we might be able to get
 		// away with that actually, but let's not complicate things.)
@@ -476,7 +476,7 @@ func handleRoleResize(
 	}
 }
 
-// addMemberStatuses adds member statuses to a role, in create_pending state,
+// addMemberStatuses adds member statuses to a role, in create pending state,
 // to bring it up to the desired number of members. It also updates the
 // members-by-state map accordingly.
 func addMemberStatuses(
@@ -517,8 +517,8 @@ func addMemberStatuses(
 }
 
 // deleteMemberStatuses changes member statuses in a role by moving them from
-// to delete_pending state (if currently ready) or deleting state (if currently
-// create_pending or creating), to prepare to shrink the role to the desired
+// to delete pending state (if currently ready) or deleting state (if currently
+// create pending or creating), to prepare to shrink the role to the desired
 // number of members. It also updates the members-by-state map accordingly.
 func deleteMemberStatuses(
 	role *roleInfo,
@@ -579,8 +579,10 @@ func deleteMemberStatuses(
 
 // allRoleMembersReadyOrError examines the members-by-state map and returns
 // whether all existing members are in the ready-state or error-state bucket.
-// (The situation of "no members" will also return true.)
+// (The situation of "no members" will also return true.) Ready members are
+// also checked to make sure they have processed all updates.
 func allRoleMembersReadyOrError(
+	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 ) bool {
 
@@ -588,9 +590,23 @@ func allRoleMembersReadyOrError(
 	case 0:
 		return true
 	default:
-		for key := range role.membersByState {
-			if key != memberReady && key != memberConfigError {
+		for state, members := range role.membersByState {
+			if state != memberReady && state != memberConfigError {
 				return false
+			}
+			if state == memberReady {
+				for _, m := range members {
+					if (m.StateDetail.LastSetupGeneration != nil) &&
+						(cr.Status.SpecGenerationToProcess != nil) {
+						if *m.StateDetail.LastSetupGeneration !=
+							*cr.Status.SpecGenerationToProcess {
+							return false
+						}
+					}
+					if len(m.StateDetail.PendingNotifyCmds) != 0 {
+						return false
+					}
+				}
 			}
 		}
 		return true

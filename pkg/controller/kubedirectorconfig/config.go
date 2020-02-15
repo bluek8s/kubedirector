@@ -61,8 +61,12 @@ func (r *ReconcileKubeDirectorConfig) syncConfig(
 	// Set a defer func to write new status and/or finalizers if they change.
 	defer func() {
 		nowHasFinalizer := shared.HasFinalizer(cr)
-		// Bail out if nothing has changed.
-		statusChanged := !reflect.DeepEqual(cr.Status, oldStatus)
+		// Bail out if nothing has changed. Note that if we are deleting we
+		// don't care if status has changed.
+		statusChanged := false
+		if (cr.DeletionTimestamp == nil) || nowHasFinalizer {
+			statusChanged = !reflect.DeepEqual(cr.Status, oldStatus)
+		}
 		finalizersChanged := (hadFinalizer != nowHasFinalizer)
 		if !(statusChanged || finalizersChanged) {
 			return
@@ -86,11 +90,14 @@ func (r *ReconcileKubeDirectorConfig) syncConfig(
 				}
 			}
 			// If any necessary status update worked, let's also update
-			// finalizers if necessary.
+			// finalizers if necessary. To be safe, don't include the status
+			// stanza in this write.
 			if (updateErr == nil) && finalizersChanged {
 				// See https://github.com/bluek8s/kubedirector/issues/194
 				// Migrate Client().Update() calls back to Patch() calls.
-				updateErr = shared.Update(context.TODO(), cr)
+				crWithoutStatus := cr.DeepCopy()
+				crWithoutStatus.Status = nil
+				updateErr = shared.Update(context.TODO(), crWithoutStatus)
 			}
 			// Bail out if we're done.
 			if updateErr == nil {

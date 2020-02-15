@@ -351,6 +351,7 @@ func updateStateRollup(
 
 	cr.Status.MemberStateRollup.MembershipChanging = false
 	cr.Status.MemberStateRollup.MembersDown = false
+	cr.Status.MemberStateRollup.MembersInitializing = false
 	cr.Status.MemberStateRollup.MembersWaiting = false
 	cr.Status.MemberStateRollup.MembersRestarting = false
 	cr.Status.MemberStateRollup.ConfigErrors = false
@@ -366,9 +367,6 @@ func updateStateRollup(
 	for _, roleStatus := range cr.Status.Roles {
 		for _, memberStatus := range roleStatus.Members {
 			switch memberState(memberStatus.State) {
-			case memberCreating:
-				checkMemberDown(memberStatus)
-				fallthrough
 			case memberCreatePending:
 				// DO NOT check member down here; missing container is OK.
 				// See if this member is new or is "rebooting".
@@ -377,17 +375,33 @@ func updateStateRollup(
 				} else {
 					cr.Status.MemberStateRollup.MembersRestarting = true
 				}
+				// Count missing container as waiting, at this point.
+				if memberStatus.StateDetail.LastKnownContainerState == containerMissing {
+					cr.Status.MemberStateRollup.MembersWaiting = true
+				}
+			case memberCreating:
+				checkMemberDown(memberStatus)
+				// See if this member is new or is "rebooting".
+				if memberStatus.StateDetail.LastConfiguredContainer == "" {
+					cr.Status.MemberStateRollup.MembershipChanging = true
+				} else {
+					cr.Status.MemberStateRollup.MembersRestarting = true
+				}
+				// DO NOT treat missing container as waiting, at this point.
 			case memberReady:
 				checkMemberDown(memberStatus)
 			case memberDeletePending:
 				checkMemberDown(memberStatus)
-				fallthrough
+				cr.Status.MemberStateRollup.MembershipChanging = true
 			case memberDeleting:
 				// DO NOT check member down here; missing container is OK.
 				cr.Status.MemberStateRollup.MembershipChanging = true
 			case memberConfigError:
 				checkMemberDown(memberStatus)
 				cr.Status.MemberStateRollup.ConfigErrors = true
+			}
+			if memberStatus.StateDetail.LastKnownContainerState == containerInitializing {
+				cr.Status.MemberStateRollup.MembersInitializing = true
 			}
 			if memberStatus.StateDetail.LastKnownContainerState == containerWaiting {
 				cr.Status.MemberStateRollup.MembersWaiting = true

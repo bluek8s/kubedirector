@@ -119,11 +119,12 @@ type Role struct {
 // StateRollup surfaces whether any per-member statuses have problems that
 // should be investigated.
 type StateRollup struct {
-	MembershipChanging bool `json:"membershipChanging"`
-	MembersDown        bool `json:"membersDown"`
-	MembersWaiting     bool `json:"membersWaiting"`
-	MembersRestarting  bool `json:"membersRestarting"`
-	ConfigErrors       bool `json:"configErrors"`
+	MembershipChanging  bool `json:"membershipChanging"`
+	MembersDown         bool `json:"membersDown"`
+	MembersInitializing bool `json:"membersInitializing"`
+	MembersWaiting      bool `json:"membersWaiting"`
+	MembersRestarting   bool `json:"membersRestarting"`
+	ConfigErrors        bool `json:"configErrors"`
 }
 
 // ClusterStorage defines the persistent storage size/type, if any, to be used

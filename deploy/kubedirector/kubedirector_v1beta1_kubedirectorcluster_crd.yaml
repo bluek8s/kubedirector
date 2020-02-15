@@ -187,6 +187,8 @@ spec:
                   type: boolean
                 membersDown:
                   type: boolean
+                membersInitializing:
+                  type: boolean
                 membersWaiting:
                   type: boolean
                 membersRestarting:

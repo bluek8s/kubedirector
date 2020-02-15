@@ -51,33 +51,49 @@ func syncMembers(
 ) error {
 
 	// Update configmeta in current ready members if necessary. These may not
-	// all succeed if any members are down.
-	for _, r := range roles {
-		if _, ok := r.membersByState[memberReady]; ok {
-			handleReadyMembers(reqLogger, cr, r, configmetaGenerator)
+	// all succeed if any members are down. We'll return early if we fail to
+	// update any ready members or if there are rebooting members that will
+	// eventually need to be updated.
+	allMembersUpdated := true
+	checkGenOk := func(stateMembers []*kdv1.MemberStatus) bool {
+		for _, member := range stateMembers {
+			if member.StateDetail.LastConfigDataGeneration == nil {
+				continue
+			}
+			if *member.StateDetail.LastConfigDataGeneration == *cr.Status.SpecGenerationToProcess {
+				continue
+			}
+			return false
 		}
+		return true
 	}
-
-	// If any members are still holding onto old configmeta, we can't proceed
-	// to process any membership changes.
-	for _, roleStatus := range cr.Status.Roles {
-		for _, memberStatus := range roleStatus.Members {
-			if memberStatus.StateDetail.LastConfigDataGeneration != nil {
-				// specGenerationToProcess is non-nil if we are calling
-				// syncMembers.
-				if *memberStatus.StateDetail.LastConfigDataGeneration !=
-					*cr.Status.SpecGenerationToProcess {
-					// Not an error, we're just not done yet.
-					shared.LogInfo(
-						reqLogger,
-						cr,
-						shared.EventReasonCluster,
-						"cluster spec change processing blocked on member updates",
-					)
-					return nil
-				}
+	for _, r := range roles {
+		if ready, readyOk := r.membersByState[memberReady]; readyOk {
+			handleReadyMembers(reqLogger, cr, r, configmetaGenerator)
+			if allMembersUpdated {
+				allMembersUpdated = checkGenOk(ready)
 			}
 		}
+		if allMembersUpdated {
+			if createPending, createPendingOk := r.membersByState[memberCreatePending]; createPendingOk {
+				allMembersUpdated = checkGenOk(createPending)
+			}
+		}
+		if allMembersUpdated {
+			if creating, creatingOk := r.membersByState[memberCreating]; creatingOk {
+				allMembersUpdated = checkGenOk(creating)
+			}
+		}
+	}
+	if !allMembersUpdated {
+		// Not an error, we're just not done yet.
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonCluster,
+			"cluster spec change processing blocked on member updates",
+		)
+		return nil
 	}
 
 	// Do the state-appropriate actions for each member in each role.
@@ -831,8 +847,8 @@ func injectFiles(
 }
 
 // generateNotifies prepares the info for handling a lifecycle event to all
-// currently ready nodes, and adds the info to each such node's notification
-// queue.
+// currently ready or rebooting members that have a stale last setup gen. That
+// info is added to each such member's notification queue.
 func generateNotifies(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
@@ -847,10 +863,12 @@ func generateNotifies(
 	}
 
 	for _, otherRole := range allRoles {
-		if len(otherRole.membersByState[memberReady]) == 0 {
+		if len(otherRole.membersByState[memberReady])+
+			len(otherRole.membersByState[memberCreatePending])+
+			len(otherRole.membersByState[memberCreating]) == 0 {
 			// This is not just an optimization; note also that in the case
-			// of a role with zero members (not just zero READY members)
-			// then otherRole.roleStatus referenced below will be nil.
+			// of a role with zero overall members then otherRole.roleStatus
+			// referenced below will be nil. That case is covered here too.
 			continue
 		}
 		setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, otherRole.roleStatus.Name)
@@ -876,16 +894,13 @@ func generateNotifies(
 			)
 			continue
 		}
-		if ready, ok := otherRole.membersByState[memberReady]; ok {
-			for _, member := range ready {
-				// For a ready node, lastNotifyGeneration should always be
-				// set, but we'll be paranoid.
-				if member.StateDetail.LastSetupGeneration != nil {
-					if *member.StateDetail.LastSetupGeneration == *cr.Status.SpecGenerationToProcess {
-						// This node already knows about any members in this
-						// spec. Don't notify it.
-						continue
-					}
+		processor := func(stateMembers []*kdv1.MemberStatus) {
+			for _, member := range stateMembers {
+				if member.StateDetail.LastSetupGeneration == nil {
+					continue
+				}
+				if *member.StateDetail.LastSetupGeneration == *cr.Status.SpecGenerationToProcess {
+					continue
 				}
 				queueNotify(
 					cr,
@@ -893,6 +908,15 @@ func generateNotifies(
 					role,
 				)
 			}
+		}
+		if ready, readyOk := otherRole.membersByState[memberReady]; readyOk {
+			processor(ready)
+		}
+		if createPending, createPendingOk := otherRole.membersByState[memberCreatePending]; createPendingOk {
+			processor(createPending)
+		}
+		if creating, creatingOk := otherRole.membersByState[memberCreating]; creatingOk {
+			processor(creating)
 		}
 	}
 }
@@ -974,9 +998,11 @@ func appConfig(
 				// Setup has previously completed with success or error. If
 				// the current container is the container that setup was run
 				// on, update LastSetupGeneration to indicate that the last
-				// pushed configmeta was processed.
+				// pushed configmeta was processed. Clear any pending notifies
+				// because we captured that info as part of setup.
 				if configContainerID == expectedContainerID {
 					stateDetail.LastSetupGeneration = stateDetail.LastConfigDataGeneration
+					stateDetail.PendingNotifyCmds = []*kdv1.NotificationDesc{}
 				}
 				status, convErr := strconv.Atoi(configStatus)
 				if convErr == nil && status == 0 {

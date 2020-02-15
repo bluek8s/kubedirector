@@ -100,7 +100,7 @@ func syncClusterRoles(
 			)
 			panic(panicMsg)
 		}
-		if !allRoleMembersReadyOrError(r) {
+		if !allRoleMembersReadyOrError(cr, r) {
 			allMembersReady = false
 		}
 	}
@@ -579,8 +579,10 @@ func deleteMemberStatuses(
 
 // allRoleMembersReadyOrError examines the members-by-state map and returns
 // whether all existing members are in the ready-state or error-state bucket.
-// (The situation of "no members" will also return true.)
+// (The situation of "no members" will also return true.) Ready members are
+// also checked to make sure they have processed all updates.
 func allRoleMembersReadyOrError(
+	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 ) bool {
 
@@ -588,9 +590,23 @@ func allRoleMembersReadyOrError(
 	case 0:
 		return true
 	default:
-		for key := range role.membersByState {
-			if key != memberReady && key != memberConfigError {
+		for state, members := range role.membersByState {
+			if state != memberReady && state != memberConfigError {
 				return false
+			}
+			if state == memberReady {
+				for _, m := range members {
+					if (m.StateDetail.LastSetupGeneration != nil) &&
+						(cr.Status.SpecGenerationToProcess != nil) {
+						if *m.StateDetail.LastSetupGeneration !=
+							*cr.Status.SpecGenerationToProcess {
+							return false
+						}
+					}
+					if len(m.StateDetail.PendingNotifyCmds) != 0 {
+						return false
+					}
+				}
 			}
 		}
 		return true

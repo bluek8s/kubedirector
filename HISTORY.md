@@ -40,24 +40,24 @@ A complete list of changes in this release:
 * Support for a liveness probe via the /healthz URL on port 8443. See the comments in the deployment YAML for an example of how to enable the probe, and why you might not want to do this during development.
 
 * Regularized the naming of generated objects:
-  * headless service is named kdhs-<hs-unique>
-  * statefulset is named kdss-<ss-unique>
-  * pod in statefulset is named kdss-<ss-unique>-<podnum>
-  * service exposing a pod's ports is named s-kdss-<ss-unique>-<podnum>
-  * PVC persisting a pod's data is named p-kdss-<ss-unique>-<podnum>
+  * headless service is named kdhs-\<hs-unique>
+  * statefulset is named kdss-\<ss-unique>
+  * pod in statefulset is named kdss-\<ss-unique>-\<podnum>
+  * service exposing a pod's ports is named s-kdss-\<ss-unique>-\<podnum>
+  * PVC persisting a pod's data is named p-kdss-\<ss-unique>-\<podnum>
 
 * Regularized the labelling of generated objects:
   * Labels on any statefulset, pod, or service (either per-member or headless) created by KD:
-    * kubedirector.hpe.com/kdcluster: <kdcluster resource name>
-    * kubedirector.hpe.com/kdapp: <kdapp resource name>
-    * kubedirector.hpe.com/appCatalog: <"local" or "system">
+    * kubedirector.hpe.com/kdcluster: \<kdcluster resource name>
+    * kubedirector.hpe.com/kdapp: \<kdapp resource name>
+    * kubedirector.hpe.com/appCatalog: \<"local" or "system">
   * Labels on any statefulset, pod, or per-member service created by KD:
-    * kubedirector.hpe.com/role: <kdapp role ID>
+    * kubedirector.hpe.com/role: \<kdapp role ID>
   * Labels on any statefulset or pod created by KD:
-    * kubedirector.hpe.com/headless: <name of headless cluster service>
+    * kubedirector.hpe.com/headless: \<name of headless cluster service>
 
 * Annotation on any statefulset, pod, or service created by KD:
-  * kubedirector.hpe.com/kdapp-prettyName: <KD app label name>
+  * kubedirector.hpe.com/kdapp-prettyName: \<KD app label name>
 
 
 ## Developer support

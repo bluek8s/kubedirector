@@ -4,7 +4,7 @@
     "metadata": {
         "name": "ml-jupyter-notebook",
         "annotations": {
-            "token":"execute this command to get the authentication token 'kubectl exec <pod-name> jupyter notebook list and use this token in Jupyter notebook.'"
+            "token":"execute this command to get the authentication token 'kubectl exec <pod-name> jupyter notebook list' and use this token in Jupyter notebook."
         }
     },
 

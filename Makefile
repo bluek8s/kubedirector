@@ -80,7 +80,6 @@ push:
 
 deploy:
 	@set -e; \
-        all_namespaces=`kubectl get ns --no-headers| awk '{print $$1}'`; \
         pods_gone=False; \
         kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name} -A &> /dev/null || pods_gone=True; \
         if [[ "$$pods_gone" != "True" ]]; then \
@@ -187,17 +186,28 @@ redeploy:
 undeploy:
 	@echo
 	@true; \
-        function delete_thing { \
-            if [[ "$$3" == "" ]]; then \
-                namespace_arg=""; \
-                kind=$$1; \
-                name=$$2; \
+        function delete_cluster_thing { \
+            kind=$$1; \
+            name=$$2; \
+            cmd="kubectl delete $$kind $$name --now"; \
+            msg=$$($$cmd 2>&1); \
+            if [[ "$$?" == "0" ]]; then \
+                echo $$cmd; \
+                if [[ "$$msg" != "" ]]; then \
+                    echo "$$msg"; \
+                fi; \
             else \
-                namespace_arg=" -n $$1"; \
-                kind=$$2; \
-                name=$$3; \
+                if [[ ! "$$msg" =~ "Error from server (NotFound):" ]]; then \
+                    echo $$cmd; \
+                    echo "$$msg"; \
+                    exit 1; \
+                fi; \
             fi; \
-            cmd="kubectl$$namespace_arg delete $$kind $$name --now"; \
+        }; \
+        function delete_namespaced_thing { \
+            kind=$$1; \
+            name=$$2; \
+            cmd="kubectl delete $$kind $$name -A --now"; \
             msg=$$($$cmd 2>&1); \
             if [[ "$$?" == "0" ]]; then \
                 echo $$cmd; \
@@ -241,21 +251,17 @@ undeploy:
         delete_all_things ${config_resource_name}; \
         echo; \
         echo \* Deleting KubeDirector deployment...; \
-        for ns in $$all_namespaces; do \
-            delete_thing $$ns deployment ${project_name}; \
-        done; \
+        delete_namespaced_thing deployment ${project_name}; \
         echo; \
         echo \* Deleting role and service account...; \
-        delete_thing clusterrolebinding ${project_name}; \
-        delete_thing clusterrole ${project_name}; \
-        for ns in $$all_namespaces; do \
-            delete_thing $$ns serviceaccount ${project_name}; \
-        done; \
+        delete_cluster_thing clusterrolebinding ${project_name}; \
+        delete_cluster_thing clusterrole ${project_name}; \
+        delete_namespaced_thing serviceaccount ${project_name}; \
         echo; \
         echo \* Deleting custom resource definitions...; \
-        delete_thing customresourcedefinition ${app_resource_name}s.kubedirector.hpe.com; \
-        delete_thing customresourcedefinition ${cluster_resource_name}s.kubedirector.hpe.com; \
-        delete_thing customresourcedefinition ${config_resource_name}s.kubedirector.hpe.com
+        delete_cluster_thing customresourcedefinition ${app_resource_name}s.kubedirector.hpe.com; \
+        delete_cluster_thing customresourcedefinition ${cluster_resource_name}s.kubedirector.hpe.com; \
+        delete_cluster_thing customresourcedefinition ${config_resource_name}s.kubedirector.hpe.com
 	@echo
 	@echo -n \* Waiting for all cluster resources to finish cleanup...
 	@set -e; \

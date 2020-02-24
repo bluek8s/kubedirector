@@ -45,14 +45,14 @@ Do NOT merge x.y.z-release-info to the main kubedirector repo yet!
 
 #### SNAPSHOT DATA STRUCTURES ON WIKI
 
-Create x.y.z-versioned pages of wiki docs for CRs (app, cluster, config) as snapshots of current content. Make sure to change each page's initial text appropriately, to describe how it is a spec for a particular released version.
+If the API version has changed, create versioned pages of wiki docs for CRs (app, cluster, config) as snapshots of that API. Make sure to change each page's initial text appropriately, to emphasize that it is for a particular API version.
 
 #### CREATE RELEASE TAG POINT
 
 In your local clone of your own repo, create the x.y.z-release branch from x.y.z-release-info.
 
 Working on your local x.y.z-release branch:
-* Search docs for links that include "kubedirector/wiki/Type-Definitions" (i.e. CR docs) and replace each with a link to the appropriate version-snapshot page.
+* Search docs for links that include "kubedirector/wiki/Type-Definitions" (i.e. CR docs) and replace each with a link to the appropriate API-version-snapshot page.
 * Change image version from unstable to x.y.z in Makefile and deployment-prebuilt.yaml.
 * Change the version string to "x.y.z" in version.go.
 * Build and push that KD image (modify Local.mk to enable push_default if necessary).
@@ -90,7 +90,7 @@ Delete the x.y.z-release branch everywhere (local, your GitHub, main GitHub).
 
 #### ADVERTISE THE RELEASE
 
-Modify the "current" wiki page documenting each CR to add the x.y.z-versioned page to its bullet list of released versions.
+Modify the "current" wiki page documenting each CR as necessary to indicate that it is documenting a released API version. If development begins on a new API version in the future this text should be changed at that time.
 
 Do a GitHub PR to merge the main repo's x.y.z-release-info branch to master.
 

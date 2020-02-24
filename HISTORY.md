@@ -1,3 +1,74 @@
+# v0.4.0 - Feb 24, 2020
+
+This is a major release in a few interesting ways. We've had the chance to get wider use of and feedback on KubeDirector, which has led us to these changes.
+
+First and most obviously, we've moved the API to "beta" rather than "alpha" status, starting as "v1beta1". This means that future releases of KD will not make any changes to the "v1beta1" resource definitions. Also, even when we introduce newer API versions, KD will continue to support "v1beta1" for some time (exact support schedule TBD). If you are familiar with the alpha version of the API, please pay close attention to the new CRDs and their documentation on the wiki.
+
+The namespace of the API has also moved from "kubedirector.bluedata.io" to "kubedirector.hpe.com", to use a domain that we can hold on to going forward.
+
+Another significant change is in the way that KD handles member pods that become unresponsive, either temporarily or permanently. Note that restarting a permanently unresponsive member (likely because of K8s node-down) is still an explicit "delete pod" action by the user; see [issue #274](https://github.com/bluek8s/kubedirector/issues/274) for tracking possible future features in that area. However KD will now automatically take the following actions:
+* If a member is unresponsive and its role did not request persistent storage, KD will perform a from-scratch re-run of its setup script if/when it comes back up as a new container.
+* If a member in "config error" state is restarted, KD will perform a from-scratch re-run of its setup script when it comes back up as a new container.
+* KD will be persistent when attempting to update the "configmeta" JSON inside a container and when attempting to notify a container's setup script of changes. If the member is unresponsive when such an update is attempted, or becomes so during the update, it will be reconfigured and re-notified as necessary if/when it comes back up as a new container.
+
+Finally, a number of properties were added to the status stanza of a KD cluster CR, to advertise additional fine-grained per-member status as well as provide a top-level block of "rollup" status that can be quickly scanned to see what is going on.
+
+The wiki will be updated in the near future to provide more information about these changes and what they mean for app setup, but in the meantime interested parties can refer to the description of [PR #272](https://github.com/bluek8s/kubedirector/pull/272) for some details.
+
+We should also mention an [issue that can arise with KD clusters](https://github.com/coredns/coredns/issues/3693) when using CoreDNS as the DNS service in your K8s cluster. Because this issue has been [resolved on CoreDNS master branch](https://github.com/coredns/coredns/pull/3687) we have chosen not to delay this KD release in search of a workaround.
+
+A complete list of changes in this release:
+
+## App/cluster model
+
+* Additional per-member and rollup status properties as described above, in the wiki, and in [PR #272](https://github.com/bluek8s/kubedirector/pull/272).
+
+* The stable status for the overall KD cluster and each member has been renamed from "ready" to "configured".
+
+* Some changes to the semantics of specifing persistDirs in the KD app resource. This list of directories now explicitly represents the persistence needs of the app; KD may also decide to persist additional directories to support its own operations.
+
+## Operational
+
+* Improved handling for unresponsive and/or rebooted members as described above, in the wiki, and in [PR #272](https://github.com/bluek8s/kubedirector/pull/272).
+
+* Post-container-start modifications to /etc/resolv.conf can now survive certain races in container bringup and mounts.
+
+* Fixed operator-restart problems caused when GET through the split K8s client initially returns 404 for resources that actually exist.
+
+* Fixed behavior of persistent storage in cases where a directory in persistDirs does not exist (was causing storage to be re-initialized on member restart).
+
+* Support for a liveness probe via the /healthz URL on port 8443. See the comments in the deployment YAML for an example of how to enable the probe, and why you might not want to do this during development.
+
+* Regularized the naming of generated objects:
+  * headless service is named kdhs-<hs-unique>
+  * statefulset is named kdss-<ss-unique>
+  * pod in statefulset is named kdss-<ss-unique>-<podnum>
+  * service exposing a pod's ports is named s-kdss-<ss-unique>-<podnum>
+  * PVC persisting a pod's data is named p-kdss-<ss-unique>-<podnum>
+
+* Regularized the labelling of generated objects:
+  * Labels on any statefulset, pod, or service (either per-member or headless) created by KD:
+    * kubedirector.hpe.com/kdcluster: <kdcluster resource name>
+    * kubedirector.hpe.com/kdapp: <kdapp resource name>
+    * kubedirector.hpe.com/appCatalog: <"local" or "system">
+  * Labels on any statefulset, pod, or per-member service created by KD:
+    * kubedirector.hpe.com/role: <kdapp role ID>
+  * Labels on any statefulset or pod created by KD:
+    * kubedirector.hpe.com/headless: <name of headless cluster service>
+
+* Annotation on any statefulset, pod, or service created by KD:
+  * kubedirector.hpe.com/kdapp-prettyName: <KD app label name>
+
+
+## Developer support
+
+* Added "shortname" variants of the CRs: kdapp, kdcluster, and kdconfig.
+
+* Made updates to the catalog of example kdapps, especially fixes for the example TensorFlow app.
+
+* "make compile" changed to use the trimpath option. Also cf. [issue #266](https://github.com/bluek8s/kubedirector/issues/266).
+
+
 # v0.3.2 - Jan 30, 2020
 
 As sometimes happens, it looks like we need a fix for one of those fixes. Cf. [issue #253](https://github.com/bluek8s/kubedirector/issues/253).

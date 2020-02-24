@@ -24,12 +24,12 @@
             ]
         },
         "label": {
-            "name": "Tensorflow GPU with jupyter notebook",
-            "description": "TensorFlow GPU with jupyter notebook"
+            "name": "TensorFlow + Jupyter",
+            "description": "TensorFlow GPU with Jupyter notebook"
         },
         "defaultImageRepoTag": "tensorflow/tensorflow:latest-gpu-py3-jupyter",
-        "distroID": "tensorflow/tensorflow:latest-gpu-py3-jupyter",
-        "version": "latest-gpu-py3-jupyter",
+        "distroID": "bluedata/tensorflow",
+        "version": "2.0",
         "configSchemaVersion": 7,
         "services": [
             {

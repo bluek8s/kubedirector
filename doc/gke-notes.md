@@ -15,10 +15,11 @@ For a list of available GKE Kubernetes versions you can run the following query.
     gcloud container get-server-config
 ```
 
-So for example, this gcloud command will create a 3-node GKE cluster named "my-gke" using Kubernetes version 1.14.10 and the n1-highmem-4 machine type:
+So for example, at the time this doc was written, the following gcloud command would create a 3-node GKE cluster named "my-gke" using Kubernetes version 1.15.7 and the n1-highmem-4 machine type:
 ```bash
-    gcloud container clusters create my-gke --cluster-version=1.14.10-gke.17 --machine-type=n1-highmem-4
+    gcloud container clusters create my-gke --cluster-version=1.15.7-gke.23 --machine-type=n1-highmem-4
 ```
+At the current time when you're reading this, you may need or want to use some different value for cluster-version.
 
 If you need to grow your GKE cluster you can use gcloud to do that as well; for example, growing to 5 nodes:
 ```bash

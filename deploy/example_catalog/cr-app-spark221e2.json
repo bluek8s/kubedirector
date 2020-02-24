@@ -41,11 +41,11 @@
             ]
         },
         "label": {
-            "name": "Spark 2.2.1 on centos7x with Jupyter",
-            "description": "Spark 2.2.1 with Jupyter"
+            "name": "Spark 2.2.1 + Jupyter",
+            "description": "Spark 2.2.1 with Jupyter notebook"
         },
         "distroID": "bluedata/spark221e2",
-        "version": "2.6",
+        "version": "2.7",
         "configSchemaVersion": 7,
         "services": [
             {

@@ -240,7 +240,6 @@ undeploy:
                 fi; \
             fi; \
         }; \
-        all_namespaces=`kubectl get ns --no-headers| awk '{print $$1}'`; \
         echo \* Deleting any managed virtual clusters...; \
         delete_all_things ${cluster_resource_name}; \
         echo; \

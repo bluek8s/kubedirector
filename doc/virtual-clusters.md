@@ -66,7 +66,7 @@ You can edit the resource YAML file to add or remove a role, or increase/decreas
 
 Depending on the app definition, some resize operations may not be allowed for some roles. For example you will not be allowed to remove a Spark controller or have fewer than two Cassandra seeds. In these cases the resize attempt will be immediately rejected with an explanation.
 
-If a resize that grows the virtual cluster is accepted, but the status shows that some members are staying in create_pending state indefinitely, you may have requested more resources than your K8s nodes can provide. Use kubectl to examine the associated pods, see if they are stuck in Pending status, and what Events they are experiencing. If they appear to be permanently blocked without available resources, you will want to downsize or remove virtual cluster roles so that they no longer request as many members.
+If a resize that grows the virtual cluster is accepted, but the status shows that some members are staying in create pending state indefinitely, you may have requested more resources than your K8s nodes can provide. Use kubectl to examine the associated pods, see if they are stuck in Pending status, and what Events they are experiencing. If they appear to be permanently blocked without available resources, you will want to downsize or remove virtual cluster roles so that they no longer request as many members.
 
 #### DELETING
 

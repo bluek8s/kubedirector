@@ -54,7 +54,7 @@ func CreateStatefulSet(
 	if err != nil {
 		return nil, err
 	}
-	return statefulSet, shared.Client().Create(context.TODO(), statefulSet)
+	return statefulSet, shared.Create(context.TODO(), statefulSet)
 }
 
 // UpdateStatefulSetReplicas modifies an existing statefulset in k8s to have
@@ -67,7 +67,7 @@ func UpdateStatefulSetReplicas(
 ) error {
 
 	*statefulSet.Spec.Replicas = replicas
-	err := shared.Client().Update(context.TODO(), statefulSet)
+	err := shared.Update(context.TODO(), statefulSet)
 	if err == nil {
 		return nil
 	}
@@ -93,7 +93,7 @@ func UpdateStatefulSetReplicas(
 		Name:      statefulSet.Name,
 	}
 	*statefulSet = appsv1.StatefulSet{}
-	err = shared.Client().Get(context.TODO(), name, statefulSet)
+	err = shared.Get(context.TODO(), name, statefulSet)
 	if err != nil {
 		shared.LogError(
 			reqLogger,
@@ -106,7 +106,7 @@ func UpdateStatefulSetReplicas(
 	}
 
 	*statefulSet.Spec.Replicas = replicas
-	err = shared.Client().Update(context.TODO(), statefulSet)
+	err = shared.Update(context.TODO(), statefulSet)
 	if err != nil {
 		shared.LogError(
 			reqLogger,
@@ -157,7 +157,7 @@ func DeleteStatefulSet(
 			Namespace: namespace,
 		},
 	}
-	return shared.Client().Delete(context.TODO(), toDelete)
+	return shared.Delete(context.TODO(), toDelete)
 }
 
 // getStatefulset composes the spec for creating a statefulset in k8s, based
@@ -453,7 +453,8 @@ func generateInitContainerLaunch(persistDirs []string) string {
 	// To be safe in the case that this container is restarted by someone,
 	// don't do this copy if the kubedirector.init file already exists in /etc.
 	launchCmd := "! [ -f /mnt" + kubedirectorInit + " ]" + " && " +
-		"cp --parent -ax " + strings.Join(persistDirs, " ") + " /mnt || exit 0; touch /mnt" + kubedirectorInit
+		"cp --parent -ax " + strings.Join(persistDirs, " ") +
+		" /mnt; touch /mnt" + kubedirectorInit
 
 	return launchCmd
 }

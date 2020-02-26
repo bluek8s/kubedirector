@@ -46,11 +46,13 @@ type Attachments struct {
 // indicates ongoing operations of cluster creation or reconfiguration.
 // +k8s:openapi-gen=true
 type KubeDirectorClusterStatus struct {
-	State          string       `json:"state"`
-	GenerationUID  string       `json:"generationUID"`
-	ClusterService string       `json:"clusterService"`
-	LastNodeID     int64        `json:"lastNodeID"`
-	Roles          []RoleStatus `json:"roles"`
+	State                   string       `json:"state"`
+	MemberStateRollup       StateRollup  `json:"memberStateRollup"`
+	GenerationUID           string       `json:"generationUID"`
+	SpecGenerationToProcess *int64       `json:"specGenerationToProcess,omitempty"`
+	ClusterService          string       `json:"clusterService"`
+	LastNodeID              int64        `json:"lastNodeID"`
+	Roles                   []RoleStatus `json:"roles"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -122,6 +124,17 @@ type Role struct {
 	Secret         *KDSecret                   `json:"secret,omitempty"`
 }
 
+// StateRollup surfaces whether any per-member statuses have problems that
+// should be investigated.
+type StateRollup struct {
+	MembershipChanging  bool `json:"membershipChanging"`
+	MembersDown         bool `json:"membersDown"`
+	MembersInitializing bool `json:"membersInitializing"`
+	MembersWaiting      bool `json:"membersWaiting"`
+	MembersRestarting   bool `json:"membersRestarting"`
+	ConfigErrors        bool `json:"configErrors"`
+}
+
 // ClusterStorage defines the persistent storage size/type, if any, to be used
 // for certain specified directories of each container filesystem in a role.
 type ClusterStorage struct {
@@ -138,11 +151,29 @@ type RoleStatus struct {
 
 // MemberStatus describes the component objects of a virtual cluster member.
 type MemberStatus struct {
-	Pod     string `json:"pod"`
-	Service string `json:"service"`
-	PVC     string `json:"pvc,omitempty"`
-	State   string `json:"state"`
-	NodeID  int64  `json:"nodeID"`
+	Pod         string            `json:"pod"`
+	Service     string            `json:"service"`
+	PVC         string            `json:"pvc,omitempty"`
+	State       string            `json:"state"`
+	StateDetail MemberStateDetail `json:"stateDetail,omitempty"`
+	NodeID      int64             `json:"nodeID"`
+}
+
+// MemberStateDetail digs into detail about the management of configmeta and
+// app scripts in the member.
+type MemberStateDetail struct {
+	ConfigErrorDetail        *string             `json:"configErrorDetail,omitempty"`
+	LastConfigDataGeneration *int64              `json:"lastConfigDataGeneration,omitempty"`
+	LastSetupGeneration      *int64              `json:"lastSetupGeneration,omitempty"`
+	ConfiguringContainer     string              `json:"configuringContainer,omitempty"`
+	LastConfiguredContainer  string              `json:"lastConfiguredContainer,omitempty"`
+	LastKnownContainerState  string              `json:"lastKnownContainerState,omitempty"`
+	PendingNotifyCmds        []*NotificationDesc `json:"pendingNotifyCmds,omitempty"`
+}
+
+// NotificationDesc contains the info necessary to perform a notify command.
+type NotificationDesc struct {
+	Arguments []string `json:"arguments,omitempty"`
 }
 
 func init() {

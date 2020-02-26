@@ -38,7 +38,7 @@ func GetCluster(
 ) (*kdv1.KubeDirectorCluster, error) {
 
 	result := &kdv1.KubeDirectorCluster{}
-	err := shared.Client().Get(
+	err := shared.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: clusterName},
 		result,
@@ -54,7 +54,7 @@ func GetStatefulSet(
 ) (*appsv1.StatefulSet, error) {
 
 	result := &appsv1.StatefulSet{}
-	err := shared.Client().Get(
+	err := shared.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: statefulSetName},
 		result,
@@ -69,7 +69,7 @@ func GetService(
 ) (*corev1.Service, error) {
 
 	result := &corev1.Service{}
-	err := shared.Client().Get(
+	err := shared.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: serviceName},
 		result,
@@ -84,7 +84,7 @@ func GetPod(
 ) (*corev1.Pod, error) {
 
 	result := &corev1.Pod{}
-	err := shared.Client().Get(
+	err := shared.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: podName},
 		result,
@@ -99,7 +99,7 @@ func GetConfigMap(
 ) (*corev1.ConfigMap, error) {
 
 	result := &corev1.ConfigMap{}
-	err := shared.Client().Get(
+	err := shared.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: cmName},
 		result,
@@ -115,7 +115,7 @@ func GetPVC(
 ) (*corev1.PersistentVolumeClaim, error) {
 
 	result := &corev1.PersistentVolumeClaim{}
-	err := shared.Client().Get(
+	err := shared.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: pvcName},
 		result,
@@ -131,7 +131,7 @@ func GetApp(
 ) (*kdv1.KubeDirectorApp, error) {
 
 	result := &kdv1.KubeDirectorApp{}
-	err := shared.Client().Get(
+	err := shared.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: appName},
 		result,
@@ -151,7 +151,7 @@ func GetValidatorWebhook(
 		return nil, err
 	}
 	result := &v1beta1.MutatingWebhookConfiguration{}
-	err = shared.Client().Get(
+	err = shared.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: kdNamespace, Name: validator},
 		result,
@@ -166,7 +166,7 @@ func GetSecret(
 ) (*corev1.Secret, error) {
 
 	result := &corev1.Secret{}
-	err := shared.Client().Get(
+	err := shared.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: secretName},
 		result,
@@ -184,7 +184,7 @@ func GetDeployment(
 		return nil, err
 	}
 	result := &appsv1.Deployment{}
-	err = shared.Client().Get(
+	err = shared.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: kdNamespace, Name: deploymentName},
 		result,
@@ -225,7 +225,7 @@ func GetKDConfig(
 	}
 
 	result := &kdv1.KubeDirectorConfig{}
-	err = shared.Client().Get(
+	err = shared.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: kdNamespace, Name: kdConfigName},
 		result,
@@ -239,7 +239,7 @@ func GetStorageClass(
 ) (*storagev1.StorageClass, error) {
 
 	result := &storagev1.StorageClass{}
-	err := shared.Client().Get(
+	err := shared.Get(
 		context.TODO(),
 		types.NamespacedName{Name: storageClassName},
 		result,
@@ -253,7 +253,7 @@ func GetDefaultStorageClass() (*storagev1.StorageClass, error) {
 
 	// Namespace does not matter for this query; leave blank.
 	result := &storagev1.StorageClassList{}
-	err := shared.Client().List(context.TODO(), &client.ListOptions{}, result)
+	err := shared.List(context.TODO(), &client.ListOptions{}, result)
 	if err != nil {
 		return nil, err
 	}

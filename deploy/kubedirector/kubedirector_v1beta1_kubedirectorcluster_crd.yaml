@@ -180,8 +180,25 @@ spec:
           properties:
             state:
               type: string
+            memberStateRollup:
+              type: object
+              properties:
+                membershipChanging:
+                  type: boolean
+                membersDown:
+                  type: boolean
+                membersInitializing:
+                  type: boolean
+                membersWaiting:
+                  type: boolean
+                membersRestarting:
+                  type: boolean
+                configErrors:
+                  type: boolean
             generationUID:
               type: string
+            specGenerationToProcess:
+              type: integer
             clusterService:
               type: string
             lastNodeID:
@@ -210,3 +227,27 @@ spec:
                           type: string
                         state:
                           type: string
+                        stateDetail:
+                          type: object
+                          properties:
+                            configErrorDetail:
+                              type: string
+                            lastConfigDataGeneration:
+                              type: integer
+                            lastSetupGeneration:
+                              type: integer
+                            configuringContainer:
+                              type: string
+                            lastConfiguredContainer:
+                              type: string
+                            lastKnownContainerState:
+                              type: string
+                            pendingNotifyCmds:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  arguments:
+                                    type: array
+                                    items:
+                                      type: string

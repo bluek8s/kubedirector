@@ -41,6 +41,7 @@ func IsFileExists(
 	obj runtime.Object,
 	namespace string,
 	podName string,
+	expectedContainerID string,
 	containerName string,
 	filePath string,
 ) (bool, error) {
@@ -55,6 +56,7 @@ func IsFileExists(
 		obj,
 		namespace,
 		podName,
+		expectedContainerID,
 		containerName,
 		command,
 		ioStreams,
@@ -77,13 +79,14 @@ func IsFileExists(
 	return true, nil
 }
 
-// CreateDir creates a directory (and any parent directors)
-// in the filesystem of the given pod
+// CreateDir creates a directory (and any parent directors) in the filesystem
+// of the given pod.
 func CreateDir(
 	reqLogger logr.Logger,
 	obj runtime.Object,
 	namespace string,
 	podName string,
+	expectedContainerID string,
 	containerName string,
 	dirName string,
 ) error {
@@ -98,6 +101,7 @@ func CreateDir(
 		obj,
 		namespace,
 		podName,
+		expectedContainerID,
 		containerName,
 		command,
 		ioStreams,
@@ -117,6 +121,7 @@ func RemoveDir(
 	obj runtime.Object,
 	namespace string,
 	podName string,
+	expectedContainerID string,
 	containerName string,
 	dirName string,
 	ignoreNotEmpty bool,
@@ -138,6 +143,7 @@ func RemoveDir(
 		obj,
 		namespace,
 		podName,
+		expectedContainerID,
 		containerName,
 		command,
 		ioStreams,
@@ -160,6 +166,7 @@ func CreateFile(
 	obj runtime.Object,
 	namespace string,
 	podName string,
+	expectedContainerID string,
 	containerName string,
 	filePath string,
 	reader io.Reader,
@@ -170,6 +177,7 @@ func CreateFile(
 		obj,
 		namespace,
 		podName,
+		expectedContainerID,
 		containerName,
 		filepath.Dir(filePath),
 	)
@@ -189,19 +197,16 @@ func CreateFile(
 		filePath,
 		podName,
 	)
-	execErr := ExecCommand(
+	return ExecCommand(
 		reqLogger,
 		obj,
 		namespace,
 		podName,
+		expectedContainerID,
 		containerName,
 		command,
 		ioStreams,
 	)
-	if execErr != nil {
-		return execErr
-	}
-	return nil
 }
 
 // ReadFile takes the stream from the given writer, and writes to it the
@@ -213,6 +218,7 @@ func ReadFile(
 	obj runtime.Object,
 	namespace string,
 	podName string,
+	expectedContainerID string,
 	containerName string,
 	filePath string,
 	writer io.Writer,
@@ -235,6 +241,7 @@ func ReadFile(
 		obj,
 		namespace,
 		podName,
+		expectedContainerID,
 		containerName,
 		command,
 		ioStreams,
@@ -258,6 +265,7 @@ func RunScript(
 	obj runtime.Object,
 	namespace string,
 	podName string,
+	expectedContainerID string,
 	containerName string,
 	description string,
 	reader io.Reader,
@@ -275,19 +283,16 @@ func RunScript(
 		description,
 		podName,
 	)
-	execErr := ExecCommand(
+	return ExecCommand(
 		reqLogger,
 		obj,
 		namespace,
 		podName,
+		expectedContainerID,
 		containerName,
 		command,
 		ioStreams,
 	)
-	if execErr != nil {
-		return execErr
-	}
-	return nil
 }
 
 // ExecCommand is a utility function for executing a command in a pod. It
@@ -298,6 +303,7 @@ func ExecCommand(
 	obj runtime.Object,
 	namespace string,
 	podName string,
+	expectedContainerID string,
 	containerName string,
 	command []string,
 	ioStreams *Streams,
@@ -319,18 +325,13 @@ func ExecCommand(
 		)
 	}
 
-	if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
-		return fmt.Errorf(
-			"cannot connect to pod{%v} in phase %v",
-			podName,
-			pod.Status.Phase,
-		)
-	}
-
 	foundContainer := false
-	for _, container := range pod.Spec.Containers {
-		if container.Name == containerName {
+	for _, containerStatus := range pod.Status.ContainerStatuses {
+		if containerStatus.Name == containerName {
 			foundContainer = true
+			if containerStatus.ContainerID != expectedContainerID {
+				return errors.New("container ID changed during configuration")
+			}
 			break
 		}
 	}
@@ -339,6 +340,14 @@ func ExecCommand(
 			"container{%s} does not exist in pod{%v}",
 			containerName,
 			podName,
+		)
+	}
+
+	if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
+		return fmt.Errorf(
+			"cannot connect to pod{%v} in phase %v",
+			podName,
+			pod.Status.Phase,
 		)
 	}
 

@@ -207,20 +207,24 @@ undeploy:
         function delete_namespaced_thing { \
             kind=$$1; \
             name=$$2; \
-            cmd="kubectl delete $$kind $$name -A --now"; \
-            msg=$$($$cmd 2>&1); \
-            if [[ "$$?" == "0" ]]; then \
-                echo $$cmd; \
-                if [[ "$$msg" != "" ]]; then \
-                    echo "$$msg"; \
-                fi; \
-            else \
-                if [[ ! "$$msg" =~ "Error from server (NotFound):" ]]; then \
+            ns_s_containing_kd_cmd="kubectl get $$kind -A --field-selector=\"metadata.name=$$name\" -o jsonpath='{.items[*].metadata.namespace}'"; \
+            ns_s_containing_kd=$$($$ns_s_containing_kd_cmd); \
+            for ns in $$ns_s_containing_kd; do \
+                cmd="kubectl delete $$kind $$name -n $$ns --now"; \
+                msg=$$($$cmd 2>&1); \
+                if [[ "$$?" == "0" ]]; then \
                     echo $$cmd; \
-                    echo "$$msg"; \
-                    exit 1; \
+                    if [[ "$$msg" != "" ]]; then \
+                        echo "$$msg"; \
+                    fi; \
+                else \
+                    if [[ ! "$$msg" =~ "Error from server (NotFound):" ]]; then \
+                        echo $$cmd; \
+                        echo "$$msg"; \
+                        exit 1; \
+                    fi; \
                 fi; \
-            fi; \
+            done; \
         }; \
         function delete_all_things { \
             cmd="kubectl delete $$1 --all=true -A --now"; \

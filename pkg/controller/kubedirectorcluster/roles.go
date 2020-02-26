@@ -582,12 +582,8 @@ func deleteMemberStatuses(
 // (The situation of "no members" will also return true.) Ready members are
 // also checked to make sure they have processed all updates.
 func allRoleMembersReadyOrError(
-<<<<<<< HEAD
-	role *RoleInfo,
-=======
 	cr *kdv1.KubeDirectorCluster,
-	role *roleInfo,
->>>>>>> d0840f69389e51db65e2f70983d9446e334a615a
+	role *RoleInfo,
 ) bool {
 
 	switch len(role.membersByState) {

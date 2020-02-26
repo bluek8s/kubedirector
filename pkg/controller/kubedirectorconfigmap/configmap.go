@@ -92,7 +92,7 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 				//Fix Me - Currently this gets all pods,
 				//change client list options to fetch pods
 				//from this cluster only
-				shared.Client().List(context.TODO(), &client.ListOptions{}, allClusters)
+				shared.List(context.TODO(), &client.ListOptions{}, allClusters)
 				for _, kubecluster := range allClusters.Items {
 					if isClusterUsingConfigMap(cr.Name, kubecluster) {
 						for _, role := range kubecluster.Status.Roles {
@@ -118,6 +118,7 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 									&kubecluster,
 									cr.Namespace,
 									roleMember.Pod,
+									"",
 									executor.AppContainerName,
 									kc.ConfigMetaFile,
 									strings.NewReader(configmeta),

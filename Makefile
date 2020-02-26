@@ -207,7 +207,7 @@ undeploy:
         function delete_namespaced_thing { \
             kind=$$1; \
             name=$$2; \
-            ns_s_containing_kd_cmd="kubectl get $$kind -A --field-selector=\"metadata.name=$$name\" -o jsonpath='{.items[*].metadata.namespace}'"; \
+            ns_s_containing_kd_cmd="kubectl get $$kind -A --field-selector=$"metadata.name=$$name$" -o jsonpath='{.items[*].metadata.namespace}'"; \
             ns_s_containing_kd=$$($$ns_s_containing_kd_cmd); \
             for ns in $$ns_s_containing_kd; do \
                 cmd="kubectl delete $$kind $$name -n $$ns --now"; \

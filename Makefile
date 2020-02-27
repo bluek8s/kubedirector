@@ -210,6 +210,11 @@ undeploy:
             ns_s_containing_kd_cmd="kubectl get $$kind -A --field-selector=$"metadata.name=$$name$" -o jsonpath='{.items[*].metadata.namespace}'"; \
             ns_s_containing_kd=$$($$ns_s_containing_kd_cmd); \
             for ns in $$ns_s_containing_kd; do \
+                echo "The namespace string comes out quoted, and we need" >/dev/null; \
+                echo "to strip the quotes. Hence, td" >/dev/null; \
+                echo "The reason these are in echos is because make doesn't allow" >/dev/null; \
+                echo "comments inside of bash blocks" >/dev/null; \
+                ns=$$(echo "$$ns" | tr -d "'"); \
                 cmd="kubectl delete $$kind $$name -n $$ns --now"; \
                 msg=$$($$cmd 2>&1); \
                 if [[ "$$?" == "0" ]]; then \

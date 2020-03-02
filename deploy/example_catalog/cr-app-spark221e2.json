@@ -106,7 +106,7 @@
                 }
             }
         ],
-        "defaultImageRepoTag": "docker.io/bluedata/sparkbase:2.2",
+        "defaultImageRepoTag": "docker.io/bluedata/sparkbase:2.3",
         "defaultConfigPackage":  {
             "packageURL": "file:///opt/configscripts/appconfig-2.6.tgz"
         },
@@ -120,7 +120,7 @@
                 "id": "worker"
             },
             {
-                "imageRepoTag": "docker.io/bluedata/jupyter:2.3",
+                "imageRepoTag": "docker.io/bluedata/jupyter:2.4",
                 "cardinality": "0+",
                 "id": "jupyter"
             }

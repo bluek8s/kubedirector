@@ -80,15 +80,12 @@ push:
 
 deploy:
 	@set -e; \
-        all_namespaces=`kubectl get ns --no-headers| awk '{print $$1}'`; \
-        for ns in $$all_namespaces; do \
-            pods_gone=False; \
-            kubectl -n $$ns get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name} &> /dev/null || pods_gone=True; \
-            if [[ "$$pods_gone" != "True" ]]; then \
-                echo "KubeDirector pod already exists in namespace $$ns. Maybe old pod is still terminating?"; \
-                exit 1; \
-            fi; \
-        done; \
+        pods_gone=False; \
+        kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name} -A &> /dev/null || pods_gone=True; \
+        if [[ "$$pods_gone" != "True" ]]; then \
+            echo "KubeDirector pod already exists. Maybe the old pod is still terminating?"; \
+            exit 1; \
+        fi; \
         kubectl_ns=`kubectl config get-contexts | grep '^\*' | awk '{print $$5}'`; \
         if [[ -z "$$kubectl_ns" ]]; then \
             cp -f deploy/kubedirector/rbac-default.yaml deploy/kubedirector/rbac.yaml; \
@@ -189,17 +186,10 @@ redeploy:
 undeploy:
 	@echo
 	@true; \
-        function delete_thing { \
-            if [[ "$$3" == "" ]]; then \
-                namespace_arg=""; \
-                kind=$$1; \
-                name=$$2; \
-            else \
-                namespace_arg=" -n $$1"; \
-                kind=$$2; \
-                name=$$3; \
-            fi; \
-            cmd="kubectl$$namespace_arg delete $$kind $$name --now"; \
+        function delete_cluster_thing { \
+            kind=$$1; \
+            name=$$2; \
+            cmd="kubectl delete $$kind $$name --now"; \
             msg=$$($$cmd 2>&1); \
             if [[ "$$?" == "0" ]]; then \
                 echo $$cmd; \
@@ -214,8 +204,35 @@ undeploy:
                 fi; \
             fi; \
         }; \
+        function delete_namespaced_thing { \
+            kind=$$1; \
+            name=$$2; \
+            ns_s_containing_kd_cmd="kubectl get $$kind -A --field-selector=$"metadata.name=$$name$" -o jsonpath='{.items[*].metadata.namespace}'"; \
+            ns_s_containing_kd=$$($$ns_s_containing_kd_cmd); \
+            for ns in $$ns_s_containing_kd; do \
+                echo "The namespace string comes out quoted, and we need" >/dev/null; \
+                echo "to strip the quotes. Hence, td" >/dev/null; \
+                echo "The reason these are in echos is because make doesn't allow" >/dev/null; \
+                echo "comments inside of bash blocks" >/dev/null; \
+                ns=$$(echo "$$ns" | tr -d "'"); \
+                cmd="kubectl delete $$kind $$name -n $$ns --now"; \
+                msg=$$($$cmd 2>&1); \
+                if [[ "$$?" == "0" ]]; then \
+                    echo $$cmd; \
+                    if [[ "$$msg" != "" ]]; then \
+                        echo "$$msg"; \
+                    fi; \
+                else \
+                    if [[ ! "$$msg" =~ "Error from server (NotFound):" ]]; then \
+                        echo $$cmd; \
+                        echo "$$msg"; \
+                        exit 1; \
+                    fi; \
+                fi; \
+            done; \
+        }; \
         function delete_all_things { \
-            cmd="kubectl -n $$1 delete $$2 --all --now"; \
+            cmd="kubectl delete $$1 --all=true -A --now"; \
             msg=$$($$cmd 2>&1); \
             if [[ "$$?" == "0" ]]; then \
                 if [[ "$$msg" != "No resources found" ]]; then \
@@ -232,38 +249,27 @@ undeploy:
                 fi; \
             fi; \
         }; \
-        all_namespaces=`kubectl get ns --no-headers| awk '{print $$1}'`; \
         echo \* Deleting any managed virtual clusters...; \
-        for ns in $$all_namespaces; do \
-            delete_all_things $$ns ${cluster_resource_name}; \
-        done; \
+        delete_all_things ${cluster_resource_name}; \
         echo; \
         echo \* Deleting any application types...; \
-        for ns in $$all_namespaces; do \
-            delete_all_things $$ns ${app_resource_name}; \
-        done; \
+        delete_all_things ${app_resource_name}; \
         echo; \
         echo \* Deleting any configs...; \
-        for ns in $$all_namespaces; do \
-            delete_all_things $$ns ${config_resource_name}; \
-        done; \
+        delete_all_things ${config_resource_name}; \
         echo; \
         echo \* Deleting KubeDirector deployment...; \
-        for ns in $$all_namespaces; do \
-            delete_thing $$ns deployment ${project_name}; \
-        done; \
+        delete_namespaced_thing deployment ${project_name}; \
         echo; \
         echo \* Deleting role and service account...; \
-        delete_thing clusterrolebinding ${project_name}; \
-        delete_thing clusterrole ${project_name}; \
-        for ns in $$all_namespaces; do \
-            delete_thing $$ns serviceaccount ${project_name}; \
-        done; \
+        delete_cluster_thing clusterrolebinding ${project_name}; \
+        delete_cluster_thing clusterrole ${project_name}; \
+        delete_namespaced_thing serviceaccount ${project_name}; \
         echo; \
         echo \* Deleting custom resource definitions...; \
-        delete_thing customresourcedefinition ${app_resource_name}s.kubedirector.hpe.com; \
-        delete_thing customresourcedefinition ${cluster_resource_name}s.kubedirector.hpe.com; \
-        delete_thing customresourcedefinition ${config_resource_name}s.kubedirector.hpe.com
+        delete_cluster_thing customresourcedefinition ${app_resource_name}s.kubedirector.hpe.com; \
+        delete_cluster_thing customresourcedefinition ${cluster_resource_name}s.kubedirector.hpe.com; \
+        delete_cluster_thing customresourcedefinition ${config_resource_name}s.kubedirector.hpe.com
 	@echo
 	@echo -n \* Waiting for all cluster resources to finish cleanup...
 	@set -e; \

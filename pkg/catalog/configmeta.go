@@ -147,6 +147,11 @@ func modelAttachments(
 	models := make(map[string]map[string]string)
 	for _, modelMapName := range cr.Spec.Attachments.ModelConfigMaps {
 		modelCM, err := observer.GetConfigMap(cr.Namespace, modelMapName)
+		if _, ok := modelCM.Labels["kubedirectormodel"]; ok {
+			//fmt.Println("found kubedirectormodel, take action: ", value)
+		} else {
+			return nil, fmt.Errorf("Map is not of type kubedirectormodel")
+		}
 		if err != nil {
 			return nil, err
 		}

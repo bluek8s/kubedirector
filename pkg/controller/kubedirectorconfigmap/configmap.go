@@ -18,13 +18,9 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
-	"github.com/bluek8s/kubedirector/pkg/catalog"
-	kc "github.com/bluek8s/kubedirector/pkg/controller/kubedirectorcluster"
-	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
@@ -95,36 +91,41 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 				shared.List(context.TODO(), &client.ListOptions{}, allClusters)
 				for _, kubecluster := range allClusters.Items {
 					if isClusterUsingConfigMap(cr.Name, kubecluster) {
-						for _, role := range kubecluster.Status.Roles {
-							//pods := &v1.PodList{}
-							//shared.Client().List(context.TODO(), &client.ListOptions{}, pods)
-							for _, roleMember := range role.Members {
-								// Construct the role info slice. Bail out now if that fails.
-								roleInfos, infoErr := kc.InitRoleInfo(reqLogger, &kubecluster)
-								if infoErr != nil {
-									return
-								}
-								configmetaGenFun, generationErr := catalog.ConfigmetaGenerator(
-									&kubecluster,
-									kc.CalcMembersForRoles(roleInfos),
-								)
-								if generationErr != nil {
-									return
-								}
-								configmeta := configmetaGenFun(roleMember.Pod)
-								//fmt.Println("Successfully generated configmeta for pod ", roleMember.)
-								executor.CreateFile(
-									reqLogger,
-									&kubecluster,
-									cr.Namespace,
-									roleMember.Pod,
-									"",
-									executor.AppContainerName,
-									kc.ConfigMetaFile,
-									strings.NewReader(configmeta),
-								)
-							}
-						}
+						updateMetaGenerator := kubecluster
+						currMetaGenerator := kubecluster.Spec.ConfigMetaGenerator
+						updateMetaGenerator.Spec.ConfigMetaGenerator = currMetaGenerator + 1
+						shared.Update(context.TODO(), &updateMetaGenerator)
+						// for _, role := range kubecluster.Status.Roles {
+						// 	//pods := &v1.PodList{}
+						// 	//shared.Client().List(context.TODO(), &client.ListOptions{}, pods)
+						// 	for _, roleMember := range role.Members {
+						// 		// Construct the role info slice. Bail out now if that fails.
+						// 		roleInfos, infoErr := kc.InitRoleInfo(reqLogger, &kubecluster)
+						// 		if infoErr != nil {
+						// 			return
+						// 		}
+						// 		configmetaGenFun, generationErr := catalog.ConfigmetaGenerator(
+						// 			&kubecluster,
+						// 			kc.CalcMembersForRoles(roleInfos),
+						// 		)
+						// 		if generationErr != nil {
+						// 			return
+						// 		}
+						// 		configmeta := configmetaGenFun(roleMember.Pod)
+						// 		//fmt.Println("Successfully generated configmeta for pod ", roleMember.)
+						// 		executor.CreateFile(
+						// 			reqLogger,
+						// 			&kubecluster,
+						// 			cr.Namespace,
+						// 			roleMember.Pod,
+						// 			"",
+						// 			executor.AppContainerName,
+						// 			kc.ConfigMetaFile,
+						// 			strings.NewReader(configmeta),
+						// 		)
+						// 		//shared.Update(context.TODO(),
+						// 	}
+						// }
 					}
 				}
 			}

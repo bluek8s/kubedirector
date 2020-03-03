@@ -26,12 +26,13 @@ import (
 // using a StatefulSet.
 // +k8s:openapi-gen=true
 type KubeDirectorClusterSpec struct {
-	AppID         string      `json:"app"`
-	AppCatalog    *string     `json:"appCatalog"`
-	ServiceType   *string     `json:"serviceType"`
-	Roles         []Role      `json:"roles"`
-	DefaultSecret *KDSecret   `json:"defaultSecret"`
-	Attachments   Attachments `json:"attachments"`
+	AppID               string      `json:"app"`
+	AppCatalog          *string     `json:"appCatalog"`
+	ServiceType         *string     `json:"serviceType"`
+	Roles               []Role      `json:"roles"`
+	DefaultSecret       *KDSecret   `json:"defaultSecret"`
+	ConfigMetaGenerator int         `json:"configMetaGenerator"`
+	Attachments         Attachments `json:"attachments"`
 }
 
 // Attachments specifies list of cluster objects and model objects that has

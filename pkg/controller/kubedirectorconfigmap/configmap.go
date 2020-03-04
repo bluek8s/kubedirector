@@ -91,10 +91,10 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 				shared.List(context.TODO(), &client.ListOptions{}, allClusters)
 				for _, kubecluster := range allClusters.Items {
 					if isClusterUsingConfigMap(cr.Name, kubecluster) {
-						updateMetaGenerator := kubecluster
+						updateMetaGenerator := &kubecluster
 						currMetaGenerator := kubecluster.Spec.ConfigMetaGenerator
 						updateMetaGenerator.Spec.ConfigMetaGenerator = currMetaGenerator + 1
-						shared.Update(context.TODO(), &updateMetaGenerator)
+						shared.Update(context.TODO(), updateMetaGenerator)
 						// for _, role := range kubecluster.Status.Roles {
 						// 	//pods := &v1.PodList{}
 						// 	//shared.Client().List(context.TODO(), &client.ListOptions{}, pods)

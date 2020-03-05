@@ -118,7 +118,7 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 									&kubecluster,
 									cr.Namespace,
 									roleMember.Pod,
-									"",
+									roleMember.StateDetail.LastConfiguredContainer,
 									executor.AppContainerName,
 									kc.ConfigMetaFile,
 									strings.NewReader(configmeta),

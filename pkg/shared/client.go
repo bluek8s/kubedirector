@@ -168,11 +168,11 @@ func Get(
 // determine the zero-items case.
 func List(
 	ctx context.Context,
-	opts *k8sClient.ListOptions,
 	list runtime.Object,
+	opts ...k8sClient.ListOption,
 ) error {
 
-	return client.List(ctx, opts, list)
+	return client.List(ctx, list, opts...)
 }
 
 // Update uses the split client. Should write back directly to K8s, but we'll
@@ -203,7 +203,7 @@ func StatusUpdate(
 func Delete(
 	ctx context.Context,
 	obj runtime.Object,
-	opts ...k8sClient.DeleteOptionFunc,
+	opts ...k8sClient.DeleteOption,
 ) error {
 
 	return client.Delete(ctx, obj, opts...)

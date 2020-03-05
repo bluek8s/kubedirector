@@ -17,7 +17,7 @@ package observer
 import (
 	"context"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"k8s.io/api/admissionregistration/v1beta1"
@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // GetCluster finds the k8s KubeDirectorCluster with the given name in the
@@ -238,7 +237,7 @@ func GetDefaultStorageClass() (*storagev1.StorageClass, error) {
 
 	// Namespace does not matter for this query; leave blank.
 	result := &storagev1.StorageClassList{}
-	err := shared.List(context.TODO(), &client.ListOptions{}, result)
+	err := shared.List(context.TODO(), result)
 	if err != nil {
 		return nil, err
 	}

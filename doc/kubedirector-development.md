@@ -6,6 +6,17 @@ The remainder of this document assumes that you have cloned the KubeDirector rep
 
 Creating and managing virtual clusters with KubeDirector is described in [virtual-clusters.md](virtual-clusters.md).
 
+#### CODEBASE MIGRATION
+
+If you are working with a fresh checkout of this codebase, skip ahead to DEVELOPMENT SETUP below.
+
+If however you are updating to a newer version of the KubeDirector source after working with an older version, it may not be desirable to do a fresh checkout if your codebase contains extensive changes. In that case, the following steps are recommended:
+* If possible, do a "make clean" **and then** pull/merge in the changes for the new source. If you have already pulled in the new changes however, go ahead and do a "make clean" now.
+* If you are coming from v0.4.0 (or earlier), recursively remove the "vendor" directory and its contents.
+* Make sure there are no old generated source files remaining (generated files live in subdirectories under "pkg/apis"). "git status" can help you check for this; any "untracked" go source files should likely be removed unless you know exactly what they are and why they should remain.
+
+Then proceed to the "DEVELOPMENT SETUP" section below and check for any new tool requirements.
+
 #### DEVELOPMENT SETUP
 
 If you intend to build KubeDirector yourself, rather than deploying a pre-built image, then some additional setup is required.

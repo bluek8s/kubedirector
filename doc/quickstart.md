@@ -89,6 +89,10 @@ If you have created a KubeDirectorConfig object and later want to change it, you
 
 The process of creating and managing virtual clusters is described in [virtual-clusters.md](virtual-clusters.md).
 
+#### UPGRADING KUBEDIRECTOR
+
+If you have deployed one version of KubeDirector and want to upgrade to a new version, reference [upgrade.md](upgrade.md).
+
 #### TEARDOWN
 
 When you are completely done with KubeDirector, or want to start over fresh, you can delete all KubeDirector-related resources from K8s:

@@ -44,6 +44,13 @@ version-check:
         echo "go version 1.13 or later is required"; \
         exit 1; \
     fi
+	@if operator-sdk version | grep -q 'operator-sdk version: "v0.15.2'; then \
+        true; \
+    else \
+        echo "Error:"; \
+        echo "operator-sdk version 1.15.2 is required"; \
+        exit 1; \
+    fi
 
 build: configcli pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go version-check | $(build_dir)
 	@echo

@@ -44,9 +44,9 @@ rules:
   - daemonsets
   - replicasets
   verbs:
-  - "get"
-  - "list"
-  - "watch"
+  - get
+  - list
+  - watch
 - apiGroups:
   - apps
   resourceNames:
@@ -60,8 +60,7 @@ rules:
   resources:
   - mutatingwebhookconfigurations
   verbs:
-  - "get"
-  - "create"
+  - "*"
 - apiGroups:
   - monitoring.coreos.com
   resources:

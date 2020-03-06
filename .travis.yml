@@ -16,8 +16,6 @@ install:
   - chmod +x $GOPATH/bin/operator-sdk
   # Get golint
   - go get -u golang.org/x/lint/golint
-  # Get module dependencies
-  - make modules
 
 script:
   - make compile

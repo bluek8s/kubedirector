@@ -12,18 +12,11 @@ If you intend to build KubeDirector yourself, rather than deploying a pre-built 
 
 KubeDirector has been successfully built and deployed from macOS, Ubuntu, and CentOS. Similar OS environments may also work for development but have not been tested.
 
-KubeDirector is written in the ["go"](https://golang.org/) language, so the fundamental requirement for building KubeDirector from source is to have that language installed (version 1.12 or later). The ["dep"](https://golang.github.io/dep/) tool is also required.
+KubeDirector is written in the ["go"](https://golang.org/) language, so the fundamental requirement for building KubeDirector from source is to have that language installed (version 1.13 or later).
 
-KubeDirector currently uses the [Operator SDK](https://github.com/operator-framework/operator-sdk) to do code generation for watching custom resources (the "informer" block in the [architecture diagrams](https://github.com/bluek8s/kubedirector/wiki/KubeDirector-Architecture-Overview)). So if you intend to build KubeDirector from source, you will need the operator SDK on your build system. Do the following step once before any build of KubeDirector:
-```bash
-    git clone https://github.com/operator-framework/operator-sdk.git $GOPATH/src/github.com/operator-framework/operator-sdk
-    cd $GOPATH/src/github.com/operator-framework/operator-sdk
-    git checkout v0.8.1
-    make dep
-    make install
-```
+KubeDirector uses the [Operator SDK](https://github.com/operator-framework/operator-sdk) to do code generation for watching custom resources. The version of the Operator SDK used by KubeDirector depends on which release or branch of the KubeDirector source you are working with. So before you proceed, make sure that you are looking at the version of this document corresponding to the release/branch of KubeDirector that you care about! For example if you are currently working with some specific KubeDirector release on your local workstation, but you are reading this document from the tip of the master branch on GitHub, then you may end up with incorrect information.
 
-Note the specific operator-sdk version that is used above; this will undoubtedly change in future KubeDirector versions.
+KubeDirector currently uses version 0.15.2 of the Operator SDK. You should reference [that version of the Operator SDK installation guide](https://github.com/operator-framework/operator-sdk/blob/v0.15.2/doc/user/install-operator-sdk.md), and you should make sure that you specifically install version 0.15.2 of the operator-sdk tool. The most foolproof way to get the correct version is to use the ["Install from GitHub release"](https://github.com/operator-framework/operator-sdk/blob/v0.15.2/doc/user/install-operator-sdk.md#install-from-github-release) section of that doc.
 
 You will also need Docker installed on your build system.
 
@@ -53,11 +46,10 @@ Make sure that "$GOPATH/bin" is included in your PATH environment variable.
 
 To build KubeDirector for the first time:
 ```bash
-    make dep
     make build
 ```
 
-When rebuilding KubeDirector subsequently, only "make build" should be necessary, unless you have changed the set of packages that the code imports.
+If you subsequently make edits that change the set of packages that the code imports, you should run "make modules" before rebuilding.
 
 The build process creates the YAML for the KubeDirector deployment, the kubedirector binary, and a "configcli" package of utility Python code. It then creates a Docker image that contains the kubedirector binary at /usr/local/bin/kubedirector, and has the configcli package stored at /root/configcli.tgz.
 
@@ -72,7 +64,7 @@ Whenever you do "make deploy", KubeDirector is deployed to K8s using the image i
 A "make push" will push your locally built image to its registry, so that it can be deployed. If you have not set a custom image name, "make push" will fail.
 
 If you *have* set a custom image name, then one possible clean/rigorous cycle of deploying successive builds would be:
-1. "make build" (preceded by "make dep" if necessary)
+1. "make build" (preceded by "make modules" if necessary)
 2. "make push"
 3. "make deploy"
 4. testing
@@ -88,7 +80,7 @@ Before starting a "redeploy" cycle, you do need an initial deployment. If you do
 * "make deploy"
 
 After the initial deploy, your development cycle can look like this:
-1. "make build" (preceded by "make dep" if necessary)
+1. "make build" (preceded by "make modules" if necessary)
 2. "make redeploy"
 3. testing
 4. make code changes

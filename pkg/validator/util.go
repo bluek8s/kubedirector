@@ -116,6 +116,9 @@ func createAdmissionService(
 	// Use the v1beta1 version until our K8s version support floor is 1.16 or
 	// better.
 	failurePolicy := v1beta1.Fail
+	// Also note that until we raise our K8s support floor to 1.15, we can't
+	// use any properties in v1beta1.MutatingWebhook that were not also
+	// present in the old v1beta1.Webhook.
 	webhookHandler := v1beta1.MutatingWebhook{
 		Name: webhookHandlerName,
 		ClientConfig: v1beta1.WebhookClientConfig{

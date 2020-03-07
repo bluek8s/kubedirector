@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// KubeDirectorAppSpec defines the desired state of KubeDirectorApp
+// KubeDirectorAppSpec defines the desired state of KubeDirectorApp.
 type KubeDirectorAppSpec struct {
 	Label               Label               `json:"label"`
 	DistroID            string              `json:"distroID"`

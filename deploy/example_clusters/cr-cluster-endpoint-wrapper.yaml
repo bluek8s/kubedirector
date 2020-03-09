@@ -1,8 +1,7 @@
 apiVersion: "kubedirector.hpe.com/v1beta1"
 kind: "KubeDirectorCluster"
 metadata: 
-  name: "deploymt-engine"
-
+  name: "deploymt-engine1"
 spec:
   app: flask-and-inf-eng
   attachments:

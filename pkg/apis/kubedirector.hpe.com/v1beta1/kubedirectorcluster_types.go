@@ -54,6 +54,7 @@ type KubeDirectorClusterStatus struct {
 	ClusterService          string       `json:"clusterService"`
 	LastNodeID              int64        `json:"lastNodeID"`
 	Roles                   []RoleStatus `json:"roles"`
+	LastConfigMetaGenerator int          `json:"lastConfigMetaGenerator"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

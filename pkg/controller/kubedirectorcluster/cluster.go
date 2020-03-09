@@ -59,7 +59,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		syncMemberNotifies(reqLogger, cr)
 		updateStateRollup(cr)
 		nowHasFinalizer := shared.HasFinalizer(cr)
-		// Bail out if nothing has changed. Note that if we are deleting we
+		// Bail out if nothing has changed. Note 	that if we are deleting we
 		// don't care if status has changed.
 		statusChanged := false
 		if (cr.DeletionTimestamp == nil) || nowHasFinalizer {
@@ -208,7 +208,9 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			)
 			cr.Status.State = string(clusterReady)
 		}
-		return nil
+		if cr.Spec.ConfigMetaGenerator == cr.Status.LastConfigMetaGenerator {
+			return nil
+		}
 	}
 
 	if cr.Status.State != string(clusterCreating) {
@@ -230,7 +232,8 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return configMetaErr
 	}
 
-	if state == clusterMembersChangedUnready {
+	//fmt.Println("State is :", state)
+	if state == clusterMembersChangedUnready || (cr.Spec.ConfigMetaGenerator != cr.Status.LastConfigMetaGenerator) {
 		cr.Status.SpecGenerationToProcess = &cr.Generation
 	}
 	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
@@ -238,7 +241,8 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		errLog("members", membersErr)
 		return membersErr
 	}
-
+	cr.Status.LastConfigMetaGenerator = cr.Spec.ConfigMetaGenerator
+	cr.Status.State = string(clusterReady)
 	return nil
 }
 

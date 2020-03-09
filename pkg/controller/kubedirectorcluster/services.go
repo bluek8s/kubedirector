@@ -85,7 +85,7 @@ func syncClusterService(
 func syncMemberServices(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	roles []*RoleInfo,
+	roles []*roleInfo,
 ) error {
 
 	for _, role := range roles {
@@ -164,7 +164,7 @@ func handleClusterServiceConfig(
 func handleMemberService(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
+	role *roleInfo,
 	member *kdv1.MemberStatus,
 ) error {
 
@@ -226,7 +226,7 @@ func handleMemberService(
 func handleMemberServiceCreate(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
+	role *roleInfo,
 	member *kdv1.MemberStatus,
 ) error {
 
@@ -265,7 +265,7 @@ func handleMemberServiceCreate(
 func handleMemberServiceConfig(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
+	role *roleInfo,
 	member *kdv1.MemberStatus,
 	memberService *corev1.Service,
 ) {

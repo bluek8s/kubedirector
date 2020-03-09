@@ -104,7 +104,7 @@ const (
 )
 
 //RoleInfo comment
-type RoleInfo struct {
+type roleInfo struct {
 	statefulSet    *appsv1.StatefulSet
 	roleSpec       *kdv1.Role
 	roleStatus     *kdv1.RoleStatus

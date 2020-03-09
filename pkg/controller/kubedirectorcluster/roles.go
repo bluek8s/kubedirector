@@ -37,7 +37,7 @@ import (
 func syncClusterRoles(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-) ([]*RoleInfo, clusterStateInternal, error) {
+) ([]*roleInfo, clusterStateInternal, error) {
 
 	// Construct the role info slice. Bail out now if that fails.
 	roles, rolesErr := InitRoleInfo(reqLogger, cr)
@@ -127,9 +127,9 @@ func syncClusterRoles(
 func InitRoleInfo(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-) ([]*RoleInfo, error) {
+) ([]*roleInfo, error) {
 
-	roles := make(map[string]*RoleInfo)
+	roles := make(map[string]*roleInfo)
 	numRoleSpecs := len(cr.Spec.Roles)
 	numRoleStatuses := len(cr.Status.Roles)
 
@@ -138,7 +138,7 @@ func InitRoleInfo(
 	// in this function.
 	for i := 0; i < numRoleSpecs; i++ {
 		roleSpec := &(cr.Spec.Roles[i])
-		roles[roleSpec.Name] = &RoleInfo{
+		roles[roleSpec.Name] = &roleInfo{
 			statefulSet:    nil,
 			roleSpec:       roleSpec,
 			roleStatus:     nil,
@@ -205,7 +205,7 @@ func InitRoleInfo(
 		} else {
 			// This is not a role desired in the spec. Create a new info
 			// entry with desired member count at zero.
-			roles[roleStatus.Name] = &RoleInfo{
+			roles[roleStatus.Name] = &roleInfo{
 				statefulSet:    statefulSet,
 				roleSpec:       nil,
 				roleStatus:     roleStatus,
@@ -217,7 +217,7 @@ func InitRoleInfo(
 
 	// Return a slice of roleinfo made from the map values, and with the
 	// membersByState maps populated.
-	var result []*RoleInfo
+	var result []*roleInfo
 	for _, info := range roles {
 		calcRoleMembersByState(info)
 		result = append(result, info)
@@ -228,7 +228,7 @@ func InitRoleInfo(
 // calcRoleMembersByState builds the members-by-state map based on the current
 // member statuses in the role.
 func calcRoleMembersByState(
-	role *RoleInfo,
+	role *roleInfo,
 ) {
 
 	if role.roleStatus == nil {
@@ -250,7 +250,7 @@ func calcRoleMembersByState(
 func handleRoleCreate(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
+	role *roleInfo,
 	anyMembersChanged *bool,
 ) error {
 
@@ -317,7 +317,7 @@ func handleRoleCreate(
 func handleRoleReCreate(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
+	role *roleInfo,
 	anyMembersChanged *bool,
 ) error {
 
@@ -373,7 +373,7 @@ func handleRoleReCreate(
 func handleRoleConfig(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
+	role *roleInfo,
 ) {
 
 	updateErr := executor.UpdateStatefulSetNonReplicas(
@@ -398,7 +398,7 @@ func handleRoleConfig(
 func handleRoleDelete(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
+	role *roleInfo,
 ) {
 
 	shared.LogInfof(
@@ -431,7 +431,7 @@ func handleRoleDelete(
 func handleRoleResize(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
+	role *roleInfo,
 	anyMembersChanged *bool,
 ) {
 
@@ -481,7 +481,7 @@ func handleRoleResize(
 // members-by-state map accordingly.
 func addMemberStatuses(
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
+	role *roleInfo,
 ) {
 
 	lastNodeID := &cr.Status.LastNodeID
@@ -521,7 +521,7 @@ func addMemberStatuses(
 // create pending or creating), to prepare to shrink the role to the desired
 // number of members. It also updates the members-by-state map accordingly.
 func deleteMemberStatuses(
-	role *RoleInfo,
+	role *roleInfo,
 ) {
 
 	currentPop := len(role.roleStatus.Members)
@@ -583,7 +583,7 @@ func deleteMemberStatuses(
 // also checked to make sure they have processed all updates.
 func allRoleMembersReadyOrError(
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
+	role *roleInfo,
 ) bool {
 
 	switch len(role.membersByState) {

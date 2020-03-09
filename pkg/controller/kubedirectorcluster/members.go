@@ -46,7 +46,7 @@ import (
 func syncMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	roles []*RoleInfo,
+	roles []*roleInfo,
 	configmetaGenerator func(string) string,
 ) error {
 
@@ -199,7 +199,7 @@ func syncMemberNotifies(
 func handleReadyMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
+	role *roleInfo,
 	configmetaGenerator func(string) string,
 ) {
 
@@ -258,7 +258,7 @@ func handleReadyMembers(
 func handleCreatePendingMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
+	role *roleInfo,
 ) {
 
 	// Fix statefulset if necessary, and bail out if it is not good yet.
@@ -330,8 +330,8 @@ func handleCreatePendingMembers(
 func handleCreatingMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
-	allRoles []*RoleInfo,
+	role *roleInfo,
+	allRoles []*roleInfo,
 	configmetaGenerator func(string) string,
 ) {
 
@@ -480,7 +480,7 @@ func handleCreatingMembers(
 func handleDeletingMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
+	role *roleInfo,
 ) {
 
 	// Fix statefulset if necessary. Note that the statefulset might not exist
@@ -577,8 +577,8 @@ func handleDeletingMembers(
 func handleDeletePendingMembers(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
-	allRoles []*RoleInfo,
+	role *roleInfo,
+	allRoles []*roleInfo,
 ) {
 
 	// Generate the notifications for these members, to later send to any
@@ -602,7 +602,7 @@ func handleDeletePendingMembers(
 func checkMemberCount(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
+	role *roleInfo,
 ) bool {
 
 	// Calculate the number of members that a statefulset/role SHOULD
@@ -651,7 +651,7 @@ func checkMemberCount(
 func replicasSynced(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
+	role *roleInfo,
 ) bool {
 
 	if role.statefulSet.Status.Replicas != *(role.statefulSet.Spec.Replicas) {
@@ -783,7 +783,7 @@ func injectFiles(
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
 	expectedContainerID string,
-	role *RoleInfo,
+	role *roleInfo,
 ) error {
 
 	for _, fileInjection := range role.roleSpec.FileInjections {
@@ -845,8 +845,8 @@ func injectFiles(
 func generateNotifies(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	role *RoleInfo,
-	allRoles []*RoleInfo,
+	role *roleInfo,
+	allRoles []*roleInfo,
 ) {
 
 	// specGenerationToProcess should always be non-nil in current usage,
@@ -1066,7 +1066,7 @@ func queueNotify(
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
 	stateDetail *kdv1.MemberStateDetail,
-	modifiedRole *RoleInfo,
+	modifiedRole *roleInfo,
 ) {
 
 	// Figure out which lifecycle event we're dealing with, and collect the

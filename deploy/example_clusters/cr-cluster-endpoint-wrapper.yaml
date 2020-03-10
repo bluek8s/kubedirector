@@ -4,8 +4,8 @@ metadata:
   name: "deploymt-engine1"
 spec:
   app: flask-and-inf-eng
-  attachments:
-    models:
+  connections:
+    configmaps:
     - "model-prediction"
   roles:
   - id: RESTServer

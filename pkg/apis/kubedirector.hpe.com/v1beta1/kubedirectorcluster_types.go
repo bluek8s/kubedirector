@@ -32,14 +32,14 @@ type KubeDirectorClusterSpec struct {
 	Roles               []Role      `json:"roles"`
 	DefaultSecret       *KDSecret   `json:"defaultSecret"`
 	ConfigMetaGenerator int         `json:"configMetaGenerator"`
-	Attachments         Attachments `json:"attachments"`
+	Connections         Connections `json:"connections"`
 }
 
-// Attachments specifies list of cluster objects and model objects that has
+// Connections specifies list of cluster objects and configmaps objects that has
 // be attached to the cluster.
-type Attachments struct {
-	Clusters        []string `json:"clusters,omitempty"`
-	ModelConfigMaps []string `json:"models,omitempty"`
+type Connections struct {
+	Clusters   []string `json:"clusters,omitempty"`
+	ConfigMaps []string `json:"configmaps,omitempty"`
 }
 
 // KubeDirectorClusterStatus defines the observed state of KubeDirectorCluster.

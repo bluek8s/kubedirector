@@ -47,8 +47,8 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 	oldMap, _ := observer.GetConfigMap(cr.Namespace, cr.Name)
 	hadFinalizer := shared.HasFinalizer(cr)
 	oldMapResourceVersion := oldMap.ResourceVersion
-	if value, ok := oldMap.Labels["kubedirectormodel"]; ok {
-		fmt.Println("found kubedirectormodel, take action: ", value)
+	if value, ok := oldMap.Labels["kubedirectorcmtype"]; ok {
+		fmt.Println("found configmap, take action: ", value)
 	} else {
 		return nil
 	}
@@ -74,7 +74,7 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 				//anonymous fun to check if this cluster
 				// is using this config map as an attachment
 				isClusterUsingConfigMap := func(cmName string, cluster kdv1.KubeDirectorCluster) bool {
-					clusterModels := cluster.Spec.Attachments.ModelConfigMaps
+					clusterModels := cluster.Spec.Connections.ConfigMaps
 					for _, modelMapName := range clusterModels {
 						if modelMapName == cmName {
 							fmt.Println("found affected cluster: ", cluster.Name)
@@ -95,37 +95,6 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 						currMetaGenerator := kubecluster.Spec.ConfigMetaGenerator
 						updateMetaGenerator.Spec.ConfigMetaGenerator = currMetaGenerator + 1
 						shared.Update(context.TODO(), updateMetaGenerator)
-						// for _, role := range kubecluster.Status.Roles {
-						// 	//pods := &v1.PodList{}
-						// 	//shared.Client().List(context.TODO(), &client.ListOptions{}, pods)
-						// 	for _, roleMember := range role.Members {
-						// 		// Construct the role info slice. Bail out now if that fails.
-						// 		roleInfos, infoErr := kc.InitRoleInfo(reqLogger, &kubecluster)
-						// 		if infoErr != nil {
-						// 			return
-						// 		}
-						// 		configmetaGenFun, generationErr := catalog.ConfigmetaGenerator(
-						// 			&kubecluster,
-						// 			kc.CalcMembersForRoles(roleInfos),
-						// 		)
-						// 		if generationErr != nil {
-						// 			return
-						// 		}
-						// 		configmeta := configmetaGenFun(roleMember.Pod)
-						// 		//fmt.Println("Successfully generated configmeta for pod ", roleMember.)
-						// 		executor.CreateFile(
-						// 			reqLogger,
-						// 			&kubecluster,
-						// 			cr.Namespace,
-						// 			roleMember.Pod,
-						// 			"",
-						// 			executor.AppContainerName,
-						// 			kc.ConfigMetaFile,
-						// 			strings.NewReader(configmeta),
-						// 		)
-						// 		//shared.Update(context.TODO(),
-						// 	}
-						// }
 					}
 				}
 			}

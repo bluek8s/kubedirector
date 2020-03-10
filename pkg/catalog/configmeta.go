@@ -39,7 +39,7 @@ func allServiceRefkeys(
 	for _, r := range roleNames {
 		var refKeyList []string
 		if attachedClusterName != "" {
-			refKeyList = []string{"attachments", "clusters", attachedClusterName}
+			refKeyList = []string{"connections", "clusters", attachedClusterName}
 		}
 		refKeyList = append(refKeyList, "nodegroups", "1", "roles", r, "services", serviceName)
 		result[r] = refkeys{
@@ -121,11 +121,11 @@ func servicesForRole(
 				}
 				if attachedClusterName != "" {
 					s.Hostnames.BdvlibRefKey = append(
-						[]string{"attachments", "clusters", attachedClusterName},
+						[]string{"connections", "clusters", attachedClusterName},
 						s.Hostnames.BdvlibRefKey...,
 					)
 					s.FQDNs.BdvlibRefKey = append(
-						[]string{"attachments", "clusters", attachedClusterName},
+						[]string{"connections", "clusters", attachedClusterName},
 						s.FQDNs.BdvlibRefKey...,
 					)
 				}
@@ -137,7 +137,7 @@ func servicesForRole(
 	return result
 }
 
-// modelAttachments will look at the cluster spec
+// modelConnection will look at the cluster spec
 // and generates a map of models to be attached to
 // this cluster
 func genconfigConnections(
@@ -146,7 +146,7 @@ func genconfigConnections(
 
 	models := make(map[string]map[string]string)
 	kdcm := make(map[string]map[string]map[string]string)
-	for _, modelMapName := range cr.Spec.Attachments.ModelConfigMaps {
+	for _, modelMapName := range cr.Spec.Connections.ConfigMaps {
 		modelCM, err := observer.GetConfigMap(cr.Namespace, modelMapName)
 		if kdConfigMapType, ok := modelCM.Labels["kubedirectorcmtype"]; ok {
 			models[modelMapName] = modelCM.Data
@@ -176,7 +176,7 @@ func genClusterConnections(
 		return false
 	}
 	toAttachMeta := make(map[string]clusterConnections)
-	for _, clusterName := range cr.Spec.Attachments.Clusters {
+	for _, clusterName := range cr.Spec.Connections.Clusters {
 		// Fetch the cluster object
 		clusterToAttach, attachedErr := observer.GetCluster(cr.Namespace, clusterName)
 		appForclusterToAttach, attachedAppErr := observer.GetApp(clusterToAttach.Namespace, clusterToAttach.Spec.AppID)

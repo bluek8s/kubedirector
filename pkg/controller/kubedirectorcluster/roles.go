@@ -40,7 +40,7 @@ func syncClusterRoles(
 ) ([]*roleInfo, clusterStateInternal, error) {
 
 	// Construct the role info slice. Bail out now if that fails.
-	roles, rolesErr := InitRoleInfo(reqLogger, cr)
+	roles, rolesErr := initRoleInfo(reqLogger, cr)
 	if rolesErr != nil {
 		return nil, clusterMembersUnknown, rolesErr
 	}
@@ -124,7 +124,7 @@ func syncClusterRoles(
 // desired roles. Each element contains useful information about the role
 // spec and status that will be used not only in syncRole but also by the
 // sync logic for other concerns.
-func InitRoleInfo(
+func initRoleInfo(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 ) ([]*roleInfo, error) {

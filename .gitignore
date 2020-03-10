@@ -5,7 +5,7 @@ build/configcli.tgz
 # generated
 /deploy/kubedirector/deployment-localbuilt.yaml
 /deploy/kubedirector/rbac.yaml
-zz_generated.*.go
+pkg/apis/kubedirector/v1beta1/zz_generated.*.go
 
 # temporary build files
 build/_output

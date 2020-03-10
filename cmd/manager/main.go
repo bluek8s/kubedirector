@@ -35,7 +35,6 @@ import (
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	kubemetrics "github.com/operator-framework/operator-sdk/pkg/kube-metrics"
-	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	"github.com/operator-framework/operator-sdk/pkg/metrics"
 	"github.com/operator-framework/operator-sdk/pkg/restmapper"
@@ -87,22 +86,19 @@ func main() {
 
 	printVersion()
 
-	ctx := context.TODO()
-	// Become the leader before proceeding
-	leaderErr := leader.Become(ctx, "kubedirector-lock")
-	if leaderErr != nil {
-		log.Error(leaderErr,
-			"failed to become \"leader\"... is another KubeDirector active?")
-		os.Exit(1)
-	}
-
 	// Create the overall controller-runtime manager. Note that it will watch
 	// all namespaces because of the specified emptystring for Namespace.
 	// (We'll reject KubeDirectorConfig requests in the validator when the
 	// namespace isn't the KubeDirector namespace.)
+	// Leader election configured here in order to do lease-based leader
+	// acqusition; as opposed to "leader for life" style which depends on
+	// timely pod eviction of dead pods (which may not happen at all,
+	// depending on eviction settings and overall cluster config).
 	mgr, mgrErr := manager.New(shared.Config(), manager.Options{
 		Namespace:          "",
 		MapperProvider:     restmapper.NewDynamicRESTMapper,
+		LeaderElection:     true,
+		LeaderElectionID:   "kubedirector-lock",
 		MetricsBindAddress: fmt.Sprintf("%s:%d", metricsHost, metricsPort),
 	})
 	if mgrErr != nil {
@@ -126,7 +122,7 @@ func main() {
 
 	// Add the Metrics Service
 	// XXX Commenting out until we can test properly.
-	//	addMetrics(ctx, shared.Config(), "")
+	//	addMetrics(context.TODO(), shared.Config(), "")
 
 	// See https://github.com/bluek8s/kubedirector/issues/173
 	// Since we are not using the manager's webhook framework and are

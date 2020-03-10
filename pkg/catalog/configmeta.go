@@ -142,23 +142,21 @@ func servicesForRole(
 // this cluster
 func modelAttachments(
 	cr *kdv1.KubeDirectorCluster,
-) (map[string]map[string]string, error) {
+) (map[string]map[string]map[string]string, error) {
 
 	models := make(map[string]map[string]string)
+	kdcm := make(map[string]map[string]map[string]string)
 	for _, modelMapName := range cr.Spec.Attachments.ModelConfigMaps {
 		modelCM, err := observer.GetConfigMap(cr.Namespace, modelMapName)
-		if _, ok := modelCM.Labels["kubedirectormodel"]; ok {
-			//fmt.Println("found kubedirectormodel, take action: ", value)
-		} else {
-			return nil, fmt.Errorf("Map is not of type kubedirectormodel")
+		if kdConfigMapType, ok := modelCM.Labels["kubedirectorcmtype"]; ok {
+			models[modelMapName] = modelCM.Data
+			kdcm[kdConfigMapType] = models
+			if err != nil {
+				return nil, err
+			}
 		}
-		if err != nil {
-			return nil, err
-		}
-		models[modelMapName] = modelCM.Data
-		//models[modelAttachment] = modelAttachment
 	}
-	return models, nil
+	return kdcm, nil
 }
 
 // clusterAtachments generates a map of running clusters that are to be attached
@@ -300,10 +298,10 @@ func clusterBaseConfig(
 ) (*configmeta, error) {
 
 	clustersMeta, attachErr := clusterAttachments(cr)
-	modelCM, modelErr := modelAttachments(cr)
+	kdConfigMaps, cmErr := modelAttachments(cr)
 
-	if modelErr != nil {
-		return nil, modelErr
+	if cmErr != nil {
+		return nil, cmErr
 	}
 	if attachErr != nil {
 		return nil, attachErr
@@ -331,8 +329,8 @@ func clusterBaseConfig(
 			},
 		},
 		Attachments: attachments{
-			Clusters: clustersMeta,
-			Models:   modelCM,
+			Clusters:   clustersMeta,
+			ConfigMaps: kdConfigMaps,
 		},
 	}, nil
 }

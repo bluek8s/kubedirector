@@ -44,8 +44,8 @@ type nodegroup struct {
 }
 
 type attachments struct {
-	Clusters map[string]clusterAttachment `json:"clusters"`
-	Models   map[string]map[string]string `json:"models"`
+	Clusters   map[string]clusterAttachment            `json:"clusters"`
+	ConfigMaps map[string]map[string]map[string]string `json:"configmaps"`
 }
 
 type clusterAttachment struct {

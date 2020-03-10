@@ -140,7 +140,7 @@ func servicesForRole(
 // modelAttachments will look at the cluster spec
 // and generates a map of models to be attached to
 // this cluster
-func modelAttachments(
+func genconfigConnections(
 	cr *kdv1.KubeDirectorCluster,
 ) (map[string]map[string]map[string]string, error) {
 
@@ -161,9 +161,9 @@ func modelAttachments(
 
 // clusterAtachments generates a map of running clusters that are to be attached
 // to this cluster.
-func clusterAttachments(
+func genClusterConnections(
 	cr *kdv1.KubeDirectorCluster,
-) (map[string]clusterAttachment, error) {
+) (map[string]clusterConnections, error) {
 
 	thisApp, _ := observer.GetApp(cr.Namespace, cr.Spec.AppID)
 	attachableTo := thisApp.Spec.AttachableTo
@@ -175,7 +175,7 @@ func clusterAttachments(
 		}
 		return false
 	}
-	toAttachMeta := make(map[string]clusterAttachment)
+	toAttachMeta := make(map[string]clusterConnections)
 	for _, clusterName := range cr.Spec.Attachments.Clusters {
 		// Fetch the cluster object
 		clusterToAttach, attachedErr := observer.GetCluster(cr.Namespace, clusterName)
@@ -204,14 +204,14 @@ func clusterAttachments(
 			membersForRole[roleInfo.Name] = membersStatus
 		}
 
-		toAttachMeta[clusterName] = clusterAttachment{
+		toAttachMeta[clusterName] = clusterConnections{
 			Version:    strconv.Itoa(appForclusterToAttach.Spec.SchemaVersion),
 			Services:   getServices(appForclusterToAttach, membersForRole, clusterName),
 			Nodegroups: nodegroups(clusterToAttach, appForclusterToAttach, membersForRole, domain),
 			Distros: map[string]refkeysMap{
 				appForclusterToAttach.Spec.DistroID: refkeysMap{
 					"1": refkeys{
-						BdvlibRefKey: []string{"attachments", "clusters", clusterName, "nodegroups", "1"},
+						BdvlibRefKey: []string{"connections", "clusters", clusterName, "nodegroups", "1"},
 					},
 				},
 			},
@@ -220,7 +220,7 @@ func clusterAttachments(
 			ID:       string(cr.UID),
 			ConfigMeta: map[string]refkeys{
 				"1": refkeys{
-					BdvlibRefKey: []string{"attachments", "clusters", clusterName, "nodegroups", "1", "config_metadata"},
+					BdvlibRefKey: []string{"connections", "clusters", clusterName, "nodegroups", "1", "config_metadata"},
 				},
 			},
 		}
@@ -297,8 +297,8 @@ func clusterBaseConfig(
 	domain string,
 ) (*configmeta, error) {
 
-	clustersMeta, attachErr := clusterAttachments(cr)
-	kdConfigMaps, cmErr := modelAttachments(cr)
+	clustersMeta, attachErr := genClusterConnections(cr)
+	kdConfigMaps, cmErr := genconfigConnections(cr)
 
 	if cmErr != nil {
 		return nil, cmErr
@@ -328,7 +328,7 @@ func clusterBaseConfig(
 				},
 			},
 		},
-		Attachments: attachments{
+		Connections: connections{
 			Clusters:   clustersMeta,
 			ConfigMaps: kdConfigMaps,
 		},

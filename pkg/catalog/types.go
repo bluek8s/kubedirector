@@ -25,7 +25,7 @@ type configmeta struct {
 	Distros     map[string]refkeysMap   `json:"distros"`
 	Cluster     cluster                 `json:"cluster"`
 	Node        *node                   `json:"node"`
-	Attachments attachments             `json:"attachments"`
+	Connections connections             `json:"connections"`
 }
 
 type ngRefkeysMap map[string]refkeysMap
@@ -43,12 +43,12 @@ type nodegroup struct {
 	ConfigMeta          map[string]string `json:"config_metadata"`
 }
 
-type attachments struct {
-	Clusters   map[string]clusterAttachment            `json:"clusters"`
+type connections struct {
+	Clusters   map[string]clusterConnections           `json:"clusters"`
 	ConfigMaps map[string]map[string]map[string]string `json:"configmaps"`
 }
 
-type clusterAttachment struct {
+type clusterConnections struct {
 	Version    string                  `json:"version"`
 	Services   map[string]ngRefkeysMap `json:"services"`
 	Nodegroups map[string]nodegroup    `json:"nodegroups"`

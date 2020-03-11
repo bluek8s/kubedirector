@@ -12,5 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package kubedirectorconfig implements reconciliation for KubeDirectorConfigmap.
+// Package kubedirectorconfigmap implements reconciliation for KubeDirectorConfigmap.
 package kubedirectorconfigmap

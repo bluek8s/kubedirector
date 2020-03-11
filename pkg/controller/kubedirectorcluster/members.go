@@ -228,7 +228,7 @@ func handleReadyMembers(
 				m.Pod,
 				m.StateDetail.LastConfiguredContainer,
 				executor.AppContainerName,
-				ConfigMetaFile,
+				configMetaFile,
 				strings.NewReader(configmeta),
 			)
 			if createFileErr != nil {
@@ -1020,7 +1020,7 @@ func appConfig(
 		podName,
 		expectedContainerID,
 		executor.AppContainerName,
-		ConfigMetaFile,
+		configMetaFile,
 		strings.NewReader(configmetaGenerator(podName)),
 	)
 	if configmetaErr != nil {

@@ -120,7 +120,7 @@ func syncClusterRoles(
 	return roles, returnState, nil
 }
 
-// InitRoleInfo constructs a slice of elements representing all current or
+// initRoleInfo constructs a slice of elements representing all current or
 // desired roles. Each element contains useful information about the role
 // spec and status that will be used not only in syncRole but also by the
 // sync logic for other concerns.

@@ -537,7 +537,7 @@ func (r *ReconcileKubeDirectorCluster) handleFinalizers(
 	return false, nil
 }
 
-// CalcMembersForRoles generates a map of role name to list of all member
+// calcMembersForRoles generates a map of role name to list of all member
 // in the role that are intended to exist -- i.e. members in states
 // memberCreatePending, memberCreating, memberReady or memberConfigError
 func calcMembersForRoles(

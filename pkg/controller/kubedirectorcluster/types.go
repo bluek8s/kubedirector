@@ -71,7 +71,6 @@ const (
 )
 
 const (
-	//configMetaFile file path for configmeta
 	configMetaFile      = "/etc/guestconfig/configmeta.json"
 	configcliSrcFile    = "/home/kubedirector/configcli.tgz"
 	configcliDestFile   = "/tmp/configcli.tgz"

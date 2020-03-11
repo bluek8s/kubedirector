@@ -232,7 +232,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return configMetaErr
 	}
 
-	//fmt.Println("State is :", state)
 	if state == clusterMembersChangedUnready || (cr.Spec.ConfigMetaGenerator != cr.Status.LastConfigMetaGenerator) {
 		cr.Status.SpecGenerationToProcess = &cr.Generation
 	}

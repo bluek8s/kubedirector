@@ -137,9 +137,9 @@ func servicesForRole(
 	return result
 }
 
-// modelConnection will look at the cluster spec
-// and generates a map of models to be connected to
-// this cluster
+// genconfigConnections will look at the cluster spec
+// and generates a map of configmap type and corresponding
+// configmaps to be connected to the given cluster
 func genconfigConnections(
 	cr *kdv1.KubeDirectorCluster,
 ) (map[string]map[string]map[string]string, error) {
@@ -159,7 +159,7 @@ func genconfigConnections(
 	return kdcm, nil
 }
 
-// clusterAtachments generates a map of running clusters that are to be connected
+// genClusterConnections generates a map of running clusters that are to be connected
 // to this cluster.
 func genClusterConnections(
 	cr *kdv1.KubeDirectorCluster,

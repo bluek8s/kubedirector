@@ -72,7 +72,7 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 			if cmChanged {
 
 				//anonymous fun to check if this cluster
-				// is using this config map as an attachment
+				// is using this config map as an connection
 				isClusterUsingConfigMap := func(cmName string, cluster kdv1.KubeDirectorCluster) bool {
 					clusterModels := cluster.Spec.Connections.ConfigMaps
 					for _, modelMapName := range clusterModels {

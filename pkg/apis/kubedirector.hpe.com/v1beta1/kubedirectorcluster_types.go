@@ -36,7 +36,7 @@ type KubeDirectorClusterSpec struct {
 }
 
 // Connections specifies list of cluster objects and configmaps objects that has
-// be attached to the cluster.
+// be connected to the cluster.
 type Connections struct {
 	Clusters   []string `json:"clusters,omitempty"`
 	ConfigMaps []string `json:"configmaps,omitempty"`

@@ -22,25 +22,25 @@ import (
 // KubeDirectorAppSpec is the spec provided for an app definition.
 // +k8s:openapi-gen=true
 type KubeDirectorAppSpec struct {
-	Label               Label              `json:"label"`
-	DistroID            string             `json:"distroID"`
-	Version             string             `json:"version"`
-	SchemaVersion       int                `json:"configSchemaVersion"`
-	DefaultImageRepoTag *string            `json:"defaultImageRepoTag,omitempty"`
-	DefaultSetupPackage SetupPackage       `json:"defaultConfigPackage,omitempty"`
-	Services            []Service          `json:"services"`
-	NodeRoles           []NodeRole         `json:"roles"`
-	Config              NodeGroupConfig    `json:"config"`
-	DefaultPersistDirs  *[]string          `json:"defaultPersistDirs"`
-	Capabilities        []v1.Capability    `json:"capabilities"`
-	SystemdRequired     bool               `json:"systemdRequired"`
-	AttachableTo        []AttachableConfig `json:"attachable_to,omitempty"`
+	Label               Label               `json:"label"`
+	DistroID            string              `json:"distroID"`
+	Version             string              `json:"version"`
+	SchemaVersion       int                 `json:"configSchemaVersion"`
+	DefaultImageRepoTag *string             `json:"defaultImageRepoTag,omitempty"`
+	DefaultSetupPackage SetupPackage        `json:"defaultConfigPackage,omitempty"`
+	Services            []Service           `json:"services"`
+	NodeRoles           []NodeRole          `json:"roles"`
+	Config              NodeGroupConfig     `json:"config"`
+	DefaultPersistDirs  *[]string           `json:"defaultPersistDirs"`
+	Capabilities        []v1.Capability     `json:"capabilities"`
+	SystemdRequired     bool                `json:"systemdRequired"`
+	ConnectableTo       []ConnectableConfig `json:"connectable_to,omitempty"`
 }
 
-// AttachableConfig describes type of objects that can be attached to
+// ConnectableConfig describes type of objects that can be connected to
 // a cluster that uses the app.
 // XXX FIXME. Only categor
-type AttachableConfig struct {
+type ConnectableConfig struct {
 	Category            string          `json:"category"`
 	Label               Label           `json:"label"`
 	DistroID            string          `json:"distroID"`

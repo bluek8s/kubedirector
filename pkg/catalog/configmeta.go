@@ -32,14 +32,14 @@ import (
 func allServiceRefkeys(
 	roleNames []string,
 	serviceName string,
-	attachedClusterName string,
+	connectedClusterName string,
 ) refkeysMap {
 
 	result := make(refkeysMap)
 	for _, r := range roleNames {
 		var refKeyList []string
-		if attachedClusterName != "" {
-			refKeyList = []string{"connections", "clusters", attachedClusterName}
+		if connectedClusterName != "" {
+			refKeyList = []string{"connections", "clusters", connectedClusterName}
 		}
 		refKeyList = append(refKeyList, "nodegroups", "1", "roles", r, "services", serviceName)
 		result[r] = refkeys{
@@ -55,7 +55,7 @@ func allServiceRefkeys(
 func getServices(
 	appCR *kdv1.KubeDirectorApp,
 	membersForRole map[string][]*kdv1.MemberStatus,
-	attachedClusterName string,
+	connectedClusterName string,
 ) map[string]ngRefkeysMap {
 
 	result := make(map[string]ngRefkeysMap)
@@ -71,7 +71,7 @@ func getServices(
 		}
 		if len(activeRoleNames) > 0 {
 			result[service.ID] = ngRefkeysMap{
-				"1": allServiceRefkeys(activeRoleNames, service.ID, attachedClusterName),
+				"1": allServiceRefkeys(activeRoleNames, service.ID, connectedClusterName),
 			}
 		}
 	}
@@ -85,7 +85,7 @@ func servicesForRole(
 	appCR *kdv1.KubeDirectorApp,
 	roleName string,
 	members []*kdv1.MemberStatus,
-	attachedClusterName string,
+	connectedClusterName string,
 	domain string,
 ) map[string]service {
 
@@ -119,13 +119,13 @@ func servicesForRole(
 					ExportedService: serviceDef.ExportedService, // currently, always empty
 					Endpoints:       endpoints,
 				}
-				if attachedClusterName != "" {
+				if connectedClusterName != "" {
 					s.Hostnames.BdvlibRefKey = append(
-						[]string{"connections", "clusters", attachedClusterName},
+						[]string{"connections", "clusters", connectedClusterName},
 						s.Hostnames.BdvlibRefKey...,
 					)
 					s.FQDNs.BdvlibRefKey = append(
-						[]string{"connections", "clusters", attachedClusterName},
+						[]string{"connections", "clusters", connectedClusterName},
 						s.FQDNs.BdvlibRefKey...,
 					)
 				}
@@ -138,7 +138,7 @@ func servicesForRole(
 }
 
 // modelConnection will look at the cluster spec
-// and generates a map of models to be attached to
+// and generates a map of models to be connected to
 // this cluster
 func genconfigConnections(
 	cr *kdv1.KubeDirectorCluster,
@@ -159,41 +159,41 @@ func genconfigConnections(
 	return kdcm, nil
 }
 
-// clusterAtachments generates a map of running clusters that are to be attached
+// clusterAtachments generates a map of running clusters that are to be connected
 // to this cluster.
 func genClusterConnections(
 	cr *kdv1.KubeDirectorCluster,
 ) (map[string]clusterConnections, error) {
 
 	thisApp, _ := observer.GetApp(cr.Namespace, cr.Spec.AppID)
-	attachableTo := thisApp.Spec.AttachableTo
-	isAttachableCatInt := func(attachmentCat string) bool {
-		for _, attachableCat := range attachableTo {
-			if attachmentCat == attachableCat.Category {
+	connectableTo := thisApp.Spec.ConnectableTo
+	isConnectableCatInt := func(connectCat string) bool {
+		for _, connectableCat := range connectableTo {
+			if connectCat == connectableCat.Category {
 				return true
 			}
 		}
 		return false
 	}
-	toAttachMeta := make(map[string]clusterConnections)
+	toConnectMeta := make(map[string]clusterConnections)
 	for _, clusterName := range cr.Spec.Connections.Clusters {
 		// Fetch the cluster object
-		clusterToAttach, attachedErr := observer.GetCluster(cr.Namespace, clusterName)
-		appForclusterToAttach, attachedAppErr := observer.GetApp(clusterToAttach.Namespace, clusterToAttach.Spec.AppID)
-		if attachedErr != nil || attachedAppErr != nil {
+		clusterToConnect, connectedErr := observer.GetCluster(cr.Namespace, clusterName)
+		appForclusterToConnect, connectedAppErr := observer.GetApp(clusterToConnect.Namespace, clusterToConnect.Spec.AppID)
+		if connectedErr != nil || connectedAppErr != nil {
 			continue
 		}
-		for _, attachedCat := range appForclusterToAttach.Spec.AttachableTo {
-			if !isAttachableCatInt(attachedCat.Category) {
+		for _, connectedCat := range appForclusterToConnect.Spec.ConnectableTo {
+			if !isConnectableCatInt(connectedCat.Category) {
 				return nil, fmt.Errorf(
-					"Failed to attach cluster {%s}",
+					"Failed to connect cluster {%s}",
 					clusterName,
 				)
 			}
 		}
-		domain := clusterToAttach.Status.ClusterService + "." + clusterToAttach.Namespace + shared.GetSvcClusterDomainBase()
+		domain := clusterToConnect.Status.ClusterService + "." + clusterToConnect.Namespace + shared.GetSvcClusterDomainBase()
 		membersForRole := make(map[string][]*kdv1.MemberStatus)
-		for _, roleInfo := range clusterToAttach.Status.Roles {
+		for _, roleInfo := range clusterToConnect.Status.Roles {
 			var membersStatus []*kdv1.MemberStatus
 			for _, members := range roleInfo.Members {
 				membersStatus = append(
@@ -204,18 +204,18 @@ func genClusterConnections(
 			membersForRole[roleInfo.Name] = membersStatus
 		}
 
-		toAttachMeta[clusterName] = clusterConnections{
-			Version:    strconv.Itoa(appForclusterToAttach.Spec.SchemaVersion),
-			Services:   getServices(appForclusterToAttach, membersForRole, clusterName),
-			Nodegroups: nodegroups(clusterToAttach, appForclusterToAttach, membersForRole, domain),
+		toConnectMeta[clusterName] = clusterConnections{
+			Version:    strconv.Itoa(appForclusterToConnect.Spec.SchemaVersion),
+			Services:   getServices(appForclusterToConnect, membersForRole, clusterName),
+			Nodegroups: nodegroups(clusterToConnect, appForclusterToConnect, membersForRole, domain),
 			Distros: map[string]refkeysMap{
-				appForclusterToAttach.Spec.DistroID: refkeysMap{
+				appForclusterToConnect.Spec.DistroID: refkeysMap{
 					"1": refkeys{
 						BdvlibRefKey: []string{"connections", "clusters", clusterName, "nodegroups", "1"},
 					},
 				},
 			},
-			Name:     clusterToAttach.Name,
+			Name:     clusterToConnect.Name,
 			Isolated: false, // currently, always false
 			ID:       string(cr.UID),
 			ConfigMeta: map[string]refkeys{
@@ -226,7 +226,7 @@ func genClusterConnections(
 		}
 	}
 
-	return toAttachMeta, nil
+	return toConnectMeta, nil
 }
 
 // nodegroups generates a map of nodegroup ID to internal nodegroup
@@ -297,14 +297,14 @@ func clusterBaseConfig(
 	domain string,
 ) (*configmeta, error) {
 
-	clustersMeta, attachErr := genClusterConnections(cr)
+	clustersMeta, connErr := genClusterConnections(cr)
 	kdConfigMaps, cmErr := genconfigConnections(cr)
 
 	if cmErr != nil {
 		return nil, cmErr
 	}
-	if attachErr != nil {
-		return nil, attachErr
+	if connErr != nil {
+		return nil, connErr
 	}
 
 	return &configmeta{

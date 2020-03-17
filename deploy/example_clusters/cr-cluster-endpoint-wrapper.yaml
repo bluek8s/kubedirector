@@ -1,12 +1,14 @@
 apiVersion: "kubedirector.hpe.com/v1beta1"
 kind: "KubeDirectorCluster"
 metadata: 
-  name: "deploymt-engine1"
+  name: "deploymt-engine"
 spec:
   app: flask-and-inf-eng
   connections:
     configmaps:
     - "model-prediction"
+    clusters:
+    - "centos7"
   roles:
   - id: RESTServer
     members: 1

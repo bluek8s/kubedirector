@@ -165,32 +165,36 @@ func genClusterConnections(
 	cr *kdv1.KubeDirectorCluster,
 ) (map[string]clusterConnections, error) {
 
-	thisApp, _ := observer.GetApp(cr.Namespace, cr.Spec.AppID)
-	connectableTo := thisApp.Spec.ConnectableTo
-	isConnectableCatInt := func(connectCat string) bool {
-		for _, connectableCat := range connectableTo {
-			if connectCat == connectableCat.Category {
-				return true
-			}
-		}
-		return false
-	}
+	// thisApp, _ := observer.GetApp(cr.Namespace, cr.Spec.AppID)
+	// connectableTo := thisApp.Spec.ConnectableTo
+	// isConnectableCatInt := func(connectCat string) bool {
+	// 	for _, connectableCat := range connectableTo {
+	// 		if connectCat == connectableCat.Category {
+	// 			return true
+	// 		}
+	// 	}
+	// 	//hack- fix me later
+	// 	return true
+	// }
 	toConnectMeta := make(map[string]clusterConnections)
 	for _, clusterName := range cr.Spec.Connections.Clusters {
+		fmt.Println("connection cluster: ", clusterName)
 		// Fetch the cluster object
 		clusterToConnect, connectedErr := observer.GetCluster(cr.Namespace, clusterName)
 		appForclusterToConnect, connectedAppErr := observer.GetApp(clusterToConnect.Namespace, clusterToConnect.Spec.AppID)
 		if connectedErr != nil || connectedAppErr != nil {
 			continue
 		}
-		for _, connectedCat := range appForclusterToConnect.Spec.ConnectableTo {
-			if !isConnectableCatInt(connectedCat.Category) {
-				return nil, fmt.Errorf(
-					"Failed to connect cluster {%s}",
-					clusterName,
-				)
-			}
-		}
+		// for _, connectedCat := range appForclusterToConnect.Spec.ConnectableTo {
+		// 	if !isConnectableCatInt(connectedCat.Category) {
+		// 		return nil, fmt.Errorf(
+		// 			"Failed to connect cluster {%s}",
+		// 			clusterName,
+		// 		)
+		// 	}
+		// }
+		fmt.Println("clusterToConnect : ", clusterToConnect.Labels)
+		fmt.Println("appForclusterToConnect : ", appForclusterToConnect.Labels)
 		domain := clusterToConnect.Status.ClusterService + "." + clusterToConnect.Namespace + shared.GetSvcClusterDomainBase()
 		membersForRole := make(map[string][]*kdv1.MemberStatus)
 		for _, roleInfo := range clusterToConnect.Status.Roles {
@@ -298,6 +302,7 @@ func clusterBaseConfig(
 ) (*configmeta, error) {
 
 	clustersMeta, connErr := genClusterConnections(cr)
+	fmt.Println("configmeta for cluster is: ", clustersMeta)
 	kdConfigMaps, cmErr := genconfigConnections(cr)
 
 	if cmErr != nil {

@@ -92,8 +92,7 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 				for _, kubecluster := range allClusters.Items {
 					if isClusterUsingConfigMap(cr.Name, kubecluster) {
 						updateMetaGenerator := &kubecluster
-						currMetaGenerator := kubecluster.Spec.ConfigMetaGenerator
-						updateMetaGenerator.Spec.ConfigMetaGenerator = currMetaGenerator + 1
+						updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
 						shared.Update(context.TODO(), updateMetaGenerator)
 					}
 				}

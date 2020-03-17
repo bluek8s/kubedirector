@@ -33,7 +33,7 @@ import (
 
 var log = logf.Log.WithName("controller_kubedirectorconfigmap")
 
-// Add creates a new KubeDirectorConfig Controller and adds it to the Manager.
+// Add creates a new KubeDirectorConfigMap Controller and adds it to the Manager.
 // The Manager will set fields on the Controller and Start it when the Manager
 // is Started.
 func Add(mgr manager.Manager) error {

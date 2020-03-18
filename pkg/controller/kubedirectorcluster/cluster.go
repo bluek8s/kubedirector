@@ -29,6 +29,7 @@ import (
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -242,6 +243,28 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	}
 	cr.Status.LastConfigMetaGenerator = cr.Spec.ConfigMetaGenerator
 	cr.Status.State = string(clusterReady)
+	//If this cluster is connected to any cluster then
+	// we need to notify that cluster that configmeta here has
+	// changed, so bump up configMetaGenerator for that cluster
+	allClusters := &kdv1.KubeDirectorClusterList{}
+	amIBeingConnectedToThis := func(otherCluster kdv1.KubeDirectorCluster) bool {
+		for _, connectedName := range otherCluster.Spec.Connections.Clusters {
+			if cr.Name == connectedName {
+				return true
+			}
+		}
+		return false
+	}
+	shared.List(context.TODO(), &client.ListOptions{}, allClusters)
+	for _, kubecluster := range allClusters.Items {
+		if amIBeingConnectedToThis(kubecluster) {
+			updateMetaGenerator := &kubecluster
+			updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
+			//ToDo if this fails , should we do anything ??
+			shared.Update(context.TODO(), updateMetaGenerator)
+		}
+	}
+
 	return nil
 }
 

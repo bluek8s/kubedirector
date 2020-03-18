@@ -31,7 +31,7 @@ type KubeDirectorClusterSpec struct {
 	ServiceType         *string     `json:"serviceType"`
 	Roles               []Role      `json:"roles"`
 	DefaultSecret       *KDSecret   `json:"defaultSecret"`
-	ConfigMetaGenerator int         `json:"configMetaGenerator"`
+	ConfigMetaGenerator int32       `json:"configMetaGenerator"`
 	Connections         Connections `json:"connections"`
 }
 
@@ -54,7 +54,7 @@ type KubeDirectorClusterStatus struct {
 	ClusterService          string       `json:"clusterService"`
 	LastNodeID              int64        `json:"lastNodeID"`
 	Roles                   []RoleStatus `json:"roles"`
-	LastConfigMetaGenerator int          `json:"lastConfigMetaGenerator"`
+	LastConfigMetaGenerator int32        `json:"lastConfigMetaGenerator"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

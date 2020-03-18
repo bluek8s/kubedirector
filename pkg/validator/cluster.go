@@ -623,6 +623,28 @@ func validateFileInjections(
 	return valErrors, patches
 }
 
+func validateConnections(
+	cr *kdv1.KubeDirectorCluster,
+	prevCr *kdv1.KubeDirectorCluster,
+	patches []clusterPatchSpec,
+) []clusterPatchSpec {
+
+	if !reflect.DeepEqual(cr.Spec.Connections, prevCr.Spec.Connections) {
+		newConfigGenrator := cr.Spec.ConfigMetaGenerator + 1
+		patches = append(
+			patches,
+			clusterPatchSpec{
+				Op:   "add",
+				Path: "/spec/configMetaGenerator",
+				Value: clusterPatchValue{
+					ValueInt: &newConfigGenrator,
+				},
+			},
+		)
+	}
+	return patches
+}
+
 // validateSecrets validates defaultSecret and individual secret field for
 // each role. Validation is done to make sure secret object with the given
 // name is present in the cluster CR's namespace, and that its name includes
@@ -897,6 +919,8 @@ func admitClusterCR(
 	// Validate secret and generate patches for default values (if any)
 	valErrors, patches = validateSecrets(&clusterCR, valErrors, patches)
 
+	patches = validateConnections(&clusterCR, &prevClusterCR, patches)
+
 	// If cluster already exists, check for invalid property changes.
 	if ar.Request.Operation == v1beta1.Update {
 		var changeErrors []string
@@ -909,6 +933,11 @@ func admitClusterCR(
 		if len(changeErrors) != 0 {
 			valErrors = changeErrors
 		}
+	}
+
+	if !reflect.DeepEqual(clusterCR.Spec.Connections, prevClusterCR.Spec.Connections) {
+		fmt.Println("Connections has changed, bump up configmeta generator")
+		clusterCR.Spec.ConfigMetaGenerator = prevClusterCR.Spec.ConfigMetaGenerator + 1
 	}
 
 	if len(valErrors) == 0 {

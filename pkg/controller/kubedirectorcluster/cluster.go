@@ -243,7 +243,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	}
 	cr.Status.LastConfigMetaGenerator = cr.Spec.ConfigMetaGenerator
 	cr.Status.State = string(clusterReady)
-	//If this cluster is connected to any cluster then
+	// Once the cluster is deemed ready, if this cluster is connected to any cluster then
 	// we need to notify that cluster that configmeta here has
 	// changed, so bump up configMetaGenerator for that cluster
 	allClusters := &kdv1.KubeDirectorClusterList{}
@@ -256,6 +256,8 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return false
 	}
 	shared.List(context.TODO(), &client.ListOptions{}, allClusters)
+	// notify clusters to which this cluster is
+	// connected
 	for _, kubecluster := range allClusters.Items {
 		if amIBeingConnectedToThis(kubecluster) {
 			updateMetaGenerator := &kubecluster

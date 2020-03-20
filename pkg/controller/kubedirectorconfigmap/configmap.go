@@ -49,6 +49,7 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 	oldMapResourceVersion := oldMap.ResourceVersion
 	if value, ok := oldMap.Labels["kubedirectorcmtype"]; ok {
 		fmt.Println("found configmap, take action: ", value)
+		//Log
 	} else {
 		return nil
 	}
@@ -70,7 +71,6 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 			// If status has changed, write it back.
 			var updateErr error
 			if cmChanged {
-
 				//anonymous fun to check if this cluster
 				// is using this config map as an connection
 				isClusterUsingConfigMap := func(cmName string, cluster kdv1.KubeDirectorCluster) bool {
@@ -83,7 +83,6 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 					}
 					return false
 				}
-
 				allClusters := &kdv1.KubeDirectorClusterList{}
 				//Fix Me - Currently this gets all pods,
 				//change client list options to fetch pods
@@ -97,7 +96,6 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 					}
 				}
 			}
-
 			// Bail out if we're done.
 			if updateErr == nil {
 				return

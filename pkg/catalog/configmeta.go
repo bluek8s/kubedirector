@@ -16,7 +16,6 @@ package catalog
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"sync"
 
@@ -178,7 +177,6 @@ func genClusterConnections(
 	// }
 	toConnectMeta := make(map[string]clusterConnections)
 	for _, clusterName := range cr.Spec.Connections.Clusters {
-		fmt.Println("connection cluster: ", clusterName)
 		// Fetch the cluster object
 		clusterToConnect, connectedErr := observer.GetCluster(cr.Namespace, clusterName)
 		appForclusterToConnect, connectedAppErr := observer.GetApp(clusterToConnect.Namespace, clusterToConnect.Spec.AppID)
@@ -192,9 +190,6 @@ func genClusterConnections(
 		// 			clusterName,
 		// 		)
 		// 	}
-		// }
-		fmt.Println("clusterToConnect : ", clusterToConnect.Labels)
-		fmt.Println("appForclusterToConnect : ", appForclusterToConnect.Labels)
 		domain := clusterToConnect.Status.ClusterService + "." + clusterToConnect.Namespace + shared.GetSvcClusterDomainBase()
 		membersForRole := make(map[string][]*kdv1.MemberStatus)
 		for _, roleInfo := range clusterToConnect.Status.Roles {
@@ -302,7 +297,6 @@ func clusterBaseConfig(
 ) (*configmeta, error) {
 
 	clustersMeta, connErr := genClusterConnections(cr)
-	fmt.Println("configmeta for cluster is: ", clustersMeta)
 	kdConfigMaps, cmErr := genconfigConnections(cr)
 
 	if cmErr != nil {

@@ -936,7 +936,6 @@ func admitClusterCR(
 	}
 
 	if !reflect.DeepEqual(clusterCR.Spec.Connections, prevClusterCR.Spec.Connections) {
-		fmt.Println("Connections has changed, bump up configmeta generator")
 		clusterCR.Spec.ConfigMetaGenerator = prevClusterCR.Spec.ConfigMetaGenerator + 1
 	}
 

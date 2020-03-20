@@ -71,8 +71,8 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 			// If status has changed, write it back.
 			var updateErr error
 			if cmChanged {
-				//anonymous fun to check if this cluster
-				// is using this config map as an connection
+				/* anonymous fun to check if some cluster
+				   is using this config map as a connection */
 				isClusterUsingConfigMap := func(cmName string, cluster kdv1.KubeDirectorCluster) bool {
 					clusterModels := cluster.Spec.Connections.ConfigMaps
 					for _, modelMapName := range clusterModels {
@@ -84,9 +84,6 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 					return false
 				}
 				allClusters := &kdv1.KubeDirectorClusterList{}
-				//Fix Me - Currently this gets all pods,
-				//change client list options to fetch pods
-				//from this cluster only
 				shared.List(context.TODO(), &client.ListOptions{}, allClusters)
 				for _, kubecluster := range allClusters.Items {
 					if isClusterUsingConfigMap(cr.Name, kubecluster) {

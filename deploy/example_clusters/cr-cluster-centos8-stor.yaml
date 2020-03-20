@@ -1,0 +1,18 @@
+apiVersion: "kubedirector.hpe.com/v1beta1"
+kind: "KubeDirectorCluster"
+metadata:
+  name: "centos8-persistent"
+spec:
+  app: centos8x
+  roles:
+  - id: vanilla_centos
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "4Gi"
+        cpu: "2"
+    storage:
+      size: "40Gi"

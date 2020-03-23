@@ -37,18 +37,24 @@ cgo_enabled := 0
 .DEFAULT_GOAL := build
 
 version-check:
-	@if go version | grep -q 'go1\.1[2-9]'; then \
+	@if go version | grep -q 'go1\.1[3-9]'; then \
         true; \
     else \
         echo "Error:"; \
-        echo "go version 1.12 or later is required"; \
+        echo "go version 1.13 or later is required"; \
+        exit 1; \
+    fi
+	@if operator-sdk version | grep -q 'operator-sdk version: "v0.15.2'; then \
+        true; \
+    else \
+        echo "Error:"; \
+        echo "operator-sdk version 1.15.2 is required"; \
         exit 1; \
     fi
 
-build: configcli pkg/apis/kubedirector.hpe.com/v1beta1/zz_generated.deepcopy.go version-check | $(build_dir)
+build: configcli pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go version-check | $(build_dir)
 	@echo
 	@echo \* Creating KubeDirector deployment image and YAML...
-	@test -d vendor || dep ensure -v
 	operator-sdk build ${image}
 	@docker image prune -f > /dev/null
 	@sed -e 's~REPLACE_IMAGE~${image}~' deploy/operator.yaml >${local_deploy_yaml}
@@ -60,11 +66,10 @@ configcli:
      echo "* Downloading configcli package ...";                               \
      curl -L -o $(configcli_dest) https://github.com/bluek8s/configcli/archive/v$(configcli_version).tar.gz
 
-pkg/apis/kubedirector.hpe.com/v1beta1/zz_generated.deepcopy.go:  \
-        pkg/apis/kubedirector.hpe.com/v1beta1/kubedirectorapp_types.go \
-        pkg/apis/kubedirector.hpe.com/v1beta1/kubedirectorcluster_types.go \
-        pkg/apis/kubedirector.hpe.com/v1beta1/kubedirectorconfig_types.go
-	@test -d vendor || dep ensure -v
+pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go:  \
+        pkg/apis/kubedirector/v1beta1/kubedirectorapp_types.go \
+        pkg/apis/kubedirector/v1beta1/kubedirectorcluster_types.go \
+        pkg/apis/kubedirector/v1beta1/kubedirectorconfig_types.go
 	operator-sdk generate k8s
 
 push:
@@ -95,9 +100,9 @@ deploy:
 
 	@echo
 	@echo \* Creating custom resource definitions...
-	kubectl create -f deploy/kubedirector/kubedirector_v1beta1_kubedirectorapp_crd.yaml
-	kubectl create -f deploy/kubedirector/kubedirector_v1beta1_kubedirectorcluster_crd.yaml
-	kubectl create -f deploy/kubedirector/kubedirector_v1beta1_kubedirectorconfig_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_kubedirectorapps_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_kubedirectorclusters_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_kubedirectorconfigs_crd.yaml
 	@echo
 	@echo \* Creating role and service account...
 	kubectl create -f deploy/kubedirector/rbac.yaml
@@ -210,10 +215,6 @@ undeploy:
             ns_s_containing_kd_cmd="kubectl get $$kind -A --field-selector=$"metadata.name=$$name$" -o jsonpath='{.items[*].metadata.namespace}'"; \
             ns_s_containing_kd=$$($$ns_s_containing_kd_cmd); \
             for ns in $$ns_s_containing_kd; do \
-                echo "The namespace string comes out quoted, and we need" >/dev/null; \
-                echo "to strip the quotes. Hence, td" >/dev/null; \
-                echo "The reason these are in echos is because make doesn't allow" >/dev/null; \
-                echo "comments inside of bash blocks" >/dev/null; \
                 ns=$$(echo "$$ns" | tr -d "'"); \
                 cmd="kubectl delete $$kind $$name -n $$ns --now"; \
                 msg=$$($$cmd 2>&1); \
@@ -313,48 +314,25 @@ undeploy:
 
 teardown: undeploy
 
-compile: version-check configcli pkg/apis/kubedirector.hpe.com/v1beta1/zz_generated.deepcopy.go
+compile: version-check configcli pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go
 	-rm -rf ${build_dir}
 	GOOS=linux GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
         go build -gcflags "all=-trimpath=$$GOPATH" -o ${build_dir}/bin/${bin_name} ./cmd/manager
 
 format:
-	go fmt $(shell go list ./... | grep -v /vendor/)
-
-dep:
-	dep ensure -v -update
+	go fmt $(shell go list ./...)
 
 clean:
 	-rm -f deploy/kubedirector/rbac.yaml
 	-rm -f deploy/kubedirector/deployment-localbuilt.yaml
-	-rm -f pkg/apis/kubedirector.hpe.com/v1beta1/zz_generated.deepcopy.go
+	-rm -f pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go
 	-rm -rf ${build_dir}
-
-distclean: clean
-	-rm -rf vendor
+	-rm -f ${configcli_dest}
 
 modules:
-	GO111MODULE="on" go mod tidy
+	go mod tidy
 
-verify-modules:
-	rm -f go.mod go.sum
-	-GO111MODULE="on" go mod init
-	-GO111MODULE="on" go mod tidy
-	@# This line checks that we haven't changed the go.mod or go.sum file
-	@# apart from the first line (because Travis thinks that the local build
-	@# is under the _user's own_ module)
-	@if [ $$(git --no-pager diff --unified=0 --no-color -- go.mod go.sum | \
-             grep -Ev "^(-{3}|\+{3}|\@{2}|diff|index).*$$" | \
-             grep -Ev ".*github.com/.+?/kubedirector.*$$" | \
-             wc -c) -eq 0 ] ; then \
-        echo "no module changes, good job!" ; \
-    else \
-        echo "changes to go modules" ; \
-        echo "make sure to run \`make modules\` before checking in" ; \
-        git --no-pager diff --unified=0 -- go.mod go.sum ; \
-        dep version ; \
-        exit 1 ; \
-    fi
+tidy: modules
 
 golint:
 	@if [ $$(golint \
@@ -385,4 +363,4 @@ check-format:
 $(build_dir):
 	@mkdir -p $@
 
-.PHONY: build push deploy redeploy undeploy teardown format dep clean distclean compile verify-modules modules golint check-format
+.PHONY: version-check build configcli push deploy redeploy undeploy teardown compile format clean modules tidy golint check-format

@@ -1,0 +1,52 @@
+{
+    "apiVersion": "kubedirector.hpe.com/v1beta1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name" : "ubuntu18x"
+    },
+
+    "spec" : {
+        "systemdRequired": true,
+        "defaultPersistDirs" : ["/home"],
+        "config": {
+            "roleServices": [
+                {
+                    "serviceIDs": [
+                        "ssh"
+                    ],
+                    "roleID": "vanilla_ubuntu"
+                }
+            ],
+            "selectedRoles": [
+                "vanilla_ubuntu"
+            ]
+        },
+        "label": {
+            "name": "Ubuntu 18.04",
+            "description": "Ubuntu 18.04 with no preinstalled apps"
+        },
+        "distroID": "bluedata/ubuntu18x",
+        "version": "1.0",
+        "configSchemaVersion": 8,
+        "services": [
+            {
+                "endpoint": {
+                    "port": 22,
+                    "isDashboard": false
+                },
+                "id": "ssh",
+                "label": {
+                    "name": "SSH"
+                }
+            }
+        ],
+        "defaultImageRepoTag": "docker.io/bluedata/ubuntu18.04:1.0",
+        "defaultConfigPackage": null,
+        "roles": [
+            {
+                "cardinality": "1+",
+                "id": "vanilla_ubuntu"
+            }
+        ]
+    }
+}

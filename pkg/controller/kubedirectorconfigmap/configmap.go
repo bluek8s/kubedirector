@@ -79,6 +79,7 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 		for _, kubecluster := range allClusters.Items {
 			if isClusterUsingConfigMap(cr.Name, kubecluster) {
 				updateMetaGenerator := &kubecluster
+				updateMetaGenerator.Status = nil
 				updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
 				err := shared.Update(context.TODO(), updateMetaGenerator)
 				fmt.Println("err is", err)

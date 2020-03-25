@@ -56,11 +56,6 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 		if !(finalizersChanged) {
 			return
 		}
-		// Write back the status. Don't exit this reconciler until we
-		// succeed (will block other reconcilers for this resource).
-		// wait := time.Second
-		// maxWait := 4096 * time.Second
-		// If status has changed, write it back.
 		//var updateErr error
 		/* anonymous fun to check if some cluster
 		   is using this config map as a connection */
@@ -81,67 +76,9 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 				updateMetaGenerator := &kubecluster
 				updateMetaGenerator.Status = nil
 				updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
-				err := shared.Update(context.TODO(), updateMetaGenerator)
-				fmt.Println("err is", err)
+				shared.Update(context.TODO(), updateMetaGenerator)
 			}
 		}
-
-		// Some necessary update failed. If the config has been deleted,
-		// that's ok... otherwise we'll try again.
-		// currentConfigMap, currentConfigErrMap := observer.GetConfigMap(cr.Namespace, cr.Name)
-		// //fmt.Print("config map is ", currentConfigMap)
-		// fmt.Println("currentConfigErrMap is  ", currentConfigErrMap)
-		// if currentConfigErrMap != nil {
-		// 	shared.LogErrorf(
-		// 		reqLogger,
-		// 		currentConfigErrMap,
-		// 		cr,
-		// 		shared.EventReasonConfigMap,
-		// 		"get current config map failed",
-		// 	)
-		// 	if errors.IsNotFound(currentConfigErrMap) {
-		// 		return
-		// 	}
-		// }
-		// fmt.Println("Done Processing config map...")
-		// currentConfigMap.Annotations["processConfigMap"] = "false"
-		// //shared.Update(context.TODO(), currentConfigMap)
-		// } else {
-		// 	// // If we got a conflict error, update the CR with its current
-		// 	// // form, restore our desired status/finalizers, and try again
-		// 	// // immediately.
-		// 	// if errors.IsConflict(updateErr) {
-		// 	// 	//currentConfig.Status = cr.Status
-		// 	// 	currentHasFinalizer := shared.HasFinalizer(currentConfigMap)
-		// 	// 	if currentHasFinalizer {
-		// 	// 		if !nowHasFinalizer {
-		// 	// 			shared.RemoveFinalizer(currentConfigMap)
-		// 	// 		}
-		// 	// 	} else {
-		// 	// 		if nowHasFinalizer {
-		// 	// 			shared.EnsureFinalizer(currentConfigMap)
-		// 	// 		}
-		// 	// 	}
-		// 	// 	*cr = *currentConfigMap
-		// 	// 	continue
-		// 	// }
-		// 	fmt.Println("Done Processing config map...")
-		// 	cr.Annotations["processConfigMap"] = "false"
-		// 	shared.Update(context.TODO(), cr)
-		// }
-		// if wait < maxWait {
-		// 	wait = wait * 2
-		// }
-		// shared.LogErrorf(
-		// 	reqLogger,
-		// 	updateErr,
-		// 	cr,
-		// 	shared.EventReasonConfig,
-		// 	"trying status update again in %v; failed",
-		// 	wait,
-		// )
-		// time.Sleep(wait)
-
 	}()
 
 	// We use a finalizer to maintain config state consistency.

@@ -17,15 +17,12 @@ package kubedirectorconfigmap
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"time"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -36,20 +33,17 @@ var (
 )
 
 // syncConfig runs the reconciliation logic. It is invoked because of a
-// change in or addition of a KubeDirectorConfig instance, or a periodic
+// change in or addition of a KubeDirectorConfigMap instance, or a periodic
 // polling to check on such a resource.
 func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 	reqLogger logr.Logger,
 	cr *corev1.ConfigMap,
 ) error {
-
+	//fmt.Println("cm reconciller called...")
 	// Memoize state of the incoming object.
 	oldMap, _ := observer.GetConfigMap(cr.Namespace, cr.Name)
 	hadFinalizer := shared.HasFinalizer(cr)
-	oldMapResourceVersion := oldMap.ResourceVersion
-	if value, ok := oldMap.Labels["kubedirectorcmtype"]; ok {
-		fmt.Println("found configmap, take action: ", value)
-		//Log
+	if _, ok := oldMap.Labels["kubedirectorcmtype"]; ok {
 	} else {
 		return nil
 	}
@@ -58,92 +52,95 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 	defer func() {
 		nowHasFinalizer := shared.HasFinalizer(cr)
 		// Bail out if nothing has changed.
-		cmChanged := reflect.DeepEqual(cr.ResourceVersion, oldMapResourceVersion)
 		finalizersChanged := (hadFinalizer != nowHasFinalizer)
-		if !(cmChanged || finalizersChanged) {
+		if !(finalizersChanged) {
 			return
 		}
 		// Write back the status. Don't exit this reconciler until we
 		// succeed (will block other reconcilers for this resource).
-		wait := time.Second
-		maxWait := 4096 * time.Second
-		for {
-			// If status has changed, write it back.
-			var updateErr error
-			if cmChanged {
-				/* anonymous fun to check if some cluster
-				   is using this config map as a connection */
-				isClusterUsingConfigMap := func(cmName string, cluster kdv1.KubeDirectorCluster) bool {
-					clusterModels := cluster.Spec.Connections.ConfigMaps
-					for _, modelMapName := range clusterModels {
-						if modelMapName == cmName {
-							fmt.Println("found affected cluster: ", cluster.Name)
-							return true
-						}
-					}
-					return false
-				}
-				allClusters := &kdv1.KubeDirectorClusterList{}
-				shared.List(context.TODO(), &client.ListOptions{}, allClusters)
-				for _, kubecluster := range allClusters.Items {
-					if isClusterUsingConfigMap(cr.Name, kubecluster) {
-						updateMetaGenerator := &kubecluster
-						updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
-						shared.Update(context.TODO(), updateMetaGenerator)
-					}
+		// wait := time.Second
+		// maxWait := 4096 * time.Second
+		// If status has changed, write it back.
+		//var updateErr error
+		/* anonymous fun to check if some cluster
+		   is using this config map as a connection */
+		//fmt.Println("cm changed ", cmChanged)
+		isClusterUsingConfigMap := func(cmName string, cluster kdv1.KubeDirectorCluster) bool {
+			clusterModels := cluster.Spec.Connections.ConfigMaps
+			for _, modelMapName := range clusterModels {
+				if modelMapName == cmName {
+					return true
 				}
 			}
-			// Bail out if we're done.
-			if updateErr == nil {
-				return
-			}
-			// Some necessary update failed. If the config has been deleted,
-			// that's ok... otherwise we'll try again.
-			currentConfigMap, currentConfigErrMap := observer.GetConfigMap(cr.Namespace, cr.Name)
-			if currentConfigErrMap != nil {
-				shared.LogErrorf(
-					reqLogger,
-					currentConfigErrMap,
-					cr,
-					shared.EventReasonConfig,
-					"get current config failed",
-				)
-				if errors.IsNotFound(currentConfigErrMap) {
-					return
-				}
-			} else {
-				// If we got a conflict error, update the CR with its current
-				// form, restore our desired status/finalizers, and try again
-				// immediately.
-				if errors.IsConflict(updateErr) {
-					//currentConfig.Status = cr.Status
-					currentHasFinalizer := shared.HasFinalizer(currentConfigMap)
-					if currentHasFinalizer {
-						if !nowHasFinalizer {
-							shared.RemoveFinalizer(currentConfigMap)
-						}
-					} else {
-						if nowHasFinalizer {
-							shared.EnsureFinalizer(currentConfigMap)
-						}
-					}
-					*cr = *currentConfigMap
-					continue
-				}
-			}
-			if wait < maxWait {
-				wait = wait * 2
-			}
-			shared.LogErrorf(
-				reqLogger,
-				updateErr,
-				cr,
-				shared.EventReasonConfig,
-				"trying status update again in %v; failed",
-				wait,
-			)
-			time.Sleep(wait)
+			return false
 		}
+		allClusters := &kdv1.KubeDirectorClusterList{}
+		shared.List(context.TODO(), &client.ListOptions{}, allClusters)
+		for _, kubecluster := range allClusters.Items {
+			if isClusterUsingConfigMap(cr.Name, kubecluster) {
+				updateMetaGenerator := &kubecluster
+				updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
+				err := shared.Update(context.TODO(), updateMetaGenerator)
+				fmt.Println("err is", err)
+			}
+		}
+
+		// Some necessary update failed. If the config has been deleted,
+		// that's ok... otherwise we'll try again.
+		// currentConfigMap, currentConfigErrMap := observer.GetConfigMap(cr.Namespace, cr.Name)
+		// //fmt.Print("config map is ", currentConfigMap)
+		// fmt.Println("currentConfigErrMap is  ", currentConfigErrMap)
+		// if currentConfigErrMap != nil {
+		// 	shared.LogErrorf(
+		// 		reqLogger,
+		// 		currentConfigErrMap,
+		// 		cr,
+		// 		shared.EventReasonConfigMap,
+		// 		"get current config map failed",
+		// 	)
+		// 	if errors.IsNotFound(currentConfigErrMap) {
+		// 		return
+		// 	}
+		// }
+		// fmt.Println("Done Processing config map...")
+		// currentConfigMap.Annotations["processConfigMap"] = "false"
+		// //shared.Update(context.TODO(), currentConfigMap)
+		// } else {
+		// 	// // If we got a conflict error, update the CR with its current
+		// 	// // form, restore our desired status/finalizers, and try again
+		// 	// // immediately.
+		// 	// if errors.IsConflict(updateErr) {
+		// 	// 	//currentConfig.Status = cr.Status
+		// 	// 	currentHasFinalizer := shared.HasFinalizer(currentConfigMap)
+		// 	// 	if currentHasFinalizer {
+		// 	// 		if !nowHasFinalizer {
+		// 	// 			shared.RemoveFinalizer(currentConfigMap)
+		// 	// 		}
+		// 	// 	} else {
+		// 	// 		if nowHasFinalizer {
+		// 	// 			shared.EnsureFinalizer(currentConfigMap)
+		// 	// 		}
+		// 	// 	}
+		// 	// 	*cr = *currentConfigMap
+		// 	// 	continue
+		// 	// }
+		// 	fmt.Println("Done Processing config map...")
+		// 	cr.Annotations["processConfigMap"] = "false"
+		// 	shared.Update(context.TODO(), cr)
+		// }
+		// if wait < maxWait {
+		// 	wait = wait * 2
+		// }
+		// shared.LogErrorf(
+		// 	reqLogger,
+		// 	updateErr,
+		// 	cr,
+		// 	shared.EventReasonConfig,
+		// 	"trying status update again in %v; failed",
+		// 	wait,
+		// )
+		// time.Sleep(wait)
+
 	}()
 
 	// We use a finalizer to maintain config state consistency.

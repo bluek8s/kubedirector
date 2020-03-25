@@ -623,6 +623,9 @@ func validateFileInjections(
 	return valErrors, patches
 }
 
+// validateConnections checks if connections have
+// changed, if yes then it increments ConfigMetaGenerator
+// so that reconciler can re-generate confgimeta
 func validateConnections(
 	cr *kdv1.KubeDirectorCluster,
 	prevCr *kdv1.KubeDirectorCluster,

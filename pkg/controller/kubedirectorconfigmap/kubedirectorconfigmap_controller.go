@@ -77,8 +77,9 @@ const (
 	// it's scheduled again for reconciliation. Zero means don't poll.
 	// For now we don't need polling on this CR. Some anticipated features
 	// will need polling at which point we can change this.
-	//reconcilePeriod = 30 * time.Second
 	reconcilePeriod = 0
+
+//reconcilePeriod = 0
 )
 
 // ReconcileKubeDirectorConfigMap reconciles a KubeDirectorConfig object.
@@ -98,7 +99,7 @@ func (r *ReconcileKubeDirectorConfigMap) Reconcile(request reconcile.Request) (r
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reconcileResult := reconcile.Result{RequeueAfter: reconcilePeriod}
 
-	// Fetch the KubeDirectorConfig instance.
+	// Fetch the KubeDirectorConfigMap instance.
 	cr := &corev1.ConfigMap{}
 	err := shared.Get(context.TODO(), request.NamespacedName, cr)
 	if err != nil {

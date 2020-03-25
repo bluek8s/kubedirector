@@ -179,9 +179,12 @@ func genClusterConnections(
 	for _, clusterName := range cr.Spec.Connections.Clusters {
 		// Fetch the cluster object
 		clusterToConnect, connectedErr := observer.GetCluster(cr.Namespace, clusterName)
+		if connectedErr != nil {
+			return nil, connectedErr
+		}
 		appForclusterToConnect, connectedAppErr := observer.GetApp(clusterToConnect.Namespace, clusterToConnect.Spec.AppID)
-		if connectedErr != nil || connectedAppErr != nil {
-			continue
+		if connectedAppErr != nil {
+			return nil, connectedAppErr
 		}
 		// for _, connectedCat := range appForclusterToConnect.Spec.ConnectableTo {
 		// 	if !isConnectableCatInt(connectedCat.Category) {

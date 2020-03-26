@@ -54,12 +54,11 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 		// Bail out if nothing has changed.
 		finalizersChanged := (hadFinalizer != nowHasFinalizer)
 		if !(finalizersChanged) {
-			return
+			//return
 		}
 		//var updateErr error
 		/* anonymous fun to check if some cluster
 		   is using this config map as a connection */
-		//fmt.Println("cm changed ", cmChanged)
 		isClusterUsingConfigMap := func(cmName string, cluster kdv1.KubeDirectorCluster) bool {
 			clusterModels := cluster.Spec.Connections.ConfigMaps
 			for _, modelMapName := range clusterModels {
@@ -73,9 +72,12 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 		shared.List(context.TODO(), &client.ListOptions{}, allClusters)
 		for _, kubecluster := range allClusters.Items {
 			if isClusterUsingConfigMap(cr.Name, kubecluster) {
+				fmt.Println("Found a match: ", kubecluster.Name)
 				updateMetaGenerator := &kubecluster
-				updateMetaGenerator.Status = nil
+				//Set status to nil before updating configMetaGenerator
+				//shared.StatusUpdate(context.TODO(), nil)
 				updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
+				updateMetaGenerator.Status = &kdv1.KubeDirectorClusterStatus{}
 				shared.Update(context.TODO(), updateMetaGenerator)
 			}
 		}
@@ -132,7 +134,7 @@ func (r *ReconcileKubeDirectorConfigMap) handleNewConfigMap(
 			reqLogger,
 			cr,
 			shared.EventReasonNoEvent,
-			"ignoring config CR with stale status UID; will retry",
+			"ignoring configMap with stale status UID; will retry",
 		)
 		mismatchErr := fmt.Errorf(
 			"incoming UID %s != last known UID %s",
@@ -146,7 +148,7 @@ func (r *ReconcileKubeDirectorConfigMap) handleNewConfigMap(
 		shared.LogInfo(
 			reqLogger,
 			cr,
-			shared.EventReasonConfig,
+			shared.EventReasonConfigMap,
 			"new",
 		)
 		return false, nil
@@ -179,7 +181,7 @@ func (r *ReconcileKubeDirectorConfigMap) handleFinalizers(
 		shared.LogInfo(
 			reqLogger,
 			cr,
-			shared.EventReasonConfig,
+			shared.EventReasonConfigMap,
 			"greenlighting for deletion",
 		)
 		// Also clear the status gen from our cache.

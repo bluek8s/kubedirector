@@ -261,6 +261,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	for _, kubecluster := range allClusters.Items {
 		if amIBeingConnectedToThis(kubecluster) {
 			updateMetaGenerator := &kubecluster
+			shared.StatusUpdate(context.TODO(), nil)
 			updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
 			//ToDo if this fails , should we do anything ??
 			shared.Update(context.TODO(), updateMetaGenerator)

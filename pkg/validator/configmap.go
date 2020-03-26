@@ -23,20 +23,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// // configPatchSpec is used to create the PATCH operation for populating
-// // default values in the config as necessary.
-// type configPatchSpec struct {
-// 	Op    string           `json:"op"`
-// 	Path  string           `json:"path"`
-// 	Value configPatchValue `json:"value"`
-// }
-
-// type configPatchValue struct {
-// 	ValueStr  *string
-// 	ValueBool *bool
-// 	// if no value is specified, will marshal an empty object instead
-// }
-
 // patchOperation is used to create the PATCH operation for the sidecar container
 type patchOperation struct {
 	Op    string      `json:"op"`

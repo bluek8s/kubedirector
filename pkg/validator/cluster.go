@@ -938,6 +938,9 @@ func admitClusterCR(
 		}
 	}
 
+	// If connections, be it cluster or configmap
+	// is updated then increment configMetaGenerator to trigger
+	// regeneration of configmeta
 	if !reflect.DeepEqual(clusterCR.Spec.Connections, prevClusterCR.Spec.Connections) {
 		clusterCR.Spec.ConfigMetaGenerator = prevClusterCR.Spec.ConfigMetaGenerator + 1
 	}

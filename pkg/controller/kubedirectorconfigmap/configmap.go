@@ -32,14 +32,14 @@ var (
 	StatusGens = shared.NewStatusGens()
 )
 
-// syncConfig runs the reconciliation logic. It is invoked because of a
-// change in or addition of a KubeDirectorConfigMap instance, or a periodic
-// polling to check on such a resource.
+// syncConfigMap runs the reconciliation logic. It is invoked because of a
+// change in or addition of configmap instance, currently there is no
+// polling for this resource. If the configmap is not labeled
+// with key "kubedirectorcmtype" then no op
 func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 	reqLogger logr.Logger,
 	cr *corev1.ConfigMap,
 ) error {
-	//fmt.Println("cm reconciller called...")
 	// Memoize state of the incoming object.
 	oldMap, _ := observer.GetConfigMap(cr.Namespace, cr.Name)
 	hadFinalizer := shared.HasFinalizer(cr)
@@ -148,7 +148,7 @@ func (r *ReconcileKubeDirectorConfigMap) handleNewConfigMap(
 		return false, mismatchErr
 	}
 	if incomingCM == nil {
-		// This is an actual newly-created config, so kick off the processing.
+		// This is an actual newly-created config map, so kick off the processing.
 		shared.LogInfo(
 			reqLogger,
 			cr,

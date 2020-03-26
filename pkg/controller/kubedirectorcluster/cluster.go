@@ -472,6 +472,11 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 			shared.EventReasonNoEvent,
 			"ignoring cluster CR with stale status UID; will retry",
 		)
+		// If ConfigMetaGenerator has been updated then ignore UID check and
+		// return
+		if cr.Spec.ConfigMetaGenerator != cr.Status.LastConfigMetaGenerator {
+			return true, nil
+		}
 		mismatchErr := fmt.Errorf(
 			"incoming UID %s != last known UID %s",
 			incoming,

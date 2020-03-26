@@ -77,7 +77,7 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 				//Set status to nil before updating configMetaGenerator
 				//shared.StatusUpdate(context.TODO(), nil)
 				updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
-				updateMetaGenerator.Status = &kdv1.KubeDirectorClusterStatus{}
+				//updateMetaGenerator.Status = &kdv1.KubeDirectorClusterStatus{}
 				shared.Update(context.TODO(), updateMetaGenerator)
 			}
 		}

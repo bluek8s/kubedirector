@@ -53,8 +53,8 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 		nowHasFinalizer := shared.HasFinalizer(cr)
 		// Bail out if nothing has changed.
 		finalizersChanged := (hadFinalizer != nowHasFinalizer)
-		if !(finalizersChanged) {
-			//return
+		if finalizersChanged {
+			return
 		}
 		//var updateErr error
 		/* anonymous fun to check if some cluster
@@ -72,12 +72,16 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 		shared.List(context.TODO(), &client.ListOptions{}, allClusters)
 		for _, kubecluster := range allClusters.Items {
 			if isClusterUsingConfigMap(cr.Name, kubecluster) {
-				fmt.Println("Found a match: ", kubecluster.Name)
+				shared.LogInfof(
+					reqLogger,
+					cr,
+					shared.EventReasonConfigMap,
+					"configmap {%s} is connected to cluster {%s} updating its configmeta",
+					cr.Name,
+					kubecluster.Name,
+				)
 				updateMetaGenerator := &kubecluster
-				//Set status to nil before updating configMetaGenerator
-				//shared.StatusUpdate(context.TODO(), nil)
 				updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
-				//updateMetaGenerator.Status = &kdv1.KubeDirectorClusterStatus{}
 				shared.Update(context.TODO(), updateMetaGenerator)
 			}
 		}

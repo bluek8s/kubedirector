@@ -1,26 +1,21 @@
 language: go
 
 go:
-  - "1.12"
+  - "1.13"
 
 env:
-  - DEP_VERSION="0.5.2" OPERATOR_SDK_VERSION="v0.8.1" ORIG_HOME="$GOPATH/src/github.com/bluek8s"
+  - OPERATOR_SDK_VERSION="v0.15.2" ORIG_HOME="$GOPATH/src/github.com/bluek8s"
 
 before_install:
   # Make sure we have the same build directory as the original repo.
   - export buildroot=$(pwd); export origroot="$ORIG_HOME/kubedirector"; if [[ "$buildroot" != "$origroot" ]]; then cd; mkdir -p "$ORIG_HOME"; mv "$buildroot" "$origroot"; cd "$origroot"; fi
 
 install:
-  # Get dep
-  - curl -L -s https://github.com/golang/dep/releases/download/${DEP_VERSION}/dep-linux-amd64 -o $GOPATH/bin/dep
-  - chmod +x $GOPATH/bin/dep
   # Get the operator SDK
   - curl -L -s https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_VERSION}/operator-sdk-${OPERATOR_SDK_VERSION}-x86_64-linux-gnu -o $GOPATH/bin/operator-sdk
   - chmod +x $GOPATH/bin/operator-sdk
   # Get golint
   - go get -u golang.org/x/lint/golint
-  # Populate vendor deps
-  - dep ensure -v
 
 script:
   - make compile

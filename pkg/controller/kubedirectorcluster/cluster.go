@@ -20,7 +20,7 @@ import (
 	"reflect"
 	"time"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
@@ -29,7 +29,6 @@ import (
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -255,7 +254,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		}
 		return false
 	}
-	shared.List(context.TODO(), &client.ListOptions{}, allClusters)
+	shared.List(context.TODO(), allClusters)
 	// notify clusters to which this cluster is
 	// connected
 	for _, kubecluster := range allClusters.Items {

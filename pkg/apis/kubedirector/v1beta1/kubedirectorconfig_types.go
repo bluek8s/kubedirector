@@ -18,8 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// KubeDirectorConfigSpec defines the desired state of KubeDirectorConfig
-// +k8s:openapi-gen=true
+// KubeDirectorConfigSpec defines the desired state of KubeDirectorConfig.
 type KubeDirectorConfigSpec struct {
 	StorageClass         *string `json:"defaultStorageClassName,omitempty"`
 	ServiceType          *string `json:"defaultServiceType,omitempty"`
@@ -29,7 +28,6 @@ type KubeDirectorConfigSpec struct {
 }
 
 // KubeDirectorConfigStatus defines the observed state of KubeDirectorConfig.
-// +k8s:openapi-gen=true
 type KubeDirectorConfigStatus struct {
 	GenerationUID string `json:"generationUID"`
 	State         string `json:"state"`
@@ -37,22 +35,23 @@ type KubeDirectorConfigStatus struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubeDirectorConfig represents single global config. This will be referenced
-// by kubedirector when processing cluster CRs and app CRs.
-// +k8s:openapi-gen=true
+// KubeDirectorConfig is the Schema for the kubedirectorconfigs API.
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=kubedirectorconfigs,scope=Namespaced
 type KubeDirectorConfig struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata"`
-	Spec              *KubeDirectorConfigSpec   `json:"spec,omitempty"`
-	Status            *KubeDirectorConfigStatus `json:"status,omitempty"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   *KubeDirectorConfigSpec   `json:"spec,omitempty"`
+	Status *KubeDirectorConfigStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubeDirectorConfigList is the top-level list type for global config CRs
+// KubeDirectorConfigList contains a list of KubeDirectorConfig.
 type KubeDirectorConfigList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
+	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []KubeDirectorConfig `json:"items"`
 }
 

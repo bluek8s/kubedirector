@@ -204,6 +204,11 @@ func StartValidationServer() error {
 // InitValidationServer creates secret, service and admission validation k8s
 // resources. All these resources are created in the same namespace where
 // KubeDirector is running.
+// XXX We could/should move to using the tls module now provided by the SDK.
+// However, its interface requires storing the various certs/keys in two
+// secrets and a configmap, while our current method uses one secret. Since
+// there are now some existing deployments of KD, we would need a migration
+// strategy.
 func InitValidationServer(
 	ownerReference metav1.OwnerReference,
 ) error {

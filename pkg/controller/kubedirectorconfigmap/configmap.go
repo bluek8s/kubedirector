@@ -18,12 +18,11 @@ import (
 	"context"
 	"fmt"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -69,7 +68,7 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 			return false
 		}
 		allClusters := &kdv1.KubeDirectorClusterList{}
-		shared.List(context.TODO(), &client.ListOptions{}, allClusters)
+		shared.List(context.TODO(), allClusters)
 		for _, kubecluster := range allClusters.Items {
 			if isClusterUsingConfigMap(cr.Name, kubecluster) {
 				shared.LogInfof(

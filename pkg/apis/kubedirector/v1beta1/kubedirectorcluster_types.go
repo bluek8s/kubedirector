@@ -24,7 +24,6 @@ import (
 // use NodePort or LoadBalancer services. The Roles field describes the
 // requested cluster roles, each of which will be implemented (by KubeDirector)
 // using a StatefulSet.
-// +k8s:openapi-gen=true
 type KubeDirectorClusterSpec struct {
 	AppID               string      `json:"app"`
 	AppCatalog          *string     `json:"appCatalog"`
@@ -45,7 +44,6 @@ type Connections struct {
 // KubeDirectorClusterStatus defines the observed state of KubeDirectorCluster.
 // It identifies which native k8s objects make up the cluster, and broadly
 // indicates ongoing operations of cluster creation or reconfiguration.
-// +k8s:openapi-gen=true
 type KubeDirectorClusterStatus struct {
 	State                   string       `json:"state"`
 	MemberStateRollup       StateRollup  `json:"memberStateRollup"`
@@ -59,25 +57,28 @@ type KubeDirectorClusterStatus struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubeDirectorCluster represents a single virtual cluster. This cluster
-// will be implemented by KubeDirector using native k8s objects. Note that
-// the AppSpec field is only used internally in KubeDirector; that field is
-// not persisted to k8s.
-// +k8s:openapi-gen=true
+// KubeDirectorCluster is the Schema for the kubedirectorclusters API.
+// This object represents a single virtual cluster. This cluster will be
+// implemented by KubeDirector using native k8s objects. Note that the AppSpec
+// field is only used internally in KubeDirector; that field is not persisted
+// to k8s.
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=kubedirectorclusters,scope=Namespaced
 type KubeDirectorCluster struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata"`
-	Spec              KubeDirectorClusterSpec    `json:"spec"`
-	Status            *KubeDirectorClusterStatus `json:"status,omitempty"`
-	AppSpec           *KubeDirectorApp           `json:"-"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec    KubeDirectorClusterSpec    `json:"spec,omitempty"`
+	Status  *KubeDirectorClusterStatus `json:"status,omitempty"`
+	AppSpec *KubeDirectorApp           `json:"-"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubeDirectorClusterList is the top-level list type for virtual cluster CRs.
+// KubeDirectorClusterList contains a list of KubeDirectorCluster.
 type KubeDirectorClusterList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
+	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []KubeDirectorCluster `json:"items"`
 }
 

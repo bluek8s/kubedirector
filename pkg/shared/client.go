@@ -28,6 +28,7 @@ import (
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
 	k8sConfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -122,17 +123,35 @@ func getClient(
 
 // Config getter ...
 func Config() *rest.Config {
+
 	return config
 }
 
 // SetClient setter ...
-func SetClient(c k8sClient.Client) {
+func SetClient(
+	c k8sClient.Client,
+) {
+
 	client = c
 }
 
 // ClientSet getter ...
 func ClientSet() kubernetes.Interface {
 	return clientSet
+}
+
+// isNotFoundInCache is a utility subroutine to check whether an error
+// returned from the split client is of type ErrCacheNotStarted or is a
+// not-found error.
+func isNotFoundInCache(
+	e error,
+) bool {
+
+	if errors.IsNotFound(e) {
+		return true
+	}
+	_, ok := e.(*cache.ErrCacheNotStarted)
+	return ok
 }
 
 // Create uses the split client. Should write back directly to K8s, but we'll
@@ -156,7 +175,7 @@ func Get(
 ) error {
 
 	getErr := client.Get(ctx, key, obj)
-	if (getErr == nil) || (!errors.IsNotFound(getErr)) {
+	if (getErr == nil) || (!isNotFoundInCache(getErr)) {
 		return getErr
 	}
 	return directClient.Get(ctx, key, obj)
@@ -165,14 +184,19 @@ func Get(
 // List uses the split client. Currently we don't have usecases where we
 // would need to fall back to the direct client if the list has zero items,
 // and it would be somewhat involved to examine the list object here to
-// determine the zero-items case.
+// determine the zero-items case. We do however want to fall back to the
+// direct client if isNotFoundInCache is true.
 func List(
 	ctx context.Context,
-	opts *k8sClient.ListOptions,
 	list runtime.Object,
+	opts ...k8sClient.ListOption,
 ) error {
 
-	return client.List(ctx, opts, list)
+	listErr := client.List(ctx, list, opts...)
+	if (listErr == nil) || (!isNotFoundInCache(listErr)) {
+		return listErr
+	}
+	return directClient.List(ctx, list, opts...)
 }
 
 // Update uses the split client. Should write back directly to K8s, but we'll
@@ -203,7 +227,7 @@ func StatusUpdate(
 func Delete(
 	ctx context.Context,
 	obj runtime.Object,
-	opts ...k8sClient.DeleteOptionFunc,
+	opts ...k8sClient.DeleteOption,
 ) error {
 
 	return client.Delete(ctx, obj, opts...)

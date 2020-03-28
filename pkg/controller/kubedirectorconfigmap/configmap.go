@@ -53,11 +53,9 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 			return
 		}
 
-		if _, ok := oldMap.Labels["kubedirectorcmtype"]; ok {
-		} else {
+		if _, ok := oldMap.Labels["kubedirectorcmtype"]; !ok {
 			return
 		}
-		//var updateErr error
 		/* anonymous fun to check if some cluster
 		   is using this config map as a connection */
 		isClusterUsingConfigMap := func(cmName string, cluster kdv1.KubeDirectorCluster) bool {

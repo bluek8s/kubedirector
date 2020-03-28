@@ -276,7 +276,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			//Notify cluster by incrementing configmetaGenerator
 			wait := time.Second
 			maxWait := 4096 * time.Second
-			//fmt.Println("I am here")
 			for {
 				if shared.Update(context.TODO(), updateMetaGenerator) == nil {
 					break

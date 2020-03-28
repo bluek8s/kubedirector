@@ -48,53 +48,10 @@ func (obj configPatchValue) MarshalCMJSON() ([]byte, error) {
 func admitConfigMap(
 	ar *v1beta1.AdmissionReview,
 ) *v1beta1.AdmissionResponse {
-
+	// No-op for now
 	var admitResponse = v1beta1.AdmissionResponse{
 		Allowed: true,
 	}
-	//return &admitResponse
-	// If this is a delete, the admission handler has nothing to do.
-	// if ar.Request.Operation == v1beta1.Delete {
-	// 	admitResponse.Allowed = true
-	// 	return &admitResponse
-	// }
-
-	// Deserialize the object.
-	// raw := ar.Request.Object.Raw
-	// configMap := corev1.ConfigMap{}
-	// if jsonErr := json.Unmarshal(raw, &configMap); jsonErr != nil {
-	// 	admitResponse.Result = &metav1.Status{
-	// 		Message: "\n" + jsonErr.Error(),
-	// 	}
-	// 	return &admitResponse
-	// }
-
-	// var patches []patchOperation
-	// targetMap := make(map[string]string)
-	// if _, ok := configMap.Labels["kubedirectorcmtype"]; ok {
-	// 	//fmt.Println("debug: kd validation hook called ....", configMap.Name)
-	// 	if _, ok := configMap.Annotations["lastData"]; ok {
-	// 		targetMap["lastData"] = configMap.Data
-	// 		patches = updateAnnotation(targetMap)
-	// 	} else {
-	// 		patches = updateAnnotation(targetMap)
-	// 	}
-	// } else {
-	// 	admitResponse.Allowed = true
-	// 	return &admitResponse
-	// }
-
-	// patchResult, patchErr := json.Marshal(patches)
-	// if patchErr == nil {
-	// 	admitResponse.Patch = patchResult
-	// 	patchType := v1beta1.PatchTypeJSONPatch
-	// 	admitResponse.PatchType = &patchType
-	// 	admitResponse.Allowed = true
-	// } else {
-	// 	admitResponse.Result = &metav1.Status{
-	// 		Message: "\n" + "unable to marshall patch" + "\n",
-	// 	}
-	// }
 
 	return &admitResponse
 }

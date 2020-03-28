@@ -51,6 +51,28 @@ If you do encounter this error when using an old version of Docker on CentOS, an
 
 However the best solution is probably to move to using a more recent release of Docker Engine if that is possible.
 
+#### NOTES ON GOROOT ISSUES
+
+When using a precompiled operator-sdk binary to build an operator such as KubeDirector, you may encounter this error:
+```
+    operator-sdk generate k8s
+    INFO[0000] Running deepcopy code-generation for Custom Resource group versions: [kubedirector:[v1beta1], ]
+    F0327 12:51:51.104843   84262 deepcopy.go:885] Hit an unsupported type invalid type for invalid type, from github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1.KubeDirectorApp
+    make: *** [pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go] Error 255
+```
+
+This can be resolved by explicitly setting and exporting your GOROOT environment variable (if it is currently unset). You can find the necessary value by executing "go env GOROOT".
+
+As an example of one way to tackle this issue that will be robust to future golang version upgrades... if you have the following two lines in one of your profile scripts (like .bash_profile or .bashrc):
+```bash
+    export GOPATH=~/Projects/go
+    export PATH=$PATH:$GOPATH/bin
+```
+then immediately following those two lines you could add this one:
+```bash
+    export GOROOT=`go env GOROOT`
+```
+
 #### BUILDING
 
 Make sure that "$GOPATH/bin" is included in your PATH environment variable.

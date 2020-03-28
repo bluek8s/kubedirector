@@ -17,6 +17,7 @@ package kubedirectorconfigmap
 import (
 	"context"
 	"fmt"
+	"time"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
@@ -42,10 +43,6 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 	// Memoize state of the incoming object.
 	oldMap, _ := observer.GetConfigMap(cr.Namespace, cr.Name)
 	hadFinalizer := shared.HasFinalizer(cr)
-	if _, ok := oldMap.Labels["kubedirectorcmtype"]; ok {
-	} else {
-		return nil
-	}
 
 	// Set a defer func to write new status and/or finalizers if they change.
 	defer func() {
@@ -53,6 +50,11 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 		// Bail out if nothing has changed.
 		finalizersChanged := (hadFinalizer != nowHasFinalizer)
 		if finalizersChanged {
+			return
+		}
+
+		if _, ok := oldMap.Labels["kubedirectorcmtype"]; ok {
+		} else {
 			return
 		}
 		//var updateErr error
@@ -81,7 +83,26 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 				)
 				updateMetaGenerator := &kubecluster
 				updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
-				shared.Update(context.TODO(), updateMetaGenerator)
+				//Notify cluster by incrementing configmetaGenerator
+				wait := time.Second
+				maxWait := 4096 * time.Second
+				for {
+					if shared.Update(context.TODO(), updateMetaGenerator) == nil {
+						break
+					}
+					if wait > maxWait {
+						shared.LogErrorf(
+							reqLogger,
+							fmt.Errorf("failed to update cluster"),
+							cr,
+							shared.EventReasonConfigMap,
+							"Unable to notify cluster {%s} of configmeta change",
+							updateMetaGenerator.Name)
+						break
+					}
+					time.Sleep(wait)
+					wait = wait * 2
+				}
 			}
 		}
 	}()

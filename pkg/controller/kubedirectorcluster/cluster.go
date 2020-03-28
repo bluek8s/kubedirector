@@ -242,6 +242,10 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	}
 	cr.Status.LastConfigMetaGenerator = cr.Spec.ConfigMetaGenerator
 	cr.Status.State = string(clusterReady)
+	// If configMetaGenerator is not incremented then return
+	if cr.Spec.ConfigMetaGenerator == cr.Status.LastConfigMetaGenerator {
+		return nil
+	}
 	// Once the cluster is deemed ready, if this cluster is connected to any cluster then
 	// we need to notify that cluster that configmeta here has
 	// changed, so bump up configMetaGenerator for that cluster
@@ -269,8 +273,22 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			)
 			updateMetaGenerator := &kubecluster
 			updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
-			//ToDo if this fails , should we do anything ??
-			shared.Update(context.TODO(), updateMetaGenerator)
+			//Notify cluster by incrementing configmetaGenerator
+			wait := time.Second
+			maxWait := 4096 * time.Second
+			//fmt.Println("I am here")
+			for {
+				if shared.Update(context.TODO(), updateMetaGenerator) == nil {
+					break
+				}
+				if wait > maxWait {
+					return fmt.Errorf(
+						"Unable to notify cluster {%s} of configmeta change",
+						updateMetaGenerator.Name)
+				}
+				time.Sleep(wait)
+				wait = wait * 2
+			}
 		}
 	}
 

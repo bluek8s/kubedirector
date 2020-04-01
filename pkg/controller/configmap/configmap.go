@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kubedirectorconfigmap
+package configmap
 
 import (
 	"context"
@@ -28,7 +28,7 @@ import (
 
 var (
 	// StatusGens is exported so that the validator can have access
-	// to the KubeDirectorConfig CR StatusGens
+	// to the ConfigMap StatusGens
 	StatusGens = shared.NewStatusGens()
 )
 
@@ -36,22 +36,22 @@ var (
 // change in or addition of configmap instance, currently there is no
 // polling for this resource. If the configmap is not labeled
 // with key "kubedirectorcmtype" then no op
-func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
+func (r *ReconcileConfigMap) syncConfigMap(
 	reqLogger logr.Logger,
 	cr *corev1.ConfigMap,
 ) error {
 	// Memoize state of the incoming object.
 	oldMap, _ := observer.GetConfigMap(cr.Namespace, cr.Name)
-	hadFinalizer := shared.HasFinalizer(cr)
+	//hadFinalizer := shared.HasFinalizer(cr)
 
 	// Set a defer func to write new status and/or finalizers if they change.
 	defer func() {
-		nowHasFinalizer := shared.HasFinalizer(cr)
+		//nowHasFinalizer := shared.HasFinalizer(cr)
 		// Bail out if nothing has changed.
-		finalizersChanged := (hadFinalizer != nowHasFinalizer)
-		if finalizersChanged {
-			return
-		}
+		// finalizersChanged := (hadFinalizer != nowHasFinalizer)
+		// if finalizersChanged {
+		// 	return
+		// }
 
 		if _, ok := oldMap.Labels["kubedirectorcmtype"]; !ok {
 			return
@@ -135,7 +135,7 @@ func (r *ReconcileKubeDirectorConfigMap) syncConfigMap(
 // up further processing in the next handler. In the latter case, sync up our
 // internal state with the visible state of the CR and return true to continue
 // processing.
-func (r *ReconcileKubeDirectorConfigMap) handleNewConfigMap(
+func (r *ReconcileConfigMap) handleNewConfigMap(
 	reqLogger logr.Logger,
 	cr *corev1.ConfigMap,
 ) (bool, error) {
@@ -191,7 +191,7 @@ func (r *ReconcileKubeDirectorConfigMap) handleNewConfigMap(
 // cleanup and then remove our finalizer from the in-memory CR. If deletion
 // has NOT been requested then it will add our finalizer to the in-memory CR
 // if it is absent.
-func (r *ReconcileKubeDirectorConfigMap) handleFinalizers(
+func (r *ReconcileConfigMap) handleFinalizers(
 	reqLogger logr.Logger,
 	cr *corev1.ConfigMap,
 ) (bool, error) {

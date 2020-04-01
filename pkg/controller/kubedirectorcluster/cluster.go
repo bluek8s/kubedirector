@@ -197,7 +197,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		errLog("member services", memberServicesErr)
 		return memberServicesErr
 	}
-
+	//fmt.Println("clusterMembersStableReady is ", clusterMembersStableReady)
 	if state == clusterMembersStableReady {
 		if cr.Status.State != string(clusterReady) {
 			shared.LogInfo(
@@ -241,7 +241,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return membersErr
 	}
 	cr.Status.LastConfigMetaGenerator = cr.Spec.ConfigMetaGenerator
-	cr.Status.State = string(clusterReady)
 	// If configMetaGenerator is not incremented then return
 	if cr.Spec.ConfigMetaGenerator == cr.Status.LastConfigMetaGenerator {
 		return nil

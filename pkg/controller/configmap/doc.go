@@ -1,4 +1,4 @@
-// Copyright 2019 Hewlett Packard Enterprise Development LP
+// Copyright 2020 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,5 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package kubedirectorconfigmap implements reconciliation for KubeDirectorConfigmap.
-package kubedirectorconfigmap
+// Package configmap implements reconciliation for configmap.
+package configmap

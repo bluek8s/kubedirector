@@ -143,13 +143,13 @@ func genconfigConnections(
 	cr *kdv1.KubeDirectorCluster,
 ) (map[string]map[string]map[string]string, error) {
 
-	models := make(map[string]map[string]string)
+	cmMap := make(map[string]map[string]string)
 	kdcm := make(map[string]map[string]map[string]string)
-	for _, modelMapName := range cr.Spec.Connections.ConfigMaps {
-		modelCM, err := observer.GetConfigMap(cr.Namespace, modelMapName)
-		if kdConfigMapType, ok := modelCM.Labels["kubedirectorcmtype"]; ok {
-			models[modelMapName] = modelCM.Data
-			kdcm[kdConfigMapType] = models
+	for _, connectedCmName := range cr.Spec.Connections.ConfigMaps {
+		cm, err := observer.GetConfigMap(cr.Namespace, connectedCmName)
+		if kdConfigMapType, ok := cm.Labels["kubedirectorcmtype"]; ok {
+			cmMap[connectedCmName] = cm.Data
+			kdcm[kdConfigMapType] = cmMap
 			if err != nil {
 				return nil, err
 			}
@@ -164,17 +164,6 @@ func genClusterConnections(
 	cr *kdv1.KubeDirectorCluster,
 ) (map[string]clusterConnections, error) {
 
-	// thisApp, _ := observer.GetApp(cr.Namespace, cr.Spec.AppID)
-	// connectableTo := thisApp.Spec.ConnectableTo
-	// isConnectableCatInt := func(connectCat string) bool {
-	// 	for _, connectableCat := range connectableTo {
-	// 		if connectCat == connectableCat.Category {
-	// 			return true
-	// 		}
-	// 	}
-	// 	//hack- fix me later
-	// 	return true
-	// }
 	toConnectMeta := make(map[string]clusterConnections)
 	for _, clusterName := range cr.Spec.Connections.Clusters {
 		// Fetch the cluster object
@@ -186,13 +175,6 @@ func genClusterConnections(
 		if connectedAppErr != nil {
 			return nil, connectedAppErr
 		}
-		// for _, connectedCat := range appForclusterToConnect.Spec.ConnectableTo {
-		// 	if !isConnectableCatInt(connectedCat.Category) {
-		// 		return nil, fmt.Errorf(
-		// 			"Failed to connect cluster {%s}",
-		// 			clusterName,
-		// 		)
-		// 	}
 		domain := clusterToConnect.Status.ClusterService + "." + clusterToConnect.Namespace + shared.GetSvcClusterDomainBase()
 		membersForRole := make(map[string][]*kdv1.MemberStatus)
 		for _, roleInfo := range clusterToConnect.Status.Roles {

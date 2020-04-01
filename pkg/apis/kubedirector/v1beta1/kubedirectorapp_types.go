@@ -22,30 +22,30 @@ import (
 
 // KubeDirectorAppSpec defines the desired state of KubeDirectorApp.
 type KubeDirectorAppSpec struct {
-	Label               Label               `json:"label"`
-	DistroID            string              `json:"distroID"`
-	Version             string              `json:"version"`
-	SchemaVersion       int                 `json:"configSchemaVersion"`
-	DefaultImageRepoTag *string             `json:"defaultImageRepoTag,omitempty"`
-	DefaultSetupPackage SetupPackage        `json:"defaultConfigPackage,omitempty"`
-	Services            []Service           `json:"services"`
-	NodeRoles           []NodeRole          `json:"roles"`
-	Config              NodeGroupConfig     `json:"config"`
-	DefaultPersistDirs  *[]string           `json:"defaultPersistDirs"`
-	Capabilities        []v1.Capability     `json:"capabilities"`
-	SystemdRequired     bool                `json:"systemdRequired"`
-	ConnectableTo       []ConnectableConfig `json:"connectable_to,omitempty"`
+	Label               Label           `json:"label"`
+	DistroID            string          `json:"distroID"`
+	Version             string          `json:"version"`
+	SchemaVersion       int             `json:"configSchemaVersion"`
+	DefaultImageRepoTag *string         `json:"defaultImageRepoTag,omitempty"`
+	DefaultSetupPackage SetupPackage    `json:"defaultConfigPackage,omitempty"`
+	Services            []Service       `json:"services"`
+	NodeRoles           []NodeRole      `json:"roles"`
+	Config              NodeGroupConfig `json:"config"`
+	DefaultPersistDirs  *[]string       `json:"defaultPersistDirs, omitempty"`
+	Capabilities        []v1.Capability `json:"capabilities, omitempty"`
+	SystemdRequired     bool            `json:"systemdRequired, omitempty"`
+	//ConnectableTo       []ConnectableConfig `json:"connectable_to, omitempty"`
 }
 
-// ConnectableConfig describes type of objects that can be connected to
-// a cluster that uses the app.
-// XXX FIXME. Only categor
-type ConnectableConfig struct {
-	Category string `json:"category"`
-	Label    Label  `json:"label"`
-	DistroID string `json:"distroID"`
-	Version  string `json:"version"`
-}
+// // ConnectableConfig describes type of objects that can be connected to
+// // a cluster that uses the app.
+// // XXX FIXME. Only categor
+// type ConnectableConfig struct {
+// 	Category string `json:"category"`
+// 	Label    Label  `json:"label"`
+// 	DistroID string `json:"distroID"`
+// 	Version  string `json:"version"`
+// }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

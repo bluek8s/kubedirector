@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kubedirectorconfigmap
+package configmap
 
 import (
 	"context"
@@ -31,9 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("controller_kubedirectorconfigmap")
+var log = logf.Log.WithName("controller_configmap")
 
-// Add creates a new KubeDirectorConfigMap Controller and adds it to the Manager.
+// Add creates a new configmap Controller and adds it to the Manager.
 // The Manager will set fields on the Controller and Start it when the Manager
 // is Started.
 func Add(mgr manager.Manager) error {
@@ -44,7 +44,7 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 
-	return &ReconcileKubeDirectorConfigMap{scheme: mgr.GetScheme()}
+	return &ReconcileConfigMap{scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
@@ -54,12 +54,12 @@ func add(
 ) error {
 
 	// Create a new controller
-	c, err := controller.New("kubedirectorconfigmap-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("configmap-controller", mgr, controller.Options{MaxConcurrentReconciles: 10, Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to primary resource KubeDirectorConfigMap.
+	// Watch for changes to primary resource configmap.
 	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
@@ -70,20 +70,15 @@ func add(
 
 // blank assignment to verify that ReconcileKubeDirectorConfigMap implements
 // reconcile.Reconciler.
-var _ reconcile.Reconciler = &ReconcileKubeDirectorConfigMap{}
+var _ reconcile.Reconciler = &ReconcileConfigMap{}
 
 const (
-	// Period between the time when the controller requeues a request and
-	// it's scheduled again for reconciliation. Zero means don't poll.
-	// For now we don't need polling on this CR. Some anticipated features
-	// will need polling at which point we can change this.
+	// We do not need polling for configmaps
 	reconcilePeriod = 0
-
-//reconcilePeriod = 0
 )
 
-// ReconcileKubeDirectorConfigMap reconciles a KubeDirectorConfig object.
-type ReconcileKubeDirectorConfigMap struct {
+// ReconcileConfigMap reconciles a KubeDirectorConfig object.
+type ReconcileConfigMap struct {
 	scheme *runtime.Scheme
 }
 
@@ -94,12 +89,12 @@ type ReconcileKubeDirectorConfigMap struct {
 // The Controller will requeue the Request to be processed again if the
 // returned error is non-nil or Result.Requeue is true, otherwise upon
 // completion it will remove the work from the queue.
-func (r *ReconcileKubeDirectorConfigMap) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileConfigMap) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reconcileResult := reconcile.Result{RequeueAfter: reconcilePeriod}
 
-	// Fetch the KubeDirectorConfigMap instance.
+	// Fetch the configmap instance.
 	cr := &corev1.ConfigMap{}
 	err := shared.Get(context.TODO(), request.NamespacedName, cr)
 	if err != nil {

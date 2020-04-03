@@ -633,7 +633,7 @@ func validateConnections(
 ) []clusterPatchSpec {
 
 	if !reflect.DeepEqual(cr.Spec.Connections, prevCr.Spec.Connections) {
-		newConfigGenrator := cr.Spec.ConfigMetaGenerator + 1
+		newConfigGenrator := int32(cr.Spec.ConfigMetaGenerator + 1)
 		patches = append(
 			patches,
 			clusterPatchSpec{

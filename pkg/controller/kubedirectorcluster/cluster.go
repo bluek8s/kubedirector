@@ -223,9 +223,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			shared.List(context.TODO(), allClusters)
 			// notify clusters to which this cluster is
 			// connected
-			if cr.Name == "centos7" {
-				fmt.Println("centos7 ")
-			}
 			for _, kubecluster := range allClusters.Items {
 				if amIBeingConnectedToThis(kubecluster) {
 					shared.LogInfof(

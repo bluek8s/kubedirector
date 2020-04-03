@@ -1103,7 +1103,6 @@ func queueNotify(
 			op = "delnodes"
 			deltaFqdns = fqdnsList(cr, deletePending)
 		} else {
-			fmt.Println("setting LastSetupGeneration")
 			stateDetail.LastSetupGeneration = stateDetail.LastConfigDataGeneration
 			return
 		}

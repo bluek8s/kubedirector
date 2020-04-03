@@ -42,16 +42,9 @@ func (r *ReconcileConfigMap) syncConfigMap(
 ) error {
 	// Memoize state of the incoming object.
 	oldMap, _ := observer.GetConfigMap(cr.Namespace, cr.Name)
-	//hadFinalizer := shared.HasFinalizer(cr)
 
 	// Set a defer func to write new status and/or finalizers if they change.
 	defer func() {
-		//nowHasFinalizer := shared.HasFinalizer(cr)
-		// Bail out if nothing has changed.
-		// finalizersChanged := (hadFinalizer != nowHasFinalizer)
-		// if finalizersChanged {
-		// 	return
-		// }
 
 		if _, ok := oldMap.Labels["kubedirectorcmtype"]; !ok {
 			return

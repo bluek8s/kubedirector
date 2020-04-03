@@ -146,6 +146,14 @@ func syncMemberNotifies(
 	}
 	numToProcess := len(membersToProcess)
 	if numToProcess == 0 {
+		for i := 0; i < numRoleStatuses; i++ {
+			roleStatus := &(cr.Status.Roles[i])
+			for j := 0; j < len(roleStatus.Members); j++ {
+				updateMemberStatus := &(roleStatus.Members[j])
+				updateMemberStatus.StateDetail.LastSetupGeneration =
+					updateMemberStatus.StateDetail.LastConfigDataGeneration
+			}
+		}
 		return
 	}
 	var wgReady sync.WaitGroup
@@ -180,8 +188,15 @@ func syncMemberNotifies(
 						"failed to notify member{%s} about member changes",
 						m.Pod,
 					)
-				} else {
-					m.StateDetail.LastSetupGeneration = m.StateDetail.LastConfigDataGeneration
+				}
+				// Set LastSetupGeneration if we cleared the queue, or if the
+				// queue was empty to begin with.
+				if len(newQueue) == 0 {
+					if m.StateDetail.LastSetupGeneration != nil {
+						if *m.StateDetail.LastSetupGeneration != *m.StateDetail.LastConfigDataGeneration {
+							m.StateDetail.LastSetupGeneration = m.StateDetail.LastConfigDataGeneration
+						}
+					}
 				}
 			}
 			// Avoid a useless status write if we just rebuilt the same queue.
@@ -217,6 +232,7 @@ func handleReadyMembers(
 			// If this pod has already been updated on a previous handler
 			// pass, skip it.
 			if *m.StateDetail.LastConfigDataGeneration == *cr.Status.SpecGenerationToProcess {
+				// m.StateDetail.LastSetupGeneration = m.StateDetail.LastConfigDataGeneration
 				return
 			}
 			// Drop in the new configmeta.
@@ -1081,12 +1097,18 @@ func queueNotify(
 		op = "addnodes"
 		deltaFqdns = fqdnsList(cr, creatingOrCreated)
 	}
+	fmt.Println("op is ", op)
 	if op == "" {
 		if deletePending, ok := modifiedRole.membersByState[memberDeletePending]; ok {
 			op = "delnodes"
 			deltaFqdns = fqdnsList(cr, deletePending)
+		} else {
+			fmt.Println("setting LastSetupGeneration")
+			stateDetail.LastSetupGeneration = stateDetail.LastConfigDataGeneration
+			return
 		}
 	}
+
 	if deltaFqdns == "" {
 		// No nodes actually being created/deleted. One example of this
 		// is in the creating case where none have been successfully

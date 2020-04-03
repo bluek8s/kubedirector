@@ -197,7 +197,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		errLog("member services", memberServicesErr)
 		return memberServicesErr
 	}
-	//fmt.Println("clusterMembersStableReady is ", clusterMembersStableReady)
+
 	if state == clusterMembersStableReady {
 		if cr.Status.State != string(clusterReady) {
 			shared.LogInfo(
@@ -206,7 +206,59 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 				shared.EventReasonCluster,
 				"stable",
 			)
+
+			amIBeingConnectedToThis := func(otherCluster kdv1.KubeDirectorCluster) bool {
+				for _, connectedName := range otherCluster.Spec.Connections.Clusters {
+					if cr.Name == connectedName {
+						return true
+					}
+				}
+				return false
+			}
+
+			// Once the cluster is deemed ready, if this cluster is connected to any cluster then
+			// we need to notify that cluster that configmeta here has
+			// changed, so bump up configMetaGenerator for that cluster
+			allClusters := &kdv1.KubeDirectorClusterList{}
+			shared.List(context.TODO(), allClusters)
+			// notify clusters to which this cluster is
+			// connected
+			if cr.Name == "centos7" {
+				fmt.Println("centos7 ")
+			}
+			for _, kubecluster := range allClusters.Items {
+				if amIBeingConnectedToThis(kubecluster) {
+					shared.LogInfof(
+						reqLogger,
+						cr,
+						shared.EventReasonConfigMap,
+						"cluster {%s} is connected to another cluster {%s} updating its configmeta",
+						cr.Name,
+						kubecluster.Name,
+					)
+					updateMetaGenerator := &kubecluster
+					updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
+					//Notify cluster by incrementing configmetaGenerator
+					wait := time.Second
+					maxWait := 4096 * time.Second
+					for {
+						if shared.Update(context.TODO(), updateMetaGenerator) == nil {
+							break
+						}
+						if wait > maxWait {
+							return fmt.Errorf(
+								"Unable to notify cluster {%s} of configmeta change",
+								updateMetaGenerator.Name)
+						}
+						time.Sleep(wait)
+						wait = wait * 2
+					}
+				}
+			}
 			cr.Status.State = string(clusterReady)
+			// All done now lets update status counter
+			// cr.Status.LastConfigMetaGenerator = cr.Spec.ConfigMetaGenerator
+			//return nil
 		}
 		if cr.Spec.ConfigMetaGenerator == cr.Status.LastConfigMetaGenerator {
 			return nil
@@ -234,62 +286,13 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 
 	if state == clusterMembersChangedUnready || (cr.Spec.ConfigMetaGenerator != cr.Status.LastConfigMetaGenerator) {
 		cr.Status.SpecGenerationToProcess = &cr.Generation
+		cr.Status.LastConfigMetaGenerator = cr.Spec.ConfigMetaGenerator
 	}
 	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
 	if membersErr != nil {
 		errLog("members", membersErr)
 		return membersErr
 	}
-	cr.Status.LastConfigMetaGenerator = cr.Spec.ConfigMetaGenerator
-	// If configMetaGenerator is not incremented then return
-	if cr.Spec.ConfigMetaGenerator == cr.Status.LastConfigMetaGenerator {
-		return nil
-	}
-	// Once the cluster is deemed ready, if this cluster is connected to any cluster then
-	// we need to notify that cluster that configmeta here has
-	// changed, so bump up configMetaGenerator for that cluster
-	allClusters := &kdv1.KubeDirectorClusterList{}
-	amIBeingConnectedToThis := func(otherCluster kdv1.KubeDirectorCluster) bool {
-		for _, connectedName := range otherCluster.Spec.Connections.Clusters {
-			if cr.Name == connectedName {
-				return true
-			}
-		}
-		return false
-	}
-	shared.List(context.TODO(), allClusters)
-	// notify clusters to which this cluster is
-	// connected
-	for _, kubecluster := range allClusters.Items {
-		if amIBeingConnectedToThis(kubecluster) {
-			shared.LogInfof(
-				reqLogger,
-				cr,
-				shared.EventReasonConfigMap,
-				"cluster {%s} is connected to another cluster {%s} updating its configmeta",
-				cr.Name,
-				kubecluster.Name,
-			)
-			updateMetaGenerator := &kubecluster
-			updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
-			//Notify cluster by incrementing configmetaGenerator
-			wait := time.Second
-			maxWait := 4096 * time.Second
-			for {
-				if shared.Update(context.TODO(), updateMetaGenerator) == nil {
-					break
-				}
-				if wait > maxWait {
-					return fmt.Errorf(
-						"Unable to notify cluster {%s} of configmeta change",
-						updateMetaGenerator.Name)
-				}
-				time.Sleep(wait)
-				wait = wait * 2
-			}
-		}
-	}
-
 	return nil
 }
 

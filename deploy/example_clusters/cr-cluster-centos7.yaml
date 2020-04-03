@@ -5,10 +5,6 @@ metadata:
 spec:
   app: centos7x
   connections:
-    configmaps:
-    - "model-prediction1"
-    clusters:
-    - "centos71"
   roles:
   - id: vanilla_centos
     members: 1

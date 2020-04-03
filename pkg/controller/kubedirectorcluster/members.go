@@ -141,19 +141,16 @@ func syncMemberNotifies(
 				if memberStatus.State == string(memberReady) {
 					membersToProcess = append(membersToProcess, memberStatus)
 				}
+			} else {
+				if memberStatus.StateDetail.LastSetupGeneration != nil {
+					memberStatus.StateDetail.LastSetupGeneration =
+						memberStatus.StateDetail.LastConfigDataGeneration
+				}
 			}
 		}
 	}
 	numToProcess := len(membersToProcess)
 	if numToProcess == 0 {
-		for i := 0; i < numRoleStatuses; i++ {
-			roleStatus := &(cr.Status.Roles[i])
-			for j := 0; j < len(roleStatus.Members); j++ {
-				updateMemberStatus := &(roleStatus.Members[j])
-				updateMemberStatus.StateDetail.LastSetupGeneration =
-					updateMemberStatus.StateDetail.LastConfigDataGeneration
-			}
-		}
 		return
 	}
 	var wgReady sync.WaitGroup

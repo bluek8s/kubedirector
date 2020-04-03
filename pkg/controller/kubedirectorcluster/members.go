@@ -188,15 +188,8 @@ func syncMemberNotifies(
 						"failed to notify member{%s} about member changes",
 						m.Pod,
 					)
-				}
-				// Set LastSetupGeneration if we cleared the queue, or if the
-				// queue was empty to begin with.
-				if len(newQueue) == 0 {
-					if m.StateDetail.LastSetupGeneration != nil {
-						if *m.StateDetail.LastSetupGeneration != *m.StateDetail.LastConfigDataGeneration {
-							m.StateDetail.LastSetupGeneration = m.StateDetail.LastConfigDataGeneration
-						}
-					}
+				} else {
+					m.StateDetail.LastSetupGeneration = m.StateDetail.LastConfigDataGeneration
 				}
 			}
 			// Avoid a useless status write if we just rebuilt the same queue.
@@ -1097,7 +1090,7 @@ func queueNotify(
 		op = "addnodes"
 		deltaFqdns = fqdnsList(cr, creatingOrCreated)
 	}
-	fmt.Println("op is ", op)
+
 	if op == "" {
 		if deletePending, ok := modifiedRole.membersByState[memberDeletePending]; ok {
 			op = "delnodes"

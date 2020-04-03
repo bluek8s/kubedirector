@@ -225,7 +225,6 @@ func handleReadyMembers(
 			// If this pod has already been updated on a previous handler
 			// pass, skip it.
 			if *m.StateDetail.LastConfigDataGeneration == *cr.Status.SpecGenerationToProcess {
-				// m.StateDetail.LastSetupGeneration = m.StateDetail.LastConfigDataGeneration
 				return
 			}
 			// Drop in the new configmeta.

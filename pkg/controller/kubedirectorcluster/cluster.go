@@ -256,9 +256,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 				}
 			}
 			cr.Status.State = string(clusterReady)
-			// All done now lets update status counter
-			// cr.Status.LastConfigMetaGenerator = cr.Spec.ConfigMetaGenerator
-			//return nil
 		}
 		if cr.Spec.ConfigMetaGenerator == cr.Status.LastConfigMetaGenerator {
 			return nil

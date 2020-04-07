@@ -16,24 +16,23 @@ package v1beta1
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // KubeDirectorAppSpec defines the desired state of KubeDirectorApp.
 type KubeDirectorAppSpec struct {
-	Label               Label           `json:"label"`
-	DistroID            string          `json:"distroID"`
-	Version             string          `json:"version"`
-	SchemaVersion       int             `json:"configSchemaVersion"`
-	DefaultImageRepoTag *string         `json:"defaultImageRepoTag,omitempty"`
-	DefaultSetupPackage SetupPackage    `json:"defaultConfigPackage,omitempty"`
-	Services            []Service       `json:"services"`
-	NodeRoles           []NodeRole      `json:"roles"`
-	Config              NodeGroupConfig `json:"config"`
-	DefaultPersistDirs  *[]string       `json:"defaultPersistDirs,omitempty"`
-	Capabilities        []v1.Capability `json:"capabilities,omitempty"`
-	SystemdRequired     bool            `json:"systemdRequired,omitempty"`
+	Label               Label               `json:"label"`
+	DistroID            string              `json:"distroID"`
+	Version             string              `json:"version"`
+	SchemaVersion       int                 `json:"configSchemaVersion"`
+	DefaultImageRepoTag *string             `json:"defaultImageRepoTag,omitempty"`
+	DefaultSetupPackage SetupPackage        `json:"defaultConfigPackage,omitempty"`
+	Services            []Service           `json:"services"`
+	NodeRoles           []NodeRole          `json:"roles"`
+	Config              NodeGroupConfig     `json:"config"`
+	DefaultPersistDirs  *[]string           `json:"defaultPersistDirs,omitempty"`
+	Capabilities        []corev1.Capability `json:"capabilities,omitempty"`
+	SystemdRequired     bool                `json:"systemdRequired,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

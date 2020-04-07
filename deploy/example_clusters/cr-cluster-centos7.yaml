@@ -4,7 +4,6 @@ metadata:
   name: "centos7"
 spec:
   app: centos7x
-  connections:
   roles:
   - id: vanilla_centos
     members: 1

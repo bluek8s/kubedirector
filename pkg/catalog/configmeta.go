@@ -115,7 +115,7 @@ func servicesForRole(
 					FQDNs: refkeys{
 						BdvlibRefKey: []string{"nodegroups", "1", "roles", roleName, "fqdns"},
 					},
-					ExportedService: serviceDef.ExportedService, // currently, always empty
+					ExportedService: serviceDef.ExportedService,
 					Endpoints:       endpoints,
 				}
 				if connectedClusterName != "" {

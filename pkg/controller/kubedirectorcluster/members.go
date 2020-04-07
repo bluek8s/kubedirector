@@ -1091,9 +1091,6 @@ func queueNotify(
 		if deletePending, ok := modifiedRole.membersByState[memberDeletePending]; ok {
 			op = "delnodes"
 			deltaFqdns = fqdnsList(cr, deletePending)
-		} else {
-			stateDetail.LastSetupGeneration = stateDetail.LastConfigDataGeneration
-			return
 		}
 	}
 

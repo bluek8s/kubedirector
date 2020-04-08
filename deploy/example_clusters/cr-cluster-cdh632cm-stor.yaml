@@ -42,6 +42,7 @@ spec:
     podLabels:
       hpecp.hpe.com/dtap: "inject"
   - id: worker
+    members: 3
     resources:
       requests:
         memory: "4Gi"

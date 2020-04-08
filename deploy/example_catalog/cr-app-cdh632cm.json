@@ -1,0 +1,415 @@
+{
+    "apiVersion": "kubedirector.hpe.com/v1beta1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name" : "cdh632"
+    },
+
+    "spec" : {
+        "systemdRequired" : true,
+        "defaultPersistDirs" : ["/usr", "/opt", "/var", "/data"],
+        "capabilities" : [
+            "SYS_PACCT",
+            "SYS_RESOURCE",
+            "CHOWN",
+            "FSETID",
+            "KILL",
+            "SETGID",
+            "SETUID",
+            "NET_BIND_SERVICE",
+            "NET_BROADCAST",
+            "SYS_PTRACE",
+            "SETFCAP"
+        ],
+
+        "config": {
+            "configMeta": {
+                "streaming_jar": "/opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-streaming.jar",
+                "cdh_major_version": "CDH6",
+                "cdh_parcel_repo": "https://archive.cloudera.com/cdh6/6.3.2/parcels/",
+                "cdh_full_version": "6.3.2",
+                "cdh_parcel_version": "6.3.2-1.cdh6.3.2.p0.1605554",
+                "impala_jar_version": "0.1-SNAPSHOT",
+                "cdh_product": "CDH",
+                "java_home": "/usr/java/jdk",
+                "cdhVersion": "6.3.2",
+                "cmVersion": "6.3.2"
+            },
+            "roleServices": [
+                {
+                    "serviceIDs": [
+                        "cdh-scm-srvr",
+                        "cdh-scm-srvr-db",
+                        "cdh-scm-agent",
+                        "mysqld",
+                        "ssh"
+                    ],
+                    "roleID": "cmserver"
+                },
+                {
+                    "serviceIDs": [
+                        "cdh-scm-agent",
+                        "ssh",
+                        "httpfs",
+                        "hdfs-nn",
+                        "yarn-rm",
+                        "job-hist-srvr",
+                        "hdfs-snn",
+                        "spark-history",
+                        "zookeeper"
+                    ],
+                    "roleID": "primary"
+                },
+                {
+                    "serviceIDs": [
+                        "cdh-scm-agent",
+                        "ssh",
+                        "hbase-master",
+                        "hbase-thrift",
+                        "hbase-rest"
+                    ],
+                    "roleID": "hbase"
+                },
+                {
+                    "serviceIDs": [
+                        "cdh-scm-agent",
+                        "ssh",
+                        "hive-metastore",
+                        "hive-server",
+                        "webhcat"
+                    ],
+                    "roleID": "hive"
+                },
+                {
+                    "serviceIDs": [
+                        "cdh-scm-agent",
+                        "ssh",
+                        "impala"
+                    ],
+                    "roleID": "impala"
+                },
+                {
+                    "serviceIDs": [
+                        "cdh-scm-agent",
+                        "ssh",
+                        "hue",
+                        "oozie",
+                        "spark-history"
+                    ],
+                    "roleID": "apps"
+                },
+                {
+                    "serviceIDs": [
+                        "cdh-scm-agent",
+                        "ssh",
+                        "yarn-nm",
+                        "hbase-worker"
+                    ],
+                    "roleID": "worker"
+                },
+                {
+                    "serviceIDs": [
+                        "cdh-scm-agent",
+                        "ssh"
+                    ],
+                    "roleID": "gateway"
+                }
+            ],
+            "selectedRoles": [
+                "cmserver",
+                "primary",
+                "hive",
+                "worker",
+                "gateway",
+                "hbase",
+                "impala",
+                "apps"
+            ]
+        },
+        "defaultImageRepoTag": "docker.io/bluedata/cdh632multi:1.0",
+        "label": {
+            "name": "CDH 6.3.2 multirole 7x",
+            "description": "CDH 6.3.2 with YARN and HBase support. Includes Hive, Hue, Impala and Spark."
+        },
+        "distroID": "bluedata/cdh632multi",
+        "version": "1.0",
+        "configSchemaVersion": 7,
+        "services": [
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "urlScheme": "http",
+                    "port": 7180,
+                    "path": "/"
+                },
+                "id": "cdh-scm-srvr",
+                "label": {
+                    "name": "Cloudera Manager"
+                }
+            },
+            {
+                "id": "cdh-scm-srvr-db",
+                "label": {
+                    "name": "Cloudera manager database"
+                }
+            },
+            {
+                "id": "cdh-scm-agent",
+                "label": {
+                    "name": "Cloudera manager agent"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "urlScheme": "http",
+                    "port": 9870,
+                    "path": "/"
+                },
+                "id": "hdfs-nn",
+                "label": {
+                    "name": "NameNode"
+                }
+            },
+            {
+                "id": "hdfs-snn",
+                "label": {
+                    "name": "Secondary NameNode"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "urlScheme": "http",
+                    "port": 50075,
+                    "path": "/"
+                },
+                "id": "hdfs-dn",
+                "label": {
+                    "name": "DataNode"
+                }
+            },
+            {
+                "id": "hdfs-jn",
+                "label": {
+                    "name": "JournalNode"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "urlScheme": "http",
+                    "port": 8088,
+                    "path": "/cluster"
+                },
+                "id": "yarn-rm",
+                "label": {
+                    "name": "ResourceManager"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "urlScheme": "http",
+                    "port": 8042,
+                    "path": "/cluster"
+                },
+                "id": "yarn-nm",
+                "label": {
+                    "name": "NodeManager"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "urlScheme": "http",
+                    "port": 19888,
+                    "path": "/jobhistory"
+                },
+                "id": "job-hist-srvr",
+                "label": {
+                    "name": "Yarn Job history server"
+                }
+            },
+            {
+                "endpoint": {
+                    "port": 2181,
+                    "isDashboard": false
+                },
+                "id": "zookeeper",
+                "label": {
+                    "name": "Zookeeper Server"
+                }
+            },
+            {
+                "id": "httpfs",
+                "label": {
+                    "name": "Hadoop HTTPFS"
+                }
+            },
+           {
+                "endpoint": {
+                    "port": 22,
+                    "isDashboard": false
+                },
+                "id": "ssh",
+                "label": {
+                    "name": "SSH"
+                }
+            },
+            {
+                "id": "mysqld",
+                "label": {
+                    "name": "Mysqld Server"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "urlScheme": "http",
+                    "port": 16010,
+                    "path": "/"
+                },
+                "id": "hbase-master",
+                "label": {
+                    "name": "HMaster"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "urlScheme": "http",
+                    "port": 16030,
+                    "path": "/"
+                },
+                "id": "hbase-worker",
+                "label": {
+                    "name": "HRegionServer"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": false,
+                    "port": 20550
+                },
+                "id": "hbase-rest",
+                "label": {
+                    "name": "HBase REST"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "urlScheme": "http",
+                    "port": 9095,
+                    "path": "/"
+                },
+                "id": "hbase-thrift",
+                "label": {
+                    "name": "HBase Thrift Server"
+                }
+            },
+            {
+                "id": "hive-metastore",
+                "label": {
+                    "name": "HIVE Metastore"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "urlScheme": "http",
+                    "port": 10002,
+                    "path": "/"
+                },
+                "id": "hive-server",
+                "label": {
+                    "name": "HIVE Server 2"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": false,
+                    "port": 50111
+                },
+                "id": "webhcat",
+                "label": {
+                    "name": "WebHCat Server"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "urlScheme": "http",
+                    "port": 8888,
+                    "path": "/"
+                },
+                "id": "hue",
+                "label": {
+                    "name": "Hue Console"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "urlScheme": "http",
+                    "port": 18088,
+                    "path": "/"
+                },
+                "id": "spark-history",
+                "label": {
+                    "name": "Spark history server"
+                }
+            },
+            {
+                "id": "impala",
+                "label": {
+                    "name": "Impala service"
+                }
+            },
+            {
+                "id": "oozie",
+                "label": {
+                    "name": "OOZIE service"
+                }
+            }
+        ],
+        "defaultConfigPackage":  {
+            "packageURL": "file:///opt/configscripts/appconfig.tgz"
+        },
+        "roles": [
+            {
+                "id": "cmserver",
+                "cardinality": "1"
+            },
+            {
+                "id": "primary",
+                "cardinality": "1"
+            },
+            {
+                "id": "hbase",
+                "cardinality": "1"
+            },
+            {
+                "id": "hive",
+                "cardinality": "1"
+            },
+            {
+                "id": "impala",
+                "cardinality": "1"
+            },
+            {
+                "id": "apps",
+                "cardinality": "1"
+            },
+            {
+                "id": "worker",
+                "cardinality": "3+"
+            },
+            {
+                "id": "gateway",
+                "cardinality": "0+"
+            }
+      ]
+    }
+}

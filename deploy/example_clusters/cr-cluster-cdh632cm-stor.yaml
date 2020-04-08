@@ -1,0 +1,103 @@
+apiVersion: "kubedirector.hpe.com/v1beta1"
+kind: "KubeDirectorCluster"
+metadata:
+  name: "cdh632-cm-persistent"
+spec:
+  app: cdh632
+  roles:
+  - id: cmserver
+    resources:
+      requests:
+        memory: "8Gi"
+        cpu: "4"
+      limits:
+        memory: "8Gi"
+        cpu: "4"
+    storage:
+      size: "100Gi"
+    podLabels:
+      hpecp.hpe.com/dtap: "inject"
+  - id: primary
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"
+    storage:
+      size: "100Gi"
+    podLabels:
+      hpecp.hpe.com/dtap: "inject"
+  - id: hive
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "2"
+      limits:
+        memory: "2Gi"
+        cpu: "2"
+    storage:
+      size: "100Gi"
+    podLabels:
+      hpecp.hpe.com/dtap: "inject"
+  - id: worker
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "4Gi"
+        cpu: "2"
+    storage:
+      size: "100Gi"
+    podLabels:
+      hpecp.hpe.com/dtap: "inject"
+  - id: gateway
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "4Gi"
+        cpu: "2"
+    storage:
+      size: "100Gi"
+    podLabels:
+      hpecp.hpe.com/dtap: "inject"
+  - id: hbase
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "2"
+      limits:
+        memory: "2Gi"
+        cpu: "2"
+    storage:
+      size: "100Gi"
+    podLabels:
+      hpecp.hpe.com/dtap: "inject"
+  - id: apps
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"
+    storage:
+      size: "100Gi"
+    podLabels:
+      hpecp.hpe.com/dtap: "inject"
+  - id: impala
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "2"
+      limits:
+        memory: "2Gi"
+        cpu: "2"
+    storage:
+      size: "100Gi"
+    podLabels:
+      hpecp.hpe.com/dtap: "inject"

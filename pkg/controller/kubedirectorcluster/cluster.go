@@ -218,7 +218,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 
 			// Once the cluster is deemed ready, if this cluster is connected to any cluster then
 			// we need to notify that cluster that configmeta here has
-			// changed, so bump up configMetaGenerator for that cluster
+			// changed, so bump up connectionsGenerationToProcess for that cluster
 			allClusters := &kdv1.KubeDirectorClusterList{}
 			shared.List(context.TODO(), allClusters)
 			// notify clusters to which this cluster is
@@ -234,7 +234,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 						kubecluster.Name,
 					)
 					updateMetaGenerator := &kubecluster
-					updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
+					updateMetaGenerator.Spec.ConnectionsGenToProcess = kubecluster.Spec.ConnectionsGenToProcess + 1
 					//Notify cluster by incrementing configmetaGenerator
 					wait := time.Second
 					maxWait := 4096 * time.Second
@@ -254,7 +254,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			}
 			cr.Status.State = string(clusterReady)
 		}
-		if cr.Spec.ConfigMetaGenerator == cr.Status.LastConfigMetaGenerator {
+		if cr.Spec.ConnectionsGenToProcess == cr.Status.LastConnectionGen {
 			return nil
 		}
 	}
@@ -278,9 +278,9 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return configMetaErr
 	}
 
-	if state == clusterMembersChangedUnready || (cr.Spec.ConfigMetaGenerator != cr.Status.LastConfigMetaGenerator) {
+	if state == clusterMembersChangedUnready || (cr.Spec.ConnectionsGenToProcess != cr.Status.LastConnectionGen) {
 		cr.Status.SpecGenerationToProcess = &cr.Generation
-		cr.Status.LastConfigMetaGenerator = cr.Spec.ConfigMetaGenerator
+		cr.Status.LastConnectionGen = cr.Spec.ConnectionsGenToProcess
 	}
 	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
 	if membersErr != nil {
@@ -493,7 +493,7 @@ func (r *ReconcileKubeDirectorCluster) handleNewCluster(
 		)
 		// If ConfigMetaGenerator has been updated then ignore UID check and
 		// return
-		if cr.Spec.ConfigMetaGenerator != cr.Status.LastConfigMetaGenerator {
+		if cr.Spec.ConnectionsGenToProcess != cr.Status.LastConnectionGen {
 			return true, nil
 		}
 		mismatchErr := fmt.Errorf(

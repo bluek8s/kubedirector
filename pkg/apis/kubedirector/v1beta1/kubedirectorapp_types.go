@@ -27,7 +27,7 @@ type KubeDirectorAppSpec struct {
 	SchemaVersion       int                 `json:"configSchemaVersion"`
 	DefaultImageRepoTag *string             `json:"defaultImageRepoTag,omitempty"`
 	DefaultSetupPackage SetupPackage        `json:"defaultConfigPackage,omitempty"`
-	Services            []Service           `json:"services"`
+	Services            []Service           `json:"services,omitempty"`
 	NodeRoles           []NodeRole          `json:"roles"`
 	Config              NodeGroupConfig     `json:"config"`
 	DefaultPersistDirs  *[]string           `json:"defaultPersistDirs,omitempty"`

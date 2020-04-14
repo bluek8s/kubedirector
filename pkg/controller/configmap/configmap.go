@@ -1,4 +1,4 @@
-// Copyright 2019 Hewlett Packard Enterprise Development LP
+// Copyright 2020 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,6 +26,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+const (
+	// configMapType is a label placed on every created statefulset, pod, and
+	// service, with a value of the KubeDirectorCluster CR name.
+	configMapType = shared.KdDomainBase + "/cmType"
+)
+
 var (
 	// StatusGens is exported so that the validator can have access
 	// to the ConfigMap StatusGens
@@ -35,18 +41,18 @@ var (
 // syncConfigMap runs the reconciliation logic. It is invoked because of a
 // change in or addition of configmap instance, currently there is no
 // polling for this resource. If the configmap is not labeled
-// with key "kubedirectorcmtype" then no op
+// with key ConfigMapType then no op
 func (r *ReconcileConfigMap) syncConfigMap(
 	reqLogger logr.Logger,
-	cr *corev1.ConfigMap,
+	configmap *corev1.ConfigMap,
 ) error {
 	// Memoize state of the incoming object.
-	oldMap, _ := observer.GetConfigMap(cr.Namespace, cr.Name)
+	oldMap, _ := observer.GetConfigMap(configmap.Namespace, configmap.Name)
 
 	// Set a defer func to write new status and/or finalizers if they change.
 	defer func() {
 
-		if _, ok := oldMap.Labels["kubedirectorcmtype"]; !ok {
+		if _, ok := oldMap.Labels[configMapType]; !ok {
 			return
 		}
 		/* anonymous fun to check if some cluster
@@ -63,17 +69,17 @@ func (r *ReconcileConfigMap) syncConfigMap(
 		allClusters := &kdv1.KubeDirectorClusterList{}
 		shared.List(context.TODO(), allClusters)
 		for _, kubecluster := range allClusters.Items {
-			if isClusterUsingConfigMap(cr.Name, kubecluster) {
+			if isClusterUsingConfigMap(configmap.Name, kubecluster) {
 				shared.LogInfof(
 					reqLogger,
-					cr,
+					configmap,
 					shared.EventReasonConfigMap,
 					"configmap {%s} is connected to cluster {%s} updating its configmeta",
-					cr.Name,
+					configmap.Name,
 					kubecluster.Name,
 				)
 				updateMetaGenerator := &kubecluster
-				updateMetaGenerator.Spec.ConfigMetaGenerator = kubecluster.Spec.ConfigMetaGenerator + 1
+				updateMetaGenerator.Spec.ConnectionsGenToProcess = kubecluster.Spec.ConnectionsGenToProcess + 1
 				//Notify cluster by incrementing configmetaGenerator
 				wait := time.Second
 				maxWait := 4096 * time.Second
@@ -85,7 +91,7 @@ func (r *ReconcileConfigMap) syncConfigMap(
 						shared.LogErrorf(
 							reqLogger,
 							fmt.Errorf("failed to update cluster"),
-							cr,
+							configmap,
 							shared.EventReasonConfigMap,
 							"Unable to notify cluster {%s} of configmeta change",
 							updateMetaGenerator.Name)
@@ -98,114 +104,5 @@ func (r *ReconcileConfigMap) syncConfigMap(
 		}
 	}()
 
-	// We use a finalizer to maintain config state consistency.
-	doExit, finalizerErr := r.handleFinalizers(reqLogger, cr)
-	if finalizerErr != nil {
-		return finalizerErr
-	}
-	if doExit {
-		return nil
-	}
-
-	// For a new KD config just update the status state/gen.
-	shouldProcessCR, processErr := r.handleNewConfigMap(reqLogger, cr)
-	if processErr != nil {
-		return processErr
-	}
-	if !shouldProcessCR {
-		return nil
-	}
 	return nil
-}
-
-// handleNewConfig looks in the cache for the last-known status generation
-// UID for this CR. If there is one, make sure the UID is what we expect, and
-// if so return true to keep processing the CR. If there is not any last-known
-// UID, this is either a new CR or one that was created before this KD came up.
-// In the former case, where the CR status itself has no generation UID: set
-// the config state to creating (this will also trigger population of the
-// generation UID) and return false to cause this handler to exit; we'll pick
-// up further processing in the next handler. In the latter case, sync up our
-// internal state with the visible state of the CR and return true to continue
-// processing.
-func (r *ReconcileConfigMap) handleNewConfigMap(
-	reqLogger logr.Logger,
-	cr *corev1.ConfigMap,
-) (bool, error) {
-
-	// Have we seen this config before?
-	//incoming := cr.Status.GenerationUID
-	incomingCM := cr
-	lastKnown, err := observer.GetConfigMap(cr.Namespace, cr.Name)
-	if err == nil {
-		// Yep we've already done processing for this config previously.
-		// Sanity check that the UID is what we expect... it REALLY should be,
-		// but if there is a bug/race in the client code or unexpected behavior
-		// of the K8s API consistency then it might not be.
-		if lastKnown.ResourceVersion == incomingCM.ResourceVersion {
-			return true, nil
-		}
-		shared.LogInfo(
-			reqLogger,
-			cr,
-			shared.EventReasonNoEvent,
-			"ignoring configMap with stale status UID; will retry",
-		)
-		mismatchErr := fmt.Errorf(
-			"incoming UID %s != last known UID %s",
-			incomingCM.ResourceVersion,
-			lastKnown.UID,
-		)
-		return false, mismatchErr
-	}
-	if incomingCM == nil {
-		// This is an actual newly-created config map, so kick off the processing.
-		shared.LogInfo(
-			reqLogger,
-			cr,
-			shared.EventReasonConfigMap,
-			"new",
-		)
-		return false, nil
-	}
-	// This config has been processed before but we're not aware of it yet.
-	// Probably KD has been restarted. Make us aware of this config.
-	shared.LogInfof(
-		reqLogger,
-		cr,
-		shared.EventReasonNoEvent,
-		"unknown with incoming gen uid %s",
-		incomingCM.ResourceVersion,
-	)
-	return true, nil
-}
-
-// handleFinalizers will, if deletion has been requested, try to do any
-// cleanup and then remove our finalizer from the in-memory CR. If deletion
-// has NOT been requested then it will add our finalizer to the in-memory CR
-// if it is absent.
-func (r *ReconcileConfigMap) handleFinalizers(
-	reqLogger logr.Logger,
-	cr *corev1.ConfigMap,
-) (bool, error) {
-
-	if cr.DeletionTimestamp != nil {
-		// If a deletion has been requested, while ours (or other) finalizers
-		// existed on the CR, go ahead and remove our finalizer.
-		shared.RemoveFinalizer(cr)
-		shared.LogInfo(
-			reqLogger,
-			cr,
-			shared.EventReasonConfigMap,
-			"greenlighting for deletion",
-		)
-		// Also clear the status gen from our cache.
-		StatusGens.DeleteStatusGen(cr.UID)
-		return true, nil
-	}
-
-	// If our finalizer doesn't exist on the CR, put it in there.
-	shared.EnsureFinalizer(cr)
-
-	return false, nil
 }

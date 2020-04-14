@@ -633,12 +633,12 @@ func validateConnections(
 ) []clusterPatchSpec {
 
 	if !reflect.DeepEqual(cr.Spec.Connections, prevCr.Spec.Connections) {
-		newConfigGenrator := int32(cr.Spec.ConfigMetaGenerator + 1)
+		newConfigGenrator := int32(cr.Spec.ConnectionsGenToProcess + 1)
 		patches = append(
 			patches,
 			clusterPatchSpec{
 				Op:   "add",
-				Path: "/spec/configMetaGenerator",
+				Path: "/spec/connectionsGenerationToProcess",
 				Value: clusterPatchValue{
 					ValueInt: &newConfigGenrator,
 				},
@@ -939,10 +939,10 @@ func admitClusterCR(
 	}
 
 	// If connections, be it cluster or configmap
-	// is updated then increment configMetaGenerator to trigger
+	// is updated then increment connectionsGenerationToProcess to trigger
 	// regeneration of configmeta
 	if !reflect.DeepEqual(clusterCR.Spec.Connections, prevClusterCR.Spec.Connections) {
-		clusterCR.Spec.ConfigMetaGenerator = prevClusterCR.Spec.ConfigMetaGenerator + 1
+		clusterCR.Spec.ConnectionsGenToProcess = prevClusterCR.Spec.ConnectionsGenToProcess + 1
 	}
 
 	if len(valErrors) == 0 {

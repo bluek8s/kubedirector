@@ -25,6 +25,12 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
+const (
+	// ConfigMapType is a label placed on every created statefulset, pod, and
+	// service, with a value of the KubeDirectorCluster CR name.
+	ConfigMapType = shared.KdDomainBase + "/cmType"
+)
+
 // allServiceRefkeys is a subroutine of getServices, used to generate a
 // description of a service's associated roles in the format expected by the
 // app setup Python packages.
@@ -147,7 +153,7 @@ func genconfigConnections(
 	kdcm := make(map[string]map[string]map[string]string)
 	for _, connectedCmName := range cr.Spec.Connections.ConfigMaps {
 		cm, err := observer.GetConfigMap(cr.Namespace, connectedCmName)
-		if kdConfigMapType, ok := cm.Labels["kubedirectorcmtype"]; ok {
+		if kdConfigMapType, ok := cm.Labels[ConfigMapType]; ok {
 			cmMap[connectedCmName] = cm.Data
 			kdcm[kdConfigMapType] = cmMap
 			if err != nil {
@@ -162,9 +168,9 @@ func genconfigConnections(
 // to this cluster.
 func genClusterConnections(
 	cr *kdv1.KubeDirectorCluster,
-) (map[string]clusterConnections, error) {
+) (map[string]configmeta, error) {
 
-	toConnectMeta := make(map[string]clusterConnections)
+	toConnectMeta := make(map[string]configmeta)
 	for _, clusterName := range cr.Spec.Connections.Clusters {
 		// Fetch the cluster object
 		clusterToConnect, connectedErr := observer.GetCluster(cr.Namespace, clusterName)
@@ -188,7 +194,7 @@ func genClusterConnections(
 			membersForRole[roleInfo.Name] = membersStatus
 		}
 
-		toConnectMeta[clusterName] = clusterConnections{
+		toConnectMeta[clusterName] = configmeta{
 			Version:    strconv.Itoa(appForclusterToConnect.Spec.SchemaVersion),
 			Services:   getServices(appForclusterToConnect, membersForRole, clusterName),
 			Nodegroups: nodegroups(clusterToConnect, appForclusterToConnect, membersForRole, domain),
@@ -199,14 +205,24 @@ func genClusterConnections(
 					},
 				},
 			},
-			Name:     clusterToConnect.Name,
-			Isolated: false, // currently, always false
-			ID:       string(cr.UID),
-			ConfigMeta: map[string]refkeys{
-				"1": refkeys{
-					BdvlibRefKey: []string{"connections", "clusters", clusterName, "nodegroups", "1", "config_metadata"},
+			Cluster: cluster{
+				Name:     clusterName,
+				Isolated: false, // currently, always false
+				ID:       string(clusterToConnect.UID),
+				ConfigMeta: map[string]refkeys{
+					"1": refkeys{
+						BdvlibRefKey: []string{"nodegroups", "1", "config_metadata"},
+					},
 				},
 			},
+			// Name:     clusterToConnect.Name,
+			// Isolated: false, // currently, always false
+			// ID:       string(cr.UID),
+			// ConfigMeta: map[string]refkeys{
+			// 	"1": refkeys{
+			// 		BdvlibRefKey: []string{"connections", "clusters", clusterName, "nodegroups", "1", "config_metadata"},
+			// 	},
+			// },
 		}
 	}
 

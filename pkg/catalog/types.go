@@ -44,20 +44,8 @@ type nodegroup struct {
 }
 
 type connections struct {
-	Clusters   map[string]clusterConnections           `json:"clusters"`
+	Clusters   map[string]configmeta                   `json:"clusters"`
 	ConfigMaps map[string]map[string]map[string]string `json:"configmaps"`
-}
-
-type clusterConnections struct {
-	Version    string                  `json:"version"`
-	Services   map[string]ngRefkeysMap `json:"services"`
-	Nodegroups map[string]nodegroup    `json:"nodegroups"`
-	Distros    map[string]refkeysMap   `json:"distros"`
-	Cluster    cluster                 `json:"cluster"`
-	Name       string                  `json:"name"`
-	Isolated   bool                    `json:"isolated"`
-	ID         string                  `json:"id"`
-	ConfigMeta map[string]refkeys      `json:"config_metadata"`
 }
 
 type cluster struct {

@@ -1,4 +1,4 @@
-// Copyright 2019 Hewlett Packard Enterprise Development LP
+// Copyright 2020 Hewlett Packard Enterprise Development LP
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -95,15 +95,10 @@ func (r *ReconcileConfigMap) Reconcile(request reconcile.Request) (reconcile.Res
 	reconcileResult := reconcile.Result{RequeueAfter: reconcilePeriod}
 
 	// Fetch the configmap instance.
-	cr := &corev1.ConfigMap{}
-	err := shared.Get(context.TODO(), request.NamespacedName, cr)
+	configmap := &corev1.ConfigMap{}
+	err := shared.Get(context.TODO(), request.NamespacedName, configmap)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// Request object not found, could have been deleted after
-			// reconcile request. Owned objects are automatically garbage
-			// collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue.
-			//shared.RemoveGlobalConfig()
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
@@ -111,6 +106,6 @@ func (r *ReconcileConfigMap) Reconcile(request reconcile.Request) (reconcile.Res
 			fmt.Errorf("could not fetch ConfigMap instance: %s", err)
 	}
 
-	err = r.syncConfigMap(reqLogger, cr)
+	err = r.syncConfigMap(reqLogger, configmap)
 	return reconcileResult, err
 }

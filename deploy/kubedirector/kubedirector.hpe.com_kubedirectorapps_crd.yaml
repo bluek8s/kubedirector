@@ -126,6 +126,11 @@ spec:
                     items:
                       type: string
                       pattern: '^/.*[^/]$'
+                  eventList:
+                    type: array
+                    items:
+                      type: string
+                      pattern: '^/.*[^/]$'
                   minResources:
                     type: object
                     nullable: true

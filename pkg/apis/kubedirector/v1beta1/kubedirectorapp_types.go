@@ -105,6 +105,7 @@ type NodeRole struct {
 	ImageRepoTag *string              `json:"imageRepoTag,omitempty"`
 	SetupPackage SetupPackage         `json:"configPackage,omitempty"`
 	PersistDirs  *[]string            `json:"persistDirs,omitempty"`
+	EventList    *[]string            `json:"eventList,omitempty"`
 	MinResources *corev1.ResourceList `json:"minResources,omitempty"`
 }
 

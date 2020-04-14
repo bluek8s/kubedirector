@@ -15,8 +15,6 @@ spec:
         cpu: "4"
     storage:
       size: "100Gi"
-    podLabels:
-      hpecp.hpe.com/dtap: "inject"
   - id: primary
     resources:
       requests:
@@ -27,8 +25,6 @@ spec:
         cpu: "4"
     storage:
       size: "100Gi"
-    podLabels:
-      hpecp.hpe.com/dtap: "inject"
   - id: hive
     resources:
       requests:
@@ -39,8 +35,6 @@ spec:
         cpu: "2"
     storage:
       size: "100Gi"
-    podLabels:
-      hpecp.hpe.com/dtap: "inject"
   - id: worker
     members: 3
     resources:
@@ -52,8 +46,6 @@ spec:
         cpu: "2"
     storage:
       size: "100Gi"
-    podLabels:
-      hpecp.hpe.com/dtap: "inject"
   - id: gateway
     resources:
       requests:
@@ -64,8 +56,6 @@ spec:
         cpu: "2"
     storage:
       size: "100Gi"
-    podLabels:
-      hpecp.hpe.com/dtap: "inject"
   - id: hbase
     resources:
       requests:
@@ -76,8 +66,6 @@ spec:
         cpu: "2"
     storage:
       size: "100Gi"
-    podLabels:
-      hpecp.hpe.com/dtap: "inject"
   - id: apps
     resources:
       requests:
@@ -88,8 +76,6 @@ spec:
         cpu: "4"
     storage:
       size: "100Gi"
-    podLabels:
-      hpecp.hpe.com/dtap: "inject"
   - id: impala
     resources:
       requests:
@@ -100,5 +86,3 @@ spec:
         cpu: "2"
     storage:
       size: "100Gi"
-    podLabels:
-      hpecp.hpe.com/dtap: "inject"

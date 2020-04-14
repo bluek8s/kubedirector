@@ -388,7 +388,7 @@
             },
             {
                 "id": "hbase",
-                "cardinality": "1"
+                "cardinality": "0+"
             },
             {
                 "id": "hive",
@@ -396,11 +396,11 @@
             },
             {
                 "id": "impala",
-                "cardinality": "1"
+                "cardinality": "0+"
             },
             {
                 "id": "apps",
-                "cardinality": "1"
+                "cardinality": "0+"
             },
             {
                 "id": "worker",

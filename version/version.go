@@ -2,5 +2,5 @@ package version
 
 var (
 	// Version is the current KubeDirector version
-	Version = "0.4.0-unstable"
+	Version = "0.4.1-unstable"
 )

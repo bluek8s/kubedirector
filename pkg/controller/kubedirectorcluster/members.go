@@ -141,6 +141,11 @@ func syncMemberNotifies(
 				if memberStatus.State == string(memberReady) {
 					membersToProcess = append(membersToProcess, memberStatus)
 				}
+			} else {
+				if memberStatus.StateDetail.LastSetupGeneration != nil {
+					memberStatus.StateDetail.LastSetupGeneration =
+						memberStatus.StateDetail.LastConfigDataGeneration
+				}
 			}
 		}
 	}

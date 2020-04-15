@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	// ConfigMapType is a label placed on every created statefulset, pod, and
-	// service, with a value of the KubeDirectorCluster CR name.
+	// ConfigMapType is a label placed on desired comfig maps that
+	// we want to watch and propogate inside containers
 	configMapType = shared.KdDomainBase + "/cmType"
 )
 

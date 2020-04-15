@@ -74,7 +74,7 @@ func (r *ReconcileConfigMap) syncConfigMap(
 					reqLogger,
 					configmap,
 					shared.EventReasonConfigMap,
-					"configmap {%s} is connected to cluster {%s} updating its configmeta",
+					"configmap {%s} is a connection to cluster {%s}, updating its configmeta",
 					configmap.Name,
 					kubecluster.Name,
 				)

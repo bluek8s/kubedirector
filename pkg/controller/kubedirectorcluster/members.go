@@ -1086,7 +1086,6 @@ func queueNotify(
 		op = "addnodes"
 		deltaFqdns = fqdnsList(cr, creatingOrCreated)
 	}
-
 	if op == "" {
 		if deletePending, ok := modifiedRole.membersByState[memberDeletePending]; ok {
 			op = "delnodes"

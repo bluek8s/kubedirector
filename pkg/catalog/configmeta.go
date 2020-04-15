@@ -28,7 +28,7 @@ import (
 const (
 	// ConfigMapType is a label placed on every created statefulset, pod, and
 	// service, with a value of the KubeDirectorCluster CR name.
-	ConfigMapType = shared.KdDomainBase + "/cmType"
+	configMapType = shared.KdDomainBase + "/cmType"
 )
 
 // allServiceRefkeys is a subroutine of getServices, used to generate a
@@ -153,7 +153,7 @@ func genconfigConnections(
 	kdcm := make(map[string]map[string]map[string]string)
 	for _, connectedCmName := range cr.Spec.Connections.ConfigMaps {
 		cm, err := observer.GetConfigMap(cr.Namespace, connectedCmName)
-		if kdConfigMapType, ok := cm.Labels[ConfigMapType]; ok {
+		if kdConfigMapType, ok := cm.Labels[configMapType]; ok {
 			cmMap[connectedCmName] = cm.Data
 			kdcm[kdConfigMapType] = cmMap
 			if err != nil {

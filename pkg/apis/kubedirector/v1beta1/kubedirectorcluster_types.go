@@ -26,10 +26,10 @@ import (
 // using a StatefulSet.
 type KubeDirectorClusterSpec struct {
 	AppID                   string      `json:"app"`
-	AppCatalog              *string     `json:"appCatalog"`
-	ServiceType             *string     `json:"serviceType"`
+	AppCatalog              *string     `json:"appCatalog,omitempty"`
+	ServiceType             *string     `json:"serviceType,omitempty"`
 	Roles                   []Role      `json:"roles"`
-	DefaultSecret           *KDSecret   `json:"defaultSecret"`
+	DefaultSecret           *KDSecret   `json:"defaultSecret,omitempty"`
 	ConnectionsGenToProcess int64       `json:"connectionsGenerationToProcess"`
 	Connections             Connections `json:"connections"`
 }

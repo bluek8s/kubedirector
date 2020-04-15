@@ -280,7 +280,15 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 
 	if state == clusterMembersChangedUnready || (cr.Spec.ConnectionsGenToProcess != cr.Status.LastConnectionGen) {
 		cr.Status.SpecGenerationToProcess = &cr.Generation
-		cr.Status.LastConnectionGen = cr.Spec.ConnectionsGenToProcess
+		if cr.Status.LastConnectionGen != cr.Spec.ConnectionsGenToProcess {
+			shared.LogInfof(
+				reqLogger,
+				cr,
+				shared.EventReasonCluster,
+				"regenerating in-cluster configmeta due to chamge in connections",
+			)
+			cr.Status.LastConnectionGen = cr.Spec.ConnectionsGenToProcess
+		}
 	}
 	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
 	if membersErr != nil {

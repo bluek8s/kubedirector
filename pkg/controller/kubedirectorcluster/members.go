@@ -35,7 +35,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-var roleNotifyEvents = []string{"configure", "addNodes", "delNodes"}
+var roleNotifyEvents = []string{"configure", "addnodes", "delnodes"}
 
 // syncMembers is responsible for adding or deleting members. It and
 // syncMemberNotifies are the only functions in this file that are invoked
@@ -1058,7 +1058,7 @@ func appConfig(
 		)
 	}
 	role := catalog.GetRoleFromID(appCr, roleName)
-	if !shared.StringInList("configure", *role.EventList) {
+	if role.EventList != nil && !shared.StringInList("configure", *role.EventList) {
 		return true, appErr
 	}
 
@@ -1129,7 +1129,8 @@ func queueNotify(
 			"app referenced by cluster does not exist")
 	}
 	role := catalog.GetRoleFromID(appCr, modifiedRole.roleStatus.Name)
-	if !shared.StringInList(op, *role.EventList) {
+	log.Info("In function queueNotify", "role:", role.EventList)
+	if role.EventList != nil && !shared.StringInList(op, *role.EventList) {
 		return
 	}
 

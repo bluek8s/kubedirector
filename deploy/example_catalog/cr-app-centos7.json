@@ -8,6 +8,7 @@
     "spec" : {
         "systemdRequired": true,
         "defaultPersistDirs" : ["/home"],
+        "defaultEventList" : ["configure", "addnodes", "delnodes"],
         "config": {
             "roleServices": [
                 {

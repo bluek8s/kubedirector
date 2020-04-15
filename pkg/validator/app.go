@@ -160,6 +160,7 @@ func validateRoles(
 	var globalImageRepoTag *string
 	var globalSetupPackageURL *string
 	var globalPersistDirs *[]string
+	var globalEventList *[]string
 
 	globalImageRepoTag = appCR.Spec.DefaultImageRepoTag
 	if globalImageRepoTag != nil {
@@ -193,6 +194,17 @@ func validateRoles(
 			appPatchSpec{
 				Op:   "remove",
 				Path: "/spec/defaultPersistDirs",
+			},
+		)
+	}
+
+	globalEventList = appCR.Spec.DefaultEventList
+	if globalEventList != nil {
+		patches = append(
+			patches,
+			appPatchSpec{
+				Op:   "remove",
+				Path: "/spec/defaultEventList",
 			},
 		)
 	}
@@ -261,6 +273,21 @@ func validateRoles(
 						Path: "/spec/roles/" + strconv.Itoa(index) + "/persistDirs",
 						Value: appPatchValue{
 							stringSliceValue: globalPersistDirs,
+						},
+					},
+				)
+			}
+		}
+
+		if role.EventList == nil {
+			if globalEventList != nil {
+				patches = append(
+					patches,
+					appPatchSpec{
+						Op:   "add",
+						Path: "/spec/roles/" + strconv.Itoa(index) + "/EventList",
+						Value: appPatchValue{
+							stringSliceValue: globalEventList,
 						},
 					},
 				)

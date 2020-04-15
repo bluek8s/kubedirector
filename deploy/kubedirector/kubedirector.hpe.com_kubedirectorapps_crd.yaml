@@ -130,7 +130,7 @@ spec:
                     type: array
                     items:
                       type: string
-                      pattern: '^/.*[^/]$'
+                      pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
                   minResources:
                     type: object
                     nullable: true
@@ -185,6 +185,11 @@ spec:
               items:
                 type: string
                 pattern: '^/.*[^/]$'
+            defaultEventList:
+              type: array
+              items:
+                type: string
+                pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
             capabilities:
               type: array
               items:

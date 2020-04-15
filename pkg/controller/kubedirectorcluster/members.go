@@ -35,8 +35,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-var roleNotifyEvents = []string{"configure", "addNodes", "delNodes"}
-
 // syncMembers is responsible for adding or deleting members. It and
 // syncMemberNotifies are the only functions in this file that are invoked
 // from another file (from the syncCluster function in cluster.go). Along with
@@ -1045,7 +1043,6 @@ func appConfig(
 	if setupErr != nil {
 		return true, setupErr
 	}
-
 	// Run the config file iff the event is registered during initial configuration.
 	appCr, appErr := catalog.GetApp(cr)
 	if appErr != nil {
@@ -1058,10 +1055,9 @@ func appConfig(
 		)
 	}
 	role := catalog.GetRoleFromID(appCr, roleName)
-	if !shared.StringInList("configure", *role.EventList) {
+	if role.EventList != nil && !shared.StringInList("configure", *role.EventList) {
 		return true, appErr
 	}
-
 	// Now kick off the initial config.
 	cmd := fmt.Sprintf(appPrepConfigRunCmd, expectedContainerID)
 	cmdErr := executor.RunScript(
@@ -1117,7 +1113,6 @@ func queueNotify(
 		// configured.
 		return
 	}
-
 	// Notify the node iff the event is registered during initial configuration.
 	appCr, appErr := catalog.GetApp(cr)
 	if appErr != nil {
@@ -1129,10 +1124,9 @@ func queueNotify(
 			"app referenced by cluster does not exist")
 	}
 	role := catalog.GetRoleFromID(appCr, modifiedRole.roleStatus.Name)
-	if !shared.StringInList(op, *role.EventList) {
+	if role.EventList != nil && !shared.StringInList(op, *role.EventList) {
 		return
 	}
-
 	shared.LogInfof(
 		reqLogger,
 		cr,

@@ -31,6 +31,7 @@ type KubeDirectorAppSpec struct {
 	NodeRoles           []NodeRole          `json:"roles"`
 	Config              NodeGroupConfig     `json:"config"`
 	DefaultPersistDirs  *[]string           `json:"defaultPersistDirs,omitempty"`
+	DefaultEventList    *[]string           `json:"defaultEventList.omitempty"`
 	Capabilities        []corev1.Capability `json:"capabilities,omitempty"`
 	SystemdRequired     bool                `json:"systemdRequired,omitempty"`
 }

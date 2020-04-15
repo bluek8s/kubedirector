@@ -229,7 +229,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 						reqLogger,
 						cr,
 						shared.EventReasonConfigMap,
-						"cluster {%s} is connected to another cluster {%s} updating its configmeta",
+						"cluster {%s} is a connection of another cluster, updating {%s}'s configmeta",
 						cr.Name,
 						kubecluster.Name,
 					)

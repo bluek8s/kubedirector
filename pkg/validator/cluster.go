@@ -938,13 +938,6 @@ func admitClusterCR(
 		}
 	}
 
-	// If connections, be it cluster or configmap
-	// is updated then increment connectionsGenerationToProcess to trigger
-	// regeneration of configmeta
-	if !reflect.DeepEqual(clusterCR.Spec.Connections, prevClusterCR.Spec.Connections) {
-		clusterCR.Spec.ConnectionsGenToProcess = prevClusterCR.Spec.ConnectionsGenToProcess + 1
-	}
-
 	if len(valErrors) == 0 {
 		if len(patches) != 0 {
 			patchResult, patchErr := json.Marshal(patches)

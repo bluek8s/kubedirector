@@ -215,14 +215,6 @@ func genClusterConnections(
 					},
 				},
 			},
-			// Name:     clusterToConnect.Name,
-			// Isolated: false, // currently, always false
-			// ID:       string(cr.UID),
-			// ConfigMeta: map[string]refkeys{
-			// 	"1": refkeys{
-			// 		BdvlibRefKey: []string{"connections", "clusters", clusterName, "nodegroups", "1", "config_metadata"},
-			// 	},
-			// },
 		}
 	}
 

@@ -285,7 +285,7 @@ func validateRoles(
 					patches,
 					appPatchSpec{
 						Op:   "add",
-						Path: "/spec/roles/" + strconv.Itoa(index) + "/EventList",
+						Path: "/spec/roles/" + strconv.Itoa(index) + "/eventList",
 						Value: appPatchValue{
 							stringSliceValue: globalEventList,
 						},

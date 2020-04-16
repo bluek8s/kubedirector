@@ -113,7 +113,6 @@ func GetRoleCardinality(
 
 // GetRoleMinResources is a utility function that fetching the minimum resources
 // for a given app role
-// Test comment XXX
 func GetRoleMinResources(
 	appRole *kdv1.NodeRole,
 ) *v1.ResourceList {

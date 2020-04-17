@@ -29,6 +29,7 @@ import (
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var (
@@ -239,6 +240,15 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 					wait := time.Second
 					maxWait := 4096 * time.Second
 					for {
+						// Get a fresh copy of this cluster to work with and
+						// try update
+						updateMetaGenerator := &kdv1.KubeDirectorCluster{}
+						clusterNamespacedName := types.NamespacedName{
+							Namespace: kubecluster.Namespace,
+							Name:      kubecluster.Name,
+						}
+						shared.Get(context.TODO(), clusterNamespacedName, updateMetaGenerator)
+						updateMetaGenerator.Spec.ConnectionsGenToProcess = updateMetaGenerator.Spec.ConnectionsGenToProcess + 1
 						if shared.Update(context.TODO(), updateMetaGenerator) == nil {
 							break
 						}
@@ -285,7 +295,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 				reqLogger,
 				cr,
 				shared.EventReasonCluster,
-				"regenerating in-cluster configmeta due to chamge in connections",
+				"regenerating in-cluster configmeta due to change in connections",
 			)
 			cr.Status.LastConnectionGen = cr.Spec.ConnectionsGenToProcess
 		}

@@ -1056,7 +1056,7 @@ func appConfig(
 	}
 	role := catalog.GetRoleFromID(appCr, roleName)
 	if role.EventList != nil && !shared.StringInList("configure", *role.EventList) {
-		return true, appErr
+		return false, appErr
 	}
 	// Now kick off the initial config.
 	cmd := fmt.Sprintf(appPrepConfigRunCmd, expectedContainerID)

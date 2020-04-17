@@ -130,7 +130,7 @@ spec:
                     type: array
                     items:
                       type: string
-                      pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+                      pattern: '^configure$|^addnodes$|^delnodes$'
                   minResources:
                     type: object
                     nullable: true
@@ -189,7 +189,7 @@ spec:
               type: array
               items:
                 type: string
-                pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+                pattern: '^configure$|^addnodes$|^delnodes$'
             capabilities:
               type: array
               items:

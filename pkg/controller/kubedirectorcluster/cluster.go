@@ -229,9 +229,15 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 						reqLogger,
 						cr,
 						shared.EventReasonCluster,
-						"connected cluster {%s} has changed; connected to cluster {%s}; updating it",
-						cr.Name,
+						"connected to cluster {%s}; updating it",
 						kubecluster.Name,
+					)
+					shared.LogInfof(
+						reqLogger,
+						&kubecluster,
+						shared.EventReasonCluster,
+						"connected cluster {%s} has changed",
+						cr.Name,
 					)
 					updateMetaGenerator := &kubecluster
 					updateMetaGenerator.Spec.ConnectionsGenToProcess = kubecluster.Spec.ConnectionsGenToProcess + 1

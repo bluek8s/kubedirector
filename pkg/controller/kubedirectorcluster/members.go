@@ -1053,6 +1053,7 @@ func appConfig(
 			shared.EventReasonCluster,
 			"app referenced by cluster does not exist",
 		)
+		return true, appErr
 	}
 	role := catalog.GetRoleFromID(appCr, roleName)
 	if role.EventList != nil && !shared.StringInList("configure", *role.EventList) {

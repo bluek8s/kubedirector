@@ -251,7 +251,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 							if errors.IsNotFound(fetchErr) {
 								break
 							}
-							return fetchErr
 						}
 						if wait > maxWait {
 							return fmt.Errorf(

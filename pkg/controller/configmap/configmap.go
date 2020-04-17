@@ -87,7 +87,6 @@ func (r *ReconcileConfigMap) syncConfigMap(
 					if errors.IsNotFound(fetchErr) {
 						break
 					}
-					return fetchErr
 				}
 				if wait > maxWait {
 					shared.LogErrorf(

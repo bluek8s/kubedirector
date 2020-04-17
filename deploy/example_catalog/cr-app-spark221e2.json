@@ -118,7 +118,6 @@
             },
             {
                 "cardinality": "0+",
-                "eventList": ["configure", "addnodes"],
                 "id": "worker"
             },
             {

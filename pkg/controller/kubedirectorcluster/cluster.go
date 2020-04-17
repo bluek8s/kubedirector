@@ -228,8 +228,8 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 					shared.LogInfof(
 						reqLogger,
 						cr,
-						shared.EventReasonConfigMap,
-						"cluster {%s} is a connection to another cluster, updating {%s}'s configmeta",
+						shared.EventReasonCluster,
+						"connected cluster {%s} has changed; connected to cluster {%s}; updating it",
 						cr.Name,
 						kubecluster.Name,
 					)
@@ -290,15 +290,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 
 	if state == clusterMembersChangedUnready || (cr.Spec.ConnectionsGenToProcess != cr.Status.LastConnectionGen) {
 		cr.Status.SpecGenerationToProcess = &cr.Generation
-		if cr.Status.LastConnectionGen != cr.Spec.ConnectionsGenToProcess {
-			shared.LogInfof(
-				reqLogger,
-				cr,
-				shared.EventReasonCluster,
-				"regenerating in-cluster configmeta due to change in connections",
-			)
-			cr.Status.LastConnectionGen = cr.Spec.ConnectionsGenToProcess
-		}
+		cr.Status.LastConnectionGen = cr.Spec.ConnectionsGenToProcess
 	}
 	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
 	if membersErr != nil {

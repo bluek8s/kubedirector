@@ -29,7 +29,6 @@ import (
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 var (
@@ -240,17 +239,19 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 					wait := time.Second
 					maxWait := 4096 * time.Second
 					for {
-						// Get a fresh copy of this cluster to work with and
-						// try update
-						updateMetaGenerator := &kdv1.KubeDirectorCluster{}
-						clusterNamespacedName := types.NamespacedName{
-							Namespace: kubecluster.Namespace,
-							Name:      kubecluster.Name,
-						}
-						shared.Get(context.TODO(), clusterNamespacedName, updateMetaGenerator)
+						updateMetaGenerator := &kubecluster
 						updateMetaGenerator.Spec.ConnectionsGenToProcess = updateMetaGenerator.Spec.ConnectionsGenToProcess + 1
 						if shared.Update(context.TODO(), updateMetaGenerator) == nil {
 							break
+						}
+						// Since update failed, get a fresh copy of this cluster to work with and
+						// try update
+						updateMetaGenerator, fetchErr := observer.GetCluster(kubecluster.Namespace, kubecluster.Name)
+						if fetchErr != nil {
+							if errors.IsNotFound(fetchErr) {
+								break
+							}
+							return fetchErr
 						}
 						if wait > maxWait {
 							return fmt.Errorf(

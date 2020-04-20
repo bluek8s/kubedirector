@@ -53,11 +53,11 @@
             }
         ],
         "defaultConfigPackage": {
-            "packageURL" : "http://16.143.21.166/thirdparty/k8sapps/notebook/appconfig-1.8.tgz"
+            "packageURL" : "http://16.143.21.22/thirdparty/k8sapps/notebook/appconfig-1.8.tgz"
         },
         "roles": [
             {
-                "imageRepoTag": "docker.io/saurabhjogalekarhpe/training-engine",
+                "imageRepoTag": "docker.io/rsupekar/kd-notebook:latest",
                 "cardinality": "1",
                 "id": "controller"
             }

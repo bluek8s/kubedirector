@@ -12,17 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package apis contains custom resource API versions.
-package apis
-
-import (
-	"k8s.io/apimachinery/pkg/runtime"
-)
-
-// AddToSchemes may be used to add all resources defined in the project to a Scheme
-var AddToSchemes runtime.SchemeBuilder
-
-// AddToScheme adds all Resources to the Scheme
-func AddToScheme(s *runtime.Scheme) error {
-	return AddToSchemes.AddToScheme(s)
-}
+// Package kubedirector contains kubedirector API versions.
+//
+// This file ensures Go source parsers acknowledge the kubedirector package
+// and any child packages. It can be removed if any other Go source files are
+// added to this package.
+package kubedirector

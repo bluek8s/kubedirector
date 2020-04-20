@@ -15,44 +15,43 @@
 package v1beta1
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// KubeDirectorAppSpec is the spec provided for an app definition.
-// +k8s:openapi-gen=true
+// KubeDirectorAppSpec defines the desired state of KubeDirectorApp.
 type KubeDirectorAppSpec struct {
-	Label               Label           `json:"label"`
-	DistroID            string          `json:"distroID"`
-	Version             string          `json:"version"`
-	SchemaVersion       int             `json:"configSchemaVersion"`
-	DefaultImageRepoTag *string         `json:"defaultImageRepoTag,omitempty"`
-	DefaultSetupPackage SetupPackage    `json:"defaultConfigPackage,omitempty"`
-	Services            []Service       `json:"services"`
-	NodeRoles           []NodeRole      `json:"roles"`
-	Config              NodeGroupConfig `json:"config"`
-	DefaultPersistDirs  *[]string       `json:"defaultPersistDirs,omitempty"`
-	Capabilities        []v1.Capability `json:"capabilities"`
-	SystemdRequired     bool            `json:"systemdRequired"`
+	Label               Label               `json:"label"`
+	DistroID            string              `json:"distroID"`
+	Version             string              `json:"version"`
+	SchemaVersion       int                 `json:"configSchemaVersion"`
+	DefaultImageRepoTag *string             `json:"defaultImageRepoTag,omitempty"`
+	DefaultSetupPackage SetupPackage        `json:"defaultConfigPackage,omitempty"`
+	Services            []Service           `json:"services,omitempty"`
+	NodeRoles           []NodeRole          `json:"roles"`
+	Config              NodeGroupConfig     `json:"config"`
+	DefaultPersistDirs  *[]string           `json:"defaultPersistDirs,omitempty"`
+	Capabilities        []corev1.Capability `json:"capabilities,omitempty"`
+	SystemdRequired     bool                `json:"systemdRequired,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubeDirectorApp is the Schema for the kubedirectorapps API
-// +k8s:openapi-gen=true
-// +kubebuilder:subresource:status
+// KubeDirectorApp is the Schema for the kubedirectorapps API.
+// +kubebuilder:resource:path=kubedirectorapps,scope=Namespaced
 type KubeDirectorApp struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata"`
-	Spec              KubeDirectorAppSpec `json:"spec"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec KubeDirectorAppSpec `json:"spec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubeDirectorAppList contains a list of KubeDirectorApp
+// KubeDirectorAppList contains a list of KubeDirectorApp.
 type KubeDirectorAppList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
+	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []KubeDirectorApp `json:"items"`
 }
 
@@ -64,7 +63,10 @@ type Label struct {
 
 // SetupPackage describes the app setup package to be used. A top-level
 // package can be specified, and/or a role-specific package that will override
-// any top-level package.
+// any top-level package. Note that there is custom deserialization code for
+// this type in decode.go to allow us to distinguish the cases of "unset" from
+// "explicitly set null". Therefore "operator-sdk generate crds" cannot be
+// used to generate a correct CRD in this case.
 type SetupPackage struct {
 	IsSet      bool
 	IsNull     bool
@@ -98,12 +100,12 @@ type ServiceEndpoint struct {
 // the same services. At deployment time all role members will receive
 // identical resource assignments.
 type NodeRole struct {
-	ID           string           `json:"id"`
-	Cardinality  string           `json:"cardinality"`
-	ImageRepoTag *string          `json:"imageRepoTag,omitempty"`
-	SetupPackage SetupPackage     `json:"configPackage,omitempty"`
-	PersistDirs  *[]string        `json:"persistDirs,omitempty"`
-	MinResources *v1.ResourceList `json:"minResources,omitempty"`
+	ID           string               `json:"id"`
+	Cardinality  string               `json:"cardinality"`
+	ImageRepoTag *string              `json:"imageRepoTag,omitempty"`
+	SetupPackage SetupPackage         `json:"configPackage,omitempty"`
+	PersistDirs  *[]string            `json:"persistDirs,omitempty"`
+	MinResources *corev1.ResourceList `json:"minResources,omitempty"`
 }
 
 // NodeGroupConfig identifies a set of roles, and the services on those roles.

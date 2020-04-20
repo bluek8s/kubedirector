@@ -24,6 +24,7 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/client-go/rest"
 
 	"github.com/bluek8s/kubedirector/pkg/apis"
 	"github.com/bluek8s/kubedirector/pkg/controller"
@@ -32,29 +33,34 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/validator"
 	"github.com/bluek8s/kubedirector/version"
 
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	kubemetrics "github.com/operator-framework/operator-sdk/pkg/kube-metrics"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	"github.com/operator-framework/operator-sdk/pkg/metrics"
 	"github.com/operator-framework/operator-sdk/pkg/restmapper"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	"github.com/spf13/pflag"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
 
 // Change below variables to serve metrics on different host or port.
 var (
-	metricsHost       = "0.0.0.0"
-	metricsPort int32 = 60000
+	metricsHost               = "0.0.0.0"
+	metricsPort         int32 = 8383
+	operatorMetricsPort int32 = 8686
 )
 var log = logf.Log.WithName("kubedirector")
 
 func printVersion() {
 
+	log.Info(fmt.Sprintf("KubeDirector Version: %v", version.Version))
 	log.Info(fmt.Sprintf("Go Version: %s", runtime.Version()))
 	log.Info(fmt.Sprintf("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH))
-	log.Info(fmt.Sprintf("Operator-sdk Version: %v", sdkVersion.Version))
-	log.Info(fmt.Sprintf("KubeDirector Version: %v", version.Version))
+	log.Info(fmt.Sprintf("Version of operator-sdk: %v", sdkVersion.Version))
 }
 
 func main() {
@@ -80,29 +86,19 @@ func main() {
 
 	printVersion()
 
-	ctx := context.TODO()
-
-	// Become the leader before proceeding.
-	// XXX Actually let's not. This has bugs in current operator SDK; cf.
-	// https://github.com/bluek8s/kubedirector/issues/265
-	// We can and should return to doing this when we move to a version of the
-	// SDK where this is more reliable.
-	// leaderErr := leader.Become(ctx, "kubedirector-lock")
-	// if leaderErr != nil {
-	// 	log.Error(
-	// 		leaderErr,
-	// 		"failed to become \"leader\"... is another KubeDirector active?",
-	// 	)
-	// 	os.Exit(1)
-	// }
-
 	// Create the overall controller-runtime manager. Note that it will watch
 	// all namespaces because of the specified emptystring for Namespace.
 	// (We'll reject KubeDirectorConfig requests in the validator when the
 	// namespace isn't the KubeDirector namespace.)
+	// Leader election configured here in order to do lease-based leader
+	// acqusition; as opposed to "leader for life" style which depends on
+	// timely pod eviction of dead pods (which may not happen at all,
+	// depending on eviction settings and overall cluster config).
 	mgr, mgrErr := manager.New(shared.Config(), manager.Options{
 		Namespace:          "",
 		MapperProvider:     restmapper.NewDynamicRESTMapper,
+		LeaderElection:     true,
+		LeaderElectionID:   "kubedirector-lock",
 		MetricsBindAddress: fmt.Sprintf("%s:%d", metricsHost, metricsPort),
 	})
 	if mgrErr != nil {
@@ -124,11 +120,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create Service object to expose the metrics port.
-	_, metricsErr := metrics.ExposeMetricsPort(ctx, metricsPort)
-	if metricsErr != nil {
-		log.Info(metricsErr.Error())
-	}
+	// Add the Metrics Service
+	// XXX Commenting out until we can test properly.
+	//	addMetrics(context.TODO(), shared.Config(), "")
 
 	// See https://github.com/bluek8s/kubedirector/issues/173
 	// Since we are not using the manager's webhook framework and are
@@ -170,8 +164,77 @@ func main() {
 	log.Info("Starting the Cmd.")
 
 	// Start the Cmd
-	if mgrErr := mgr.Start(stopCh); mgrErr != nil {
-		log.Error(mgrErr, "Manager exited non-zero")
+	if cmdErr := mgr.Start(stopCh); cmdErr != nil {
+		log.Error(cmdErr, "Manager exited non-zero")
 		os.Exit(1)
 	}
+}
+
+// addMetrics will create the Services and Service Monitors to allow the operator export the metrics by using
+// the Prometheus operator
+func addMetrics(
+	ctx context.Context,
+	cfg *rest.Config,
+	namespace string,
+) {
+
+	if err := serveCRMetrics(cfg); err != nil {
+		if errors.Is(err, k8sutil.ErrRunLocal) {
+			log.Info("Skipping CR metrics server creation; not running in a cluster.")
+			return
+		}
+		log.Info("Could not generate and serve custom resource metrics", "error", err.Error())
+	}
+
+	// Add to the below struct any other metrics ports you want to expose.
+	servicePorts := []v1.ServicePort{
+		{Port: metricsPort, Name: metrics.OperatorPortName, Protocol: v1.ProtocolTCP, TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: metricsPort}},
+		{Port: operatorMetricsPort, Name: metrics.CRPortName, Protocol: v1.ProtocolTCP, TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: operatorMetricsPort}},
+	}
+
+	// Create Service object to expose the metrics port(s).
+	service, err := metrics.CreateMetricsService(ctx, cfg, servicePorts)
+	if err != nil {
+		log.Info("Could not create metrics Service", "error", err.Error())
+	}
+
+	// CreateServiceMonitors will automatically create the prometheus-operator ServiceMonitor resources
+	// necessary to configure Prometheus to scrape metrics from this operator.
+	services := []*v1.Service{service}
+	_, err = metrics.CreateServiceMonitors(cfg, namespace, services)
+	if err != nil {
+		log.Info("Could not create ServiceMonitor object", "error", err.Error())
+		// If this operator is deployed to a cluster without the prometheus-operator running, it will return
+		// ErrServiceMonitorNotPresent, which can be used to safely skip ServiceMonitor creation.
+		if err == metrics.ErrServiceMonitorNotPresent {
+			log.Info("Install prometheus-operator in your cluster to create ServiceMonitor objects", "error", err.Error())
+		}
+	}
+}
+
+// serveCRMetrics gets the Operator/CustomResource GVKs and generates metrics based on those types.
+// It serves those metrics on "http://metricsHost:operatorMetricsPort".
+func serveCRMetrics(
+	cfg *rest.Config,
+) error {
+
+	// Below function returns filtered operator/CustomResource specific GVKs.
+	// For more control override the below GVK list with your own custom logic.
+	filteredGVK, err := k8sutil.GetGVKsFromAddToScheme(apis.AddToScheme)
+	if err != nil {
+		return err
+	}
+	// Get the namespace the operator is currently deployed in.
+	operatorNs, err := k8sutil.GetOperatorNamespace()
+	if err != nil {
+		return err
+	}
+	// To generate metrics in other namespaces, add the values below.
+	ns := []string{operatorNs}
+	// Generate and serve custom resource specific metrics.
+	err = kubemetrics.GenerateAndServeCRMetrics(cfg, ns, filteredGVK, metricsHost, operatorMetricsPort)
+	if err != nil {
+		return err
+	}
+	return nil
 }

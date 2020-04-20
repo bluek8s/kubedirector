@@ -1,17 +1,19 @@
 apiVersion: "kubedirector.hpe.com/v1beta1"
 kind: "KubeDirectorCluster"
 metadata:
-  name: "ml-jupyter-notebook"
+  name: "jupyter-notebook"
 spec:
-  app: ml-jupyter-notebook
+  app: jupyter-notebook
+  attachments:
+    clusters: 
+    - training-engine
   roles:
   - id: controller
     resources:
       requests:
         memory: "4Gi"
-        cpu: "2"
-        nvidia.com/gpu: "1"        
+        cpu: "1"
       limits:
         memory: "4Gi"
-        cpu: "2"
-        nvidia.com/gpu: "1"
+        cpu: "1"
+  

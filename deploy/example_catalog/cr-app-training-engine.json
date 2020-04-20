@@ -1,0 +1,151 @@
+{
+    "apiVersion": "kubedirector.hpe.com/v1beta1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name": "training-engine"
+    },
+
+    "spec": {
+        "categories": [
+            "AIML/Training"
+        ],
+        "config": {
+            "configMeta": {
+                "ml_engine": "python"
+            },
+            "roleServices": [
+                {
+                    "roleID": "RESTServer",
+                    "serviceIDs": [
+                        "gunicorn",
+                        "ssh"
+                    ]
+                },
+                {
+                    "roleID": "LoadBalancer",
+                    "serviceIDs": [
+                        "gunicorn",
+                        "haproxy-stats",
+                        "haproxy-train"
+                    ]
+                },
+                {
+                    "roleID": "controller",
+                    "serviceIDs": [
+                        "ssh",
+                        "jupyter-nb"
+                    ]
+                }
+            ],
+            "selectedRoles": [
+                "RESTServer",
+                "LoadBalancer",
+                "controller"
+            ]
+        },
+        "configSchemaVersion": 7,
+        "distroID": "bluedata/training-engine",
+        "label": {
+            "description": "Training Cluster with endpoint wrapper",
+            "name": "Training Cluster"
+        },
+        "roles": [
+            {
+                "cardinality": "1",
+                "configPackage": {
+                    "packageURL": "http://16.143.21.166/thirdparty/k8sapps/flask_configure/flask_configure.tgz"
+                },
+                "id": "LoadBalancer",
+                "imageRepoTag": "docker.io/saurabhjogalekarhpe/flask-and-inf-eng"
+            },
+            {
+                "cardinality": "1+",
+                "configPackage": {
+                    "packageURL": "http://16.143.21.166/thirdparty/k8sapps/flask_configure/flask_configure.tgz"
+                },
+                "id": "RESTServer",
+                "imageRepoTag": "docker.io/saurabhjogalekarhpe/flask-and-inf-eng"
+            },
+            {
+                "cardinality": "1",
+                "configPackage": {
+                    "packageURL": "http://16.143.21.166/thirdparty/k8sapps/notebook_sc/appconfig-1.8.tgz"
+                },
+                "id": "controller",
+                "imageRepoTag": "docker.io/saurabhjogalekarhpe/training-engine"
+            }
+        ],
+        "services": [
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "port": 8081,
+                    "urlScheme": "http"
+                },
+                "id": "haproxy-stats",
+                "label": {
+                    "name": "Model serving request balancer stats"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": false,
+                    "port": 22
+                },
+                "id": "ssh",
+                "label": {
+                    "name": "SSH"
+                }
+            },
+            {
+                "endpoint": {
+                    "auth_token": true,
+                    "isDashboard": false,
+                    "port": 10001,
+                    "urlScheme": "http"
+                },
+                "id": "gunicorn",
+                "label": {
+                    "name": "API Server"
+                }
+            },
+            {
+                "endpoint": {
+                    "auth_token": true,
+                    "isDashboard": false,
+                    "path": "/train",
+                    "port": 32700,
+                    "urlScheme": "http"
+                },
+                "exported_service": "AIML/Training",
+                "id": "haproxy-train",
+                "label": {
+                    "name": "Training API Server"
+                }
+            },
+            {
+                "id": "httpd",
+                "label": {
+                    "name": "Apache HTTP Server"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "path": "/",
+                    "port": 8888,
+                    "urlScheme": "http"
+                },
+                "id": "jupyter-nb",
+                "label": {
+                    "name": "Jupyter Notebook"
+                }
+            }
+        ],
+        "systemdRequired": true,
+        "version": "1.8"
+    }
+
+
+
+}

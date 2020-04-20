@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ml-models
+  labels:
+    kubedirectormodel: prediction
+data:
+  name: "knn"
+  version: "1"
+  location: "/bd-fs-mnt/saurabhnfs/models"
+  scoring: "/bd-fs-mnt/saurabhnfs/code/knn_scoring.py"

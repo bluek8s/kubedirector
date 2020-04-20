@@ -1,0 +1,30 @@
+apiVersion: "kubedirector.hpe.com/v1beta1"
+kind: "KubeDirectorCluster"
+metadata: 
+  name: "deploymt-engine"
+
+spec:
+  app: flask-and-inf-eng
+  attachments:
+    models:
+    - "ml-models"
+  roles:
+  - id: RESTServer
+    members: 1
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "1"
+      limits:
+        memory: "2Gi"
+        cpu: "1"
+  - id: LoadBalancer
+    members: 1
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "1"
+      limits:
+        memory: "2Gi"
+        cpu: "1"    
+        

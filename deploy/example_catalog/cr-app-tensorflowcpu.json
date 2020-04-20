@@ -1,0 +1,66 @@
+{
+    "apiVersion": "kubedirector.hpe.com/v1beta1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name" : "jupyter-notebook"
+    },
+
+    "spec" : {
+        "systemdRequired": true,
+        "config": {
+            "roleServices": [
+                {
+                    "serviceIDs": [
+                        "ssh",
+                        "jupyter-nb"
+                    ],
+                    "roleID": "controller"
+                }
+            ],
+            "selectedRoles": [
+                "controller"
+            ]
+        },
+        "label": {
+            "name": "Tensorflow 1.14 with jupyter notebook & centos7x",
+            "description": "TensorFlow1.14 with centos7x"
+        },
+        "distroID": "bluedata/jupyter-notebook",
+        "version": "1.8",
+        "configSchemaVersion": 7,
+        "services": [
+            {
+                "endpoint": {
+                    "port": 22,
+                    "isDashboard": false
+                },
+                "id": "ssh",
+                "label": {
+                    "name": "SSH"
+                }
+            },
+            {
+                "endpoint": {
+                    "urlScheme": "http",
+                    "path": "/",
+                    "isDashboard": true,
+                    "port": 8888
+                },
+                "id": "jupyter-nb",
+                "label": {
+                    "name": "Jupyter Notebook"
+                }
+            }
+        ],
+        "defaultConfigPackage": {
+            "packageURL" : "http://16.143.21.166/thirdparty/k8sapps/notebook/appconfig-1.8.tgz"
+        },
+        "roles": [
+            {
+                "imageRepoTag": "docker.io/saurabhjogalekarhpe/training-engine",
+                "cardinality": "1",
+                "id": "controller"
+            }
+        ]
+    }
+}

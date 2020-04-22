@@ -42,8 +42,7 @@ type KubeDirectorAppSpec struct {
 type KubeDirectorApp struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec KubeDirectorAppSpec `json:"spec,omitempty"`
+	Spec              KubeDirectorAppSpec `json:"spec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -82,9 +81,10 @@ type SetupPackageURL struct {
 // access, and/or identified for other use by API clients or consumers
 // internal to the virtual cluster (e.g. app setup packages).
 type Service struct {
-	ID       string          `json:"id"`
-	Label    Label           `json:"label,omitempty"`
-	Endpoint ServiceEndpoint `json:"endpoint,omitempty"`
+	ID              string          `json:"id"`
+	Label           Label           `json:"label,omitempty"`
+	Endpoint        ServiceEndpoint `json:"endpoint,omitempty"`
+	ExportedService string          `json:"exported_service,omitempty"`
 }
 
 // ServiceEndpoint describes the service network address and protocol, and

@@ -206,9 +206,73 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 				shared.EventReasonCluster,
 				"stable",
 			)
+
+			amIBeingConnectedToThis := func(otherCluster kdv1.KubeDirectorCluster) bool {
+				for _, connectedName := range otherCluster.Spec.Connections.Clusters {
+					if cr.Name == connectedName {
+						return true
+					}
+				}
+				return false
+			}
+
+			// Once the cluster is deemed ready, if this cluster is connected to any cluster then
+			// we need to notify that cluster that configmeta here has
+			// changed, so bump up connectionsGenerationToProcess for that cluster
+			allClusters := &kdv1.KubeDirectorClusterList{}
+			shared.List(context.TODO(), allClusters)
+			// notify clusters to which this cluster is
+			// connected
+			for _, kubecluster := range allClusters.Items {
+				if amIBeingConnectedToThis(kubecluster) {
+					shared.LogInfof(
+						reqLogger,
+						cr,
+						shared.EventReasonCluster,
+						"connected to cluster {%s}; updating it",
+						kubecluster.Name,
+					)
+					shared.LogInfof(
+						reqLogger,
+						&kubecluster,
+						shared.EventReasonCluster,
+						"connected cluster {%s} has changed",
+						cr.Name,
+					)
+					updateMetaGenerator := &kubecluster
+					updateMetaGenerator.Spec.ConnectionsGenToProcess = kubecluster.Spec.ConnectionsGenToProcess + 1
+					//Notify cluster by incrementing configmetaGenerator
+					wait := time.Second
+					maxWait := 4096 * time.Second
+					for {
+						updateMetaGenerator := &kubecluster
+						updateMetaGenerator.Spec.ConnectionsGenToProcess = updateMetaGenerator.Spec.ConnectionsGenToProcess + 1
+						if shared.Update(context.TODO(), updateMetaGenerator) == nil {
+							break
+						}
+						// Since update failed, get a fresh copy of this cluster to work with and
+						// try update
+						updateMetaGenerator, fetchErr := observer.GetCluster(kubecluster.Namespace, kubecluster.Name)
+						if fetchErr != nil {
+							if errors.IsNotFound(fetchErr) {
+								break
+							}
+						}
+						if wait > maxWait {
+							return fmt.Errorf(
+								"Unable to notify cluster {%s} of configmeta change",
+								updateMetaGenerator.Name)
+						}
+						time.Sleep(wait)
+						wait = wait * 2
+					}
+				}
+			}
 			cr.Status.State = string(clusterReady)
 		}
-		return nil
+		if cr.Spec.ConnectionsGenToProcess == cr.Status.LastConnectionGen {
+			return nil
+		}
 	}
 
 	if cr.Status.State != string(clusterCreating) {
@@ -230,15 +294,15 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return configMetaErr
 	}
 
-	if state == clusterMembersChangedUnready {
+	if state == clusterMembersChangedUnready || (cr.Spec.ConnectionsGenToProcess != cr.Status.LastConnectionGen) {
 		cr.Status.SpecGenerationToProcess = &cr.Generation
+		cr.Status.LastConnectionGen = cr.Spec.ConnectionsGenToProcess
 	}
 	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
 	if membersErr != nil {
 		errLog("members", membersErr)
 		return membersErr
 	}
-
 	return nil
 }
 

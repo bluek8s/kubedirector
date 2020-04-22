@@ -49,6 +49,7 @@ func syncClusterRoles(
 	// creating state. Such members may have been informed of the current
 	// member set, and they are not yet ready to receive updates about
 	// changes to the member set.
+
 	for _, r := range roles {
 		if len(r.membersByState[memberCreating]) != 0 {
 			return roles, clusterMembersStableUnready, nil
@@ -104,7 +105,6 @@ func syncClusterRoles(
 			allMembersReady = false
 		}
 	}
-
 	// Let the caller know about significant changes that happened.
 	var returnState clusterStateInternal
 	if anyMembersChanged {

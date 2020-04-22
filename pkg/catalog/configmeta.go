@@ -20,8 +20,15 @@ import (
 	"sync"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
+	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	v1 "k8s.io/api/core/v1"
+)
+
+const (
+	// ConfigMapType is a label placed on desired comfig maps that
+	// we want to watch and propogate inside containers
+	configMapType = shared.KdDomainBase + "/cmType"
 )
 
 // allServiceRefkeys is a subroutine of getServices, used to generate a
@@ -30,12 +37,18 @@ import (
 func allServiceRefkeys(
 	roleNames []string,
 	serviceName string,
+	connectedClusterName string,
 ) refkeysMap {
 
 	result := make(refkeysMap)
 	for _, r := range roleNames {
+		var refKeyList []string
+		if connectedClusterName != "" {
+			refKeyList = []string{"connections", "clusters", connectedClusterName}
+		}
+		refKeyList = append(refKeyList, "nodegroups", "1", "roles", r, "services", serviceName)
 		result[r] = refkeys{
-			BdvlibRefKey: []string{"nodegroups", "1", "roles", r, "services", serviceName},
+			BdvlibRefKey: refKeyList,
 		}
 	}
 	return result
@@ -47,6 +60,7 @@ func allServiceRefkeys(
 func getServices(
 	appCR *kdv1.KubeDirectorApp,
 	membersForRole map[string][]*kdv1.MemberStatus,
+	connectedClusterName string,
 ) map[string]ngRefkeysMap {
 
 	result := make(map[string]ngRefkeysMap)
@@ -62,7 +76,7 @@ func getServices(
 		}
 		if len(activeRoleNames) > 0 {
 			result[service.ID] = ngRefkeysMap{
-				"1": allServiceRefkeys(activeRoleNames, service.ID),
+				"1": allServiceRefkeys(activeRoleNames, service.ID, connectedClusterName),
 			}
 		}
 	}
@@ -76,6 +90,8 @@ func servicesForRole(
 	appCR *kdv1.KubeDirectorApp,
 	roleName string,
 	members []*kdv1.MemberStatus,
+	connectedClusterName string,
+	domain string,
 ) map[string]service {
 
 	result := make(map[string]service)
@@ -89,7 +105,7 @@ func servicesForRole(
 					for _, m := range members {
 						nodeName := m.Pod
 						endpoint := serviceDef.Endpoint.URLScheme
-						endpoint += "://" + nodeName
+						endpoint += "://" + nodeName + "." + domain
 						endpoint += ":" + strconv.Itoa(int(*(serviceDef.Endpoint.Port)))
 						endpoints = append(endpoints, endpoint)
 					}
@@ -105,8 +121,18 @@ func servicesForRole(
 					FQDNs: refkeys{
 						BdvlibRefKey: []string{"nodegroups", "1", "roles", roleName, "fqdns"},
 					},
-					ExportedService: "", // currently, always empty
+					ExportedService: serviceDef.ExportedService,
 					Endpoints:       endpoints,
+				}
+				if connectedClusterName != "" {
+					s.Hostnames.BdvlibRefKey = append(
+						[]string{"connections", "clusters", connectedClusterName},
+						s.Hostnames.BdvlibRefKey...,
+					)
+					s.FQDNs.BdvlibRefKey = append(
+						[]string{"connections", "clusters", connectedClusterName},
+						s.FQDNs.BdvlibRefKey...,
+					)
 				}
 				result[serviceDef.ID] = s
 			}
@@ -114,6 +140,85 @@ func servicesForRole(
 	}
 
 	return result
+}
+
+// genconfigConnections will look at the cluster spec
+// and generates a map of configmap type and corresponding
+// configmaps to be connected to the given cluster
+func genconfigConnections(
+	cr *kdv1.KubeDirectorCluster,
+) (map[string]map[string]map[string]string, error) {
+
+	cmMap := make(map[string]map[string]string)
+	kdcm := make(map[string]map[string]map[string]string)
+	for _, connectedCmName := range cr.Spec.Connections.ConfigMaps {
+		cm, err := observer.GetConfigMap(cr.Namespace, connectedCmName)
+		if kdConfigMapType, ok := cm.Labels[configMapType]; ok {
+			cmMap[connectedCmName] = cm.Data
+			kdcm[kdConfigMapType] = cmMap
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return kdcm, nil
+}
+
+// genClusterConnections generates a map of running clusters that are to be connected
+// to this cluster.
+func genClusterConnections(
+	cr *kdv1.KubeDirectorCluster,
+) (map[string]configmeta, error) {
+
+	toConnectMeta := make(map[string]configmeta)
+	for _, clusterName := range cr.Spec.Connections.Clusters {
+		// Fetch the cluster object
+		clusterToConnect, connectedErr := observer.GetCluster(cr.Namespace, clusterName)
+		if connectedErr != nil {
+			return nil, connectedErr
+		}
+		appForclusterToConnect, connectedAppErr := observer.GetApp(clusterToConnect.Namespace, clusterToConnect.Spec.AppID)
+		if connectedAppErr != nil {
+			return nil, connectedAppErr
+		}
+		domain := clusterToConnect.Status.ClusterService + "." + clusterToConnect.Namespace + shared.GetSvcClusterDomainBase()
+		membersForRole := make(map[string][]*kdv1.MemberStatus)
+		for _, roleInfo := range clusterToConnect.Status.Roles {
+			var membersStatus []*kdv1.MemberStatus
+			for _, members := range roleInfo.Members {
+				membersStatus = append(
+					membersStatus,
+					&members,
+				)
+			}
+			membersForRole[roleInfo.Name] = membersStatus
+		}
+
+		toConnectMeta[clusterName] = configmeta{
+			Version:    strconv.Itoa(appForclusterToConnect.Spec.SchemaVersion),
+			Services:   getServices(appForclusterToConnect, membersForRole, clusterName),
+			Nodegroups: nodegroups(clusterToConnect, appForclusterToConnect, membersForRole, domain),
+			Distros: map[string]refkeysMap{
+				appForclusterToConnect.Spec.DistroID: refkeysMap{
+					"1": refkeys{
+						BdvlibRefKey: []string{"connections", "clusters", clusterName, "nodegroups", "1"},
+					},
+				},
+			},
+			Cluster: cluster{
+				Name:     clusterName,
+				Isolated: false, // currently, always false
+				ID:       string(clusterToConnect.UID),
+				ConfigMeta: map[string]refkeys{
+					"1": refkeys{
+						BdvlibRefKey: []string{"nodegroups", "1", "config_metadata"},
+					},
+				},
+			},
+		}
+	}
+
+	return toConnectMeta, nil
 }
 
 // nodegroups generates a map of nodegroup ID to internal nodegroup
@@ -157,7 +262,7 @@ func nodegroups(
 			Cores:       strconv.FormatInt(coresQuant.Value(), 10), // rounds up
 		}
 		roles[roleName] = role{
-			Services:     servicesForRole(appCR, roleName, members),
+			Services:     servicesForRole(appCR, roleName, members, "", domain),
 			NodeIDs:      nodeIds,
 			Hostnames:    fqdns,
 			FQDNs:        fqdns,
@@ -182,11 +287,21 @@ func clusterBaseConfig(
 	appCR *kdv1.KubeDirectorApp,
 	membersForRole map[string][]*kdv1.MemberStatus,
 	domain string,
-) *configmeta {
+) (*configmeta, error) {
+
+	clustersMeta, connErr := genClusterConnections(cr)
+	kdConfigMaps, cmErr := genconfigConnections(cr)
+
+	if cmErr != nil {
+		return nil, cmErr
+	}
+	if connErr != nil {
+		return nil, connErr
+	}
 
 	return &configmeta{
 		Version:    strconv.Itoa(appCR.Spec.SchemaVersion),
-		Services:   getServices(appCR, membersForRole),
+		Services:   getServices(appCR, membersForRole, ""),
 		Nodegroups: nodegroups(cr, appCR, membersForRole, domain),
 		Distros: map[string]refkeysMap{
 			appCR.Spec.DistroID: refkeysMap{
@@ -205,7 +320,11 @@ func clusterBaseConfig(
 				},
 			},
 		},
-	}
+		Connections: connections{
+			Clusters:   clustersMeta,
+			ConfigMaps: kdConfigMaps,
+		},
+	}, nil
 }
 
 // ConfigmetaGenerator returns a function that generates metadata which will be
@@ -230,7 +349,7 @@ func ConfigmetaGenerator(
 	// would be generated.
 	domain := cr.Status.ClusterService + "." + cr.Namespace + shared.GetSvcClusterDomainBase()
 	perNodeConfig := make(map[string]*node)
-	c := clusterBaseConfig(cr, appCR, membersForRole, domain)
+	c, _ := clusterBaseConfig(cr, appCR, membersForRole, domain)
 	for roleName, members := range membersForRole {
 		for _, member := range members {
 			memberName := member.Pod

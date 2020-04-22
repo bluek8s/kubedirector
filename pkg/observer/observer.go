@@ -91,6 +91,21 @@ func GetPod(
 	return result, err
 }
 
+// GetConfigMap finds the k8s ConfigMap with the given name in the given namespace.
+func GetConfigMap(
+	namespace string,
+	cmName string,
+) (*corev1.ConfigMap, error) {
+
+	result := &corev1.ConfigMap{}
+	err := shared.Get(
+		context.TODO(),
+		types.NamespacedName{Namespace: namespace, Name: cmName},
+		result,
+	)
+	return result, err
+}
+
 // GetPVC finds the k8s PersistentVolumeClaim with the given name in the given
 // namespace.
 func GetPVC(

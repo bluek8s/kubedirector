@@ -36,6 +36,17 @@ spec:
             appCatalog:
               type: string
               pattern: '^local$|^system$'
+            connections:
+              type: object
+              properties:
+                clusters:
+                  type: array
+                  items:
+                    type: string
+                configmaps:
+                  type: array
+                  items:
+                    type: string  
             serviceType:
               type: string
               pattern: '^ClusterIP$|^NodePort$|^LoadBalancer$'
@@ -56,6 +67,8 @@ spec:
                   maximum: 511
                 readOnly:
                   type: boolean
+            connectionsGenerationToProcess:
+              type: integer      
             roles:
               type: array
               items:
@@ -197,6 +210,8 @@ spec:
                   type: boolean
             generationUID:
               type: string
+            lastConnectionsGeneration:
+              type: integer  
             specGenerationToProcess:
               type: integer
             clusterService:

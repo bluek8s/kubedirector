@@ -141,6 +141,11 @@ func syncMemberNotifies(
 				if memberStatus.State == string(memberReady) {
 					membersToProcess = append(membersToProcess, memberStatus)
 				}
+			} else {
+				if memberStatus.StateDetail.LastSetupGeneration != nil {
+					memberStatus.StateDetail.LastSetupGeneration =
+						memberStatus.StateDetail.LastConfigDataGeneration
+				}
 			}
 		}
 	}
@@ -1087,6 +1092,7 @@ func queueNotify(
 			deltaFqdns = fqdnsList(cr, deletePending)
 		}
 	}
+
 	if deltaFqdns == "" {
 		// No nodes actually being created/deleted. One example of this
 		// is in the creating case where none have been successfully

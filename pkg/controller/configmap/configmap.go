@@ -64,7 +64,7 @@ func (r *ReconcileConfigMap) syncConfigMap(
 		if isClusterUsingConfigMap(configmap.Name, kubecluster) {
 			shared.LogInfof(
 				reqLogger,
-				configmap,
+				&kubecluster,
 				shared.EventReasonConfigMap,
 				"connected configmap {%s} has changed",
 				configmap.Name,

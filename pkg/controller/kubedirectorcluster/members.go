@@ -1043,6 +1043,22 @@ func appConfig(
 	if setupErr != nil {
 		return true, setupErr
 	}
+	// Run the config file iff the event is registered during initial configuration.
+	appCr, appErr := catalog.GetApp(cr)
+	if appErr != nil {
+		shared.LogError(
+			reqLogger,
+			appErr,
+			cr,
+			shared.EventReasonCluster,
+			"app referenced by cluster does not exist",
+		)
+		return true, appErr
+	}
+	role := catalog.GetRoleFromID(appCr, roleName)
+	if role.EventList != nil && !shared.StringInList("configure", *role.EventList) {
+		return true, nil
+	}
 	// Now kick off the initial config.
 	cmd := fmt.Sprintf(appPrepConfigRunCmd, expectedContainerID)
 	cmdErr := executor.RunScript(
@@ -1097,6 +1113,20 @@ func queueNotify(
 		// No nodes actually being created/deleted. One example of this
 		// is in the creating case where none have been successfully
 		// configured.
+		return
+	}
+	// Notify the node iff the event is registered during initial configuration.
+	appCr, appErr := catalog.GetApp(cr)
+	if appErr != nil {
+		shared.LogError(
+			reqLogger,
+			appErr,
+			cr,
+			shared.EventReasonCluster,
+			"app referenced by cluster does not exist")
+	}
+	role := catalog.GetRoleFromID(appCr, modifiedRole.roleStatus.Name)
+	if role.EventList != nil && !shared.StringInList(op, *role.EventList) {
 		return
 	}
 	shared.LogInfof(

@@ -31,6 +31,7 @@ type KubeDirectorAppSpec struct {
 	NodeRoles           []NodeRole          `json:"roles"`
 	Config              NodeGroupConfig     `json:"config"`
 	DefaultPersistDirs  *[]string           `json:"defaultPersistDirs,omitempty"`
+	DefaultEventList    *[]string           `json:"defaultEventList.omitempty"`
 	Capabilities        []corev1.Capability `json:"capabilities,omitempty"`
 	SystemdRequired     bool                `json:"systemdRequired,omitempty"`
 }
@@ -105,6 +106,7 @@ type NodeRole struct {
 	ImageRepoTag *string              `json:"imageRepoTag,omitempty"`
 	SetupPackage SetupPackage         `json:"configPackage,omitempty"`
 	PersistDirs  *[]string            `json:"persistDirs,omitempty"`
+	EventList    *[]string            `json:"eventList,omitempty"`
 	MinResources *corev1.ResourceList `json:"minResources,omitempty"`
 }
 

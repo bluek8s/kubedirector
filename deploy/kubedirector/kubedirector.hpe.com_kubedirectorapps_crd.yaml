@@ -126,6 +126,11 @@ spec:
                     items:
                       type: string
                       pattern: '^/.*[^/]$'
+                  eventList:
+                    type: array
+                    items:
+                      type: string
+                      pattern: '^configure$|^addnodes$|^delnodes$'
                   minResources:
                     type: object
                     nullable: true
@@ -180,6 +185,11 @@ spec:
               items:
                 type: string
                 pattern: '^/.*[^/]$'
+            defaultEventList:
+              type: array
+              items:
+                type: string
+                pattern: '^configure$|^addnodes$|^delnodes$'
             capabilities:
               type: array
               items:

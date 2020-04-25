@@ -1,3 +1,8 @@
+# v0.4.1 - Apr 14, 2020
+
+Fix for https://github.com/bluek8s/kubedirector/issues/289
+
+
 # v0.4.0 - Feb 24, 2020
 
 This is a major release in a few interesting ways. We've had the chance to get wider use of and feedback on KubeDirector, which has led us to these changes.

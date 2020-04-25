@@ -48,7 +48,7 @@ version-check:
         true; \
     else \
         echo "Error:"; \
-        echo "operator-sdk version 1.15.2 is required"; \
+        echo "operator-sdk version 0.15.2 is required"; \
         exit 1; \
     fi
 

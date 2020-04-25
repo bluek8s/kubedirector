@@ -36,11 +36,12 @@ const (
 
 // Event reason constants for recording events
 const (
-	EventReasonNoEvent = ""
-	EventReasonCluster = "Cluster"
-	EventReasonRole    = "Role"
-	EventReasonMember  = "Member"
-	EventReasonConfig  = "Config"
+	EventReasonNoEvent   = ""
+	EventReasonCluster   = "Cluster"
+	EventReasonRole      = "Role"
+	EventReasonMember    = "Member"
+	EventReasonConfig    = "Config"
+	EventReasonConfigMap = "ConfigMap"
 )
 
 // Settings for appCatalog

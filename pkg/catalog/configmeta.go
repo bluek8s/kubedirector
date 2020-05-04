@@ -16,12 +16,14 @@ package catalog
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"sync"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
+	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -103,11 +105,35 @@ func servicesForRole(
 				var endpoints []string
 				if serviceDef.Endpoint.Port != nil {
 					for _, m := range members {
+						//vf somewhere here is where we can process the authentication boolean
+
+						//						fmt.Println("!!!! buka XXXX in endpoint processing !!!")
+
 						nodeName := m.Pod
 						endpoint := serviceDef.Endpoint.URLScheme
 						endpoint += "://" + nodeName + "." + domain
 						endpoint += ":" + strconv.Itoa(int(*(serviceDef.Endpoint.Port)))
 						endpoints = append(endpoints, endpoint)
+
+						port := serviceDef.Endpoint.Port
+
+						if serviceDef.Endpoint.AuthToken {
+							if m.ServicesUUIDs == nil {
+								m.ServicesUUIDs = make(map[string]string)
+							}
+
+							if _, ok := m.ServicesUUIDs[serviceDef.ID]; !ok {
+								//value doesn't exist, place it in map
+								m.ServicesUUIDs[serviceDef.ID] = uuid.New().String()
+							}
+							fmt.Printf("!!! buka ZZZ auth is true and port is %d and uuid in member status is %v \n", *port, m.ServicesUUIDs)
+
+						} else {
+							fmt.Printf("!!!! buka ZZZ auth is false port is %d \n", *port)
+						}
+
+						fmt.Printf("!!!! buka endpoints of member is  %v \n", endpoints)
+
 					}
 				}
 				s := service{

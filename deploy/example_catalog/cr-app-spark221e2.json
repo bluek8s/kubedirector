@@ -7,8 +7,8 @@
 
     "spec" : {
         "systemdRequired": true,
-        "defaultPersistDirs" : ["/usr", "/opt", "/var", "/data"],
-        "defaultEventList" : ["configure", "addnodes", "delnodes"],
+	"defaultPersistDirs" : ["/usr", "/opt", "/var", "/data"],
+	"defaultEventList" : ["configure", "addnodes", "delnodes"],
         "config": {
             "roleServices": [
                 {
@@ -52,7 +52,8 @@
             {
                 "endpoint": {
                     "port": 22,
-                    "isDashboard": false
+                    "isDashboard": false,
+                    "authToken": true
                 },
                 "id": "ssh",
                 "label": {
@@ -64,7 +65,8 @@
                     "urlScheme": "http",
                     "path": "/",
                     "isDashboard": true,
-                    "port": 8080
+                    "port": 8080,
+                    "authToken": true
                 },
                 "id": "spark",
                 "label": {
@@ -75,7 +77,8 @@
                 "endpoint": {
                     "urlScheme": "spark",
                     "isDashboard": false,
-                    "port": 7077
+                    "port": 7077,
+                    "authToken": true
                 },
                 "id": "spark-master",
                 "label": {
@@ -87,7 +90,8 @@
                     "urlScheme": "http",
                     "path": "/",
                     "isDashboard": true,
-                    "port": 8081
+                    "port": 8081,
+                    "authToken": true
                 },
                 "id": "spark-worker",
                 "label": {
@@ -99,7 +103,8 @@
                     "urlScheme": "http",
                     "path": "/",
                     "isDashboard": true,
-                    "port": 8888
+                    "port": 8888,
+                    "authToken": true
                 },
                 "id": "jupyter-nb",
                 "label": {

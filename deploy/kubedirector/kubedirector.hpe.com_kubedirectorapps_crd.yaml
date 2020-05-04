@@ -96,8 +96,8 @@ spec:
                         type: string
                       isDashboard:
                         type: boolean
-		      authToken:
-		        type: boolean
+		                  authToken:
+		                    type: boolean
             roles:
               type: array
               items:

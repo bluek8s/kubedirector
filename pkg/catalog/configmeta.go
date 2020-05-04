@@ -105,10 +105,6 @@ func servicesForRole(
 				var endpoints []string
 				if serviceDef.Endpoint.Port != nil {
 					for _, m := range members {
-						//vf somewhere here is where we can process the authentication boolean
-
-						//						fmt.Println("!!!! buka XXXX in endpoint processing !!!")
-
 						nodeName := m.Pod
 						endpoint := serviceDef.Endpoint.URLScheme
 						endpoint += "://" + nodeName + "." + domain

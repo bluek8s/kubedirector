@@ -82,7 +82,9 @@ func (r *ReconcileConfigMap) syncConfigMap(
 			maxWait := 4096 * time.Second
 			for {
 				updateMetaGenerator := &kubecluster
-				updateMetaGenerator.Spec.ConnectionsGenToProcess = updateMetaGenerator.Spec.ConnectionsGenToProcess + 1
+				annotations := updateMetaGenerator.Annotations
+				annotations["kdreconfig"] = "true"
+				updateMetaGenerator.Annotations = annotations
 				if shared.Update(context.TODO(), updateMetaGenerator) == nil {
 					break
 				}

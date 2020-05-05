@@ -15,10 +15,14 @@
 package kubedirectorcluster
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"reflect"
 	"time"
+
+	"sync/atomic"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
@@ -240,13 +244,18 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 						cr.Name,
 					)
 					updateMetaGenerator := &kubecluster
-					updateMetaGenerator.Spec.ConnectionsGenToProcess = kubecluster.Spec.ConnectionsGenToProcess + 1
+					//updateMetaGenerator.Spec.ConnectionsGenToProcess = kubecluster.Spec.ConnectionsGenToProcess + 1
+					annotations := updateMetaGenerator.Annotations
+					annotations["kdreconfig"] = "true"
+					updateMetaGenerator.Annotations = annotations
 					//Notify cluster by incrementing configmetaGenerator
 					wait := time.Second
 					maxWait := 4096 * time.Second
 					for {
 						updateMetaGenerator := &kubecluster
-						updateMetaGenerator.Spec.ConnectionsGenToProcess = updateMetaGenerator.Spec.ConnectionsGenToProcess + 1
+						annotations := updateMetaGenerator.Annotations
+						annotations["kdreconfig"] = "true"
+						updateMetaGenerator.Annotations = annotations
 						if shared.Update(context.TODO(), updateMetaGenerator) == nil {
 							break
 						}
@@ -270,7 +279,10 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			}
 			cr.Status.State = string(clusterReady)
 		}
-		if cr.Spec.ConnectionsGenToProcess == cr.Status.LastConnectionGen {
+		if _, ok := cr.Annotations["kdreconfig"]; !ok {
+			return nil
+		}
+		if cr.Annotations["kdreconfig"] == "false" {
 			return nil
 		}
 	}
@@ -293,10 +305,15 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		)
 		return configMetaErr
 	}
-
-	if state == clusterMembersChangedUnready || (cr.Spec.ConnectionsGenToProcess != cr.Status.LastConnectionGen) {
+	newHash := calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
+	if state == clusterMembersChangedUnready || (newHash != cr.Status.LastConnectionHash) {
 		cr.Status.SpecGenerationToProcess = &cr.Generation
-		cr.Status.LastConnectionGen = cr.Spec.ConnectionsGenToProcess
+		if newHash != cr.Status.LastConnectionHash {
+			incremented := atomic.AddInt64(cr.Status.SpecGenerationToProcess, 1)
+			cr.Status.SpecGenerationToProcess = &incremented
+			cr.Status.LastConnectionHash = newHash
+			cr.Annotations["kdreconfig"] = "false"
+		}
 	}
 	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
 	if membersErr != nil {
@@ -304,6 +321,35 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return membersErr
 	}
 	return nil
+}
+
+func calcConnectionsHash(con *kdv1.Connections, ns string) string {
+	//sliceToSha(buff bytes.Buffer)
+	clusterNames := con.Clusters
+	//clusterRvs := make([]string, len(clusterNames))
+	var buffer bytes.Buffer
+	for _, c := range clusterNames {
+		clusterObj, _ := observer.GetCluster(ns, c)
+		rv := clusterObj.ResourceVersion
+		buffer.WriteString(rv)
+		//sha256.Sum256([]byte(buffer.String()))
+	}
+	cmNames := con.ConfigMaps
+	for _, c := range cmNames {
+		cmObj, _ := observer.GetConfigMap(ns, c)
+		rv := cmObj.ResourceVersion
+		buffer.WriteString(rv)
+		//sha256.Sum256([]byte(buffer.String()))
+	}
+	// secretNames := con.Secrets
+	// for _, c := range secretNames {
+	// 	secretObj, _ := observer.GetSecret(ns, c)
+	// 	rv := secretObj.ResourceVersion
+	// 	buffer.WriteString(rv)
+	// 	//sha256.Sum256([]byte(buffer.String()))
+	// }
+	shaSum := sha256.Sum256([]byte(buffer.String()))
+	return string(shaSum[:])
 }
 
 // checkContainerStates updates the lastKnownContainerState in each member

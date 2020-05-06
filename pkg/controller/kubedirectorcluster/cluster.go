@@ -17,6 +17,8 @@ package kubedirectorcluster
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -289,7 +291,9 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			}
 			cr.Status.State = string(clusterReady)
 		}
-		return nil
+		if calcConnectionsHash(&cr.Spec.Connections, cr.Namespace) == cr.Status.LastConnectionHash {
+			return nil
+		}
 	}
 
 	if cr.Status.State != string(clusterCreating) {
@@ -311,6 +315,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return configMetaErr
 	}
 	newHash := calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
+	fmt.Println("new hash is:  ", newHash)
 	if state == clusterMembersChangedUnready || (newHash != cr.Status.LastConnectionHash) {
 		if cr.Status.SpecGenerationToProcess == nil {
 			cr.Status.SpecGenerationToProcess = &cr.Generation
@@ -338,24 +343,21 @@ func calcConnectionsHash(con *kdv1.Connections, ns string) string {
 		clusterObj, _ := observer.GetCluster(ns, c)
 		rv := clusterObj.ResourceVersion
 		buffer.WriteString(rv)
-		//sha256.Sum256([]byte(buffer.String()))
 	}
 	cmNames := con.ConfigMaps
 	for _, c := range cmNames {
 		cmObj, _ := observer.GetConfigMap(ns, c)
 		rv := cmObj.ResourceVersion
 		buffer.WriteString(rv)
-		//sha256.Sum256([]byte(buffer.String()))
 	}
 	secretNames := con.Secrets
 	for _, c := range secretNames {
 		secretObj, _ := observer.GetSecret(ns, c)
 		rv := secretObj.ResourceVersion
 		buffer.WriteString(rv)
-		//sha256.Sum256([]byte(buffer.String()))
 	}
-	//shaSum := sha256.Sum256([]byte(buffer.String()))
-	return buffer.String()
+	md5Sum := md5.Sum([]byte(buffer.String()))
+	return hex.EncodeToString(md5Sum[:])
 }
 
 // checkContainerStates updates the lastKnownContainerState in each member

@@ -288,8 +288,8 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 				}
 			}
 			cr.Status.State = string(clusterReady)
-			return nil
 		}
+		return nil
 	}
 
 	if cr.Status.State != string(clusterCreating) {

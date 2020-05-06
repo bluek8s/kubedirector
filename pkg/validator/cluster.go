@@ -632,19 +632,20 @@ func validateFileInjections(
 // 	patches []clusterPatchSpec,
 // ) []clusterPatchSpec {
 
-// 	if !reflect.DeepEqual(cr.Spec.Connections, prevCr.Spec.Connections) {
-// 		newConfigGenrator := int32(cr.Spec.ConnectionsGenToProcess + 1)
+// 	//unset := "false"
+// 	if _, ok := cr.Annotations["kdreconfig"]; ok {
 // 		patches = append(
 // 			patches,
 // 			clusterPatchSpec{
-// 				Op:   "add",
-// 				Path: "/spec/connectionsGenerationToProcess",
-// 				Value: clusterPatchValue{
-// 					ValueInt: &newConfigGenrator,
-// 				},
+// 				Op:   "remove",
+// 				Path: "/metadata/annotations/kdreconfig",
+// 				// Value: clusterPatchValue{
+// 				// 	ValueStr: &unset,
+// 				// },
 // 			},
 // 		)
 // 	}
+
 // 	return patches
 // }
 

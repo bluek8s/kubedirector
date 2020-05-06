@@ -17,6 +17,7 @@ package configmap
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
@@ -83,7 +84,13 @@ func (r *ReconcileConfigMap) syncConfigMap(
 			for {
 				updateMetaGenerator := &kubecluster
 				annotations := updateMetaGenerator.Annotations
-				annotations["kdreconfig"] = "true"
+				if v, ok := annotations["connUpdateCounter"]; ok {
+					newV, _ := strconv.Atoi(v)
+					annotations["connUpdateCounter"] = strconv.Itoa(newV + 1)
+				} else {
+					annotations["connUpdateCounter"] = "1"
+				}
+				fmt.Println("DEBUG: connected configmap changed, setting connUpdateCounter")
 				updateMetaGenerator.Annotations = annotations
 				if shared.Update(context.TODO(), updateMetaGenerator) == nil {
 					break

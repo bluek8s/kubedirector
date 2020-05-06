@@ -17,9 +17,9 @@ package kubedirectorcluster
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"reflect"
+	"strconv"
 	"time"
 
 	"sync/atomic"
@@ -246,7 +246,12 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 					updateMetaGenerator := &kubecluster
 					//updateMetaGenerator.Spec.ConnectionsGenToProcess = kubecluster.Spec.ConnectionsGenToProcess + 1
 					annotations := updateMetaGenerator.Annotations
-					annotations["kdreconfig"] = "true"
+					if v, ok := annotations["connUpdateCounter"]; ok {
+						newV, _ := strconv.Atoi(v)
+						annotations["connUpdateCounter"] = strconv.Itoa(newV + 1)
+					} else {
+						annotations["connUpdateCounter"] = "1"
+					}
 					updateMetaGenerator.Annotations = annotations
 					//Notify cluster by incrementing configmetaGenerator
 					wait := time.Second
@@ -254,7 +259,12 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 					for {
 						updateMetaGenerator := &kubecluster
 						annotations := updateMetaGenerator.Annotations
-						annotations["kdreconfig"] = "true"
+						if v, ok := annotations["connUpdateCounter"]; ok {
+							newV, _ := strconv.Atoi(v)
+							annotations["connUpdateCounter"] = strconv.Itoa(newV + 1)
+						} else {
+							annotations["connUpdateCounter"] = "1"
+						}
 						updateMetaGenerator.Annotations = annotations
 						if shared.Update(context.TODO(), updateMetaGenerator) == nil {
 							break
@@ -278,11 +288,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 				}
 			}
 			cr.Status.State = string(clusterReady)
-		}
-		if _, ok := cr.Annotations["kdreconfig"]; !ok {
-			return nil
-		}
-		if cr.Annotations["kdreconfig"] == "false" {
 			return nil
 		}
 	}
@@ -306,13 +311,15 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return configMetaErr
 	}
 	newHash := calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
+	//fmt.Println("DEBUG: new hash: ", newHash)
 	if state == clusterMembersChangedUnready || (newHash != cr.Status.LastConnectionHash) {
-		cr.Status.SpecGenerationToProcess = &cr.Generation
+		if cr.Status.SpecGenerationToProcess == nil {
+			cr.Status.SpecGenerationToProcess = &cr.Generation
+		}
 		if newHash != cr.Status.LastConnectionHash {
 			incremented := atomic.AddInt64(cr.Status.SpecGenerationToProcess, 1)
 			cr.Status.SpecGenerationToProcess = &incremented
 			cr.Status.LastConnectionHash = newHash
-			cr.Annotations["kdreconfig"] = "false"
 		}
 	}
 	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
@@ -348,8 +355,8 @@ func calcConnectionsHash(con *kdv1.Connections, ns string) string {
 	// 	buffer.WriteString(rv)
 	// 	//sha256.Sum256([]byte(buffer.String()))
 	// }
-	shaSum := sha256.Sum256([]byte(buffer.String()))
-	return string(shaSum[:])
+	//shaSum := sha256.Sum256([]byte(buffer.String()))
+	return buffer.String()
 }
 
 // checkContainerStates updates the lastKnownContainerState in each member

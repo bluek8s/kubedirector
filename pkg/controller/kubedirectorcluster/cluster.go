@@ -248,11 +248,11 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 					updateMetaGenerator := &kubecluster
 					//updateMetaGenerator.Spec.ConnectionsGenToProcess = kubecluster.Spec.ConnectionsGenToProcess + 1
 					annotations := updateMetaGenerator.Annotations
-					if v, ok := annotations["connUpdateCounter"]; ok {
+					if v, ok := annotations[connectionsIncrementor]; ok {
 						newV, _ := strconv.Atoi(v)
-						annotations["connUpdateCounter"] = strconv.Itoa(newV + 1)
+						annotations[connectionsIncrementor] = strconv.Itoa(newV + 1)
 					} else {
-						annotations["connUpdateCounter"] = "1"
+						annotations[connectionsIncrementor] = "1"
 					}
 					updateMetaGenerator.Annotations = annotations
 					//Notify cluster by incrementing configmetaGenerator
@@ -261,11 +261,11 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 					for {
 						updateMetaGenerator := &kubecluster
 						annotations := updateMetaGenerator.Annotations
-						if v, ok := annotations["connUpdateCounter"]; ok {
+						if v, ok := annotations[connectionsIncrementor]; ok {
 							newV, _ := strconv.Atoi(v)
-							annotations["connUpdateCounter"] = strconv.Itoa(newV + 1)
+							annotations[connectionsIncrementor] = strconv.Itoa(newV + 1)
 						} else {
-							annotations["connUpdateCounter"] = "1"
+							annotations[connectionsIncrementor] = "1"
 						}
 						updateMetaGenerator.Annotations = annotations
 						if shared.Update(context.TODO(), updateMetaGenerator) == nil {
@@ -315,7 +315,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return configMetaErr
 	}
 	newHash := calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
-	fmt.Println("new hash is:  ", newHash)
 	if state == clusterMembersChangedUnready || (newHash != cr.Status.LastConnectionHash) {
 		if cr.Status.SpecGenerationToProcess == nil {
 			cr.Status.SpecGenerationToProcess = &cr.Generation

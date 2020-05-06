@@ -334,10 +334,10 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	return nil
 }
 
+// Calculates md5sum of resource-versions of all resources
+// connected to this cluster
 func calcConnectionsHash(con *kdv1.Connections, ns string) string {
-	//sliceToSha(buff bytes.Buffer)
 	clusterNames := con.Clusters
-	//clusterRvs := make([]string, len(clusterNames))
 	var buffer bytes.Buffer
 	for _, c := range clusterNames {
 		clusterObj, _ := observer.GetCluster(ns, c)
@@ -356,6 +356,7 @@ func calcConnectionsHash(con *kdv1.Connections, ns string) string {
 		rv := secretObj.ResourceVersion
 		buffer.WriteString(rv)
 	}
+	// md5 is very cheap for small strings
 	md5Sum := md5.Sum([]byte(buffer.String()))
 	return hex.EncodeToString(md5Sum[:])
 }

@@ -42,6 +42,7 @@ const (
 	EventReasonMember    = "Member"
 	EventReasonConfig    = "Config"
 	EventReasonConfigMap = "ConfigMap"
+	EventReasonSecret    = "Secret"
 )
 
 // Settings for appCatalog

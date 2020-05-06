@@ -348,13 +348,13 @@ func calcConnectionsHash(con *kdv1.Connections, ns string) string {
 		buffer.WriteString(rv)
 		//sha256.Sum256([]byte(buffer.String()))
 	}
-	// secretNames := con.Secrets
-	// for _, c := range secretNames {
-	// 	secretObj, _ := observer.GetSecret(ns, c)
-	// 	rv := secretObj.ResourceVersion
-	// 	buffer.WriteString(rv)
-	// 	//sha256.Sum256([]byte(buffer.String()))
-	// }
+	secretNames := con.Secrets
+	for _, c := range secretNames {
+		secretObj, _ := observer.GetSecret(ns, c)
+		rv := secretObj.ResourceVersion
+		buffer.WriteString(rv)
+		//sha256.Sum256([]byte(buffer.String()))
+	}
 	//shaSum := sha256.Sum256([]byte(buffer.String()))
 	return buffer.String()
 }

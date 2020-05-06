@@ -90,7 +90,6 @@ func (r *ReconcileSecret) syncSecret(
 				} else {
 					annotations["connUpdateCounter"] = "1"
 				}
-				fmt.Println("DEBUG: connected secret changed, setting connUpdateCounter")
 				updateMetaGenerator.Annotations = annotations
 				if shared.Update(context.TODO(), updateMetaGenerator) == nil {
 					break

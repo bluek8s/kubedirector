@@ -311,7 +311,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return configMetaErr
 	}
 	newHash := calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
-	//fmt.Println("DEBUG: new hash: ", newHash)
 	if state == clusterMembersChangedUnready || (newHash != cr.Status.LastConnectionHash) {
 		if cr.Status.SpecGenerationToProcess == nil {
 			cr.Status.SpecGenerationToProcess = &cr.Generation

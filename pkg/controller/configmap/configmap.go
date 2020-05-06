@@ -90,7 +90,6 @@ func (r *ReconcileConfigMap) syncConfigMap(
 				} else {
 					annotations["connUpdateCounter"] = "1"
 				}
-				fmt.Println("DEBUG: connected configmap changed, setting connUpdateCounter")
 				updateMetaGenerator.Annotations = annotations
 				if shared.Update(context.TODO(), updateMetaGenerator) == nil {
 					break

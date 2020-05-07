@@ -142,7 +142,7 @@ func PortsForRole(
 	for _, roleService := range appCR.Spec.Config.RoleServices {
 		if roleService.RoleID == role {
 			for _, service := range appCR.Spec.Services {
-				if shared.StringInList(service.ID, roleService.ServiceIDS) {
+				if shared.StringInList(service.ID, roleService.ServiceIDs) {
 					if service.Endpoint.Port != nil {
 						servicePortInfo := ServicePortInfo{
 							ID:        service.ID,

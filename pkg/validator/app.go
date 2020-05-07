@@ -112,11 +112,11 @@ func validateServiceRoles(
 			)
 			valErrors = append(valErrors, invalidMsg)
 		}
-		for _, ID := range nodeRole.ServiceIDS {
-			if !shared.StringInList(ID, allServiceIDs) {
+		for _, serviceID := range nodeRole.ServiceIDs {
+			if !shared.StringInList(serviceID, allServiceIDs) {
 				invalidMsg := fmt.Sprintf(
 					invalidServiceID,
-					ID,
+					serviceID,
 					strings.Join(allServiceIDs, ","),
 				)
 				valErrors = append(valErrors, invalidMsg)

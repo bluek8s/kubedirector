@@ -70,7 +70,7 @@ func getServices(
 	for _, service := range appCR.Spec.Services {
 		var activeRoleNames []string
 		for _, roleService := range appCR.Spec.Config.RoleServices {
-			if shared.StringInList(service.ID, roleService.ServiceIDS) {
+			if shared.StringInList(service.ID, roleService.ServiceIDs) {
 				if _, ok := membersForRole[roleService.RoleID]; ok {
 					activeRoleNames = append(activeRoleNames, roleService.RoleID)
 				}
@@ -100,8 +100,8 @@ func servicesForRole(
 	fmt.Println("BUKA test ....")
 	for _, roleService := range appCR.Spec.Config.RoleServices {
 		if roleService.RoleID == roleName {
-			for _, ID := range roleService.ServiceIDS {
-				serviceDef := GetServiceFromID(appCR, ID)
+			for _, serviceID := range roleService.ServiceIDs {
+				serviceDef := GetServiceFromID(appCR, serviceID)
 				var endpoints []string
 				if serviceDef.Endpoint.Port != nil {
 					for _, m := range members {

@@ -123,7 +123,7 @@ type NodeGroupConfig struct {
 
 // RoleService associates a service with a role.
 type RoleService struct {
-	ServiceIDS []string `json:"services"`
+	ServiceIDs []string `json:"serviceIDs"`
 	RoleID     string   `json:"roleID"`
 }
 

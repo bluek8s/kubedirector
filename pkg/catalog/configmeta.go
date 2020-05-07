@@ -70,7 +70,7 @@ func getServices(
 	for _, service := range appCR.Spec.Services {
 		var activeRoleNames []string
 		for _, roleService := range appCR.Spec.Config.RoleServices {
-			if shared.StringInList(service.ID, roleService.ServiceIDs) {
+			if shared.StringInList(service.ID, roleService.ServiceIDS) {
 				if _, ok := membersForRole[roleService.RoleID]; ok {
 					activeRoleNames = append(activeRoleNames, roleService.RoleID)
 				}
@@ -97,11 +97,11 @@ func servicesForRole(
 ) map[string]service {
 
 	result := make(map[string]service)
-
+	fmt.Println("BUKA test ....")
 	for _, roleService := range appCR.Spec.Config.RoleServices {
 		if roleService.RoleID == roleName {
-			for _, serviceID := range roleService.ServiceIDs {
-				serviceDef := GetServiceFromID(appCR, serviceID)
+			for _, ID := range roleService.ServiceIDS {
+				serviceDef := GetServiceFromID(appCR, ID)
 				var endpoints []string
 				if serviceDef.Endpoint.Port != nil {
 					for _, m := range members {
@@ -114,14 +114,19 @@ func servicesForRole(
 						port := serviceDef.Endpoint.Port
 
 						if serviceDef.Endpoint.AuthToken {
-							if m.ServicesUUIDs == nil {
-								m.ServicesUUIDs = make(map[string]string)
-							}
+							m.AuthToken = uuid.New().String()
+							// if m.ServicesUUIDs == nil {
+							// 	m.ServicesUUIDs = make(map[string]string)
+							// }
 
-							if _, ok := m.ServicesUUIDs[serviceDef.ID]; !ok {
-								//value doesn't exist, place it in map
-								m.ServicesUUIDs[serviceDef.ID] = uuid.New().String()
-							}
+							// if _, ok := m.ServicesUUIDs[serviceDef.ID]; !ok {
+							// 	//value doesn't exist, place it in map
+							// 	//token := uuid.New().String()
+
+							// 	//m.ServicesUUIDs[serviceDef.ID] = uuid.New().String()
+							// 	//serviceDef. = token
+
+							// }
 							fmt.Printf("!!! buka ZZZ auth is true and port is %d and uuid in member status is %v \n", *port, m.ServicesUUIDs)
 
 						} else {

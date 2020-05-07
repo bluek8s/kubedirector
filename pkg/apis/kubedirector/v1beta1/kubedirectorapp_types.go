@@ -95,9 +95,7 @@ type ServiceEndpoint struct {
 	Port        *int32 `json:"port"`
 	Path        string `json:"path,omitempty"`
 	IsDashboard bool   `json:"isDashboard,omitempty"`
-
-      //vf when true - then generate uuid for the particular service
-      AuthToken bool `json:"authToken,omitempty"`
+	AuthToken   bool   `json:"authToken,omitempty"`
 }
 
 // NodeRole describes a subset of virtual cluster members that will provide
@@ -125,7 +123,7 @@ type NodeGroupConfig struct {
 
 // RoleService associates a service with a role.
 type RoleService struct {
-	ServiceIDs []string `json:"serviceIDs"`
+	ServiceIDS []string `json:"services"`
 	RoleID     string   `json:"roleID"`
 }
 

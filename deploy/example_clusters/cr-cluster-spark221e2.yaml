@@ -8,26 +8,26 @@ spec:
   - id: controller
     resources:
       requests:
-        memory: "4Gi"
-        cpu: "2"
+        memory: "1Gi"
+        cpu: "1"
       limits:
-        memory: "4Gi"
-        cpu: "2"
+        memory: "1Gi"
+        cpu: "1"
   - id: worker
-    members: 2
+    members: 1
     resources:
       requests:
-        memory: "4Gi"
-        cpu: "2"
+        memory: "1Gi"
+        cpu: "1"
       limits:
-        memory: "4Gi"
-        cpu: "2"
+        memory: "1Gi"
+        cpu: "1"
   - id: jupyter
     members: 1
     resources:
       requests:
-        memory: "4Gi"
-        cpu: "2"
+        memory: "1Gi"
+        cpu: "1"
       limits:
-        memory: "4Gi"
-        cpu: "2"
+        memory: "1Gi"
+        cpu: "1"

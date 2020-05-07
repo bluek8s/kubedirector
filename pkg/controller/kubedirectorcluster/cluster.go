@@ -336,6 +336,10 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 // Calculates md5sum of resource-versions of all resources
 // connected to this cluster
 func calcConnectionsHash(con *kdv1.Connections, ns string) string {
+	if con == nil {
+		return ""
+	}
+
 	clusterNames := con.Clusters
 	var buffer bytes.Buffer
 	for _, c := range clusterNames {

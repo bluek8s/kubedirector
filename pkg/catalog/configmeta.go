@@ -117,7 +117,7 @@ func servicesForRole(
 						if serviceDef.Endpoint.AuthToken {
 							serviceToken = uuid.New().String()
 							m.AuthToken = serviceToken
-							fmt.Printf("!!! buka ZZZ auth is true and port is %d and uuid in member status is %v \n", *port, m.ServicesUUIDs)
+							fmt.Printf("!!! buka ZZZ auth is true and port is %d and uuid in member status is %v \n", *port, serviceToken)
 
 						} else {
 							fmt.Printf("!!!! buka ZZZ auth is false port is %d \n", *port)

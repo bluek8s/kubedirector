@@ -101,6 +101,7 @@ func servicesForRole(
 	for _, roleService := range appCR.Spec.Config.RoleServices {
 		if roleService.RoleID == roleName {
 			for _, serviceID := range roleService.ServiceIDs {
+				var serviceToken string
 				serviceDef := GetServiceFromID(appCR, serviceID)
 				var endpoints []string
 				if serviceDef.Endpoint.Port != nil {
@@ -114,19 +115,8 @@ func servicesForRole(
 						port := serviceDef.Endpoint.Port
 
 						if serviceDef.Endpoint.AuthToken {
-							m.AuthToken = uuid.New().String()
-							// if m.ServicesUUIDs == nil {
-							// 	m.ServicesUUIDs = make(map[string]string)
-							// }
-
-							// if _, ok := m.ServicesUUIDs[serviceDef.ID]; !ok {
-							// 	//value doesn't exist, place it in map
-							// 	//token := uuid.New().String()
-
-							// 	//m.ServicesUUIDs[serviceDef.ID] = uuid.New().String()
-							// 	//serviceDef. = token
-
-							// }
+							serviceToken = uuid.New().String()
+							m.AuthToken = serviceToken
 							fmt.Printf("!!! buka ZZZ auth is true and port is %d and uuid in member status is %v \n", *port, m.ServicesUUIDs)
 
 						} else {
@@ -150,6 +140,7 @@ func servicesForRole(
 					},
 					ExportedService: serviceDef.ExportedService,
 					Endpoints:       endpoints,
+					AuthToken:       serviceToken,
 				}
 				if connectedClusterName != "" {
 					s.Hostnames.BdvlibRefKey = append(

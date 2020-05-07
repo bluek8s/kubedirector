@@ -84,6 +84,7 @@ type service struct {
 	FQDNs           refkeys  `json:"fqdns"`
 	ExportedService string   `json:"exported_service"`
 	Endpoints       []string `json:"endpoints"`
+	AuthToken       string   `json:"authToken"`
 }
 
 type flavor struct {

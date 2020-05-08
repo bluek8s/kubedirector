@@ -52,8 +52,7 @@
             {
                 "endpoint": {
                     "port": 22,
-                    "isDashboard": false,
-                    "authToken": true
+                    "isDashboard": false
                 },
                 "id": "ssh",
                 "label": {
@@ -65,8 +64,7 @@
                     "urlScheme": "http",
                     "path": "/",
                     "isDashboard": true,
-                    "port": 8080,
-                    "authToken": true
+                    "port": 8080
                 },
                 "id": "spark",
                 "label": {
@@ -77,8 +75,7 @@
                 "endpoint": {
                     "urlScheme": "spark",
                     "isDashboard": false,
-                    "port": 7077,
-                    "authToken": true
+                    "port": 7077
                 },
                 "id": "spark-master",
                 "label": {
@@ -90,8 +87,7 @@
                     "urlScheme": "http",
                     "path": "/",
                     "isDashboard": true,
-                    "port": 8081,
-                    "authToken": true
+                    "port": 8081
                 },
                 "id": "spark-worker",
                 "label": {
@@ -103,8 +99,7 @@
                     "urlScheme": "http",
                     "path": "/",
                     "isDashboard": true,
-                    "port": 8888,
-                    "authToken": true
+                    "port": 8888
                 },
                 "id": "jupyter-nb",
                 "label": {

@@ -137,6 +137,7 @@ func PortsForRole(
 	}
 
 	var result []ServicePortInfo
+
 	// Match the role in the roleService and based on that fetch the service
 	// endpoint ports matching the service IDs.
 	for _, roleService := range appCR.Spec.Config.RoleServices {

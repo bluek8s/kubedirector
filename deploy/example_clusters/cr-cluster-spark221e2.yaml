@@ -1,4 +1,3 @@
-apiVersion: "kubedirector.hpe.com/v1beta1"
 kind: "KubeDirectorCluster"
 metadata:
   name: "spark-instance"
@@ -8,26 +7,26 @@ spec:
   - id: controller
     resources:
       requests:
-        memory: "1Gi"
-        cpu: "1"
+        memory: "4Gi"
+        cpu: "2"
       limits:
-        memory: "1Gi"
-        cpu: "1"
+        memory: "4Gi"
+        cpu: "3"
   - id: worker
-    members: 1
+    members: 2
     resources:
       requests:
-        memory: "1Gi"
-        cpu: "1"
+        memory: "4Gi"
+        cpu: "2"
       limits:
-        memory: "1Gi"
-        cpu: "1"
+        memory: "4Gi"
+        cpu: "2"
   - id: jupyter
     members: 1
     resources:
       requests:
-        memory: "1Gi"
-        cpu: "1"
+        memory: "4Gi"
+        cpu: "2"
       limits:
-        memory: "1Gi"
-        cpu: "1"
+        memory: "4Gi"
+        cpu: "2"

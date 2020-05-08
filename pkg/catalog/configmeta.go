@@ -16,6 +16,8 @@ package catalog
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"strconv"
 	"sync"
@@ -113,11 +115,13 @@ func servicesForRole(
 						endpoint += ":" + strconv.Itoa(int(*(serviceDef.Endpoint.Port)))
 						endpoints = append(endpoints, endpoint)
 						if serviceDef.Endpoint.HasToken {
-							if m.AuthToken == "" {
-								serviceToken = uuid.New().String()
+							if len(m.AuthToken) == 0 {
+								checksum := md5.Sum([]byte(uuid.New().String()))
+								serviceToken = hex.EncodeToString(checksum[:])
 								m.AuthToken = serviceToken
 								k8sService, err := observer.GetService(appCR.Namespace, m.Service)
 								if err == nil {
+									// Update service annotation with auth token
 									k8sService.Annotations[serviceAuthToken] = serviceToken
 									shared.Update(context.TODO(), k8sService)
 								}

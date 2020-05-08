@@ -41,8 +41,9 @@ const (
 	// statefulset, pod, and service, with a value of the KubeDirectorApp's
 	// spec.label.name.
 	ClusterAppAnnotation = shared.KdDomainBase + "/kdapp-prettyName"
-	statefulSetPodLabel  = "statefulset.kubernetes.io/pod-name"
-	storageClassName     = "volume.beta.kubernetes.io/storage-class"
+
+	statefulSetPodLabel = "statefulset.kubernetes.io/pod-name"
+	storageClassName    = "volume.beta.kubernetes.io/storage-class"
 	// AppContainerName is the name of KubeDirector app containers.
 	AppContainerName = "app"
 	// PvcNamePrefix (along with a hyphen) is prepended to the name of each

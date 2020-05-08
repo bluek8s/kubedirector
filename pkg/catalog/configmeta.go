@@ -17,7 +17,6 @@ package catalog
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"sync"
 
@@ -113,20 +112,17 @@ func servicesForRole(
 						endpoint += "://" + nodeName + "." + domain
 						endpoint += ":" + strconv.Itoa(int(*(serviceDef.Endpoint.Port)))
 						endpoints = append(endpoints, endpoint)
-						//port := serviceDef.Endpoint.Port
-						if serviceDef.Endpoint.AuthToken {
-							serviceToken = uuid.New().String()
-							m.AuthToken = serviceToken
-							k8sService, err := observer.GetService(appCR.Namespace, m.Service)
-							if err == nil {
-								annotations := k8sService.Annotations
-								annotations[serviceAuthToken] = serviceToken
-								shared.Update(context.TODO(), k8sService)
-								fmt.Printf("Service annotated with auth toked %v", serviceDef.ID)
+						if serviceDef.Endpoint.HasToken {
+							if m.AuthToken == "" {
+								serviceToken = uuid.New().String()
+								m.AuthToken = serviceToken
+								k8sService, err := observer.GetService(appCR.Namespace, m.Service)
+								if err == nil {
+									k8sService.Annotations[serviceAuthToken] = serviceToken
+									shared.Update(context.TODO(), k8sService)
+								}
 							}
-							//fmt.Printf("!!! buka ZZZ auth is true and port is %d and uuid in member status is %v \n", *port, serviceToken)
 						}
-						//fmt.Printf("!!!! buka endpoints of member is  %v \n", endpoints)
 					}
 				}
 				s := service{

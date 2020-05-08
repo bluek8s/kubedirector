@@ -95,7 +95,7 @@ type ServiceEndpoint struct {
 	Port        *int32 `json:"port"`
 	Path        string `json:"path,omitempty"`
 	IsDashboard bool   `json:"isDashboard,omitempty"`
-	AuthToken   bool   `json:"authToken,omitempty"`
+	HasToken    bool   `json:"hasToken,omitempty"`
 }
 
 // NodeRole describes a subset of virtual cluster members that will provide

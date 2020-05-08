@@ -15,6 +15,7 @@
 package catalog
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -31,6 +32,8 @@ const (
 	// ConfigMapType is a label placed on desired comfig maps that
 	// we want to watch and propogate inside containers
 	configMapType = shared.KdDomainBase + "/cmType"
+	// ServiceTokenAnnotation auth token for service
+	serviceAuthToken = shared.KdDomainBase + "/kd-auth-token"
 )
 
 // allServiceRefkeys is a subroutine of getServices, used to generate a
@@ -97,7 +100,6 @@ func servicesForRole(
 ) map[string]service {
 
 	result := make(map[string]service)
-	fmt.Println("BUKA test ....")
 	for _, roleService := range appCR.Spec.Config.RoleServices {
 		if roleService.RoleID == roleName {
 			for _, serviceID := range roleService.ServiceIDs {
@@ -111,20 +113,20 @@ func servicesForRole(
 						endpoint += "://" + nodeName + "." + domain
 						endpoint += ":" + strconv.Itoa(int(*(serviceDef.Endpoint.Port)))
 						endpoints = append(endpoints, endpoint)
-
-						port := serviceDef.Endpoint.Port
-
+						//port := serviceDef.Endpoint.Port
 						if serviceDef.Endpoint.AuthToken {
 							serviceToken = uuid.New().String()
 							m.AuthToken = serviceToken
-							fmt.Printf("!!! buka ZZZ auth is true and port is %d and uuid in member status is %v \n", *port, serviceToken)
-
-						} else {
-							fmt.Printf("!!!! buka ZZZ auth is false port is %d \n", *port)
+							k8sService, err := observer.GetService(appCR.Namespace, m.Service)
+							if err == nil {
+								annotations := k8sService.Annotations
+								annotations[serviceAuthToken] = serviceToken
+								shared.Update(context.TODO(), k8sService)
+								fmt.Printf("Service annotated with auth toked %v", serviceDef.ID)
+							}
+							//fmt.Printf("!!! buka ZZZ auth is true and port is %d and uuid in member status is %v \n", *port, serviceToken)
 						}
-
-						fmt.Printf("!!!! buka endpoints of member is  %v \n", endpoints)
-
+						//fmt.Printf("!!!! buka endpoints of member is  %v \n", endpoints)
 					}
 				}
 				s := service{

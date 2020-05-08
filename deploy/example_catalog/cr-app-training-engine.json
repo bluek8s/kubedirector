@@ -53,26 +53,26 @@
             {
                 "cardinality": "1",
                 "configPackage": {
-                    "packageURL": "http://16.143.21.166/thirdparty/k8sapps/flask_configure/flask_configure.tgz"
+                    "packageURL": "file:///opt/configscript/flask_configure.tgz"
                 },
                 "id": "LoadBalancer",
-                "imageRepoTag": "docker.io/saurabhjogalekarhpe/flask-and-inf-eng"
+                "imageRepoTag": "docker.io/bluedata/kd-flask_serving:latest"
             },
             {
                 "cardinality": "1+",
                 "configPackage": {
-                    "packageURL": "http://16.143.21.166/thirdparty/k8sapps/flask_configure/flask_configure.tgz"
+                    "packageURL": "file:///opt/configscript/flask_configure.tgz"
                 },
                 "id": "RESTServer",
-                "imageRepoTag": "docker.io/saurabhjogalekarhpe/flask-and-inf-eng"
+                "imageRepoTag": "docker.io/bluedata/kd-flask_serving:latest"
             },
             {
                 "cardinality": "1",
                 "configPackage": {
-                    "packageURL": "http://16.143.21.166/thirdparty/k8sapps/notebook_sc/appconfig-1.8.tgz"
+                    "packageURL": "file:///opt/configscript/appconfig-1.8.tgz"
                 },
                 "id": "controller",
-                "imageRepoTag": "docker.io/saurabhjogalekarhpe/training-engine"
+                "imageRepoTag": "docker.io/bluedata/kd-scikittraining_gpu:latest"
             }
         ],
         "services": [

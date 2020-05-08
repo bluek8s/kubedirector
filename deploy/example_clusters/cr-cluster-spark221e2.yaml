@@ -11,7 +11,7 @@ spec:
         cpu: "2"
       limits:
         memory: "4Gi"
-        cpu: "3"
+        cpu: "2"
   - id: worker
     members: 2
     resources:

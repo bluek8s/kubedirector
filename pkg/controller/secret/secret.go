@@ -36,9 +36,9 @@ const (
 )
 
 // syncSecret runs the reconciliation logic. It is invoked because of a
-// change in or addition of configmap instance, currently there is no
-// polling for this resource. If the configmap is not labeled
-// with key ConfigMapType then no op
+// change in or addition of secret instance, currently there is no
+// polling for this resource. If the secret is not labeled
+// with key "kubedirector.hpe.com/secretType" then no op
 func (r *ReconcileSecret) syncSecret(
 	reqLogger logr.Logger,
 	secret *corev1.Secret,
@@ -108,7 +108,7 @@ func (r *ReconcileSecret) syncSecret(
 						reqLogger,
 						fmt.Errorf("failed to update cluster"),
 						secret,
-						shared.EventReasonConfigMap,
+						shared.EventReasonSecret,
 						"Unable to notify cluster {%s} of configmeta change",
 						updateMetaGenerator.Name)
 					break

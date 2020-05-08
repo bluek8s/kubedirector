@@ -37,7 +37,7 @@ const (
 // syncConfigMap runs the reconciliation logic. It is invoked because of a
 // change in or addition of configmap instance, currently there is no
 // polling for this resource. If the configmap is not labeled
-// with key ConfigMapType then no op
+// with key "kubedirector.hpe.com/cmType" then no op
 func (r *ReconcileConfigMap) syncConfigMap(
 	reqLogger logr.Logger,
 	configmap *corev1.ConfigMap,

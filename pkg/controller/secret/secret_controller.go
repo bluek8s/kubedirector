@@ -73,7 +73,7 @@ func add(
 var _ reconcile.Reconciler = &ReconcileSecret{}
 
 const (
-	// We do not need polling for configmaps
+	// We do not need polling for secrets
 	reconcilePeriod = 0
 )
 

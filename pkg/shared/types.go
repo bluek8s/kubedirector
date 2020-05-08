@@ -50,3 +50,9 @@ const (
 	AppCatalogLocal  = "local"
 	AppCatalogSystem = "system"
 )
+
+// Used by configmap and cluster reconciler to update connection
+// changes
+const (
+	ConnectionsIncrementor = KdDomainBase + "/connUpdateCounter"
+)

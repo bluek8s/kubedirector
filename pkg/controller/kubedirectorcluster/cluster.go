@@ -154,6 +154,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 
 	// We use a finalizer to maintain KubeDirector state consistency;
 	// e.g. app references and ClusterStatusGens.
+	var currentHash string = calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
 	doExit, finalizerErr := r.handleFinalizers(reqLogger, cr)
 	if finalizerErr != nil {
 		return finalizerErr
@@ -245,27 +246,17 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 						"connected cluster {%s} has changed",
 						cr.Name,
 					)
-					updateMetaGenerator := &kubecluster
-					//updateMetaGenerator.Spec.ConnectionsGenToProcess = kubecluster.Spec.ConnectionsGenToProcess + 1
-					annotations := updateMetaGenerator.Annotations
-					if v, ok := annotations[connectionsIncrementor]; ok {
-						newV, _ := strconv.Atoi(v)
-						annotations[connectionsIncrementor] = strconv.Itoa(newV + 1)
-					} else {
-						annotations[connectionsIncrementor] = "1"
-					}
-					updateMetaGenerator.Annotations = annotations
-					//Notify cluster by incrementing configmetaGenerator
+					// Annotate cluster to trigger connected cluster's reconciler
 					wait := time.Second
 					maxWait := 4096 * time.Second
 					for {
 						updateMetaGenerator := &kubecluster
 						annotations := updateMetaGenerator.Annotations
-						if v, ok := annotations[connectionsIncrementor]; ok {
+						if v, ok := annotations[shared.ConnectionsIncrementor]; ok {
 							newV, _ := strconv.Atoi(v)
-							annotations[connectionsIncrementor] = strconv.Itoa(newV + 1)
+							annotations[shared.ConnectionsIncrementor] = strconv.Itoa(newV + 1)
 						} else {
-							annotations[connectionsIncrementor] = "1"
+							annotations[shared.ConnectionsIncrementor] = "1"
 						}
 						updateMetaGenerator.Annotations = annotations
 						if shared.Update(context.TODO(), updateMetaGenerator) == nil {
@@ -291,7 +282,8 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			}
 			cr.Status.State = string(clusterReady)
 		}
-		if calcConnectionsHash(&cr.Spec.Connections, cr.Namespace) == cr.Status.LastConnectionHash {
+
+		if currentHash == cr.Status.LastConnectionHash {
 			return nil
 		}
 	}
@@ -314,15 +306,14 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		)
 		return configMetaErr
 	}
-	newHash := calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
-	if state == clusterMembersChangedUnready || (newHash != cr.Status.LastConnectionHash) {
+	if state == clusterMembersChangedUnready || (currentHash != cr.Status.LastConnectionHash) {
 		if cr.Status.SpecGenerationToProcess == nil {
 			cr.Status.SpecGenerationToProcess = &cr.Generation
 		}
-		if newHash != cr.Status.LastConnectionHash {
+		if currentHash != cr.Status.LastConnectionHash {
 			incremented := atomic.AddInt64(cr.Status.SpecGenerationToProcess, 1)
 			cr.Status.SpecGenerationToProcess = &incremented
-			cr.Status.LastConnectionHash = newHash
+			cr.Status.LastConnectionHash = currentHash
 		}
 	}
 	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
@@ -335,28 +326,30 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 
 // Calculates md5sum of resource-versions of all resources
 // connected to this cluster
-func calcConnectionsHash(con *kdv1.Connections, ns string) string {
-	if con == nil {
-		return ""
-	}
+func calcConnectionsHash(
+	con *kdv1.Connections,
+	ns string) string {
 
 	clusterNames := con.Clusters
 	var buffer bytes.Buffer
 	for _, c := range clusterNames {
 		clusterObj, _ := observer.GetCluster(ns, c)
-		rv := clusterObj.ResourceVersion
-		buffer.WriteString(rv)
+		buffer.WriteString(c)
+		buffer.WriteString(strconv.Itoa(
+			int(*clusterObj.Status.SpecGenerationToProcess)))
 	}
 	cmNames := con.ConfigMaps
 	for _, c := range cmNames {
 		cmObj, _ := observer.GetConfigMap(ns, c)
 		rv := cmObj.ResourceVersion
+		buffer.WriteString(c)
 		buffer.WriteString(rv)
 	}
 	secretNames := con.Secrets
 	for _, c := range secretNames {
 		secretObj, _ := observer.GetSecret(ns, c)
 		rv := secretObj.ResourceVersion
+		buffer.WriteString(c)
 		buffer.WriteString(rv)
 	}
 	// md5 is very cheap for small strings

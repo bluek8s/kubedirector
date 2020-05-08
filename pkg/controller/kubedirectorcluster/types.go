@@ -16,7 +16,6 @@ package kubedirectorcluster
 
 import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
-	"github.com/bluek8s/kubedirector/pkg/shared"
 	appsv1 "k8s.io/api/apps/v1"
 )
 
@@ -100,10 +99,6 @@ const (
 
 const (
 	zeroPortsService = "n/a"
-)
-
-const (
-	connectionsIncrementor = shared.KdDomainBase + "/connUpdateCounter"
 )
 
 type roleInfo struct {

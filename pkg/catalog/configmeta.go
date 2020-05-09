@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"strconv"
 	"sync"
+	"time"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
@@ -119,11 +120,22 @@ func servicesForRole(
 								checksum := md5.Sum([]byte(uuid.New().String()))
 								serviceToken = hex.EncodeToString(checksum[:])
 								m.AuthToken = serviceToken
-								k8sService, err := observer.GetService(appCR.Namespace, m.Service)
-								if err == nil {
-									// Update service annotation with auth token
-									k8sService.Annotations[serviceAuthToken] = serviceToken
-									shared.Update(context.TODO(), k8sService)
+								wait := time.Second
+								maxWait := 4096 * time.Second
+								for {
+									if wait > maxWait {
+										break
+									}
+									k8sService, err := observer.GetService(appCR.Namespace, m.Service)
+									if err == nil {
+										// Update service annotation with auth token
+										k8sService.Annotations[serviceAuthToken] = serviceToken
+										if shared.Update(context.TODO(), k8sService) == nil {
+											break
+										}
+									}
+									time.Sleep(wait)
+									wait = wait * 2
 								}
 							}
 						}

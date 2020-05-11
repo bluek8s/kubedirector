@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package configmap
+package secret
 
 import (
 	"context"
@@ -29,31 +29,32 @@ import (
 )
 
 const (
-	// ConfigMapType is a label placed on desired comfig maps that
+	// secretType is a label placed on desired comfig maps that
 	// we want to watch and propogate inside containers
-	configMapType = shared.KdDomainBase + "/cmType"
+	secretType             = shared.KdDomainBase + "/secretType"
+	connectionsIncrementor = shared.KdDomainBase + "/connUpdateCounter"
 )
 
-// syncConfigMap runs the reconciliation logic. It is invoked because of a
-// change in or addition of configmap instance, currently there is no
-// polling for this resource. If the configmap is not labeled
-// with key "kubedirector.hpe.com/cmType" then no op
-func (r *ReconcileConfigMap) syncConfigMap(
+// syncSecret runs the reconciliation logic. It is invoked because of a
+// change in or addition of secret instance, currently there is no
+// polling for this resource. If the secret is not labeled
+// with key "kubedirector.hpe.com/secretType" then no op
+func (r *ReconcileSecret) syncSecret(
 	reqLogger logr.Logger,
-	configmap *corev1.ConfigMap,
+	secret *corev1.Secret,
 ) error {
 
 	// Memoize state of the incoming object.
-	oldMap, _ := observer.GetConfigMap(configmap.Namespace, configmap.Name)
-	if _, ok := oldMap.Labels[configMapType]; !ok {
+	oldSecret, _ := observer.GetSecret(secret.Namespace, secret.Name)
+	if _, ok := oldSecret.Labels[secretType]; !ok {
 		return nil
 	}
 	/* anonymous fun to check if some cluster
 	   is using this config map as a connection */
-	isClusterUsingConfigMap := func(cmName string, cluster kdv1.KubeDirectorCluster) bool {
-		clusterModels := cluster.Spec.Connections.ConfigMaps
-		for _, modelMapName := range clusterModels {
-			if modelMapName == cmName {
+	isClusterUsingSecret := func(secretName string, cluster kdv1.KubeDirectorCluster) bool {
+		clusterSecrets := cluster.Spec.Connections.Secrets
+		for _, clusterSecret := range clusterSecrets {
+			if clusterSecret == secretName {
 				return true
 			}
 		}
@@ -62,17 +63,17 @@ func (r *ReconcileConfigMap) syncConfigMap(
 	allClusters := &kdv1.KubeDirectorClusterList{}
 	shared.List(context.TODO(), allClusters)
 	for _, kubecluster := range allClusters.Items {
-		if isClusterUsingConfigMap(configmap.Name, kubecluster) {
+		if isClusterUsingSecret(secret.Name, kubecluster) {
 			shared.LogInfof(
 				reqLogger,
 				&kubecluster,
-				shared.EventReasonConfigMap,
-				"connected configmap {%s} has changed",
-				configmap.Name,
+				shared.EventReasonSecret,
+				"connected secret {%s} has changed",
+				secret.Name,
 			)
 			shared.LogInfof(
 				reqLogger,
-				configmap,
+				secret,
 				shared.EventReasonCluster,
 				"connected to cluster {%s}; updating it",
 				kubecluster.Name,
@@ -84,11 +85,11 @@ func (r *ReconcileConfigMap) syncConfigMap(
 			for {
 				updateMetaGenerator := &kubecluster
 				annotations := updateMetaGenerator.Annotations
-				if v, ok := annotations[shared.ConnectionsIncrementor]; ok {
+				if v, ok := annotations[connectionsIncrementor]; ok {
 					newV, _ := strconv.Atoi(v)
-					annotations[shared.ConnectionsIncrementor] = strconv.Itoa(newV + 1)
+					annotations[connectionsIncrementor] = strconv.Itoa(newV + 1)
 				} else {
-					annotations[shared.ConnectionsIncrementor] = "1"
+					annotations[connectionsIncrementor] = "1"
 				}
 				updateMetaGenerator.Annotations = annotations
 				if shared.Update(context.TODO(), updateMetaGenerator) == nil {
@@ -106,8 +107,8 @@ func (r *ReconcileConfigMap) syncConfigMap(
 					shared.LogErrorf(
 						reqLogger,
 						fmt.Errorf("failed to update cluster"),
-						configmap,
-						shared.EventReasonConfigMap,
+						secret,
+						shared.EventReasonSecret,
 						"Unable to notify cluster {%s} of configmeta change",
 						updateMetaGenerator.Name)
 					break

@@ -151,10 +151,11 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			time.Sleep(wait)
 		}
 	}()
+	// Calculate md5check sum to generate unique hash for connection object
+	var currentHash string = calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
 
 	// We use a finalizer to maintain KubeDirector state consistency;
 	// e.g. app references and ClusterStatusGens.
-	var currentHash string = calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
 	doExit, finalizerErr := r.handleFinalizers(reqLogger, cr)
 	if finalizerErr != nil {
 		return finalizerErr
@@ -308,7 +309,8 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	}
 	if state == clusterMembersChangedUnready || (currentHash != cr.Status.LastConnectionHash) {
 		if cr.Status.SpecGenerationToProcess == nil {
-			cr.Status.SpecGenerationToProcess = &cr.Generation
+			initSpecGen := int64(1)
+			cr.Status.SpecGenerationToProcess = &initSpecGen
 		}
 		if currentHash != cr.Status.LastConnectionHash {
 			incremented := atomic.AddInt64(cr.Status.SpecGenerationToProcess, 1)
@@ -328,15 +330,23 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 // connected to this cluster
 func calcConnectionsHash(
 	con *kdv1.Connections,
-	ns string) string {
+	ns string,
+) string {
 
 	clusterNames := con.Clusters
 	var buffer bytes.Buffer
 	for _, c := range clusterNames {
 		clusterObj, _ := observer.GetCluster(ns, c)
 		buffer.WriteString(c)
-		buffer.WriteString(strconv.Itoa(
-			int(*clusterObj.Status.SpecGenerationToProcess)))
+		var specNum string
+		// extra careful while deferencing
+		if clusterObj.Status.SpecGenerationToProcess == nil {
+			specNum = "nil"
+		} else {
+			specNum = strconv.Itoa(
+				int(*clusterObj.Status.SpecGenerationToProcess))
+		}
+		buffer.WriteString(specNum)
 	}
 	cmNames := con.ConfigMaps
 	for _, c := range cmNames {

@@ -623,31 +623,6 @@ func validateFileInjections(
 	return valErrors, patches
 }
 
-// validateConnections checks if connections have
-// changed, if yes then it increments ConfigMetaGenerator
-// so that reconciler can re-generate confgimeta
-func validateConnections(
-	cr *kdv1.KubeDirectorCluster,
-	prevCr *kdv1.KubeDirectorCluster,
-	patches []clusterPatchSpec,
-) []clusterPatchSpec {
-
-	if !reflect.DeepEqual(cr.Spec.Connections, prevCr.Spec.Connections) {
-		newConfigGenrator := int32(cr.Spec.ConnectionsGenToProcess + 1)
-		patches = append(
-			patches,
-			clusterPatchSpec{
-				Op:   "add",
-				Path: "/spec/connectionsGenerationToProcess",
-				Value: clusterPatchValue{
-					ValueInt: &newConfigGenrator,
-				},
-			},
-		)
-	}
-	return patches
-}
-
 // validateSecrets validates defaultSecret and individual secret field for
 // each role. Validation is done to make sure secret object with the given
 // name is present in the cluster CR's namespace, and that its name includes
@@ -921,8 +896,6 @@ func admitClusterCR(
 
 	// Validate secret and generate patches for default values (if any)
 	valErrors, patches = validateSecrets(&clusterCR, valErrors, patches)
-
-	patches = validateConnections(&clusterCR, &prevClusterCR, patches)
 
 	// If cluster already exists, check for invalid property changes.
 	if ar.Request.Operation == v1beta1.Update {

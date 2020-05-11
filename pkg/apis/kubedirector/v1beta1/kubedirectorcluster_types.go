@@ -25,13 +25,12 @@ import (
 // requested cluster roles, each of which will be implemented (by KubeDirector)
 // using a StatefulSet.
 type KubeDirectorClusterSpec struct {
-	AppID                   string      `json:"app"`
-	AppCatalog              *string     `json:"appCatalog,omitempty"`
-	ServiceType             *string     `json:"serviceType,omitempty"`
-	Roles                   []Role      `json:"roles"`
-	DefaultSecret           *KDSecret   `json:"defaultSecret,omitempty"`
-	ConnectionsGenToProcess int64       `json:"connectionsGenerationToProcess"`
-	Connections             Connections `json:"connections"`
+	AppID         string      `json:"app"`
+	AppCatalog    *string     `json:"appCatalog,omitempty"`
+	ServiceType   *string     `json:"serviceType,omitempty"`
+	Roles         []Role      `json:"roles"`
+	DefaultSecret *KDSecret   `json:"defaultSecret,omitempty"`
+	Connections   Connections `json:"connections"`
 }
 
 // Connections specifies list of cluster objects and configmaps objects that has
@@ -39,6 +38,7 @@ type KubeDirectorClusterSpec struct {
 type Connections struct {
 	Clusters   []string `json:"clusters,omitempty"`
 	ConfigMaps []string `json:"configmaps,omitempty"`
+	Secrets    []string `json:"secrets,omitempty"`
 }
 
 // KubeDirectorClusterStatus defines the observed state of KubeDirectorCluster.
@@ -52,7 +52,7 @@ type KubeDirectorClusterStatus struct {
 	ClusterService          string       `json:"clusterService"`
 	LastNodeID              int64        `json:"lastNodeID"`
 	Roles                   []RoleStatus `json:"roles"`
-	LastConnectionGen       int64        `json:"lastConnectionsGeneration"`
+	LastConnectionHash      string       `json:"lastConnectionHash"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

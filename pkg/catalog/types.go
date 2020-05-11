@@ -46,6 +46,7 @@ type nodegroup struct {
 type connections struct {
 	Clusters   map[string]configmeta                   `json:"clusters"`
 	ConfigMaps map[string]map[string]map[string]string `json:"configmaps"`
+	Secrets    map[string]map[string]map[string][]byte `json:"secrets"`
 }
 
 type cluster struct {

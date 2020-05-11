@@ -36,6 +36,9 @@ const (
 	configMapType = shared.KdDomainBase + "/cmType"
 	// ServiceTokenAnnotation auth token for service
 	serviceAuthToken = shared.KdDomainBase + "/kd-auth-token"
+	// SecretType is a label placed on desired secret that
+	// we want to watch and propogate inside containers
+	secretType = shared.KdDomainBase + "/secretType"
 )
 
 // allServiceRefkeys is a subroutine of getServices, used to generate a
@@ -196,6 +199,28 @@ func genconfigConnections(
 	return kdcm, nil
 }
 
+// gensecretConnections will look at the cluster spec
+// and generates a map of secret type and corresponding
+// secrets to be connected to the given cluster
+func gensecretConnections(
+	cr *kdv1.KubeDirectorCluster,
+) (map[string]map[string]map[string][]byte, error) {
+
+	secretMap := make(map[string]map[string][]byte)
+	kdsecret := make(map[string]map[string]map[string][]byte)
+	for _, connectedsecretName := range cr.Spec.Connections.Secrets {
+		sec, err := observer.GetSecret(cr.Namespace, connectedsecretName)
+		if kdSecretType, ok := sec.Labels[secretType]; ok {
+			secretMap[connectedsecretName] = sec.Data
+			kdsecret[kdSecretType] = secretMap
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return kdsecret, nil
+}
+
 // genClusterConnections generates a map of running clusters that are to be connected
 // to this cluster.
 func genClusterConnections(
@@ -323,12 +348,16 @@ func clusterBaseConfig(
 
 	clustersMeta, connErr := genClusterConnections(cr)
 	kdConfigMaps, cmErr := genconfigConnections(cr)
+	kdSecrets, secErr := gensecretConnections(cr)
 
 	if cmErr != nil {
 		return nil, cmErr
 	}
 	if connErr != nil {
 		return nil, connErr
+	}
+	if secErr != nil {
+		return nil, secErr
 	}
 
 	return &configmeta{
@@ -355,6 +384,7 @@ func clusterBaseConfig(
 		Connections: connections{
 			Clusters:   clustersMeta,
 			ConfigMaps: kdConfigMaps,
+			Secrets:    kdSecrets,
 		},
 	}, nil
 }

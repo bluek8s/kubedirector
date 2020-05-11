@@ -42,10 +42,17 @@ const (
 	EventReasonMember    = "Member"
 	EventReasonConfig    = "Config"
 	EventReasonConfigMap = "ConfigMap"
+	EventReasonSecret    = "Secret"
 )
 
 // Settings for appCatalog
 const (
 	AppCatalogLocal  = "local"
 	AppCatalogSystem = "system"
+)
+
+// Used by configmap, secret and cluster reconciler to update connection
+// changes
+const (
+	ConnectionsIncrementor = KdDomainBase + "/connUpdateCounter"
 )

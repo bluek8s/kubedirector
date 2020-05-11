@@ -339,7 +339,7 @@ func calcConnectionsHash(
 		clusterObj, _ := observer.GetCluster(ns, c)
 		buffer.WriteString(c)
 		var specNum string
-		// extra careful while deferencing
+		// extra careful while dereferencing
 		if clusterObj.Status.SpecGenerationToProcess == nil {
 			specNum = "nil"
 		} else {

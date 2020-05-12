@@ -118,7 +118,7 @@ func servicesForRole(
 						endpoint += "://" + nodeName + "." + domain
 						endpoint += ":" + strconv.Itoa(int(*(serviceDef.Endpoint.Port)))
 						endpoints = append(endpoints, endpoint)
-						if serviceDef.Endpoint.HasToken {
+						if serviceDef.Endpoint.HasAuthToken {
 							if len(m.AuthToken) == 0 {
 								checksum := md5.Sum([]byte(uuid.New().String()))
 								serviceToken = hex.EncodeToString(checksum[:])

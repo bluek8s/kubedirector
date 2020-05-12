@@ -242,6 +242,8 @@ spec:
                           type: string
                         pvc:
                           type: string
+                        hasAuthToken:
+                          type: string  
                         state:
                           type: string
                         stateDetail:

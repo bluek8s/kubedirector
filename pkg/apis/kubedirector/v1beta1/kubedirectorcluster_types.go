@@ -155,6 +155,7 @@ type RoleStatus struct {
 type MemberStatus struct {
 	Pod         string            `json:"pod"`
 	Service     string            `json:"service"`
+	AuthToken   string            `json:"authToken,omitempty"`
 	PVC         string            `json:"pvc,omitempty"`
 	State       string            `json:"state"`
 	StateDetail MemberStateDetail `json:"stateDetail,omitempty"`

@@ -381,7 +381,8 @@
         "roles": [
             {
                 "id": "cmserver",
-                "cardinality": "1"
+                "cardinality": "1",
+                "EventList": ["configure", "addnodes", "delnodes"]
             },
             {
                 "id": "primary",
@@ -405,8 +406,7 @@
             },
             {
                 "id": "worker",
-                "cardinality": "3+",
-                "EventList": ["configure", "addnodes", "delnodes"]
+                "cardinality": "3+"
             },
             {
                 "id": "gateway",

@@ -33,6 +33,10 @@ const (
 	healthPath           = "/healthz"
 	defaultNativeSystemd = false
 
+	//convWebhookHandlerName = "convertor-cr.kubedirector.hpe.com"
+	//convertorWebhook       = "convertor-webhook"
+	convertorPath = "/crdconvert"
+
 	appCrt  = "app.crt"
 	appKey  = "app.pem"
 	rootCrt = "ca.crt"

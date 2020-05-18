@@ -17,6 +17,7 @@ package validator
 import (
 	"crypto/tls"
 	"crypto/x509"
+	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -25,6 +26,7 @@ import (
 
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
+	"github.com/prometheus/common/log"
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -195,6 +197,13 @@ func StartValidationServer() error {
 		},
 	)
 
+	http.HandleFunc(
+		convertorPath,
+		func(w http.ResponseWriter, r *http.Request) {
+			convertor(w, r)
+		},
+	)
+
 	err = server.ListenAndServeTLS("", "")
 
 	return err
@@ -255,6 +264,10 @@ func InitValidationServer(
 		)
 	}
 
+	sEnc := b64.StdEncoding.EncodeToString(signingCertBytes)
+
+	log.Info("Signing certificate: ", sEnc)
+
 	serviceErr := createWebhookService(
 		ownerReference,
 		validatorServiceName,
@@ -268,7 +281,7 @@ func InitValidationServer(
 		)
 	}
 
-	validatorErr := createAdmissionService(
+	validatorErr := createAdmissionWebhook(
 		ownerReference,
 		validatorWebhook,
 		kdNamespace,

@@ -4,196 +4,386 @@ metadata:
   name: kubedirectorapps.kubedirector.hpe.com
 spec:
   group: kubedirector.hpe.com
-  version: v1beta1
+  preserveUnknownFields: false
+  versions:
+  - name: v1beta1
+    served: true
+    storage: false
+    schema:
+      openAPIV3Schema:
+        type: object
+        required: [apiVersion, kind, metadata, spec]
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            type: object
+            required: [label, distroID, version, roles, config, configSchemaVersion]
+            properties:
+              label:
+                type: object
+                required: [name]
+                properties:
+                  name:
+                    type: string
+                    minLength: 1
+                  description:
+                    type: string
+              distroID:
+                type: string
+                minLength: 1
+              version:
+                type: string
+                minLength: 1
+              configSchemaVersion:
+                type: integer
+                minimum: 7
+              defaultImageRepoTag:
+                type: string
+                minLength: 1
+              defaultConfigPackage:
+                type: object
+                nullable: true
+                required: [packageURL]
+                properties:
+                  packageURL:
+                    type: string
+                    pattern: '^(file|https?)://.+\.tgz$'
+              services:
+                type: array
+                items:
+                  type: object
+                  required: [id]
+                  properties:
+                    id:
+                      type: string
+                      minLength: 1
+                      maxLength: 15
+                      pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+                    label:
+                      type: object
+                      nullable: true
+                      required: [name]
+                      properties:
+                        name:
+                          type: string
+                          minLength: 1
+                        description:
+                          type: string
+                    endpoint:
+                      type: object
+                      nullable: true
+                      required: [port]
+                      properties:
+                        port:
+                          type: integer
+                          minimum: 1
+                          maximum: 65535
+                        urlScheme:
+                          type: string
+                          minLength: 1
+                          maxLength: 15
+                          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+                        path:
+                          type: string
+                        isDashboard:
+                          type: boolean
+              roles:
+                type: array
+                items:
+                  type: object
+                  required: [id, cardinality]
+                  properties:
+                    id:
+                      type: string
+                      minLength: 1
+                      maxLength: 63
+                      pattern: '^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$'
+                    cardinality:
+                      type: string
+                      pattern: '^\d+\+?$'
+                    imageRepoTag:
+                      type: string
+                      minLength: 1
+                    configPackage:
+                      type: object
+                      nullable: true
+                      required: [packageURL]
+                      properties:
+                        packageURL:
+                          type: string
+                          pattern: '^(file|https?)://.+\.tgz$'
+                    persistDirs:
+                      type: array
+                      items:
+                        type: string
+                        pattern: '^/.*[^/]$'
+                    minResources:
+                      type: object
+                      nullable: true
+                      properties:
+                        memory:
+                          type: string
+                          pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                        cpu:
+                          type: string
+                          pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                        ephemeral-storage:
+                          type: string
+                          pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                        nvidia.com/gpu:
+                          type: string
+                          pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                        amd.com/gpu:
+                          type: string
+                          pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+              config:
+                type: object
+                required: [selectedRoles, roleServices]
+                properties:
+                  configMeta:
+                    type: object
+                    nullable: true
+                  selectedRoles:
+                    type: array
+                    items:
+                      type: string
+                      minLength: 1
+                  roleServices:
+                    type: array
+                    items:
+                      type: object
+                      required: [roleID, serviceIDs]
+                      properties:
+                        roleID:
+                          type: string
+                          minLength: 1
+                          maxLength: 63
+                          pattern: '^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$'
+                        serviceIDs:
+                          type: array
+                          items:
+                            type: string
+                            minLength: 1
+                            maxLength: 15
+                            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+              defaultPersistDirs:
+                type: array
+                items:
+                  type: string
+                  pattern: '^/.*[^/]$'
+              capabilities:
+                type: array
+                items:
+                  type: string
+                  minLength: 1
+              systemdRequired:
+                type: boolean
+  - name: v1beta2
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        required: [apiVersion, kind, metadata, spec]
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            type: object
+            required: [label, distroID, version, roles, config, configSchemaVersion]
+            properties:
+              label:
+                type: object
+                required: [name]
+                properties:
+                  name:
+                    type: string
+                    minLength: 1
+                  description:
+                    type: string
+              distroID:
+                type: string
+                minLength: 1
+              version:
+                type: string
+                minLength: 1
+              configSchemaVersion:
+                type: integer
+                minimum: 7
+              defaultImageRepoTag:
+                type: string
+                minLength: 1
+              defaultConfigPackage:
+                type: object
+                nullable: true
+                required: [packageURL]
+                properties:
+                  packageURL:
+                    type: string
+                    pattern: '^(file|https?)://.+\.tgz$'
+              services:
+                type: array
+                items:
+                  type: object
+                  required: [id]
+                  properties:
+                    id:
+                      type: string
+                      minLength: 1
+                      maxLength: 15
+                      pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+                    label:
+                      type: object
+                      nullable: true
+                      required: [name]
+                      properties:
+                        name:
+                          type: string
+                          minLength: 1
+                        description:
+                          type: string
+                    endpoint:
+                      type: object
+                      nullable: true
+                      required: [port]
+                      properties:
+                        port:
+                          type: integer
+                          minimum: 1
+                          maximum: 65535
+                        urlScheme:
+                          type: string
+                          minLength: 1
+                          maxLength: 15
+                          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+                        path:
+                          type: string
+                        isDashboard:
+                          type: boolean
+              roles:
+                type: array
+                items:
+                  type: object
+                  required: [id, cardinality]
+                  properties:
+                    id:
+                      type: string
+                      minLength: 1
+                      maxLength: 63
+                      pattern: '^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$'
+                    cardinality:
+                      type: string
+                      pattern: '^\d+\+?$'
+                    imageRepoTag:
+                      type: string
+                      minLength: 1
+                    configPackage:
+                      type: object
+                      nullable: true
+                      required: [packageURL]
+                      properties:
+                        packageURL:
+                          type: string
+                          pattern: '^(file|https?)://.+\.tgz$'
+                    persistDirs:
+                      type: array
+                      items:
+                        type: string
+                        pattern: '^/.*[^/]$'
+                    eventList:
+                      type: array
+                      items:
+                        type: string
+                        pattern: '^configure$|^addnodes$|^delnodes$'
+                    minResources:
+                      type: object
+                      nullable: true
+                      properties:
+                        memory:
+                          type: string
+                          pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                        cpu:
+                          type: string
+                          pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                        ephemeral-storage:
+                          type: string
+                          pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                        nvidia.com/gpu:
+                          type: string
+                          pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                        amd.com/gpu:
+                          type: string
+                          pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+              config:
+                type: object
+                required: [selectedRoles, roleServices]
+                properties:
+                  configMeta:
+                    type: object
+                    nullable: true
+                  selectedRoles:
+                    type: array
+                    items:
+                      type: string
+                      minLength: 1
+                  roleServices:
+                    type: array
+                    items:
+                      type: object
+                      required: [roleID, serviceIDs]
+                      properties:
+                        roleID:
+                          type: string
+                          minLength: 1
+                          maxLength: 63
+                          pattern: '^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$'
+                        serviceIDs:
+                          type: array
+                          items:
+                            type: string
+                            minLength: 1
+                            maxLength: 15
+                            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+              defaultPersistDirs:
+                type: array
+                items:
+                  type: string
+                  pattern: '^/.*[^/]$'
+              defaultEventList:
+                type: array
+                items:
+                  type: string
+                  pattern: '^configure$|^addnodes$|^delnodes$'
+              capabilities:
+                type: array
+                items:
+                  type: string
+                  minLength: 1
+              systemdRequired:
+                type: boolean
+  conversion:
+    strategy: Webhook
+    conversionReviewVersions: ["v1beta1", "v1beta2"]
+    webhookClientConfig:
+        service:
+          namespace: hpecp
+          name: kubedirector-validator
+          path: /crdconvert
+        caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUM1akNDQWM2Z0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFrTVNJd0lBWURWUVFERXhscmRXSmwKWkdseVpXTjBiM0l0ZG1Gc2FXUmhkRzl5TFdOaE1CNFhEVEl3TURVeE56SXpNREF6T0ZvWERUTXdNRFV4TlRJegpNREF6T0Zvd0pERWlNQ0FHQTFVRUF4TVphM1ZpWldScGNtVmpkRzl5TFhaaGJHbGtZWFJ2Y2kxallUQ0NBU0l3CkRRWUpLb1pJaHZjTkFRRUJCUUFEZ2dFUEFEQ0NBUW9DZ2dFQkFNbjhJVU9ZVVRWOWdNMWJDT3VrQTE5eDhpYkkKby8vSkZVc3hlQ0d1VDdoOHZnZlBHMS90L0J6NEpkRjJyOVZqSzFpM0Z3UXlubDhuTngyZjdGbUIyK21uSWRrcQo2U0p1Wk1wT1hmd1JOL0p2c2xNU0Y3VmVSOTdwL2s1ekFNdjNWUU5HMSs4K0J5d0tydGlmQ0VIZTUvV3UzeWJJCm1kQzJtN3JXeHdNaktWbEc2V0RxMmtrUHFIcGxzejNBMFVvaXlTSGJibjFjRmZ4aXZ5S0NZQUkxVjExTUZ3ak4KY2NkZVUyc1VzQS9XVisxM3MyM3gxUHU4Q3FwaWFsekliTVY3YTVielRQdTc4aDB5QjFXbFk1YnFNbjZVOEwwaQo3dWpMeXk0UEhuNE5vQnU3LzNCVmVhZXhKVTlPSVpPU1lnbTB5d3NrUjhUOHoxSHBEenlNeFFtQi9POENBd0VBCkFhTWpNQ0V3RGdZRFZSMFBBUUgvQkFRREFnS2tNQThHQTFVZEV3RUIvd1FGTUFNQkFmOHdEUVlKS29aSWh2Y04KQVFFTEJRQURnZ0VCQUgxRlhRc25JejFvbFBQN2F6NThINFBwSjY1Q1hZN2ZzNWZ0U3BEcitPVFBpci9kQ0JWYQp1TFU3bTdmRS9xUGxXUlZoOVBDcWZmd2pyS2hMNHRIc09TOWlEL1ltNkd4RStVYUtzUTJtQ1VsMTlIUU1pR2JrCjhjS0FkNFdNcVlKTXRsd3BBd1hLTXdaT283bWk2Mk1obFJhTFkxZFRZOXlhZVVPa3pLOU5mTHdsc0hWckg4LzcKaEx4THgwWXE1QmQ1SitJU01DaXJDVUp2VHMxamM3ZW9hckVwcGlRc3Y5TkhkYU1adnlYNmdFcUNzY1E0d0o4SwpFMWgvTjdXWVErM2VkcE4wemxwTUJURjgzZVYzM3U1ZHZWYmhuaXhYREFubWE5RlJ3QVU0dTErT2ZrRVhnWUlhCmF0dUF4Qnd6S1oxVS9hOTdzWERHQmpTYlljMWRFbUVjdVNNPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
   names:
     kind: KubeDirectorApp
     listKind: KubeDirectorAppList
     plural: kubedirectorapps
     singular: kubedirectorapp
     shortNames:
-      - kdapp
+    - kdapp
   scope: Namespaced
-  validation:
-    openAPIV3Schema:
-      type: object
-      required: [apiVersion, kind, metadata, spec]
-      properties:
-        apiVersion:
-          type: string
-        kind:
-          type: string
-        metadata:
-          type: object
-        spec:
-          type: object
-          required: [label, distroID, version, roles, config, configSchemaVersion]
-          properties:
-            label:
-              type: object
-              required: [name]
-              properties:
-                name:
-                  type: string
-                  minLength: 1
-                description:
-                  type: string
-            distroID:
-              type: string
-              minLength: 1
-            version:
-              type: string
-              minLength: 1
-            configSchemaVersion:
-              type: integer
-              minimum: 7
-            defaultImageRepoTag:
-              type: string
-              minLength: 1
-            defaultConfigPackage:
-              type: object
-              nullable: true
-              required: [packageURL]
-              properties:
-                packageURL:
-                  type: string
-                  pattern: '^(file|https?)://.+\.tgz$'
-            services:
-              type: array
-              items:
-                type: object
-                required: [id]
-                properties:
-                  id:
-                    type: string
-                    minLength: 1
-                    maxLength: 15
-                    pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
-                  label:
-                    type: object
-                    nullable: true
-                    required: [name]
-                    properties:
-                      name:
-                        type: string
-                        minLength: 1
-                      description:
-                        type: string
-                  endpoint:
-                    type: object
-                    nullable: true
-                    required: [port]
-                    properties:
-                      port:
-                        type: integer
-                        minimum: 1
-                        maximum: 65535
-                      urlScheme:
-                        type: string
-                        minLength: 1
-                        maxLength: 15
-                        pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
-                      path:
-                        type: string
-                      isDashboard:
-                        type: boolean
-            roles:
-              type: array
-              items:
-                type: object
-                required: [id, cardinality]
-                properties:
-                  id:
-                    type: string
-                    minLength: 1
-                    maxLength: 63
-                    pattern: '^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$'
-                  cardinality:
-                    type: string
-                    pattern: '^\d+\+?$'
-                  imageRepoTag:
-                    type: string
-                    minLength: 1
-                  configPackage:
-                    type: object
-                    nullable: true
-                    required: [packageURL]
-                    properties:
-                      packageURL:
-                        type: string
-                        pattern: '^(file|https?)://.+\.tgz$'
-                  persistDirs:
-                    type: array
-                    items:
-                      type: string
-                      pattern: '^/.*[^/]$'
-                  eventList:
-                    type: array
-                    items:
-                      type: string
-                      pattern: '^configure$|^addnodes$|^delnodes$'
-                  minResources:
-                    type: object
-                    nullable: true
-                    properties:
-                      memory:
-                        type: string
-                        pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
-                      cpu:
-                        type: string
-                        pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
-                      ephemeral-storage:
-                        type: string
-                        pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
-                      nvidia.com/gpu:
-                        type: string
-                        pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
-                      amd.com/gpu:
-                        type: string
-                        pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
-            config:
-              type: object
-              required: [selectedRoles, roleServices]
-              properties:
-                configMeta:
-                  type: object
-                  nullable: true
-                selectedRoles:
-                  type: array
-                  items:
-                    type: string
-                    minLength: 1
-                roleServices:
-                  type: array
-                  items:
-                    type: object
-                    required: [roleID, serviceIDs]
-                    properties:
-                      roleID:
-                        type: string
-                        minLength: 1
-                        maxLength: 63
-                        pattern: '^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$'
-                      serviceIDs:
-                        type: array
-                        items:
-                          type: string
-                          minLength: 1
-                          maxLength: 15
-                          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
-            defaultPersistDirs:
-              type: array
-              items:
-                type: string
-                pattern: '^/.*[^/]$'
-            defaultEventList:
-              type: array
-              items:
-                type: string
-                pattern: '^configure$|^addnodes$|^delnodes$'
-            capabilities:
-              type: array
-              items:
-                type: string
-                minLength: 1
-            systemdRequired:
-              type: boolean

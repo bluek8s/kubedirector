@@ -46,7 +46,11 @@ spec:
                 configmaps:
                   type: array
                   items:
-                    type: string  
+                    type: string
+                secrets:
+                  type: array
+                  items:
+                    type: string      
             serviceType:
               type: string
               pattern: '^ClusterIP$|^NodePort$|^LoadBalancer$'
@@ -66,9 +70,7 @@ spec:
                   type: integer
                   maximum: 511
                 readOnly:
-                  type: boolean
-            connectionsGenerationToProcess:
-              type: integer      
+                  type: boolean      
             roles:
               type: array
               items:
@@ -210,8 +212,8 @@ spec:
                   type: boolean
             generationUID:
               type: string
-            lastConnectionsGeneration:
-              type: integer  
+            lastConnectionHash:
+              type: string  
             specGenerationToProcess:
               type: integer
             clusterService:
@@ -240,6 +242,8 @@ spec:
                           type: string
                         pvc:
                           type: string
+                        authToken:
+                          type: string  
                         state:
                           type: string
                         stateDetail:

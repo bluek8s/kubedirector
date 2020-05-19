@@ -15,13 +15,18 @@
 package catalog
 
 import (
+	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"strconv"
 	"sync"
+	"time"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
+	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -29,6 +34,11 @@ const (
 	// ConfigMapType is a label placed on desired comfig maps that
 	// we want to watch and propogate inside containers
 	configMapType = shared.KdDomainBase + "/cmType"
+	// ServiceTokenAnnotation auth token for service
+	serviceAuthToken = shared.KdDomainBase + "/kd-auth-token"
+	// SecretType is a label placed on desired secret that
+	// we want to watch and propogate inside containers
+	secretType = shared.KdDomainBase + "/secretType"
 )
 
 // allServiceRefkeys is a subroutine of getServices, used to generate a
@@ -95,10 +105,10 @@ func servicesForRole(
 ) map[string]service {
 
 	result := make(map[string]service)
-
 	for _, roleService := range appCR.Spec.Config.RoleServices {
 		if roleService.RoleID == roleName {
 			for _, serviceID := range roleService.ServiceIDs {
+				var serviceToken string
 				serviceDef := GetServiceFromID(appCR, serviceID)
 				var endpoints []string
 				if serviceDef.Endpoint.Port != nil {
@@ -108,6 +118,30 @@ func servicesForRole(
 						endpoint += "://" + nodeName + "." + domain
 						endpoint += ":" + strconv.Itoa(int(*(serviceDef.Endpoint.Port)))
 						endpoints = append(endpoints, endpoint)
+						if serviceDef.Endpoint.HasAuthToken {
+							if len(m.AuthToken) == 0 {
+								checksum := md5.Sum([]byte(uuid.New().String()))
+								serviceToken = hex.EncodeToString(checksum[:])
+								m.AuthToken = serviceToken
+								wait := time.Second
+								maxWait := 4096 * time.Second
+								for {
+									if wait > maxWait {
+										break
+									}
+									k8sService, err := observer.GetService(appCR.Namespace, m.Service)
+									if err == nil {
+										// Update service annotation with auth token
+										k8sService.Annotations[serviceAuthToken] = serviceToken
+										if shared.Update(context.TODO(), k8sService) == nil {
+											break
+										}
+									}
+									time.Sleep(wait)
+									wait = wait * 2
+								}
+							}
+						}
 					}
 				}
 				s := service{
@@ -123,6 +157,7 @@ func servicesForRole(
 					},
 					ExportedService: serviceDef.ExportedService,
 					Endpoints:       endpoints,
+					AuthToken:       serviceToken,
 				}
 				if connectedClusterName != "" {
 					s.Hostnames.BdvlibRefKey = append(
@@ -162,6 +197,28 @@ func genconfigConnections(
 		}
 	}
 	return kdcm, nil
+}
+
+// gensecretConnections will look at the cluster spec
+// and generates a map of secret type and corresponding
+// secrets to be connected to the given cluster
+func gensecretConnections(
+	cr *kdv1.KubeDirectorCluster,
+) (map[string]map[string]map[string][]byte, error) {
+
+	secretMap := make(map[string]map[string][]byte)
+	kdsecret := make(map[string]map[string]map[string][]byte)
+	for _, connectedsecretName := range cr.Spec.Connections.Secrets {
+		sec, err := observer.GetSecret(cr.Namespace, connectedsecretName)
+		if kdSecretType, ok := sec.Labels[secretType]; ok {
+			secretMap[connectedsecretName] = sec.Data
+			kdsecret[kdSecretType] = secretMap
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return kdsecret, nil
 }
 
 // genClusterConnections generates a map of running clusters that are to be connected
@@ -291,12 +348,16 @@ func clusterBaseConfig(
 
 	clustersMeta, connErr := genClusterConnections(cr)
 	kdConfigMaps, cmErr := genconfigConnections(cr)
+	kdSecrets, secErr := gensecretConnections(cr)
 
 	if cmErr != nil {
 		return nil, cmErr
 	}
 	if connErr != nil {
 		return nil, connErr
+	}
+	if secErr != nil {
+		return nil, secErr
 	}
 
 	return &configmeta{
@@ -323,6 +384,7 @@ func clusterBaseConfig(
 		Connections: connections{
 			Clusters:   clustersMeta,
 			ConfigMaps: kdConfigMaps,
+			Secrets:    kdSecrets,
 		},
 	}, nil
 }

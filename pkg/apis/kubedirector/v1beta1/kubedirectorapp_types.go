@@ -91,10 +91,11 @@ type Service struct {
 // ServiceEndpoint describes the service network address and protocol, and
 // whether it should be displayed through a web browser.
 type ServiceEndpoint struct {
-	URLScheme   string `json:"urlScheme,omitempty"`
-	Port        *int32 `json:"port"`
-	Path        string `json:"path,omitempty"`
-	IsDashboard bool   `json:"isDashboard,omitempty"`
+	URLScheme    string `json:"urlScheme,omitempty"`
+	Port         *int32 `json:"port"`
+	Path         string `json:"path,omitempty"`
+	IsDashboard  bool   `json:"isDashboard,omitempty"`
+	HasAuthToken bool   `json:"hasAuthToken,omitempty"`
 }
 
 // NodeRole describes a subset of virtual cluster members that will provide

@@ -21,9 +21,9 @@ import (
 	"strings"
 
 	"github.com/munnerz/goautoneg"
-	"github.com/prometheus/common/log"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 )
@@ -67,19 +67,78 @@ func getOutputSerializer(accept string) runtime.Serializer {
 }
 
 func convert(
-	cr *v1beta1.ConversionReview,
+	convertRequest *v1beta1.ConversionRequest,
 ) *v1beta1.ConversionResponse {
 
 	var convertedObjects []runtime.RawExtension
-	var conversionResponse = v1beta1.ConversionResponse{
-		ConvertedObjects: convertedObjects,
-		Result: metav1.Status{
-			Message: metav1.StatusSuccess,
-		},
+	for _, obj := range convertRequest.Objects {
+		cr := unstructured.Unstructured{}
+		if err := cr.UnmarshalJSON(obj.Raw); err != nil {
+			return &v1beta1.ConversionResponse{
+				Result: metav1.Status{
+					Message: fmt.Sprintf("failed to unmarshall object (%v) with error: %v", string(obj.Raw), err),
+					Status:  metav1.StatusFailure,
+				},
+			}
+		}
+
+		convertedObject := cr.DeepCopy()
+		fromVersion := cr.GetAPIVersion()
+		toVersion := convertRequest.DesiredAPIVersion
+
+		if fromVersion == toVersion {
+			return &v1beta1.ConversionResponse{
+				Result: metav1.Status{
+					Message: fmt.Sprintf("conversion from a version to itself should not call the webhook: %s", toVersion),
+					Status:  metav1.StatusFailure,
+				},
+			}
+		}
+
+		switch cr.GetAPIVersion() {
+		case "kubedirector.hpe.com/v1beta1":
+			switch toVersion {
+			case "kubedirector.hpe.com/v1beta2":
+				convertedObject.Object["defaultEventList"] = []string{"configure", "addnodes", "delnodes"}
+			default:
+				return &v1beta1.ConversionResponse{
+					Result: metav1.Status{
+						Message: fmt.Sprintf("unexpected conversion version %q", toVersion),
+						Status:  metav1.StatusFailure,
+					},
+				}
+			}
+		case "kubedirector.hpe.com/v1beta2":
+			switch toVersion {
+			case "kubedirector.hpe.com/v1beta1":
+				delete(convertedObject.Object, "defaultEventList")
+			default:
+				return &v1beta1.ConversionResponse{
+					Result: metav1.Status{
+						Message: fmt.Sprintf("unexpected conversion version %q", toVersion),
+						Status:  metav1.StatusFailure,
+					},
+				}
+			}
+		default:
+			return &v1beta1.ConversionResponse{
+				Result: metav1.Status{
+					Message: fmt.Sprintf("unexpected conversion version %q", toVersion),
+					Status:  metav1.StatusFailure,
+				},
+			}
+		}
+
+		convertedObject.SetAPIVersion(convertRequest.DesiredAPIVersion)
+		convertedObjects = append(convertedObjects, runtime.RawExtension{Object: convertedObject})
 	}
 
-	log.Info("Am I getting lucky?")
-	return &conversionResponse
+	return &v1beta1.ConversionResponse{
+		ConvertedObjects: convertedObjects,
+		Result: metav1.Status{
+			Status: metav1.StatusSuccess,
+		},
+	}
 }
 
 func convertor(
@@ -109,8 +168,6 @@ func convertor(
 		return
 	}
 
-	log.Info("Body: ", body)
-
 	serializer := getInputSerializer(contentType)
 	if serializer == nil {
 		msg := fmt.Sprintf("invalid Content-Type header `%s`", contentType)
@@ -119,16 +176,18 @@ func convertor(
 	}
 
 	convertReview := v1beta1.ConversionReview{}
-	_, gvk, err := serializer.Decode(body, nil, &convertReview)
-	if err == nil {
-		convertReview.Response = convert(&convertReview)
-		convertReview.Response.UID = convertReview.Request.UID
+	_, _, err := serializer.Decode(body, nil, &convertReview)
+	if err != nil {
+		msg := fmt.Sprintf("failed to deserialize body (%v) with error %v", string(body), err)
+		http.Error(w, msg, http.StatusBadRequest)
+		return
 	}
 
-	log.Info("Kind of request is: ", gvk)
-
+	convertReview.Response = convert(convertReview.Request)
+	convertReview.Response.UID = convertReview.Request.UID
 	// reset the request, it is not needed in a response.
 	convertReview.Request = &v1beta1.ConversionRequest{}
+
 	accept := r.Header.Get("Accept")
 	outSerializer := getOutputSerializer(accept)
 	if outSerializer == nil {
@@ -141,44 +200,4 @@ func convertor(
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	/*
-		cr := v1beta1.ConversionReview{}
-		if err := json.Unmarshal(body, &cr); err != nil {
-			conversionResponse = &v1beta1.ConversionResponse{
-				Result: metav1.Status{
-					Message: err.Error(),
-				},
-			}
-		} else {
-			conversionResponse = convert(&cr)
-		}
-
-		cr.Request = &v1beta1.ConversionRequest{}
-
-		conversionReview := v1beta1.ConversionReview{}
-		if conversionResponse != nil {
-			conversionReview.Response = conversionResponse
-			if cr.Request != nil {
-				conversionReview.Response.UID = cr.Request.UID
-			}
-		}
-
-		respBytes, err := json.Marshal(conversionReview)
-		if err != nil {
-			http.Error(
-				w,
-				fmt.Sprintf("could not encode response: %v", err),
-				http.StatusInternalServerError,
-			)
-		}
-		if _, err := w.Write(respBytes); err != nil {
-			http.Error(
-				w,
-				fmt.Sprintf("could not write response: %v", err),
-				http.StatusInternalServerError,
-			)
-		}
-	*/
-
 }

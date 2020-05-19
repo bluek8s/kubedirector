@@ -1,5 +1,5 @@
 {
-    "apiVersion": "kubedirector.hpe.com/v1beta1",
+    "apiVersion": "kubedirector.hpe.com/v1beta2",
     "kind": "KubeDirectorApp",
     "metadata": {
         "name" : "centos8x"
@@ -8,6 +8,7 @@
     "spec" : {
         "systemdRequired": true,
         "defaultPersistDirs" : ["/home"],
+        "defaultEventList" : ["configure", "addnodes", "delnodes"],
         "config": {
             "roleServices": [
                 {

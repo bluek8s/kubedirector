@@ -169,12 +169,8 @@ func createAdmissionWebhook(
 		Webhooks: []v1beta1.MutatingWebhook{webhookHandler},
 	}
 
-	crErr := shared.Create(context.TODO(), validator)
-	if crErr != nil {
-		return crErr
-	}
+	return shared.Create(context.TODO(), validator)
 
-	return nil
 }
 
 // createCertsSecret creates a self-signed certificate and stores it as a

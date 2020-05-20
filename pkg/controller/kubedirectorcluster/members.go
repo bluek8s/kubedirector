@@ -33,6 +33,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/util/exec"
 )
 
 // syncMembers is responsible for adding or deleting members. It and
@@ -921,6 +922,48 @@ func generateNotifies(
 	}
 }
 
+// systemdOk returns immediately without error if the app does not require
+// systemd; otherwise it checks whether systemd is usable.
+func systemdOk(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	podName string,
+	expectedContainerID string,
+) (bool, error) {
+
+	appCR, appErr := catalog.GetApp(cr)
+	if appErr != nil {
+		return false, appErr
+	}
+	if !appCR.Spec.SystemdRequired {
+		// App doesn't require systemd so we don't care.
+		return true, nil
+	}
+	cmd := "systemctl status systemd-journald > /tmp/journald-status.out 2>&1"
+	cmdErr := executor.RunScript(
+		reqLogger,
+		cr,
+		cr.Namespace,
+		podName,
+		expectedContainerID,
+		executor.AppContainerName,
+		"systemd check",
+		strings.NewReader(cmd),
+	)
+	if cmdErr == nil {
+		// No error, including in the return status of the command. All good.
+		return true, nil
+	}
+	// If this was an error status returned from the command, the answer to
+	// our question is "no not ok" but we didn't experience an error trying to
+	// run the command.
+	_, iscoe := cmdErr.(exec.CodeExitError)
+	if iscoe {
+		return false, nil
+	}
+	return false, cmdErr
+}
+
 // appConfig does the initial run of a member's app setup script, including
 // the installation of any prerequisite materials. Check the returned
 // "result is final" boolean to see if this needs to be called again on next
@@ -1017,7 +1060,30 @@ func appConfig(
 		}
 	}
 	// We haven't successfully started the configure script yet.
-	// First upload the configmeta file.
+	// Don't do anything yet if the app requires systemd and systemd is not
+	// responsive yet.
+	systemdOk, systemdErr := systemdOk(
+		reqLogger,
+		cr,
+		podName,
+		expectedContainerID,
+	)
+	if systemdErr != nil {
+		// Some problem trying to check systemd.
+		return true, systemdErr
+	}
+	if !systemdOk {
+		// Systemd not responsive yet; try again later.
+		shared.LogInfof(
+			reqLogger,
+			cr,
+			shared.EventReasonMember,
+			"systemd not yet responsive in member{%s}",
+			podName,
+		)
+		return false, nil
+	}
+	// Now upload the configmeta file.
 	configmetaErr := executor.CreateFile(
 		reqLogger,
 		cr,

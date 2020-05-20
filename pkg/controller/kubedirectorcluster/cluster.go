@@ -152,7 +152,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		}
 	}()
 	// Calculate md5check sum to generate unique hash for connection object
-	var currentHash string = calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
+	currentHash := calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
 
 	// We use a finalizer to maintain KubeDirector state consistency;
 	// e.g. app references and ClusterStatusGens.

@@ -130,29 +130,54 @@ func syncMemberNotifies(
 	cr *kdv1.KubeDirectorCluster,
 ) {
 
+	// Let's iterate over the per-member status checking their state and
+	// whether they have any pending notifies.
 	var membersToProcess []*kdv1.MemberStatus
+	var membersSkippingNotifies []*kdv1.MemberStatus
+	transitionalMembers := false
 	numRoleStatuses := len(cr.Status.Roles)
 	for i := 0; i < numRoleStatuses; i++ {
 		roleStatus := &(cr.Status.Roles[i])
 		numMembers := len(roleStatus.Members)
 		for j := 0; j < numMembers; j++ {
 			memberStatus := &(roleStatus.Members[j])
-			if len(memberStatus.StateDetail.PendingNotifyCmds) != 0 {
-				if memberStatus.State == string(memberReady) {
+			if memberStatus.State == string(memberReady) {
+				// Ready-member handling depends on whether it has any
+				// pending notifies.
+				if len(memberStatus.StateDetail.PendingNotifyCmds) != 0 {
+					// If it does, we'll need to process the notifies below.
 					membersToProcess = append(membersToProcess, memberStatus)
+				} else if !transitionalMembers {
+					// If not, AND if there are no transitional-state members
+					// (who might be on their way to generating a notify),
+					// then we are going to skip notifies on this member.
+					membersSkippingNotifies = append(membersSkippingNotifies, memberStatus)
 				}
-			} else {
-				if memberStatus.StateDetail.LastSetupGeneration != nil {
-					memberStatus.StateDetail.LastSetupGeneration =
-						memberStatus.StateDetail.LastConfigDataGeneration
-				}
+			} else if memberStatus.State != string(memberConfigError) {
+				// Once we find any members in a transitional state (neither
+				// ready/configured nor config-error) make a note of that and
+				// clear out any previously noted members-to-skip-notifies.
+				// Notification skipping will have to wait until everyone is
+				// stable.
+				transitionalMembers = true
+				membersSkippingNotifies = nil
 			}
 		}
 	}
+	// For any ready members where it is safe to do-no-notifies, ffwd their
+	// setup generation number to the desired point.
+	for _, memberSkipping := range membersSkippingNotifies {
+		if memberSkipping.StateDetail.LastSetupGeneration != nil {
+			memberSkipping.StateDetail.LastSetupGeneration =
+				memberSkipping.StateDetail.LastConfigDataGeneration
+		}
+	}
+	// Bail out now if there are no notifies to send.
 	numToProcess := len(membersToProcess)
 	if numToProcess == 0 {
 		return
 	}
+	// Spawn notify commands in goroutines.
 	var wgReady sync.WaitGroup
 	wgReady.Add(numToProcess)
 	for _, member := range membersToProcess {
@@ -186,7 +211,13 @@ func syncMemberNotifies(
 						m.Pod,
 					)
 				} else {
-					m.StateDetail.LastSetupGeneration = m.StateDetail.LastConfigDataGeneration
+					// Update the setup generation number if no transitional
+					// members are left to process. (We could omit this and
+					// let the next handler poll take care of it as a "skip
+					// notifies" case above, but let's be more proactive.)
+					if !transitionalMembers {
+						m.StateDetail.LastSetupGeneration = m.StateDetail.LastConfigDataGeneration
+					}
 				}
 			}
 			// Avoid a useless status write if we just rebuilt the same queue.

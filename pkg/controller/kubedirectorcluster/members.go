@@ -936,6 +936,7 @@ func generateNotifies(
 					cr,
 					member.Pod,
 					&member.StateDetail,
+					otherRole.roleStatus.Name,
 					role,
 				)
 			}
@@ -1118,6 +1119,7 @@ func queueNotify(
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
 	stateDetail *kdv1.MemberStateDetail,
+	roleName string,
 	modifiedRole *roleInfo,
 ) {
 
@@ -1156,7 +1158,7 @@ func queueNotify(
 			shared.EventReasonCluster,
 			"app referenced by cluster does not exist")
 	}
-	role := catalog.GetRoleFromID(appCr, modifiedRole.roleStatus.Name)
+	role := catalog.GetRoleFromID(appCr, roleName)
 	if role.EventList != nil && !shared.StringInList(op, *role.EventList) {
 		return
 	}

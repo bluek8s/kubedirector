@@ -82,9 +82,9 @@ func convert(
 			}
 		}
 
-		convertedObject := cr.DeepCopy()
 		fromVersion := cr.GetAPIVersion()
 		toVersion := convertRequest.DesiredAPIVersion
+		convertedObject := cr.DeepCopy()
 
 		if fromVersion == toVersion {
 			return &v1beta1.ConversionResponse{
@@ -95,11 +95,14 @@ func convert(
 			}
 		}
 
-		switch cr.GetAPIVersion() {
+		switch fromVersion {
 		case "kubedirector.hpe.com/v1beta1":
 			switch toVersion {
 			case "kubedirector.hpe.com/v1beta2":
-				convertedObject.Object["defaultEventList"] = []string{"configure", "addnodes", "delnodes"}
+				spec := convertedObject.Object["spec"]
+				delete(convertedObject.Object, "spec")
+				spec.(map[string]interface{})["defaultEventList"] = []string{"configure", "addnodes", "delnodes"}
+				convertedObject.Object["spec"] = spec
 			default:
 				return &v1beta1.ConversionResponse{
 					Result: metav1.Status{
@@ -111,7 +114,18 @@ func convert(
 		case "kubedirector.hpe.com/v1beta2":
 			switch toVersion {
 			case "kubedirector.hpe.com/v1beta1":
-				delete(convertedObject.Object, "defaultEventList")
+				spec := convertedObject.Object["spec"]
+				delete(convertedObject.Object, "spec")
+				delete(spec.(map[string]interface{}), "defaultEventList")
+
+				roles := spec.(map[string]interface{})["roles"]
+				delete(spec.(map[string]interface{}), "roles")
+				for _, roleConfig := range roles.([]interface{}) {
+					delete(roleConfig.(map[string]interface{}), "eventList")
+				}
+
+				spec.(map[string]interface{})["roles"] = roles
+				convertedObject.Object["spec"] = spec
 			default:
 				return &v1beta1.ConversionResponse{
 					Result: metav1.Status{
@@ -185,7 +199,6 @@ func convertor(
 
 	convertReview.Response = convert(convertReview.Request)
 	convertReview.Response.UID = convertReview.Request.UID
-	// reset the request, it is not needed in a response.
 	convertReview.Request = &v1beta1.ConversionRequest{}
 
 	accept := r.Header.Get("Accept")

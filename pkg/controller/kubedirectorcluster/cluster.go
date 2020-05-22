@@ -202,6 +202,17 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return rolesErr
 	}
 
+	// The "state" calculated above can be different on next handler pass,
+	// so we need to make sure we bump the spec gen now if necessary.
+	// If we delay doing this, a handler error (e.g. in syncMemberServices)
+	// could cause a handler exit and we would lose the necessary spec gen
+	// update.
+	if state == clusterMembersChangedUnready || (currentHash != cr.Status.LastConnectionHash) {
+		incremented := *cr.Status.SpecGenerationToProcess + int64(1)
+		cr.Status.SpecGenerationToProcess = &incremented
+		cr.Status.LastConnectionHash = currentHash
+	}
+
 	memberServicesErr := syncMemberServices(reqLogger, cr, roles)
 	if memberServicesErr != nil {
 		errLog("member services", memberServicesErr)
@@ -309,16 +320,13 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		)
 		return configMetaErr
 	}
-	if state == clusterMembersChangedUnready || (currentHash != cr.Status.LastConnectionHash) {
-		incremented := *cr.Status.SpecGenerationToProcess + int64(1)
-		cr.Status.SpecGenerationToProcess = &incremented
-		cr.Status.LastConnectionHash = currentHash
-	}
+
 	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
 	if membersErr != nil {
 		errLog("members", membersErr)
 		return membersErr
 	}
+
 	return nil
 }
 

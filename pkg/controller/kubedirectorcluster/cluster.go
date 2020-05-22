@@ -24,8 +24,6 @@ import (
 	"strconv"
 	"time"
 
-	"sync/atomic"
-
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/executor"
@@ -58,6 +56,10 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	if cr.Status == nil {
 		cr.Status = &kdv1.KubeDirectorClusterStatus{}
 		cr.Status.Roles = make([]kdv1.RoleStatus, 0)
+		if cr.Status.SpecGenerationToProcess == nil {
+			initSpecGen := int64(0)
+			cr.Status.SpecGenerationToProcess = &initSpecGen
+		}
 	}
 
 	// Set a defer func to write new status and/or finalizers if they change.
@@ -308,15 +310,9 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return configMetaErr
 	}
 	if state == clusterMembersChangedUnready || (currentHash != cr.Status.LastConnectionHash) {
-		if cr.Status.SpecGenerationToProcess == nil {
-			initSpecGen := int64(1)
-			cr.Status.SpecGenerationToProcess = &initSpecGen
-		}
-		if currentHash != cr.Status.LastConnectionHash {
-			incremented := atomic.AddInt64(cr.Status.SpecGenerationToProcess, 1)
-			cr.Status.SpecGenerationToProcess = &incremented
-			cr.Status.LastConnectionHash = currentHash
-		}
+		incremented := *cr.Status.SpecGenerationToProcess + int64(1)
+		cr.Status.SpecGenerationToProcess = &incremented
+		cr.Status.LastConnectionHash = currentHash
 	}
 	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
 	if membersErr != nil {

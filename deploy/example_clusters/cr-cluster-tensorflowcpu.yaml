@@ -4,9 +4,10 @@ metadata:
   name: "jupyter-notebook"
 spec:
   app: jupyter-notebook
-  attachments:
-    clusters: 
-    - training-engine
+  #connections:
+    #secrets:
+    #- "bitbucket-credentials"
+  serviceType: "NodePort"
   roles:
   - id: controller
     resources:

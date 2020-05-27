@@ -1,5 +1,5 @@
 {
-    "apiVersion": "kubedirector.hpe.com/v1beta2",
+    "apiVersion": "kubedirector.hpe.com/v1beta1",
     "kind": "KubeDirectorApp",
     "metadata": {
         "name" : "spark221e2"

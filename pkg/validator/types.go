@@ -31,7 +31,6 @@ const (
 	validationPort       = 8443
 	validationPath       = "/validate"
 	healthPath           = "/healthz"
-	convertorPath        = "/crdconvert"
 	defaultNativeSystemd = false
 
 	appCrt  = "app.crt"

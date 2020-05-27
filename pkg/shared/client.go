@@ -232,11 +232,3 @@ func Delete(
 
 	return client.Delete(ctx, obj, opts...)
 }
-
-func Patch(
-	ctx context.Context,
-	obj runtime.Object,
-	patch k8sClient.Patch,
-) error {
-	return client.Patch(ctx, obj, patch)
-}

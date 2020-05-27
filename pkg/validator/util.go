@@ -86,7 +86,7 @@ func createWebhookService(
 
 // createAdmissionService creates our MutatingWebhookConfiguration resource
 // if it does not exist.
-func createAdmissionWebhook(
+func createAdmissionService(
 	ownerReference metav1.OwnerReference,
 	validatorWebhook string,
 	namespace string,
@@ -170,7 +170,6 @@ func createAdmissionWebhook(
 	}
 
 	return shared.Create(context.TODO(), validator)
-
 }
 
 // createCertsSecret creates a self-signed certificate and stores it as a

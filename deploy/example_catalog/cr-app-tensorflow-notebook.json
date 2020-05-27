@@ -46,7 +46,6 @@
             }
         ],
         "defaultConfigPackage": null,
-        "defaultEventList" : ["configure", "addnodes", "delnodes"],
         "roles": [
             {
                 "cardinality": "1",

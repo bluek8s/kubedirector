@@ -195,13 +195,6 @@ func StartValidationServer() error {
 		},
 	)
 
-	http.HandleFunc(
-		convertorPath,
-		func(w http.ResponseWriter, r *http.Request) {
-			convertor(w, r)
-		},
-	)
-
 	err = server.ListenAndServeTLS("", "")
 
 	return err
@@ -275,7 +268,7 @@ func InitValidationServer(
 		)
 	}
 
-	validatorErr := createAdmissionWebhook(
+	validatorErr := createAdmissionService(
 		ownerReference,
 		validatorWebhook,
 		kdNamespace,

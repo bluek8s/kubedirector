@@ -33,6 +33,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/util/exec"
 )
 
 // syncMembers is responsible for adding or deleting members. It and
@@ -130,29 +131,54 @@ func syncMemberNotifies(
 	cr *kdv1.KubeDirectorCluster,
 ) {
 
+	// Let's iterate over the per-member status checking their state and
+	// whether they have any pending notifies.
 	var membersToProcess []*kdv1.MemberStatus
+	var membersSkippingNotifies []*kdv1.MemberStatus
+	transitionalMembers := false
 	numRoleStatuses := len(cr.Status.Roles)
 	for i := 0; i < numRoleStatuses; i++ {
 		roleStatus := &(cr.Status.Roles[i])
 		numMembers := len(roleStatus.Members)
 		for j := 0; j < numMembers; j++ {
 			memberStatus := &(roleStatus.Members[j])
-			if len(memberStatus.StateDetail.PendingNotifyCmds) != 0 {
-				if memberStatus.State == string(memberReady) {
+			if memberStatus.State == string(memberReady) {
+				// Ready-member handling depends on whether it has any
+				// pending notifies.
+				if len(memberStatus.StateDetail.PendingNotifyCmds) != 0 {
+					// If it does, we'll need to process the notifies below.
 					membersToProcess = append(membersToProcess, memberStatus)
+				} else if !transitionalMembers {
+					// If not, AND if there are no transitional-state members
+					// (who might be on their way to generating a notify),
+					// then we are going to skip notifies on this member.
+					membersSkippingNotifies = append(membersSkippingNotifies, memberStatus)
 				}
-			} else {
-				if memberStatus.StateDetail.LastSetupGeneration != nil {
-					memberStatus.StateDetail.LastSetupGeneration =
-						memberStatus.StateDetail.LastConfigDataGeneration
-				}
+			} else if memberStatus.State != string(memberConfigError) {
+				// Once we find any members in a transitional state (neither
+				// ready/configured nor config-error) make a note of that and
+				// clear out any previously noted members-to-skip-notifies.
+				// Notification skipping will have to wait until everyone is
+				// stable.
+				transitionalMembers = true
+				membersSkippingNotifies = nil
 			}
 		}
 	}
+	// For any ready members where it is safe to do-no-notifies, ffwd their
+	// setup generation number to the desired point.
+	for _, memberSkipping := range membersSkippingNotifies {
+		if memberSkipping.StateDetail.LastSetupGeneration != nil {
+			memberSkipping.StateDetail.LastSetupGeneration =
+				memberSkipping.StateDetail.LastConfigDataGeneration
+		}
+	}
+	// Bail out now if there are no notifies to send.
 	numToProcess := len(membersToProcess)
 	if numToProcess == 0 {
 		return
 	}
+	// Spawn notify commands in goroutines.
 	var wgReady sync.WaitGroup
 	wgReady.Add(numToProcess)
 	for _, member := range membersToProcess {
@@ -186,7 +212,13 @@ func syncMemberNotifies(
 						m.Pod,
 					)
 				} else {
-					m.StateDetail.LastSetupGeneration = m.StateDetail.LastConfigDataGeneration
+					// Update the setup generation number if no transitional
+					// members are left to process. (We could omit this and
+					// let the next handler poll take care of it as a "skip
+					// notifies" case above, but let's be more proactive.)
+					if !transitionalMembers {
+						m.StateDetail.LastSetupGeneration = m.StateDetail.LastConfigDataGeneration
+					}
 				}
 			}
 			// Avoid a useless status write if we just rebuilt the same queue.
@@ -905,6 +937,7 @@ func generateNotifies(
 					cr,
 					member.Pod,
 					&member.StateDetail,
+					otherRole.roleStatus.Name,
 					role,
 				)
 			}
@@ -919,6 +952,48 @@ func generateNotifies(
 			processor(creating)
 		}
 	}
+}
+
+// systemdOk returns immediately without error if the app does not require
+// systemd; otherwise it checks whether systemd is usable.
+func systemdOk(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	podName string,
+	expectedContainerID string,
+) (bool, error) {
+
+	appCR, appErr := catalog.GetApp(cr)
+	if appErr != nil {
+		return false, appErr
+	}
+	if !appCR.Spec.SystemdRequired {
+		// App doesn't require systemd so we don't care.
+		return true, nil
+	}
+	cmd := "systemctl status systemd-journald > /tmp/journald-status.out 2>&1"
+	cmdErr := executor.RunScript(
+		reqLogger,
+		cr,
+		cr.Namespace,
+		podName,
+		expectedContainerID,
+		executor.AppContainerName,
+		"systemd check",
+		strings.NewReader(cmd),
+	)
+	if cmdErr == nil {
+		// No error, including in the return status of the command. All good.
+		return true, nil
+	}
+	// If this was an error status returned from the command, the answer to
+	// our question is "no not ok" but we didn't experience an error trying to
+	// run the command.
+	_, iscoe := cmdErr.(exec.CodeExitError)
+	if iscoe {
+		return false, nil
+	}
+	return false, cmdErr
 }
 
 // appConfig does the initial run of a member's app setup script, including
@@ -1017,7 +1092,30 @@ func appConfig(
 		}
 	}
 	// We haven't successfully started the configure script yet.
-	// First upload the configmeta file.
+	// Don't do anything yet if the app requires systemd and systemd is not
+	// responsive yet.
+	systemdOk, systemdErr := systemdOk(
+		reqLogger,
+		cr,
+		podName,
+		expectedContainerID,
+	)
+	if systemdErr != nil {
+		// Some problem trying to check systemd.
+		return true, systemdErr
+	}
+	if !systemdOk {
+		// Systemd not responsive yet; try again later.
+		shared.LogInfof(
+			reqLogger,
+			cr,
+			shared.EventReasonMember,
+			"systemd not yet responsive in member{%s}",
+			podName,
+		)
+		return false, nil
+	}
+	// Now upload the configmeta file.
 	configmetaErr := executor.CreateFile(
 		reqLogger,
 		cr,
@@ -1087,6 +1185,7 @@ func queueNotify(
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
 	stateDetail *kdv1.MemberStateDetail,
+	roleName string,
 	modifiedRole *roleInfo,
 ) {
 
@@ -1125,7 +1224,7 @@ func queueNotify(
 			shared.EventReasonCluster,
 			"app referenced by cluster does not exist")
 	}
-	role := catalog.GetRoleFromID(appCr, modifiedRole.roleStatus.Name)
+	role := catalog.GetRoleFromID(appCr, roleName)
 	if role.EventList != nil && !shared.StringInList(op, *role.EventList) {
 		return
 	}

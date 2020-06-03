@@ -62,8 +62,15 @@ func CreateHeadlessService(
 			},
 		},
 	}
+
+	namingScheme := shared.GetDefaultNamingScheme()
+
 	if cr.Status.ClusterService == "" {
-		service.ObjectMeta.GenerateName = headlessSvcNamePrefix
+		if namingScheme {
+			service.ObjectMeta.GenerateName = cr.Name + "-"
+		} else {
+			service.ObjectMeta.GenerateName = headlessSvcNamePrefix
+		}
 	} else {
 		service.ObjectMeta.Name = cr.Status.ClusterService
 	}
@@ -99,6 +106,12 @@ func CreatePodService(
 ) (*corev1.Service, error) {
 
 	serviceType := shared.ServiceType(*cr.Spec.ServiceType)
+	var name string
+	if shared.GetDefaultNamingScheme() {
+		name = podName
+	} else {
+		name = svcNamePrefix + podName
+	}
 
 	portInfoList, portsErr := catalog.PortsForRole(cr, role.Name)
 	if portsErr != nil {
@@ -113,7 +126,7 @@ func CreatePodService(
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            svcNamePrefix + podName,
+			Name:            name,
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labelsForService(cr, role),

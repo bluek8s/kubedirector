@@ -10,7 +10,8 @@
         "version": "1.8",
         "label": {
             "name": "Deployment Cluster",
-            "description": "Deployment cluster with Endpoint Wrapper and Inference Engine"
+            "description": "Deployment cluster with Endpoint Wrapper and Inference Engine",
+            "AIML_category" : "Deployment"
         },
 
         "systemdRequired": true,

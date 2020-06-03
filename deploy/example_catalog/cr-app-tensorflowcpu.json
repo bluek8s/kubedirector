@@ -54,11 +54,11 @@
             }
         ],
         "defaultConfigPackage": {
-            "packageURL" : "file:///opt/configscripts/appconfig.tgz"
+            "packageURL" : "file:///opt/configscript/appconfig-1.8.tgz"
         },
         "roles": [
             {
-                "imageRepoTag": "docker.io/bluedata/kd-bluedata-notebook:dev.1.3",
+                "imageRepoTag": "docker.io/bluedata/kd-bluedata:latest",
                 "cardinality": "1",
                 "id": "controller"
             }

@@ -47,7 +47,8 @@
         "distroID": "bluedata/training-engine",
         "label": {
             "description": "Training Cluster with endpoint wrapper",
-            "name": "Training Cluster"
+            "name": "Training Cluster",
+            "AIML_category" : "Training"
         },
         "roles": [
             {
@@ -72,7 +73,7 @@
                     "packageURL": "file:///opt/configscript/appconfig-1.8.tgz"
                 },
                 "id": "controller",
-                "imageRepoTag": "docker.io/bluedata/kd-scikittraining_gpu:latest"
+                "imageRepoTag": "docker.io/bluedata/kd-notebook:latest"
             }
         ],
         "services": [

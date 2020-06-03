@@ -77,9 +77,9 @@
 
         ],
 
-        "defaultImageRepoTag": "docker.io/saurabhjogalekarhpe/flask-and-inf-eng",
+        "defaultImageRepoTag": "docker.io/bluedata/kd-flask_serving:latest",
         "defaultConfigPackage":  {
-            "packageURL": "http://16.143.21.166/thirdparty/k8sapps/flask_configure/flask_configure.tgz"
+            "packageURL": "file:///opt/configscript/flask_configure.tgz"
         },
 
         "roles":[

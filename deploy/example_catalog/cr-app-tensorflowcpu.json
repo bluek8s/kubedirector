@@ -58,7 +58,7 @@
         },
         "roles": [
             {
-                "imageRepoTag": "docker.io/bluedata/kd-bluedata:latest",
+                "imageRepoTag": "docker.io/bluedata/kd-notebook:latest",
                 "cardinality": "1",
                 "id": "controller"
             }

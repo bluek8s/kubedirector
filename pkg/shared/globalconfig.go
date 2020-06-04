@@ -59,7 +59,7 @@ func GetDefaultNamingScheme() bool {
 	if globalConfig != nil && globalConfig.Spec.DefaultNamingScheme != nil {
 		return *globalConfig.Spec.DefaultNamingScheme
 	}
-	return false
+	return true
 }
 
 // GetDefaultStorageClass extracts the default storage class from the

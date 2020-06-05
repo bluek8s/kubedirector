@@ -12,4 +12,3 @@ spec:
   defaultServiceType: "NodePort"
   nativeSystemdSupport: true
   clusterSvcDomainBase: ".svc.cluster.local"
-

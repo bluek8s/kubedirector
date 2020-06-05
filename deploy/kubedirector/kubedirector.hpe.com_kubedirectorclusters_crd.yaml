@@ -50,7 +50,10 @@ spec:
                 secrets:
                   type: array
                   items:
-                    type: string      
+                    type: string
+            namingScheme:
+              type: string
+              pattern: '^UID$|^ClusterRole$'
             serviceType:
               type: string
               pattern: '^ClusterIP$|^NodePort$|^LoadBalancer$'
@@ -70,7 +73,7 @@ spec:
                   type: integer
                   maximum: 511
                 readOnly:
-                  type: boolean      
+                  type: boolean
             roles:
               type: array
               items:

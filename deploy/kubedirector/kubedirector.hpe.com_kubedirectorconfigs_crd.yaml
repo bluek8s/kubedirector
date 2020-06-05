@@ -47,7 +47,8 @@ spec:
             clusterSvcDomainBase:
               type: string
             defaultNamingScheme:
-              type: boolean
+              type: string
+              pattern: '^UID$|^ClusterRole$'
         status:
           type: object
           nullable: true

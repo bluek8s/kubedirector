@@ -21,6 +21,7 @@ import (
 
 	"github.com/go-logr/logr"
 
+	"github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
@@ -487,7 +488,7 @@ func addMemberStatuses(
 	lastNodeID := &cr.Status.LastNodeID
 	currentPop := len(role.roleStatus.Members)
 
-	namingScheme := shared.GetDefaultNamingScheme()
+	namingScheme := *cr.Spec.NamingScheme
 
 	for i := currentPop; i < role.desiredPop; i++ {
 		indexString := strconv.Itoa(i)
@@ -498,9 +499,9 @@ func addMemberStatuses(
 		if role.roleSpec.Storage == nil {
 			pvcName = ""
 		} else {
-			if namingScheme {
+			if namingScheme == v1beta1.ClusterRole {
 				pvcName = cr.Name + "-" + role.roleSpec.Name
-			} else {
+			} else if namingScheme == v1beta1.UID {
 				pvcName = executor.PvcNamePrefix + "-" + memberName
 			}
 		}

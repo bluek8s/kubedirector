@@ -17,6 +17,7 @@ package executor
 import (
 	"context"
 
+	"github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
@@ -63,13 +64,13 @@ func CreateHeadlessService(
 		},
 	}
 
-	namingScheme := shared.GetDefaultNamingScheme()
+	namingScheme := *cr.Spec.NamingScheme
 
 	if cr.Status.ClusterService == "" {
-		if namingScheme {
+		if namingScheme == v1beta1.ClusterRole {
 			service.ObjectMeta.Name = cr.Name
-		} else {
-			service.ObjectMeta.Name = headlessSvcNamePrefix
+		} else if namingScheme == v1beta1.UID {
+			service.ObjectMeta.GenerateName = headlessSvcNamePrefix
 		}
 	} else {
 		service.ObjectMeta.Name = cr.Status.ClusterService
@@ -106,10 +107,12 @@ func CreatePodService(
 ) (*corev1.Service, error) {
 
 	serviceType := shared.ServiceType(*cr.Spec.ServiceType)
+
 	var name string
-	if shared.GetDefaultNamingScheme() {
+	namingScheme := *cr.Spec.NamingScheme
+	if namingScheme == v1beta1.ClusterRole {
 		name = podName
-	} else {
+	} else if namingScheme == v1beta1.UID {
 		name = svcNamePrefix + podName
 	}
 

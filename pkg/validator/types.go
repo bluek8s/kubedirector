@@ -32,7 +32,6 @@ const (
 	validationPath       = "/validate"
 	healthPath           = "/healthz"
 	defaultNativeSystemd = false
-	defaultNamingScheme  = true
 
 	appCrt  = "app.crt"
 	appKey  = "app.pem"
@@ -77,4 +76,7 @@ const (
 
 	invalidResource = "Specified resource(\"%s\") value(\"%s\") for role(\"%s\") is invalid. Minimum value must be \"%s\"."
 	invalidSrcURL   = "Unable to access the specified URL(\"%s\") in file injection spec for the role (%s). error: %s."
+
+	nameLimit       = "The KD cluster name violates the name length limit. The name is a combination of cluster name + role name."
+	badNamingScheme = "Naming scheme not valid."
 )

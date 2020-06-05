@@ -52,14 +52,14 @@ func GetNativeSystemdSupport() bool {
 
 // GetDefaultNamingScheme extracts the flag definition from the
 // globalConfig CR data if present, otherwise returns false
-func GetDefaultNamingScheme() bool {
+func GetDefaultNamingScheme() string {
 
 	globalConfigLock.RLock()
 	defer globalConfigLock.RUnlock()
 	if globalConfig != nil && globalConfig.Spec.DefaultNamingScheme != nil {
 		return *globalConfig.Spec.DefaultNamingScheme
 	}
-	return true
+	return DefaultNamingScheme
 }
 
 // GetDefaultStorageClass extracts the default storage class from the

@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
@@ -273,13 +274,25 @@ func getStatefulSet(
 		return nil, securityErr
 	}
 
-	namingScheme := shared.GetDefaultNamingScheme()
-	var name string
+	namingScheme := *cr.Spec.NamingScheme
+	var objectMeta metav1.ObjectMeta
 
-	if namingScheme {
-		name = cr.Name + "-" + role.Name
-	} else {
-		name = statefulSetNamePrefix
+	if namingScheme == v1beta1.ClusterRole {
+		objectMeta = metav1.ObjectMeta{
+			Name:            cr.Name + "-" + role.Name,
+			Namespace:       cr.Namespace,
+			OwnerReferences: ownerReferences(cr),
+			Labels:          labels,
+			Annotations:     annotationsForCluster(cr),
+		}
+	} else if namingScheme == v1beta1.UID {
+		objectMeta = metav1.ObjectMeta{
+			GenerateName:    statefulSetNamePrefix,
+			Namespace:       cr.Namespace,
+			OwnerReferences: ownerReferences(cr),
+			Labels:          labels,
+			Annotations:     annotationsForCluster(cr),
+		}
 	}
 
 	return &appsv1.StatefulSet{
@@ -287,13 +300,7 @@ func getStatefulSet(
 			Kind:       "StatefulSet",
 			APIVersion: "apps/v1",
 		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            name,
-			Namespace:       cr.Namespace,
-			OwnerReferences: ownerReferences(cr),
-			Labels:          labels,
-			Annotations:     annotationsForCluster(cr),
-		},
+		ObjectMeta: objectMeta,
 		Spec: appsv1.StatefulSetSpec{
 			PodManagementPolicy: appsv1.ParallelPodManagement,
 			Replicas:            &replicas,

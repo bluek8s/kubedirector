@@ -32,19 +32,31 @@ const (
 	// DefaultServiceType - default service type if not specified in
 	// the configCR
 	DefaultServiceType = "LoadBalancer"
+
+	// DefaultNamingScheme - default naming scheme if not specified in
+	// the configCR
+	DefaultNamingScheme = "UID"
 )
 
 // Event reason constants for recording events
 const (
-	EventReasonNoEvent = ""
-	EventReasonCluster = "Cluster"
-	EventReasonRole    = "Role"
-	EventReasonMember  = "Member"
-	EventReasonConfig  = "Config"
+	EventReasonNoEvent   = ""
+	EventReasonCluster   = "Cluster"
+	EventReasonRole      = "Role"
+	EventReasonMember    = "Member"
+	EventReasonConfig    = "Config"
+	EventReasonConfigMap = "ConfigMap"
+	EventReasonSecret    = "Secret"
 )
 
 // Settings for appCatalog
 const (
 	AppCatalogLocal  = "local"
 	AppCatalogSystem = "system"
+)
+
+// Used by configmap, secret and cluster reconciler to update connection
+// changes
+const (
+	ConnectionsIncrementor = KdDomainBase + "/connUpdateCounter"
 )

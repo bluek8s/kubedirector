@@ -230,6 +230,13 @@ func admitKDConfigCR(
 		)
 	}
 
+	// Populate default naming scheme if necessary.
+	if configCR.Spec.DefaultNamingScheme == nil {
+		patches = append(patches,
+			newStrPatch("/spec/defaultNamingScheme", shared.DefaultNamingScheme),
+		)
+	}
+
 	if len(valErrors) == 0 {
 		if len(patches) != 0 {
 			patchResult, patchErr := json.Marshal(patches)

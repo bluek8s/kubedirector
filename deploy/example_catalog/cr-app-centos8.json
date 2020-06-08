@@ -2,13 +2,12 @@
     "apiVersion": "kubedirector.hpe.com/v1beta1",
     "kind": "KubeDirectorApp",
     "metadata": {
-        "name" : "centos7x"
+        "name" : "centos8x"
     },
 
     "spec" : {
         "systemdRequired": true,
         "defaultPersistDirs" : ["/home"],
-        "defaultEventList" : ["configure", "addnodes", "delnodes"],
         "config": {
             "roleServices": [
                 {
@@ -23,12 +22,12 @@
             ]
         },
         "label": {
-            "name": "CentOS 7.5",
-            "description": "CentOS 7.5.1804 with no preinstalled apps"
+            "name": "CentOS 8.0",
+            "description": "CentOS 8.0 with no preinstalled apps"
         },
-        "distroID": "bluedata/centos7x",
-        "version": "1.1",
-        "configSchemaVersion": 7,
+        "distroID": "bluedata/centos8x",
+        "version": "1.0",
+        "configSchemaVersion": 8,
         "services": [
             {
                 "endpoint": {
@@ -41,7 +40,7 @@
                 }
             }
         ],
-        "defaultImageRepoTag": "docker.io/bluedata/centos7:4.1",
+        "defaultImageRepoTag": "docker.io/bluedata/centos8:1.0",
         "defaultConfigPackage": null,
         "roles": [
             {

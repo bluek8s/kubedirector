@@ -31,6 +31,7 @@ type KubeDirectorAppSpec struct {
 	NodeRoles           []NodeRole          `json:"roles"`
 	Config              NodeGroupConfig     `json:"config"`
 	DefaultPersistDirs  *[]string           `json:"defaultPersistDirs,omitempty"`
+	DefaultEventList    *[]string           `json:"defaultEventList,omitempty"`
 	Capabilities        []corev1.Capability `json:"capabilities,omitempty"`
 	SystemdRequired     bool                `json:"systemdRequired,omitempty"`
 }
@@ -42,8 +43,7 @@ type KubeDirectorAppSpec struct {
 type KubeDirectorApp struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec KubeDirectorAppSpec `json:"spec,omitempty"`
+	Spec              KubeDirectorAppSpec `json:"spec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -82,18 +82,20 @@ type SetupPackageURL struct {
 // access, and/or identified for other use by API clients or consumers
 // internal to the virtual cluster (e.g. app setup packages).
 type Service struct {
-	ID       string          `json:"id"`
-	Label    Label           `json:"label,omitempty"`
-	Endpoint ServiceEndpoint `json:"endpoint,omitempty"`
+	ID              string          `json:"id"`
+	Label           Label           `json:"label,omitempty"`
+	Endpoint        ServiceEndpoint `json:"endpoint,omitempty"`
+	ExportedService string          `json:"exported_service,omitempty"`
 }
 
 // ServiceEndpoint describes the service network address and protocol, and
 // whether it should be displayed through a web browser.
 type ServiceEndpoint struct {
-	URLScheme   string `json:"urlScheme,omitempty"`
-	Port        *int32 `json:"port"`
-	Path        string `json:"path,omitempty"`
-	IsDashboard bool   `json:"isDashboard,omitempty"`
+	URLScheme    string `json:"urlScheme,omitempty"`
+	Port         *int32 `json:"port"`
+	Path         string `json:"path,omitempty"`
+	IsDashboard  bool   `json:"isDashboard,omitempty"`
+	HasAuthToken bool   `json:"hasAuthToken,omitempty"`
 }
 
 // NodeRole describes a subset of virtual cluster members that will provide
@@ -105,6 +107,7 @@ type NodeRole struct {
 	ImageRepoTag *string              `json:"imageRepoTag,omitempty"`
 	SetupPackage SetupPackage         `json:"configPackage,omitempty"`
 	PersistDirs  *[]string            `json:"persistDirs,omitempty"`
+	EventList    *[]string            `json:"eventList,omitempty"`
 	MinResources *corev1.ResourceList `json:"minResources,omitempty"`
 }
 

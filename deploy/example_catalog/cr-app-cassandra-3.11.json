@@ -8,6 +8,7 @@
     "spec" : {
         "systemdRequired" : true,
         "defaultPersistDirs" : ["/usr", "/opt", "/var", "/data"],
+        "defaultEventList" : ["configure", "addnodes", "delnodes"],
         "capabilities" : [
             "SYS_RESOURCE",
             "IPC_LOCK"

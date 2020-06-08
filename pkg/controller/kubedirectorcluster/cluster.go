@@ -15,9 +15,13 @@
 package kubedirectorcluster
 
 import (
+	"bytes"
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"reflect"
+	"strconv"
 	"time"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
@@ -52,6 +56,10 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	if cr.Status == nil {
 		cr.Status = &kdv1.KubeDirectorClusterStatus{}
 		cr.Status.Roles = make([]kdv1.RoleStatus, 0)
+		if cr.Status.SpecGenerationToProcess == nil {
+			initSpecGen := int64(0)
+			cr.Status.SpecGenerationToProcess = &initSpecGen
+		}
 	}
 
 	// Set a defer func to write new status and/or finalizers if they change.
@@ -145,6 +153,8 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			time.Sleep(wait)
 		}
 	}()
+	// Calculate md5check sum to generate unique hash for connection object
+	currentHash := calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
 
 	// We use a finalizer to maintain KubeDirector state consistency;
 	// e.g. app references and ClusterStatusGens.
@@ -192,6 +202,17 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return rolesErr
 	}
 
+	// The "state" calculated above can be different on next handler pass,
+	// so we need to make sure we bump the spec gen now if necessary.
+	// If we delay doing this, a handler error (e.g. in syncMemberServices)
+	// could cause a handler exit and we would lose the necessary spec gen
+	// update.
+	if state == clusterMembersChangedUnready || (currentHash != cr.Status.LastConnectionHash) {
+		incremented := *cr.Status.SpecGenerationToProcess + int64(1)
+		cr.Status.SpecGenerationToProcess = &incremented
+		cr.Status.LastConnectionHash = currentHash
+	}
+
 	memberServicesErr := syncMemberServices(reqLogger, cr, roles)
 	if memberServicesErr != nil {
 		errLog("member services", memberServicesErr)
@@ -206,9 +227,79 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 				shared.EventReasonCluster,
 				"stable",
 			)
+
+			amIBeingConnectedToThis := func(otherCluster kdv1.KubeDirectorCluster) bool {
+				for _, connectedName := range otherCluster.Spec.Connections.Clusters {
+					if cr.Name == connectedName {
+						return true
+					}
+				}
+				return false
+			}
+
+			// Once the cluster is deemed ready, if this cluster is connected to any cluster then
+			// we need to notify that cluster that configmeta here has
+			// changed, so bump up connectionsGenerationToProcess for that cluster
+			allClusters := &kdv1.KubeDirectorClusterList{}
+			shared.List(context.TODO(), allClusters)
+			// notify clusters to which this cluster is
+			// connected
+			for _, kubecluster := range allClusters.Items {
+				if amIBeingConnectedToThis(kubecluster) {
+					shared.LogInfof(
+						reqLogger,
+						cr,
+						shared.EventReasonCluster,
+						"connected to cluster {%s}; updating it",
+						kubecluster.Name,
+					)
+					shared.LogInfof(
+						reqLogger,
+						&kubecluster,
+						shared.EventReasonCluster,
+						"connected cluster {%s} has changed",
+						cr.Name,
+					)
+					// Annotate cluster to trigger connected cluster's reconciler
+					wait := time.Second
+					maxWait := 4096 * time.Second
+					for {
+						updateMetaGenerator := &kubecluster
+						annotations := updateMetaGenerator.Annotations
+						if v, ok := annotations[shared.ConnectionsIncrementor]; ok {
+							newV, _ := strconv.Atoi(v)
+							annotations[shared.ConnectionsIncrementor] = strconv.Itoa(newV + 1)
+						} else {
+							annotations[shared.ConnectionsIncrementor] = "1"
+						}
+						updateMetaGenerator.Annotations = annotations
+						if shared.Update(context.TODO(), updateMetaGenerator) == nil {
+							break
+						}
+						// Since update failed, get a fresh copy of this cluster to work with and
+						// try update
+						updateMetaGenerator, fetchErr := observer.GetCluster(kubecluster.Namespace, kubecluster.Name)
+						if fetchErr != nil {
+							if errors.IsNotFound(fetchErr) {
+								break
+							}
+						}
+						if wait > maxWait {
+							return fmt.Errorf(
+								"Unable to notify cluster {%s} of configmeta change",
+								updateMetaGenerator.Name)
+						}
+						time.Sleep(wait)
+						wait = wait * 2
+					}
+				}
+			}
 			cr.Status.State = string(clusterReady)
 		}
-		return nil
+
+		if currentHash == cr.Status.LastConnectionHash {
+			return nil
+		}
 	}
 
 	if cr.Status.State != string(clusterCreating) {
@@ -230,9 +321,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return configMetaErr
 	}
 
-	if state == clusterMembersChangedUnready {
-		cr.Status.SpecGenerationToProcess = &cr.Generation
-	}
 	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
 	if membersErr != nil {
 		errLog("members", membersErr)
@@ -240,6 +328,47 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	}
 
 	return nil
+}
+
+// Calculates md5sum of resource-versions of all resources
+// connected to this cluster
+func calcConnectionsHash(
+	con *kdv1.Connections,
+	ns string,
+) string {
+
+	clusterNames := con.Clusters
+	var buffer bytes.Buffer
+	for _, c := range clusterNames {
+		clusterObj, _ := observer.GetCluster(ns, c)
+		buffer.WriteString(c)
+		var specNum string
+		// extra careful while dereferencing
+		if clusterObj.Status.SpecGenerationToProcess == nil {
+			specNum = "nil"
+		} else {
+			specNum = strconv.Itoa(
+				int(*clusterObj.Status.SpecGenerationToProcess))
+		}
+		buffer.WriteString(specNum)
+	}
+	cmNames := con.ConfigMaps
+	for _, c := range cmNames {
+		cmObj, _ := observer.GetConfigMap(ns, c)
+		rv := cmObj.ResourceVersion
+		buffer.WriteString(c)
+		buffer.WriteString(rv)
+	}
+	secretNames := con.Secrets
+	for _, c := range secretNames {
+		secretObj, _ := observer.GetSecret(ns, c)
+		rv := secretObj.ResourceVersion
+		buffer.WriteString(c)
+		buffer.WriteString(rv)
+	}
+	// md5 is very cheap for small strings
+	md5Sum := md5.Sum([]byte(buffer.String()))
+	return hex.EncodeToString(md5Sum[:])
 }
 
 // checkContainerStates updates the lastKnownContainerState in each member

@@ -1,0 +1,16 @@
+apiVersion: "kubedirector.hpe.com/v1beta1"
+kind: "KubeDirectorCluster"
+metadata:
+  name: "ubuntu18.04"
+spec:
+  app: ubuntu18x
+  roles:
+  - id: vanilla_ubuntu
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "1"
+      limits:
+        memory: "4Gi"
+        cpu: "1"

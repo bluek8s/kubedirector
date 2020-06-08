@@ -91,6 +91,36 @@ func GetPod(
 	return result, err
 }
 
+// GetConfigMap finds the k8s ConfigMap with the given name in the given namespace.
+func GetConfigMap(
+	namespace string,
+	cmName string,
+) (*corev1.ConfigMap, error) {
+
+	result := &corev1.ConfigMap{}
+	err := shared.Get(
+		context.TODO(),
+		types.NamespacedName{Namespace: namespace, Name: cmName},
+		result,
+	)
+	return result, err
+}
+
+// GetSecret finds the k8s Secret with the given name in the given namespace.
+func GetSecret(
+	namespace string,
+	secretName string,
+) (*corev1.Secret, error) {
+
+	result := &corev1.Secret{}
+	err := shared.Get(
+		context.TODO(),
+		types.NamespacedName{Namespace: namespace, Name: secretName},
+		result,
+	)
+	return result, err
+}
+
 // GetPVC finds the k8s PersistentVolumeClaim with the given name in the given
 // namespace.
 func GetPVC(
@@ -138,21 +168,6 @@ func GetValidatorWebhook(
 	err = shared.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: kdNamespace, Name: validator},
-		result,
-	)
-	return result, err
-}
-
-// GetSecret fetches the secret resource in the given namespace.
-func GetSecret(
-	namespace string,
-	secretName string,
-) (*corev1.Secret, error) {
-
-	result := &corev1.Secret{}
-	err := shared.Get(
-		context.TODO(),
-		types.NamespacedName{Namespace: namespace, Name: secretName},
 		result,
 	)
 	return result, err

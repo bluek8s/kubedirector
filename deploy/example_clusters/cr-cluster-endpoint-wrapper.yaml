@@ -5,9 +5,9 @@ metadata:
 
 spec:
   app: flask-and-inf-eng
-  attachments:
-    models:
-    - "ml-models"
+  #connections:
+    #models:
+    #- "ml-models"
   roles:
   - id: RESTServer
     members: 1

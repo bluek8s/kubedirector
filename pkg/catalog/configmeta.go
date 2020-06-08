@@ -132,39 +132,41 @@ func nodegroups(
 		roleName := roleSpec.Name
 		members := membersForRole[roleName]
 
-		if members != nil {
-			var fqdns []string
-			var nodeIds []string
-			fqdnMappings := make(map[string]string)
-			for _, m := range members {
-				nodeName := m.Pod
-				// ConfigCli expects this to be a string.
-				nodeIDStr := strconv.FormatInt(m.NodeID, 10)
+		if members == nil {
+			continue
+		}
 
-				f := nodeName + "." + domain
-				fqdnMappings[f] = nodeIDStr
+		var fqdns []string
+		var nodeIds []string
+		fqdnMappings := make(map[string]string)
+		for _, m := range members {
+			nodeName := m.Pod
+			// ConfigCli expects this to be a string.
+			nodeIDStr := strconv.FormatInt(m.NodeID, 10)
 
-				fqdns = append(fqdns, f)
-				nodeIds = append(nodeIds, nodeIDStr)
-			}
-			memoryQuant := roleSpec.Resources.Limits[v1.ResourceMemory]
-			memoryMb := memoryQuant.Value() / (1024 * 1024)
-			coresQuant := roleSpec.Resources.Limits[v1.ResourceCPU]
-			roleFlavor := flavor{
-				Storage:     "n/a",
-				Name:        "n/a",
-				Memory:      strconv.FormatInt(memoryMb, 10),
-				Description: "n/a",
-				Cores:       strconv.FormatInt(coresQuant.Value(), 10), // rounds up
-			}
-			roles[roleName] = role{
-				Services:     servicesForRole(appCR, roleName, members),
-				NodeIDs:      nodeIds,
-				Hostnames:    fqdns,
-				FQDNs:        fqdns,
-				FQDNMappings: fqdnMappings,
-				Flavor:       roleFlavor,
-			}
+			f := nodeName + "." + domain
+			fqdnMappings[f] = nodeIDStr
+
+			fqdns = append(fqdns, f)
+			nodeIds = append(nodeIds, nodeIDStr)
+		}
+		memoryQuant := roleSpec.Resources.Limits[v1.ResourceMemory]
+		memoryMb := memoryQuant.Value() / (1024 * 1024)
+		coresQuant := roleSpec.Resources.Limits[v1.ResourceCPU]
+		roleFlavor := flavor{
+			Storage:     "n/a",
+			Name:        "n/a",
+			Memory:      strconv.FormatInt(memoryMb, 10),
+			Description: "n/a",
+			Cores:       strconv.FormatInt(coresQuant.Value(), 10), // rounds up
+		}
+		roles[roleName] = role{
+			Services:     servicesForRole(appCR, roleName, members),
+			NodeIDs:      nodeIds,
+			Hostnames:    fqdns,
+			FQDNs:        fqdns,
+			FQDNMappings: fqdnMappings,
+			Flavor:       roleFlavor,
 		}
 	}
 	return map[string]nodegroup{

@@ -77,6 +77,6 @@ const (
 	invalidResource = "Specified resource(\"%s\") value(\"%s\") for role(\"%s\") is invalid. Minimum value must be \"%s\"."
 	invalidSrcURL   = "Unable to access the specified URL(\"%s\") in file injection spec for the role (%s). error: %s."
 
-	nameLimit       = "The KD cluster name violates the name length limit. The name is a combination of cluster name + role name."
-	badNamingScheme = "Naming scheme not valid."
+	nameLimit       = "When using the ClusterRole naming scheme, the total length of KD cluster name + any of its role IDs must not exceed 56 characters."
+	badNamingScheme = "Naming scheme not valid in the config file."
 )

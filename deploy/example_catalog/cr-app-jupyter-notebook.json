@@ -2,35 +2,34 @@
     "apiVersion": "kubedirector.hpe.com/v1beta1",
     "kind": "KubeDirectorApp",
     "metadata": {
-        "name" : "jupyter-notebook"
+        "name": "jupyter-notebook",
+        "labels": {
+            "kubedirector.hpe.com/AIML_category": "Notebook"
+        }
     },
 
-    "spec" : {
+    "spec": {
         "systemdRequired": true,
         "config": {
-            "roleServices": [
-                {
-                    "serviceIDs": [
-                        "ssh",
-                        "jupyter-nb"
-                    ],
-                    "roleID": "controller"
-                }
-            ],
+            "roleServices": [{
+                "serviceIDs": [
+                    "ssh",
+                    "jupyter-nb"
+                ],
+                "roleID": "controller"
+            }],
             "selectedRoles": [
                 "controller"
             ]
         },
         "label": {
-            "name": "Tensorflow 1.14 with jupyter notebook & centos7x",
-            "description": "TensorFlow1.14 with centos7x",
-            "AIML_category" : "Notebook"
+            "name": "Jupyter Notebook",
+            "description": "Jupyter Notebook with Tensorflow2",
+            "AIML_category": "Notebook"
         },
-        "distroID": "bluedata/jupyter-notebook",
-        "version": "1.8",
-        "configSchemaVersion": 7,
-        "services": [
-            {
+        "distroID": "hpecp/jupyter-notebook",
+        "version": "1.0",
+        "services": [{
                 "endpoint": {
                     "port": 22,
                     "isDashboard": false
@@ -54,14 +53,12 @@
             }
         ],
         "defaultConfigPackage": {
-            "packageURL" : "file:///opt/configscript/appconfig-1.8.tgz"
+            "packageURL": "file:///opt/configscript/appconfig-1.8.tgz"
         },
-        "roles": [
-            {
-                "imageRepoTag": "docker.io/bluedata/kd-notebook:latest",
-                "cardinality": "1",
-                "id": "controller"
-            }
-        ]
+        "roles": [{
+            "imageRepoTag": "docker.io/bluedata/kd-notebook:latest",
+            "cardinality": "1",
+            "id": "controller"
+        }]
     }
 }

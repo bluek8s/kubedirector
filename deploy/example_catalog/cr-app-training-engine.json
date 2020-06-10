@@ -2,7 +2,10 @@
     "apiVersion": "kubedirector.hpe.com/v1beta1",
     "kind": "KubeDirectorApp",
     "metadata": {
-        "name": "training-engine"
+        "name": "training-engine",
+        "labels": {
+            "kubedirector.hpe.com/AIML_category": "Training"
+        }
     },
 
     "spec": {
@@ -13,8 +16,7 @@
             "configMeta": {
                 "ml_engine": "python"
             },
-            "roleServices": [
-                {
+            "roleServices": [{
                     "roleID": "RESTServer",
                     "serviceIDs": [
                         "gunicorn",
@@ -43,15 +45,13 @@
                 "controller"
             ]
         },
-        "configSchemaVersion": 7,
-        "distroID": "bluedata/training-engine",
+        "distroID": "hpecp/training-engine",
         "label": {
             "description": "Training Cluster with endpoint wrapper",
-            "name": "Training Cluster",
-            "AIML_category" : "Training"
+            "name": "Training Cluster with Tensorflow2",
+            "AIML_category": "Training"
         },
-        "roles": [
-            {
+        "roles": [{
                 "cardinality": "1",
                 "configPackage": {
                     "packageURL": "file:///opt/configscript/flask_configure.tgz"
@@ -76,8 +76,7 @@
                 "imageRepoTag": "docker.io/bluedata/kd-notebook:latest"
             }
         ],
-        "services": [
-            {
+        "services": [{
                 "endpoint": {
                     "isDashboard": true,
                     "port": 8081,
@@ -144,9 +143,6 @@
             }
         ],
         "systemdRequired": true,
-        "version": "1.8"
+        "version": "1.0"
     }
-
-
-
 }

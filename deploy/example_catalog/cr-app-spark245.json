@@ -113,9 +113,9 @@
         }
       }
     ],
-    "defaultImageRepoTag": "docker.io/bluedata/spark245:1.3",
+    "defaultImageRepoTag": "docker.io/bluedata/spark245:1.4",
     "defaultConfigPackage": {
-      "packageURL": "file:///opt/configscripts/appconfig-1.3.tgz"
+      "packageURL": "file:///opt/configscripts/appconfig-1.4.tgz"
     },
     "roles": [
       {

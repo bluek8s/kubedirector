@@ -6,10 +6,6 @@
   },
   "spec": {
     "systemdRequired": true,
-    "defaultPersistDirs": [
-      "/home",
-      "/etc"
-    ],
     "config": {
       "roleServices": [
         {
@@ -113,7 +109,7 @@
         }
       }
     ],
-    "defaultImageRepoTag": "docker.io/bluedata/spark245:1.4",
+    "defaultImageRepoTag": "bluedata/spark245:1.4",
     "defaultConfigPackage": {
       "packageURL": "file:///opt/configscripts/appconfig-1.4.tgz"
     },
@@ -122,7 +118,9 @@
         "cardinality": "1",
         "id": "spark-master",
         "persistDirs": [
-          "/usr/lib/spark/spark-2.4.5-bin-hadoop2.7/conf"
+          "/usr/lib/spark/spark-2.4.5-bin-hadoop2.7/conf",
+          "/home",
+          "/etc"
         ]
       },
       {
@@ -130,21 +128,27 @@
         "id": "livy-server",
         "persistDirs": [
           "/usr/lib/spark/spark-2.4.5-bin-hadoop2.7/conf",
-          "/opt/livy/apache-livy-0.6.0-incubating-bin/conf"
+          "/opt/livy/apache-livy-0.6.0-incubating-bin/conf",
+          "/home",
+          "/etc"
         ]
       },
       {
         "cardinality": "1+",
         "id": "spark-worker",
         "persistDirs": [
-          "/usr/lib/spark/spark-2.4.5-bin-hadoop2.7/conf"
+          "/usr/lib/spark/spark-2.4.5-bin-hadoop2.7/conf",
+          "/home",
+          "/etc"
         ]
       },
       {
         "cardinality": "0+",
         "id": "notebook-server",
         "persistDirs": [
-          "/opt/sparkmagic"
+          "/opt/sparkmagic",
+          "/home",
+          "/etc"
         ]
       }
     ]

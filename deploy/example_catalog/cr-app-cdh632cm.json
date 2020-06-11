@@ -403,7 +403,8 @@
             },
             {
                 "id": "worker",
-                "cardinality": "3+"
+                "cardinality": "3+",
+                "persistDirs": ["/opt", "/var", "/data"]
             },
             {
                 "id": "gateway",

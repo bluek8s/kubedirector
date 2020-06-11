@@ -83,7 +83,7 @@
             "kafka-client"
         ]
     },
-    "defaultImageRepoTag": "docker.io/bluedata/kafka:1.0",
+    "defaultImageRepoTag": "bluedata/kafka:1.0",
     "label": {
         "name": "ConfluentKafka5.5",
         "description": "Confluent Kafka Platform, with Control Center, KSQL, Kafka Broker, Zookeeper, Kafka Connect, REST Proxy, Schema Registry and optional Kafka Client"

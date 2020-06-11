@@ -94,8 +94,7 @@
                         "cdh-scm-agent",
                         "ssh",
                         "hue",
-                        "oozie",
-                        "spark-history"
+                        "oozie"
                     ],
                     "roleID": "apps"
                 },

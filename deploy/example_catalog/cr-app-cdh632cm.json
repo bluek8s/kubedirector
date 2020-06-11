@@ -7,7 +7,7 @@
 
     "spec" : {
         "systemdRequired" : true,
-        "defaultPersistDirs" : ["/usr", "/opt", "/var", "/data"],
+        "defaultPersistDirs" : ["/opt", "/var"],
         "defaultEventList" : ["configure"],
         "capabilities" : [
             "SYS_PACCT",
@@ -120,20 +120,16 @@
                 "cmserver",
                 "primary",
                 "hive",
-                "worker",
-                "gateway",
-                "hbase",
-                "impala",
-                "apps"
+                "worker"
             ]
         },
-        "defaultImageRepoTag": "docker.io/bluedata/cdh632multi:1.0",
+        "defaultImageRepoTag": "bluedata/cdh632multi:1.1",
         "label": {
             "name": "CDH 6.3.2 multirole 7x",
             "description": "CDH 6.3.2 with YARN and HBase support. Includes Hive, Hue, Impala and Spark."
         },
         "distroID": "bluedata/cdh632multi",
-        "version": "1.0",
+        "version": "1.1",
         "configSchemaVersion": 7,
         "services": [
             {
@@ -382,11 +378,13 @@
             {
                 "id": "cmserver",
                 "cardinality": "1",
-                "eventList": ["configure", "addnodes", "delnodes"]
+                "eventList": ["configure", "addnodes", "delnodes"],
+
             },
             {
                 "id": "primary",
-                "cardinality": "1"
+                "cardinality": "1",
+                "persistDirs": ["/opt", "/var", "/data"]
             },
             {
                 "id": "hbase",
@@ -411,6 +409,16 @@
             {
                 "id": "gateway",
                 "cardinality": "0+"
+            },
+            {
+                "id": "standby",
+                "cardinality": "0+",
+                "persistDirs": ["/opt", "/var", "/data"]
+            },
+            {
+                "id": "arbiter",
+                "cardinality": "0+",
+                "persistDirs": ["/opt", "/var", "/data"]
             }
       ]
     }

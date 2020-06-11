@@ -51,7 +51,10 @@
                 }
             ],
             "selectedRoles": [
-                "master"
+                "master",
+                "kibana",
+                "elasticsearch",
+                "logstash"
             ]
         },
         "defaultImageRepoTag": "bluedata/elk771:1.0",

@@ -113,12 +113,12 @@
             {
                 "id": "kibana",
                 "cardinality": "0+",
-		"eventList": ["configure", "addnodes", "delnodes"]
+		 "eventList": ["configure", "addnodes", "delnodes"]
             },
             {
                 "id": "logstash",
                 "cardinality": "0+",
-		"eventList": ["configure", "addnodes", "delnodes"]
+		 "eventList": ["configure", "addnodes", "delnodes"]
             }
       ]
     }

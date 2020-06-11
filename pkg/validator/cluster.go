@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/controller/kubedirectorcluster"
 	"github.com/bluek8s/kubedirector/pkg/observer"
@@ -36,6 +36,8 @@ import (
 )
 
 type secretValidateResult int
+
+const nameLengthLimit = 56
 
 const (
 	secretIsValid secretValidateResult = iota
@@ -767,6 +769,69 @@ func addServiceType(
 	return valErrors, patches
 }
 
+// validateNamingScheme function validates the namingScheme for all K8s objects.
+// If the naming scheme is unspecified, check to see if the default namingScheme
+// is provided through kubedirector's config CR, otherwise use a global constant
+// for naming scheme. In either of those cases add an entry to PATCH spec for mutating
+// cluster CR.
+// If the naming scheme is defined, validate the naming scheme for correctness
+// and that the cluster name, role name combination does not exceed the default object
+// length limit for K8s objects (63). The max length limit is set to 56 to account for
+// the additional '-' and/or digit characters that might be included in the name.
+func validateNamingScheme(
+	cr *kdv1.KubeDirectorCluster,
+	appCR *kdv1.KubeDirectorApp,
+	valErrors []string,
+	patches []clusterPatchSpec,
+) ([]string, []clusterPatchSpec) {
+
+	if cr.Spec.NamingScheme == nil {
+		namingScheme := shared.GetDefaultNamingScheme()
+		cr.Spec.NamingScheme = &namingScheme
+		patches = append(
+			patches,
+			clusterPatchSpec{
+				Op:   "add",
+				Path: "/spec/namingScheme",
+				Value: clusterPatchValue{
+					ValueStr: cr.Spec.NamingScheme,
+				},
+			},
+		)
+	} else {
+		if *cr.Spec.NamingScheme == kdv1.ClusterRole {
+			var maxCount int
+			count := len(cr.Name)
+			for _, v := range appCR.Spec.NodeRoles {
+				if len(v.ID) > maxCount {
+					maxCount = len(v.ID)
+				}
+			}
+			count += maxCount
+
+			if count > nameLengthLimit {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						nameLimit,
+					),
+				)
+			}
+		} else if *cr.Spec.NamingScheme == kdv1.UID {
+			return valErrors, patches
+		} else {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					badNamingScheme,
+				),
+			)
+		}
+	}
+
+	return valErrors, patches
+}
+
 // admitClusterCR is the top-level cluster validation function, which invokes
 // the top-specific validation subroutines and composes the admission
 // response.
@@ -882,14 +947,13 @@ func admitClusterCR(
 	// Validate minimum resources for all roles
 	valErrors = validateMinResources(&clusterCR, appCR, valErrors)
 
-	valErrors, patches = validateRoleStorageClass(
-		&clusterCR,
-		valErrors,
-		patches,
-	)
+	valErrors, patches = validateRoleStorageClass(&clusterCR, valErrors, patches)
 
 	// Validate service type and generate patch in case no service type defined or change
 	valErrors, patches = addServiceType(&clusterCR, valErrors, patches)
+
+	// Validate naming scheme and generate patch in case no naming scheme defined or change
+	valErrors, patches = validateNamingScheme(&clusterCR, appCR, valErrors, patches)
 
 	// Validate file injections and generate patches for default values (if any)
 	valErrors, patches = validateFileInjections(&clusterCR, valErrors, patches)

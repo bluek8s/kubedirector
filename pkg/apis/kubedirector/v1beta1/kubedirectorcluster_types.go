@@ -19,24 +19,42 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	// UID represents the old naming scheme where object names were generated
+	// with unique UID extensions.
+	UID string = "UID"
+
+	// ClusterRole represents the new naming scheme based on cluster name and
+	// respective role name.
+	ClusterRole string = "ClusterRole"
+)
+
 // KubeDirectorClusterSpec defines the desired state of KubeDirectorCluster.
 // AppID references a KubeDirectorApp CR. ServiceType indicates whether to
 // use NodePort or LoadBalancer services. The Roles field describes the
 // requested cluster roles, each of which will be implemented (by KubeDirector)
 // using a StatefulSet.
-// +k8s:openapi-gen=true
 type KubeDirectorClusterSpec struct {
-	AppID         string    `json:"app"`
-	AppCatalog    *string   `json:"appCatalog,omitempty"`
-	ServiceType   *string   `json:"serviceType,omitempty"`
-	Roles         []Role    `json:"roles"`
-	DefaultSecret *KDSecret `json:"defaultSecret,omitempty"`
+	AppID         string      `json:"app"`
+	AppCatalog    *string     `json:"appCatalog,omitempty"`
+	ServiceType   *string     `json:"serviceType,omitempty"`
+	Roles         []Role      `json:"roles"`
+	DefaultSecret *KDSecret   `json:"defaultSecret,omitempty"`
+	Connections   Connections `json:"connections"`
+	NamingScheme  *string     `json:"namingScheme,omitempty"`
+}
+
+// Connections specifies list of cluster objects and configmaps objects that has
+// be connected to the cluster.
+type Connections struct {
+	Clusters   []string `json:"clusters,omitempty"`
+	ConfigMaps []string `json:"configmaps,omitempty"`
+	Secrets    []string `json:"secrets,omitempty"`
 }
 
 // KubeDirectorClusterStatus defines the observed state of KubeDirectorCluster.
 // It identifies which native k8s objects make up the cluster, and broadly
 // indicates ongoing operations of cluster creation or reconfiguration.
-// +k8s:openapi-gen=true
 type KubeDirectorClusterStatus struct {
 	State                   string       `json:"state"`
 	MemberStateRollup       StateRollup  `json:"memberStateRollup"`
@@ -45,29 +63,32 @@ type KubeDirectorClusterStatus struct {
 	ClusterService          string       `json:"clusterService"`
 	LastNodeID              int64        `json:"lastNodeID"`
 	Roles                   []RoleStatus `json:"roles"`
+	LastConnectionHash      string       `json:"lastConnectionHash"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubeDirectorCluster represents a single virtual cluster. This cluster
-// will be implemented by KubeDirector using native k8s objects. Note that
-// the AppSpec field is only used internally in KubeDirector; that field is
-// not persisted to k8s.
-// +k8s:openapi-gen=true
+// KubeDirectorCluster is the Schema for the kubedirectorclusters API.
+// This object represents a single virtual cluster. This cluster will be
+// implemented by KubeDirector using native k8s objects. Note that the AppSpec
+// field is only used internally in KubeDirector; that field is not persisted
+// to k8s.
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=kubedirectorclusters,scope=Namespaced
 type KubeDirectorCluster struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata"`
-	Spec              KubeDirectorClusterSpec    `json:"spec"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              KubeDirectorClusterSpec    `json:"spec,omitempty"`
 	Status            *KubeDirectorClusterStatus `json:"status,omitempty"`
 	AppSpec           *KubeDirectorApp           `json:"-"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubeDirectorClusterList is the top-level list type for virtual cluster CRs.
+// KubeDirectorClusterList contains a list of KubeDirectorCluster.
 type KubeDirectorClusterList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
+	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []KubeDirectorCluster `json:"items"`
 }
 
@@ -145,6 +166,7 @@ type RoleStatus struct {
 type MemberStatus struct {
 	Pod         string            `json:"pod"`
 	Service     string            `json:"service"`
+	AuthToken   string            `json:"authToken,omitempty"`
 	PVC         string            `json:"pvc,omitempty"`
 	State       string            `json:"state"`
 	StateDetail MemberStateDetail `json:"stateDetail,omitempty"`

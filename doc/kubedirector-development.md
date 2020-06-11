@@ -6,24 +6,28 @@ The remainder of this document assumes that you have cloned the KubeDirector rep
 
 Creating and managing virtual clusters with KubeDirector is described in [virtual-clusters.md](virtual-clusters.md).
 
+#### CODEBASE MIGRATION
+
+If you are working with a fresh checkout of this codebase, skip ahead to DEVELOPMENT SETUP below.
+
+If however you are updating to a newer version of the KubeDirector source after working with an older version, it may not be desirable to do a fresh checkout if your codebase contains extensive changes. In that case, the following steps are recommended:
+* If possible, do a "make clean" **and then** pull/merge in the changes for the new source. If you have already pulled in the new changes however, go ahead and do a "make clean" now.
+* If you are coming from v0.4.0 (or earlier), recursively remove the "vendor" directory and its contents.
+* Make sure there are no old generated source files remaining (generated files live in subdirectories under "pkg/apis"). "git status" can help you check for this; any "untracked" go source files should likely be removed unless you know exactly what they are and why they should remain.
+
+Then proceed to the "DEVELOPMENT SETUP" section below and check for any new tool requirements.
+
 #### DEVELOPMENT SETUP
 
 If you intend to build KubeDirector yourself, rather than deploying a pre-built image, then some additional setup is required.
 
 KubeDirector has been successfully built and deployed from macOS, Ubuntu, and CentOS. Similar OS environments may also work for development but have not been tested.
 
-KubeDirector is written in the ["go"](https://golang.org/) language, so the fundamental requirement for building KubeDirector from source is to have that language installed (version 1.12 or later). The ["dep"](https://golang.github.io/dep/) tool is also required.
+KubeDirector is written in the ["go"](https://golang.org/) language, so the fundamental requirement for building KubeDirector from source is to have that language installed (version 1.13 or later).
 
-KubeDirector currently uses the [Operator SDK](https://github.com/operator-framework/operator-sdk) to do code generation for watching custom resources (the "informer" block in the [architecture diagrams](https://github.com/bluek8s/kubedirector/wiki/KubeDirector-Architecture-Overview)). So if you intend to build KubeDirector from source, you will need the operator SDK on your build system. Do the following step once before any build of KubeDirector:
-```bash
-    git clone https://github.com/operator-framework/operator-sdk.git $GOPATH/src/github.com/operator-framework/operator-sdk
-    cd $GOPATH/src/github.com/operator-framework/operator-sdk
-    git checkout v0.8.1
-    make dep
-    make install
-```
+KubeDirector uses the [Operator SDK](https://github.com/operator-framework/operator-sdk) to do code generation for watching custom resources. The version of the Operator SDK used by KubeDirector depends on which release or branch of the KubeDirector source you are working with. So before you proceed, make sure that you are looking at the version of this document corresponding to the release/branch of KubeDirector that you care about! For example if you are currently working with some specific KubeDirector release on your local workstation, but you are reading this document from the tip of the master branch on GitHub, then you may end up with incorrect information.
 
-Note the specific operator-sdk version that is used above; this will undoubtedly change in future KubeDirector versions.
+KubeDirector currently uses version 0.15.2 of the Operator SDK. You should reference [that version of the Operator SDK installation guide](https://github.com/operator-framework/operator-sdk/blob/v0.15.2/doc/user/install-operator-sdk.md), and you should make sure that you specifically install version 0.15.2 of the operator-sdk tool. The most foolproof way to get the correct version is to use the ["Install from GitHub release"](https://github.com/operator-framework/operator-sdk/blob/v0.15.2/doc/user/install-operator-sdk.md#install-from-github-release) section of that doc.
 
 You will also need Docker installed on your build system.
 
@@ -47,17 +51,38 @@ If you do encounter this error when using an old version of Docker on CentOS, an
 
 However the best solution is probably to move to using a more recent release of Docker Engine if that is possible.
 
+#### NOTES ON GOROOT ISSUES
+
+When using a precompiled operator-sdk binary to build an operator such as KubeDirector, you may encounter this error:
+```
+    operator-sdk generate k8s
+    INFO[0000] Running deepcopy code-generation for Custom Resource group versions: [kubedirector:[v1beta1], ]
+    F0327 12:51:51.104843   84262 deepcopy.go:885] Hit an unsupported type invalid type for invalid type, from github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1.KubeDirectorApp
+    make: *** [pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go] Error 255
+```
+
+This can be resolved by explicitly setting and exporting your GOROOT environment variable (if it is currently unset). You can find the necessary value by executing "go env GOROOT".
+
+As an example of one way to tackle this issue that will be robust to future golang version upgrades... if you have the following two lines in one of your profile scripts (like .bash_profile or .bashrc):
+```bash
+    export GOPATH=~/Projects/go
+    export PATH=$PATH:$GOPATH/bin
+```
+then immediately following those two lines you could add this one:
+```bash
+    export GOROOT=`go env GOROOT`
+```
+
 #### BUILDING
 
 Make sure that "$GOPATH/bin" is included in your PATH environment variable.
 
 To build KubeDirector for the first time:
 ```bash
-    make dep
     make build
 ```
 
-When rebuilding KubeDirector subsequently, only "make build" should be necessary, unless you have changed the set of packages that the code imports.
+If you subsequently make edits that change the set of packages that the code imports, you should run "make modules" before rebuilding.
 
 The build process creates the YAML for the KubeDirector deployment, the kubedirector binary, and a "configcli" package of utility Python code. It then creates a Docker image that contains the kubedirector binary at /usr/local/bin/kubedirector, and has the configcli package stored at /root/configcli.tgz.
 
@@ -72,7 +97,7 @@ Whenever you do "make deploy", KubeDirector is deployed to K8s using the image i
 A "make push" will push your locally built image to its registry, so that it can be deployed. If you have not set a custom image name, "make push" will fail.
 
 If you *have* set a custom image name, then one possible clean/rigorous cycle of deploying successive builds would be:
-1. "make build" (preceded by "make dep" if necessary)
+1. "make build" (preceded by "make modules" if necessary)
 2. "make push"
 3. "make deploy"
 4. testing
@@ -88,7 +113,7 @@ Before starting a "redeploy" cycle, you do need an initial deployment. If you do
 * "make deploy"
 
 After the initial deploy, your development cycle can look like this:
-1. "make build" (preceded by "make dep" if necessary)
+1. "make build" (preceded by "make modules" if necessary)
 2. "make redeploy"
 3. testing
 4. make code changes

@@ -17,7 +17,7 @@ package shared
 import (
 	"sync"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 )
 
 var (
@@ -48,6 +48,18 @@ func GetNativeSystemdSupport() bool {
 		return *globalConfig.Spec.NativeSystemdSupport
 	}
 	return false
+}
+
+// GetDefaultNamingScheme extracts the flag definition from the
+// globalConfig CR data if present, otherwise returns false
+func GetDefaultNamingScheme() string {
+
+	globalConfigLock.RLock()
+	defer globalConfigLock.RUnlock()
+	if globalConfig != nil && globalConfig.Spec.DefaultNamingScheme != nil {
+		return *globalConfig.Spec.DefaultNamingScheme
+	}
+	return DefaultNamingScheme
 }
 
 // GetDefaultStorageClass extracts the default storage class from the

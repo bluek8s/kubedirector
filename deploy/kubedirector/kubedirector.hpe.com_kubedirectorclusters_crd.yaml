@@ -36,6 +36,24 @@ spec:
             appCatalog:
               type: string
               pattern: '^local$|^system$'
+            connections:
+              type: object
+              properties:
+                clusters:
+                  type: array
+                  items:
+                    type: string
+                configmaps:
+                  type: array
+                  items:
+                    type: string
+                secrets:
+                  type: array
+                  items:
+                    type: string
+            namingScheme:
+              type: string
+              pattern: '^UID$|^ClusterRole$'
             serviceType:
               type: string
               pattern: '^ClusterIP$|^NodePort$|^LoadBalancer$'
@@ -197,6 +215,8 @@ spec:
                   type: boolean
             generationUID:
               type: string
+            lastConnectionHash:
+              type: string  
             specGenerationToProcess:
               type: integer
             clusterService:
@@ -225,6 +245,8 @@ spec:
                           type: string
                         pvc:
                           type: string
+                        authToken:
+                          type: string  
                         state:
                           type: string
                         stateDetail:

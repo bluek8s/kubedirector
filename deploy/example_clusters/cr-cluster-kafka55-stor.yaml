@@ -1,0 +1,87 @@
+apiVersion: "kubedirector.hpe.com/v1beta1"
+kind: "KubeDirectorCluster"
+metadata:
+  name: "kafka55-persistent"
+spec:
+  app: confluentkafka55
+  roles:
+  - id: control-center
+    members: 1
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "2"
+      limits:
+        memory: "2Gi"
+        cpu: "2"
+    storage:
+      size: "50Gi"
+  - id: zookeeper
+    members: 3
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "2"
+      limits:
+        memory: "2Gi"
+        cpu: "2"
+    storage:
+      size: "50Gi"
+  - id: broker
+    members: 3
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "2"
+      limits:
+        memory: "2Gi"
+        cpu: "2"
+    storage:
+      size: "50Gi"
+  - id: schema-registry
+    members: 1
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "2"
+      limits:
+        memory: "2Gi"
+        cpu: "2"
+  - id: rest-proxy
+    members: 1
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "2"
+      limits:
+        memory: "2Gi"
+        cpu: "2"
+  - id: kafka-connect
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"
+  - id: ksqldb
+    members: 1
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "2"
+      limits:
+        memory: "2Gi"
+        cpu: "2"
+    storage:
+     size: "50Gi"
+  - id: kafka-client
+    members: 1
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "1"
+      limits:
+        memory: "1Gi"
+        cpu: "1"

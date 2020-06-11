@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -36,13 +36,17 @@ var log = logf.Log.WithName("controller_kubedirectorconfig")
 // Add creates a new KubeDirectorConfig Controller and adds it to the Manager.
 // The Manager will set fields on the Controller and Start it when the Manager
 // is Started.
-func Add(mgr manager.Manager) error {
+func Add(
+	mgr manager.Manager,
+) error {
 
 	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+func newReconciler(
+	mgr manager.Manager,
+) reconcile.Reconciler {
 
 	return &ReconcileKubeDirectorConfig{scheme: mgr.GetScheme()}
 }
@@ -93,7 +97,9 @@ type ReconcileKubeDirectorConfig struct {
 // The Controller will requeue the Request to be processed again if the
 // returned error is non-nil or Result.Requeue is true, otherwise upon
 // completion it will remove the work from the queue.
-func (r *ReconcileKubeDirectorConfig) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileKubeDirectorConfig) Reconcile(
+	request reconcile.Request,
+) (reconcile.Result, error) {
 
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reconcileResult := reconcile.Result{RequeueAfter: reconcilePeriod}

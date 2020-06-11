@@ -1,5 +1,5 @@
-kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
 metadata:
   name: kubedirector
 rules:
@@ -22,6 +22,7 @@ rules:
   resources:
   - pods
   - services
+  - services/finalizers
   - endpoints
   - persistentvolumeclaims
   - events
@@ -40,30 +41,45 @@ rules:
   - apps
   resources:
   - deployments
+  - daemonsets
   - replicasets
   verbs:
-  - "get"
-  - "list"
-  - "watch"
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resourceNames:
+  - kubedirector
+  resources:
+  - deployments/finalizers
+  verbs:
+  - update
 - apiGroups:
   - admissionregistration.k8s.io
   resources:
   - mutatingwebhookconfigurations
   verbs:
-  - "get"
-  - "create"
+  - "*"
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  verbs:
+  - get
+  - create
 
 ---
 
-kind: ServiceAccount
 apiVersion: v1
+kind: ServiceAccount
 metadata:
   name: kubedirector
 
 ---
 
-kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
 metadata:
   name: kubedirector
 subjects:

@@ -23,7 +23,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
+	"github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	appsv1 "k8s.io/api/apps/v1"
@@ -50,7 +51,7 @@ func CreateStatefulSet(
 	role *kdv1.Role,
 ) (*appsv1.StatefulSet, error) {
 
-	statefulSet, err := getStatefulset(reqLogger, cr, nativeSystemdSupport, role, 0)
+	statefulSet, err := getStatefulSet(reqLogger, cr, nativeSystemdSupport, role, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -160,10 +161,10 @@ func DeleteStatefulSet(
 	return shared.Delete(context.TODO(), toDelete)
 }
 
-// getStatefulset composes the spec for creating a statefulset in k8s, based
+// getStatefulSet composes the spec for creating a statefulset in k8s, based
 // on the given virtual cluster CR and for the purposes of implementing the
 // given role.
-func getStatefulset(
+func getStatefulSet(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	nativeSystemdSupport bool,
@@ -273,18 +274,33 @@ func getStatefulset(
 		return nil, securityErr
 	}
 
-	return &appsv1.StatefulSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "StatefulSet",
-			APIVersion: "apps/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
+	namingScheme := *cr.Spec.NamingScheme
+	var objectMeta metav1.ObjectMeta
+
+	if namingScheme == v1beta1.ClusterRole {
+		objectMeta = metav1.ObjectMeta{
+			Name:            cr.Name + "-" + role.Name,
+			Namespace:       cr.Namespace,
+			OwnerReferences: ownerReferences(cr),
+			Labels:          labels,
+			Annotations:     annotationsForCluster(cr),
+		}
+	} else if namingScheme == v1beta1.UID {
+		objectMeta = metav1.ObjectMeta{
 			GenerateName:    statefulSetNamePrefix,
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labels,
 			Annotations:     annotationsForCluster(cr),
+		}
+	}
+
+	return &appsv1.StatefulSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "StatefulSet",
+			APIVersion: "apps/v1",
 		},
+		ObjectMeta: objectMeta,
 		Spec: appsv1.StatefulSetSpec{
 			PodManagementPolicy: appsv1.ParallelPodManagement,
 			Replicas:            &replicas,
@@ -315,7 +331,7 @@ func getStatefulset(
 							Ports:           endpointPorts,
 							VolumeMounts:    volumeMounts,
 							SecurityContext: securityContext,
-							Env:             role.EnvVars,
+							Env:             chkModifyEnvVars(role),
 						},
 					},
 					Volumes: volumes,
@@ -324,6 +340,34 @@ func getStatefulset(
 			VolumeClaimTemplates: getVolumeClaimTemplate(cr, role, PvcNamePrefix),
 		},
 	}, nil
+}
+
+// chkModifyEnvVars checks a role's resource requests. If an NVIDIA GPU resource has
+// NOT been requested for the role, a work-around is added (as an environment variable), to
+// avoid a GPU being surfaced anyway in a container related to the role
+func chkModifyEnvVars(
+	role *kdv1.Role,
+) (envVar []v1.EnvVar) {
+
+	envVar = role.EnvVars
+	rsrcmap := role.Resources.Requests
+	// return the role's environment variables unmodified, if an NVIDIA GPU is
+	// indeed a resource requested for this role
+	if quantity, found := rsrcmap[nvidiaGpuResourceName]; found == true && quantity.IsZero() != true {
+		return envVar
+	}
+
+	// add an environment variable, as a work-around to ensure that an NVIDIA GPU is
+	// not visible in a container (related to this role) for which an NVIDIA GPU resource
+	// has not been requested (or the key for the NVIDIA GPU resource has been specified, but
+	// with a quantity of zero)
+	envVarToAdd := v1.EnvVar{
+		Name:  nvidiaGpuVisWorkaroundEnvVarName,
+		Value: nvidiaGpuVisWorkaroundEnvVarValue,
+		// ValueFrom not used
+	}
+	envVar = append(envVar, envVarToAdd)
+	return
 }
 
 // getInitContainer prepares the init container spec to be used with the

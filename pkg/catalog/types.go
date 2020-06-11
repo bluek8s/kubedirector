@@ -19,12 +19,13 @@ package catalog
 // CR. It is arranged in a format to be consumed by the app setup Python
 // packages.
 type configmeta struct {
-	Version    string                  `json:"version"`
-	Services   map[string]ngRefkeysMap `json:"services"`
-	Nodegroups map[string]nodegroup    `json:"nodegroups"`
-	Distros    map[string]refkeysMap   `json:"distros"`
-	Cluster    cluster                 `json:"cluster"`
-	Node       *node                   `json:"node"`
+	Version     string                  `json:"version"`
+	Services    map[string]ngRefkeysMap `json:"services"`
+	Nodegroups  map[string]nodegroup    `json:"nodegroups"`
+	Distros     map[string]refkeysMap   `json:"distros"`
+	Cluster     cluster                 `json:"cluster"`
+	Node        *node                   `json:"node"`
+	Connections connections             `json:"connections"`
 }
 
 type ngRefkeysMap map[string]refkeysMap
@@ -40,6 +41,12 @@ type nodegroup struct {
 	DistroID            string            `json:"distro_id"`
 	CatalogEntryVersion string            `json:"catalog_entry_version"`
 	ConfigMeta          map[string]string `json:"config_metadata"`
+}
+
+type connections struct {
+	Clusters   map[string]configmeta                   `json:"clusters"`
+	ConfigMaps map[string]map[string]map[string]string `json:"configmaps"`
+	Secrets    map[string]map[string]map[string][]byte `json:"secrets"`
 }
 
 type cluster struct {
@@ -78,6 +85,7 @@ type service struct {
 	FQDNs           refkeys  `json:"fqdns"`
 	ExportedService string   `json:"exported_service"`
 	Endpoints       []string `json:"endpoints"`
+	AuthToken       string   `json:"authToken"`
 }
 
 type flavor struct {

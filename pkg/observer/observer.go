@@ -17,7 +17,7 @@ package observer
 import (
 	"context"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"k8s.io/api/admissionregistration/v1beta1"
@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // GetCluster finds the k8s KubeDirectorCluster with the given name in the
@@ -92,6 +91,36 @@ func GetPod(
 	return result, err
 }
 
+// GetConfigMap finds the k8s ConfigMap with the given name in the given namespace.
+func GetConfigMap(
+	namespace string,
+	cmName string,
+) (*corev1.ConfigMap, error) {
+
+	result := &corev1.ConfigMap{}
+	err := shared.Get(
+		context.TODO(),
+		types.NamespacedName{Namespace: namespace, Name: cmName},
+		result,
+	)
+	return result, err
+}
+
+// GetSecret finds the k8s Secret with the given name in the given namespace.
+func GetSecret(
+	namespace string,
+	secretName string,
+) (*corev1.Secret, error) {
+
+	result := &corev1.Secret{}
+	err := shared.Get(
+		context.TODO(),
+		types.NamespacedName{Namespace: namespace, Name: secretName},
+		result,
+	)
+	return result, err
+}
+
 // GetPVC finds the k8s PersistentVolumeClaim with the given name in the given
 // namespace.
 func GetPVC(
@@ -139,21 +168,6 @@ func GetValidatorWebhook(
 	err = shared.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: kdNamespace, Name: validator},
-		result,
-	)
-	return result, err
-}
-
-// GetSecret fetches the secret resource in the given namespace.
-func GetSecret(
-	namespace string,
-	secretName string,
-) (*corev1.Secret, error) {
-
-	result := &corev1.Secret{}
-	err := shared.Get(
-		context.TODO(),
-		types.NamespacedName{Namespace: namespace, Name: secretName},
 		result,
 	)
 	return result, err
@@ -238,7 +252,7 @@ func GetDefaultStorageClass() (*storagev1.StorageClass, error) {
 
 	// Namespace does not matter for this query; leave blank.
 	result := &storagev1.StorageClassList{}
-	err := shared.List(context.TODO(), &client.ListOptions{}, result)
+	err := shared.List(context.TODO(), result)
 	if err != nil {
 		return nil, err
 	}

@@ -23,7 +23,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/controller/kubedirectorconfig"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 
-	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector.hpe.com/v1beta1"
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -227,6 +227,13 @@ func admitKDConfigCR(
 					ValueStr: &svcDomainBase,
 				},
 			},
+		)
+	}
+
+	// Populate default naming scheme if necessary.
+	if configCR.Spec.DefaultNamingScheme == nil {
+		patches = append(patches,
+			newStrPatch("/spec/defaultNamingScheme", shared.DefaultNamingScheme),
 		)
 	}
 

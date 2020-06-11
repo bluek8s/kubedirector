@@ -62,7 +62,7 @@
             "name": "ELK Stack 7.7.1 v1",
             "description": "ELK Stack 7.7.1 cluster with elastic, logstash and kibana nodes v1"
         },
-        "distroID": "bluedata/elk771:1.0",
+        "distroID": "bluedata/elk771",
         "version": "1.0",
         "configSchemaVersion": 7,
         "services": [

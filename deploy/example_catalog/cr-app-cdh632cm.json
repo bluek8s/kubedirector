@@ -7,7 +7,7 @@
 
     "spec" : {
         "systemdRequired" : true,
-        "defaultPersistDirs" : ["/usr", "/opt", "/var", "/data"],
+        "defaultPersistDirs" : ["/opt", "/var"],
         "defaultEventList" : ["configure"],
         "capabilities" : [
             "SYS_PACCT",
@@ -94,8 +94,7 @@
                         "cdh-scm-agent",
                         "ssh",
                         "hue",
-                        "oozie",
-                        "spark-history"
+                        "oozie"
                     ],
                     "roleID": "apps"
                 },
@@ -124,16 +123,18 @@
                 "gateway",
                 "hbase",
                 "impala",
-                "apps"
+                "apps",
+                "standby",
+                "arbiter"
             ]
         },
-        "defaultImageRepoTag": "docker.io/bluedata/cdh632multi:1.0",
+        "defaultImageRepoTag": "bluedata/cdh632multi:1.1",
         "label": {
             "name": "CDH 6.3.2 multirole 7x",
             "description": "CDH 6.3.2 with YARN and HBase support. Includes Hive, Hue, Impala and Spark."
         },
         "distroID": "bluedata/cdh632multi",
-        "version": "1.0",
+        "version": "1.1",
         "configSchemaVersion": 7,
         "services": [
             {
@@ -386,7 +387,8 @@
             },
             {
                 "id": "primary",
-                "cardinality": "1"
+                "cardinality": "1",
+                "persistDirs": ["/opt", "/var", "/data"]
             },
             {
                 "id": "hbase",
@@ -406,11 +408,22 @@
             },
             {
                 "id": "worker",
-                "cardinality": "3+"
+                "cardinality": "3+",
+                "persistDirs": ["/opt", "/var", "/data"]
             },
             {
                 "id": "gateway",
                 "cardinality": "0+"
+            },
+            {
+                "id": "standby",
+                "cardinality": "0+",
+                "persistDirs": ["/opt", "/var", "/data"]
+            },
+            {
+                "id": "arbiter",
+                "cardinality": "0+",
+                "persistDirs": ["/opt", "/var", "/data"]
             }
       ]
     }

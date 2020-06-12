@@ -119,7 +119,13 @@
                 "cmserver",
                 "primary",
                 "hive",
-                "worker"
+                "worker",
+                "gateway",
+                "hbase",
+                "impala",
+                "apps",
+                "standby",
+                "arbiter"
             ]
         },
         "defaultImageRepoTag": "bluedata/cdh632multi:1.1",

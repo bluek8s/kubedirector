@@ -1,0 +1,64 @@
+#apiVersion: v1
+#kind: Secret
+#metadata:
+#  name: notebookusersecret
+#  labels:
+#    kubedirector.hpe.com/secretType : notebookusersecret
+#type: Opaque
+#data:
+#  notebook_username: YWRtaW4K
+#  notebook_password: YWRtaW4xMjMK
+#---
+apiVersion: "kubedirector.hpe.com/v1beta1"
+kind: "KubeDirectorCluster"
+metadata:
+  name: "spark245-instance"
+spec:
+  app: spark245
+#  connections:
+#    secrets:
+#    - notebookusersecret
+  roles:
+  - id: spark-master
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "4Gi"
+        cpu: "2"
+    storage:
+      size: "40Gi" 
+  - id: livy-server
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "4Gi"
+        cpu: "2"
+    storage:
+      size: "40Gi"
+  - id: spark-worker
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "4Gi"
+        cpu: "2"
+    storage:
+      size: "40Gi"
+  - id: notebook-server
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "4Gi"
+        cpu: "2"
+    storage:
+      size: "40Gi"

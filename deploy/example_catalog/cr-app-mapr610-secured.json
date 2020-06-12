@@ -1,0 +1,256 @@
+{
+  "apiVersion": "kubedirector.hpe.com/v1beta1",
+  "kind": "KubeDirectorApp",
+  "metadata": {
+    "name" : "mapr610"
+  },
+
+  "spec" : {
+    "systemdRequired": true,
+    "defaultPersistDirs" : ["/opt/mapr"],
+    "config": {
+      "configMeta" : {
+               "storage" : "60",
+               "secure":"true"
+      },
+      "roleServices": [
+        {
+                "roleID": "control-system",
+                "serviceIDs": [ "warden", "mapr-cs", "ssh" ]
+        },
+          {
+                "roleID": "cldb",
+                "serviceIDs": [ "warden", "cldb", "ssh"]
+          },
+          {
+                "roleID": "zookeeper",
+                "serviceIDs": [ "warden", "zookeeper", "ssh"]
+            },
+          {
+                "roleID": "hive-server2",
+                "serviceIDs": [ "warden", "hive-server2","webhcat" ,"ssh"]
+            },
+        {
+                "roleID": "hive-meta",
+                "serviceIDs": [ "warden", "hive-meta", "mysql", "ssh"]
+            },
+            {
+                "roleID": "hue",
+                "serviceIDs": [ "warden", "hue","httpfs", "ssh"]
+            },
+          {
+                "roleID": "edge",
+                "serviceIDs": [ "mapr-client", "ssh"]
+            },
+          {
+                "roleID": "nodemanager",
+                "serviceIDs": [ "warden", "yarn-nm", "ssh"]
+            },
+
+          {
+              "roleID": "resource-manager",
+                "serviceIDs": [ "warden", "yarn-rm", "ssh"]
+          },
+
+          {
+              "roleID": "history-server",
+                "serviceIDs": [ "warden", "yarn-hs", "ssh"]
+          },
+          {
+              "roleID": "fileserver",
+                "serviceIDs": [ "warden", "fileserver", "ssh"]
+          }
+
+      ],
+      "selectedRoles": [ "control-system","resource-manager","history-server", "zookeeper","cldb", "nodemanager","fileserver"]
+    },
+    "label": {
+      "name": "MapR 610",
+      "description": "MapR 6.1 with MEP 6.3"
+    },
+    "distroID": "bluedata/mapr610",
+    "version": "1.0",
+    "configSchemaVersion": 7,
+    "services": [
+    {
+            "id": "mapr-cs",
+            "label": { "name": "MapR Control System" },
+            "endpoint" : {
+                "urlScheme" : "https",
+                "path": "/app/mcs",
+                "port" : 8443,
+                "isDashboard" : true
+            }
+        },
+        {
+            "id": "hue",
+            "label": { "name": "Hue Console" },
+            "endpoint" : {
+                "urlScheme" : "https",
+                "path": "/",
+                "port" : 8888,
+                "isDashboard" : true
+            }
+        },
+        {
+            "id": "yarn-rm",
+            "label": { "name": "ResourceManager" },
+            "endpoint" : {
+                "urlScheme" : "https",
+                "path": "/cluster",
+                "port" : 8090,
+                "isDashboard" : true
+            }
+        },
+        {
+            "id": "yarn-nm",
+            "label": { "name": "NodeManager" },
+            "endpoint" : {
+                "urlScheme" : "https",
+                "path" : "/node",
+                "port" : 8044,
+                "isDashboard" : true
+            }
+        },
+        {
+            "id": "yarn-hs",
+            "label": { "name": "YARN HistoryServer"},
+            "endpoint" : {
+                "urlScheme" : "https",
+                "path" : "/jobhistory",
+                "port" : 19890,
+                "isDashboard" : true
+            }
+        },
+        {
+            "id": "cldb",
+            "label": { "name": "CLDB Web Port" },
+            "endpoint": {
+                "port" : 7443,
+                "isDashboard" : false
+            }
+        },
+        {
+            "id": "mapr-client",
+            "label": { "name": "MapR Client." }
+        },
+        {
+            "id": "zookeeper",
+            "label": { "name": "Zookeeper Server" },
+            "endpoint" : {
+                "port" : 5181,
+                "isDashboard" : false
+            }
+        },
+        {
+            "id": "webhcat",
+            "label": { "name": "WebHcat" },
+            "endpoint" : {
+                "port" : 50111,
+                "isDashboard" : false
+            }
+        },
+        {
+            "id": "httpfs",
+            "label": { "name": "HTTPFS" },
+            "endpoint" : {
+              "urlScheme": "https",
+              "path": "/webhdfs/v1",
+              "port": 14000,
+              "isDashboard": true
+            }
+        },
+        {
+            "id": "hive-meta",
+            "label": { "name": "HIVE Metastore" }
+        },
+      {
+            "id": "mysql",
+            "label": { "name": "MySQL" }
+        },
+        {
+            "id": "hive-server2",
+            "label": { "name": "HIVE Server 2" },
+            "endpoint" : {
+                "urlScheme" : "http",
+                "path": "/",
+                "port" : 10002,
+                "isDashboard" : true
+            }
+        },
+        {
+            "id": "warden",
+            "label": { "name": "Warden" }
+        },
+        {
+            "id": "fileserver",
+            "label": { "name": "FileServer" }
+        },
+        {
+            "id": "ssh",
+            "label": {
+                "name": "ssh"
+            },
+            "endpoint": {
+                "port": 22,
+                "isDashboard": false
+            }
+        },
+        {
+            "id": "ticketserver",
+            "label": { "name": "Simple Http server to distribute MapR tickets" }
+        }
+    ],
+    "defaultImageRepoTag": "bluedata/mapr610:1.0",
+    "defaultConfigPackage": {
+      "packageURL": "file:///opt/configscripts/appconfig-1.0.tgz"
+    },
+    "roles": [
+        {
+            "id": "control-system",
+            "cardinality": "1"
+        },
+        {
+            "id": "cldb",
+            "cardinality": "1+"
+        },
+        {
+            "id": "zookeeper",
+            "cardinality": "3"
+        },
+        {
+            "id": "hive-meta",
+            "cardinality": "1+"
+        },
+      {
+            "id": "hive-server2",
+            "cardinality": "1+"
+        },
+        {
+            "id": "hue",
+            "cardinality": "0+"
+        },
+        {
+            "id": "edge",
+            "imageRepoTag": "bluedata/mapr610edge:1.0",
+            "cardinality": "0+"
+        },
+        {
+            "id": "nodemanager",
+            "cardinality": "1+"
+        },
+        {
+            "id": "resource-manager",
+            "cardinality": "1+"
+        },
+        {
+            "id": "history-server",
+            "cardinality": "1"
+        },
+        {
+            "id": "fileserver",
+            "cardinality": "1+"
+        }
+    ]
+  }
+}

@@ -3,7 +3,7 @@
 # yaml file is called as cluster definition file
 
 # App definition file (JSON file) contains all the details about the app like different roles defined in the app, the docker image location,
-# cardinality permission of the app (scale up facility), secure or unsecure clusters, services available along with their external interfaces,
+# cardinality permission of the app (scale up facility), secure or un-secure clusters, services available along with their external interfaces,
 # roles to services mapping and many more. This is primary file which should be applied before applying the cluster definition file (YAML)
 
 # Cluster definition file (YAML file) contains what roles has to be implemented in our current cluster and how much resources have to be allocated
@@ -15,7 +15,7 @@
 # The fields in the metadata section are mandatory, the values can be changed, which means value "users-data" can be anything
 # The data section is predominantly used to create users on the pods, the format is
 # <base64 encoded username> : "<base64 encoded password>"
-# The data section has few standard fields which are used for some predefined actions, following are the predfined fields
+# The data section has few standard fields which are used for some predefined actions, following are the predefined fields
 # mapr, truststore, conf
 # mapr field is used to change the password for mapr user, password should be base64 encoded
 # truststore field is used to send the base mapr's ssl_truststore file content encoded with base64 -w0
@@ -50,22 +50,21 @@
 # under spec, kubedirector provides connections and roles section
 # connections section is used to pass the configmaps and secrets data to the pod
 # roles section defines the different roles that should be implemented in the app.
-# each roles section will have an id, members, resources, storage (optional) and podLabels to define specification of the roles.
+# each roles section will have an id, members, resources and podLabels to define specification of the roles.
 # id should match with roles in app definition (JSON file),
 # members should match the cardinality in the JSON file,
-# resoures has fields requests and limits, request is the default allocation of resources to the pod and limits says how much the resources can be stretched. Here the resouces means memory and cpu
-# storage section attaches a PV to the pod and size field of the storage tells what is the size of the PV
+# resources has fields requests and limits, request is the default allocation of resources to the pod and limits says how much the resources can be stretched. Here the resources means memory and cpu
 apiVersion: "kubedirector.hpe.com/v1beta1"
 kind: "KubeDirectorCluster"
 metadata:
   name: "mapr610"
 spec:
   app: mapr610
-#  connections:
-#    # attaching secrets data to the cluster
-#    secrets:
-#      - users-data
-#      - ssl-remote
+# connections:
+#   # attaching secrets data to the cluster
+#   secrets:
+#     - users-data
+#     - ssl-remote
   # Defining the roles to be implemented
   # for this current app, the different roles which are defined in the JSON file supplied with the app are
   # control-system, cldb, resource-manager, history-server, zookeeper, hive-meta, hive-server2, hue, fileserver, nodemanager and edge
@@ -77,7 +76,7 @@ spec:
   # nodemanager implements YARN nodemanager and it can be more than 1 member
   # hive-meta implements Hive Metastore, more than 1 member creates HA environment for Hive Metastore
   # hive-server implements Hive Server2, more than 1 member creates HA environment for Hive Server
-  # hue implements MapR's Hue which connects to Hive Server2 for Hive operations. In a HA environment, the active hive server2 should be manually updated in Hue.ini file, auto failover is currently not available
+  # hue implements MapR's Hue which connects to Hive Server2 for Hive operations. In a HA environment, the active hive server2 should be manually updated in Hue.ini file, auto fail-over is currently not available
   # fileserver implements MapR filesystem, this can be more than 1 member. This is to scale up the local maprfs facility
   # edge is a client service pod and can be 0 or more of it
   roles:
@@ -90,11 +89,6 @@ spec:
       limits:
         memory: "4Gi"
         cpu: "4"
-    # storage section is added to attach a PVC with the pod. This PVC is mounted at /data/maprflatfilestorage
-    storage:
-      size:  40Gi
-    # dtap injection provides the dtap library to the pod which will be used for creating connections with
-    # dtap libraries and enabling the pod to use dtap facility
   - id: cldb
     members: 1
     resources:
@@ -149,8 +143,6 @@ spec:
       limits:
         memory: "5Gi"
         cpu: "4"
-    storage:
-      size: "40Gi"
   - id: hive-server2
     members: 1
     resources:

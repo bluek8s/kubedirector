@@ -79,6 +79,8 @@ spec:
   # hue implements MapR's Hue which connects to Hive Server2 for Hive operations. In a HA environment, the active hive server2 should be manually updated in Hue.ini file, auto fail-over is currently not available
   # fileserver implements MapR filesystem, this can be more than 1 member. This is to scale up the local maprfs facility
   # edge is a client service pod and can be 0 or more of it
+
+  # NOTE: The memory and cpu values are for reference only, higher than the given values is recommended
   roles:
   - id: control-system
     members: 1
@@ -102,29 +104,29 @@ spec:
     members: 3
     resources:
       requests:
-        memory: "2Gi"
+        memory: "4Gi"
         cpu: "4"
       limits:
-        memory: "2Gi"
+        memory: "4Gi"
         cpu: "4"
   - id: resource-manager
     members: 1
     resources:
       requests:
-        memory: "2Gi"
-        cpu: "2"
+        memory: "4Gi"
+        cpu: "4"
       limits:
-        memory: "2Gi"
-        cpu: "2"
+        memory: "4Gi"
+        cpu: "4"
   - id: history-server
     members: 1
     resources:
       requests:
-        memory: "2Gi"
-        cpu: "2"
+        memory: "4Gi"
+        cpu: "4"
       limits:
-        memory: "2Gi"
-        cpu: "2"
+        memory: "4Gi"
+        cpu: "4"
   - id: hive-meta
     members: 1
     resources:
@@ -138,10 +140,10 @@ spec:
     members: 1
     resources:
       requests:
-        memory: "5Gi"
+        memory: "4Gi"
         cpu: "4"
       limits:
-        memory: "5Gi"
+        memory: "4Gi"
         cpu: "4"
   - id: hive-server2
     members: 1
@@ -175,7 +177,7 @@ spec:
     resources:
       requests:
         memory: "4Gi"
-        cpu: "2"
+        cpu: "4"
       limits:
         memory: "4Gi"
-        cpu: "2"
+        cpu: "4"

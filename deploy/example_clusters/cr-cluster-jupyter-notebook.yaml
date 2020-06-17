@@ -9,7 +9,7 @@ spec:
     resources:
       requests:
         memory: "4Gi"
-        cpu: "1"
+        cpu: "2"
       limits:
         memory: "4Gi"
-        cpu: "1"
+        cpu: "2"

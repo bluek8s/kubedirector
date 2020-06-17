@@ -1,7 +1,7 @@
 apiVersion: "kubedirector.hpe.com/v1beta1"
 kind: "KubeDirectorCluster"
 metadata: 
-  name: "training-engine"
+  name: "training-environment"
 spec:
   app: training-engine
   roles:
@@ -27,11 +27,11 @@ spec:
     members: 1
     resources:
       limits:
-        cpu: "1"
-        memory: 2Gi
+        cpu: "2"
+        memory: 8Gi
       requests:
-        cpu: "1"
-        memory: 2Gi  
+        cpu: "2"
+        memory: 8Gi  
 
 
         

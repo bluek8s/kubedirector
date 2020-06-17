@@ -2,7 +2,7 @@
     "apiVersion": "kubedirector.hpe.com/v1beta1",
     "kind": "KubeDirectorApp",
     "metadata": {
-        "name": "deploymt-engine",
+        "name": "deployment-engine",
         "labels": {
             "kubedirector.hpe.com/AIML_category": "Deployment"
         }

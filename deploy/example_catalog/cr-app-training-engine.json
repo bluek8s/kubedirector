@@ -70,7 +70,7 @@
             {
                 "cardinality": "1",
                 "configPackage": {
-                    "packageURL": "file:///opt/configscript/appconfig-1.8.tgz"
+                    "packageURL": "file:///opt/configscript/appconfig.tgz"
                 },
                 "id": "controller",
                 "imageRepoTag": "docker.io/bluedata/kd-notebook:latest"

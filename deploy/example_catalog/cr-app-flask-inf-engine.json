@@ -11,6 +11,7 @@
     "spec": {
         "distroID": "hpecp/deploymt-engine",
         "version": "1.0",
+        "configSchemaVersion": 7,
         "label": {
             "name": "Deployment Cluster",
             "description": "Cluster for deploying and serving ML models",
@@ -48,7 +49,7 @@
                     "urlScheme": "http",
                     "isDashboard": false,
                     "port": 10001,
-                    "auth_token": true
+                    "hasAuthToken": true
                 },
                 "id": "gunicorn",
                 "label": {
@@ -62,7 +63,7 @@
                     "path": "/<<model_name>>/<<model_version>>/predict",
                     "isDashboard": false,
                     "port": 32700,
-                    "auth_token": true
+                    "hasAuthToken": true
                 },
                 "id": "haproxy",
                 "label": {

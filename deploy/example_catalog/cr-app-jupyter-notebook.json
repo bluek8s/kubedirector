@@ -29,6 +29,7 @@
         },
         "distroID": "hpecp/jupyter-notebook",
         "version": "1.0",
+        "configSchemaVersion": 7,
         "services": [{
                 "endpoint": {
                     "port": 22,
@@ -44,7 +45,8 @@
                     "urlScheme": "http",
                     "path": "/",
                     "isDashboard": true,
-                    "port": 8888
+                    "port": 8888,
+                    "hasAuthToken": true
                 },
                 "id": "jupyter-nb",
                 "label": {
@@ -53,7 +55,7 @@
             }
         ],
         "defaultConfigPackage": {
-            "packageURL": "file:///opt/configscript/appconfig-1.8.tgz"
+            "packageURL": "file:///opt/configscript/appconfig.tgz"
         },
         "roles": [{
             "imageRepoTag": "docker.io/bluedata/kd-notebook:latest",

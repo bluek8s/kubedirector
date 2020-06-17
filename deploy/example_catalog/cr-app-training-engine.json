@@ -99,7 +99,7 @@
             },
             {
                 "endpoint": {
-                    "auth_token": true,
+                    "hasAuthToken": true,
                     "isDashboard": false,
                     "port": 10001,
                     "urlScheme": "http"
@@ -111,7 +111,7 @@
             },
             {
                 "endpoint": {
-                    "auth_token": true,
+                    "hasAuthToken": true,
                     "isDashboard": false,
                     "path": "/train",
                     "port": 32700,
@@ -143,6 +143,7 @@
             }
         ],
         "systemdRequired": true,
-        "version": "1.0"
+        "version": "1.0",
+        "configSchemaVersion": 7
     }
 }

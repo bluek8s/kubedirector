@@ -4,10 +4,6 @@ metadata:
   name: "jupyter-notebook"
 spec:
   app: jupyter-notebook
-  #connections:
-    #secrets:
-    #- "bitbucket-credentials"
-  serviceType: "NodePort"
   roles:
   - id: controller
     resources:

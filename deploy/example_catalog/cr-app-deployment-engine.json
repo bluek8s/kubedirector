@@ -1,0 +1,121 @@
+{
+    "apiVersion": "kubedirector.hpe.com/v1beta1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name": "deployment-engine",
+        "labels": {
+            "kubedirector.hpe.com/AIML_category": "Deployment"
+        }
+    },
+
+    "spec": {
+        "distroID": "hpecp/deploymt-engine",
+        "version": "1.0",
+        "configSchemaVersion": 7,
+        "label": {
+            "name": "Deployment Cluster",
+            "description": "Cluster for deploying and serving ML models",
+            "AIML_category": "Deployment"
+        },
+
+        "systemdRequired": true,
+        "categories": [
+            "AIML/Deployment"
+        ],
+
+        "services": [{
+                "id": "haproxy-stats",
+                "label": {
+                    "name": "Model serving request balancer stats"
+                },
+                "endpoint": {
+                    "urlScheme": "http",
+                    "port": 8081,
+                    "isDashboard": true
+                }
+            },
+            {
+                "id": "ssh",
+                "label": {
+                    "name": "SSH"
+                },
+                "endpoint": {
+                    "port": 22,
+                    "isDashboard": false
+                }
+            },
+            {
+                "endpoint": {
+                    "urlScheme": "http",
+                    "isDashboard": false,
+                    "port": 10001,
+                    "hasAuthToken": true
+                },
+                "id": "gunicorn",
+                "label": {
+                    "name": "API Server"
+                }
+            },
+            {
+                "exported_service": "AIML/Deployment",
+                "endpoint": {
+                    "urlScheme": "http",
+                    "path": "/<<model_name>>/<<model_version>>/predict",
+                    "isDashboard": false,
+                    "port": 32700,
+                    "hasAuthToken": true
+                },
+                "id": "haproxy",
+                "label": {
+                    "name": "Model Serving LoadBalancer"
+                }
+            },
+            {
+                "id": "httpd",
+                "label": {
+                    "name": "Apache HTTP Server"
+                }
+            }
+
+        ],
+
+        "defaultImageRepoTag": "docker.io/bluedata/kd-flask_serving:latest",
+        "defaultConfigPackage": {
+            "packageURL": "file:///opt/configscript/flask_configure.tgz"
+        },
+
+        "roles": [{
+                "id": "LoadBalancer",
+                "cardinality": "1"
+            },
+            {
+                "id": "RESTServer",
+                "cardinality": "1+"
+
+            }
+        ],
+
+        "config": {
+            "selectedRoles": [
+                "RESTServer",
+                "LoadBalancer"
+            ],
+            "roleServices": [{
+                    "roleID": "RESTServer",
+                    "serviceIDs": [
+                        "gunicorn",
+                        "ssh"
+                    ]
+                },
+                {
+                    "roleID": "LoadBalancer",
+                    "serviceIDs": [
+                        "gunicorn",
+                        "haproxy",
+                        "haproxy-stats"
+                    ]
+                }
+            ]
+        }
+    }
+}

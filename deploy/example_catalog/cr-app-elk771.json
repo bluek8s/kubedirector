@@ -53,7 +53,7 @@
             "selectedRoles": [
                 "master",
                 "kibana",
-                "elasticsearch",
+                "data",
                 "logstash"
             ]
         },

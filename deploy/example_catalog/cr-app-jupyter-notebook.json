@@ -58,7 +58,7 @@
             "packageURL": "file:///opt/configscript/appconfig.tgz"
         },
         "roles": [{
-            "imageRepoTag": "docker.io/bluedata/kd-notebook:latest",
+            "imageRepoTag": "bluedata/kd-notebook:latest",
             "cardinality": "1",
             "id": "controller"
         }]

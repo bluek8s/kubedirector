@@ -79,7 +79,7 @@
 
         ],
 
-        "defaultImageRepoTag": "docker.io/bluedata/kd-flask_serving:latest",
+        "defaultImageRepoTag": "bluedata/kd-flask_serving:latest",
         "defaultConfigPackage": {
             "packageURL": "file:///opt/configscript/flask_configure.tgz"
         },

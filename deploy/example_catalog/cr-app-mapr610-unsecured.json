@@ -2,7 +2,7 @@
   "apiVersion": "kubedirector.hpe.com/v1beta1",
   "kind": "KubeDirectorApp",
   "metadata": {
-    "name": "mapr610"
+    "name": "mapr610-unsecured"
   },
   "spec": {
     "systemdRequired": true,

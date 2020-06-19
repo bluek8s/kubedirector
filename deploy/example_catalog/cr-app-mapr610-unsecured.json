@@ -2,7 +2,7 @@
   "apiVersion": "kubedirector.hpe.com/v1beta1",
   "kind": "KubeDirectorApp",
   "metadata": {
-    "name": "mapr610-unsecured"
+    "name": "mapr610"
   },
   "spec": {
     "systemdRequired": true,
@@ -124,7 +124,7 @@
       "name": "MapR 610",
       "description": "MapR 6.1 with MEP 6.3"
     },
-    "distroID": "bluedata/mapr610unsecured",
+    "distroID": "bluedata/mapr610",
     "version": "1.0",
     "configSchemaVersion": 7,
     "services": [

@@ -57,9 +57,9 @@
 apiVersion: "kubedirector.hpe.com/v1beta1"
 kind: "KubeDirectorCluster"
 metadata:
-  name: "mapr610-unsecured"
+  name: "mapr610"
 spec:
-  app: mapr610-unsecured
+  app: mapr610
 # connections:
 #   # attaching secrets data to the cluster
 #   secrets:

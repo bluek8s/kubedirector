@@ -57,13 +57,13 @@
                 "logstash"
             ]
         },
-        "defaultImageRepoTag": "bluedata/elk771:1.0",
+        "defaultImageRepoTag": "bluedata/elk771:1.1",
         "label": {
             "name": "ELK Stack 7.7.1 v1",
             "description": "ELK Stack 7.7.1 cluster with elastic, logstash and kibana nodes v1"
         },
         "distroID": "bluedata/elk771",
-        "version": "1.0",
+        "version": "1.1",
         "configSchemaVersion": 7,
         "services": [
             {

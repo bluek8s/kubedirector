@@ -3,7 +3,7 @@
 
 SHELL = bash
 
-default_image := bluek8s/kubedirector:unstable
+default_image := bluek8s/kubedirector:0.4.2
 image ?= ${default_image}
 
 cluster_resource_name := kubedirectorcluster

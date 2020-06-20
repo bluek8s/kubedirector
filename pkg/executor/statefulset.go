@@ -315,7 +315,7 @@ func getStatefulset(
 							Ports:           endpointPorts,
 							VolumeMounts:    volumeMounts,
 							SecurityContext: securityContext,
-							Env:             role.EnvVars,
+							Env:             chkModifyEnvVars(role),
 						},
 					},
 					Volumes: volumes,
@@ -324,6 +324,34 @@ func getStatefulset(
 			VolumeClaimTemplates: getVolumeClaimTemplate(cr, role, PvcNamePrefix),
 		},
 	}, nil
+}
+
+// chkModifyEnvVars checks a role's resource requests. If an NVIDIA GPU resource has
+// NOT been requested for the role, a work-around is added (as an environment variable), to
+// avoid a GPU being surfaced anyway in a container related to the role
+func chkModifyEnvVars(
+	role *kdv1.Role,
+) (envVar []v1.EnvVar) {
+
+	envVar = role.EnvVars
+	rsrcmap := role.Resources.Requests
+	// return the role's environment variables unmodified, if an NVIDIA GPU is
+	// indeed a resource requested for this role
+	if quantity, found := rsrcmap[nvidiaGpuResourceName]; found == true && quantity.IsZero() != true {
+		return envVar
+	}
+
+	// add an environment variable, as a work-around to ensure that an NVIDIA GPU is
+	// not visible in a container (related to this role) for which an NVIDIA GPU resource
+	// has not been requested (or the key for the NVIDIA GPU resource has been specified, but
+	// with a quantity of zero)
+	envVarToAdd := v1.EnvVar{
+		Name:  nvidiaGpuVisWorkaroundEnvVarName,
+		Value: nvidiaGpuVisWorkaroundEnvVarValue,
+		// ValueFrom not used
+	}
+	envVar = append(envVar, envVarToAdd)
+	return
 }
 
 // getInitContainer prepares the init container spec to be used with the

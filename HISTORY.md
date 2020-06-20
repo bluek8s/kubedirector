@@ -1,3 +1,22 @@
+# v0.4.2 - Jun 20, 2020
+
+Capturing some bugfixes here while we continue to work toward the 0.5 release, which will introduce new features, add new example kdapps, and move to a newer version of the operator SDK.
+
+Issues addressed in this release:
+
+* [GPU visible in non-GPU-requesting pod](https://github.com/bluek8s/kubedirector/issues/263)
+
+* [configure.stdout/stderr are empty in container](https://github.com/bluek8s/kubedirector/issues/286)
+
+* [don't update LastSetupGeneration until all members have exited transitional state](https://github.com/bluek8s/kubedirector/issues/308)
+
+* [set SpecGenerationToProcess earlier](https://github.com/bluek8s/kubedirector/issues/312)
+
+* [ensure systemd is up before service enable/start](https://github.com/bluek8s/kubedirector/issues/315)
+
+* [don't include zero-member roles in the generated configmeta](https://github.com/bluek8s/kubedirector/issues/317)
+
+
 # v0.4.1 - Apr 14, 2020
 
 Fix for https://github.com/bluek8s/kubedirector/issues/289

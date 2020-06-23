@@ -109,6 +109,11 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			if updateErr == nil {
 				return
 			}
+
+			if cr.DeletionTimestamp != nil {
+				statusChanged = false
+			}
+
 			// Some necessary update failed. If the cluster has been deleted,
 			// that's ok... otherwise we'll try again.
 			currentCluster, currentClusterErr := observer.GetCluster(

@@ -205,6 +205,7 @@ func validateCardinality(
 		if totalMembers > maxKDMembers {
 			anyError = true
 			valErrors = append(valErrors, maxMemberLimit)
+			break
 		}
 
 		// validate user-specified labels

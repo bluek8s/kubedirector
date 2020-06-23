@@ -1,0 +1,183 @@
+# Each yaml file is associated with json file in kubedirector implementation
+# json file is called as app definition file and
+# yaml file is called as cluster definition file
+
+# App definition file (JSON file) contains all the details about the app like different roles defined in the app, the docker image location,
+# cardinality permission of the app (scale up facility), secure or un-secure clusters, services available along with their external interfaces,
+# roles to services mapping and many more. This is primary file which should be applied before applying the cluster definition file (YAML)
+
+# Cluster definition file (YAML file) contains what roles has to be implemented in our current cluster and how much resources have to be allocated
+# for each of the roles. The app name in the YAML file should match the app name in the JSON file. When applied, the YAML contents are validated against
+# JSON file.
+
+#------------------------------------------------------------------------------------------------------------------------------------
+# Following is the example yaml for Secret kind
+# The fields in the metadata section are mandatory, the values can be changed, which means value "users-data" can be anything
+# The data section is predominantly used to create users on the pods, the format is
+# <base64 encoded username> : "<base64 encoded password>"
+# The data section has few standard fields which are used for some predefined actions, following are the predefined fields
+# mapr, truststore, conf
+# mapr field is used to change the password for mapr user, password should be base64 encoded
+# truststore field is used to send the base mapr's ssl_truststore file content encoded with base64 -w0
+# conf field is used to send the mapr-clusters.conf content of base mapr, even this data should be base64 encoded
+# truststore and conf fields are mutually dependent fields hence when provided both has to be given
+
+# Following Secret is a template
+#apiVersion: v1
+#kind: Secret
+#metadata:
+#  name: ssl-remote
+#  labels:
+#    kubedirector.hpe.com/secretType : ssl-remote
+#data:
+#  truststore: <remote MapR's ssl_truststore in base64 -w0 encoding>
+#  conf: <remote MapR's mapr-clusters.conf in base64 encoding>
+# ---
+# Following Secret is a template
+#apiVersion: v1
+#kind: Secret
+#metadata:
+#  name: users-data
+#  labels:
+#    kubedirector.hpe.com/secretType : users-data
+#data:
+#  mapr: <mapr user password in base64 encoding>
+---
+#------------------------------------------------------------------------------------------------------------------------------------
+# This is the main section of the kubedirector cluster. In this section we define different roles that should be created in the cluster
+# We also define the resources to be associated with each roles.
+# metadata and spec section of kubedirector are standard kubernetes section
+# under spec, kubedirector provides connections and roles section
+# connections section is used to pass the configmaps and secrets data to the pod
+# roles section defines the different roles that should be implemented in the app.
+# each roles section will have an id, members, resources and podLabels to define specification of the roles.
+# id should match with roles in app definition (JSON file),
+# members should match the cardinality in the JSON file,
+# resources has fields requests and limits, request is the default allocation of resources to the pod and limits says how much the resources can be stretched. Here the resources means memory and cpu
+apiVersion: "kubedirector.hpe.com/v1beta1"
+kind: "KubeDirectorCluster"
+metadata:
+  name: "mapr610-secure"
+spec:
+  app: mapr610-secure
+# connections:
+#   # attaching secrets data to the cluster
+#   secrets:
+#     - users-data
+#     - ssl-remote
+  # Defining the roles to be implemented
+  # for this current app, the different roles which are defined in the JSON file supplied with the app are
+  # control-system, cldb, resource-manager, history-server, zookeeper, hive-meta, hive-server2, hue, fileserver, nodemanager and edge
+  # control-system hosts the MapR Control System, current cardinality/member count is fixed to 1
+  # cldb implements the CLDB facility of the MapR Eco System, current cardinality/member count is greater than 1. Greater than 1 is for HA environment but it needs MapR license to implement HA
+  # zookeeper implements Zookeeper facility, current cardinality/member count is fixed to 3
+  # resource-manager implements YARN resource-manager, more than 1 member creates a HA  for it
+  # history-server implements YARN history-server it is fixed to 1 member
+  # nodemanager implements YARN nodemanager and it can be more than 1 member
+  # hive-meta implements Hive Metastore, more than 1 member creates HA environment for Hive Metastore
+  # hive-server implements Hive Server2, more than 1 member creates HA environment for Hive Server
+  # hue implements MapR's Hue which connects to Hive Server2 for Hive operations. In a HA environment, the active hive server2 should be manually updated in Hue.ini file, auto fail-over is currently not available
+  # fileserver implements MapR filesystem, this can be more than 1 member. This is to scale up the local maprfs facility
+  # edge is a client service pod and can be 0 or more of it
+
+  # NOTE: The memory and cpu values are for reference only, higher than the given values is recommended
+  roles:
+  - id: control-system
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"
+  - id: cldb
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"
+  - id: zookeeper
+    members: 3
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"
+  - id: resource-manager
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"
+  - id: history-server
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"
+  - id: hive-meta
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"
+  - id: fileserver
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"
+  - id: hive-server2
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"
+  - id: hue
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"
+  - id: nodemanager
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"
+  - id: edge
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"

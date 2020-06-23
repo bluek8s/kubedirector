@@ -296,6 +296,10 @@ func nodegroups(
 		roleName := roleSpec.Name
 		members := membersForRole[roleName]
 
+		if members == nil {
+			continue
+		}
+
 		var fqdns []string
 		var nodeIds []string
 		fqdnMappings := make(map[string]string)

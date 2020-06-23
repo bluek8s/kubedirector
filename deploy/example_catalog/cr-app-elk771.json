@@ -1,0 +1,128 @@
+{
+    "apiVersion": "kubedirector.hpe.com/v1beta1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name" : "elkstack771"
+    },
+    "spec" : {
+        "systemdRequired" : true,
+        "defaultPersistDirs" : ["/opt", "/var"],
+        "defaultEventList" : ["configure"],
+        "capabilities" : [
+            "SYS_PACCT",
+            "SYS_RESOURCE",
+            "CHOWN",
+            "FSETID",
+            "KILL",
+            "SETGID",
+            "SETUID",
+            "NET_BIND_SERVICE",
+            "NET_BROADCAST",
+            "SYS_PTRACE",
+            "SETFCAP"
+        ],
+
+        "config": {
+            "configMeta": {},
+            "roleServices": [
+                {
+                    "serviceIDs": [
+                        "elasticsearch"
+                    ],
+                    "roleID": "master"
+                },
+                {
+                    "serviceIDs": [
+                        "elasticsearch"
+                    ],
+                    "roleID": "data"
+                },
+                {
+                    "serviceIDs": [
+                        "kibana"
+                    ],
+                    "roleID": "kibana"
+                },
+                {
+                    "serviceIDs": [
+                        "logstash"
+                    ],
+                    "roleID": "logstash"
+                }
+            ],
+            "selectedRoles": [
+                "master",
+                "kibana",
+                "data",
+                "logstash"
+            ]
+        },
+        "defaultImageRepoTag": "bluedata/elk771:1.1",
+        "label": {
+            "name": "ELK Stack 7.7.1 v1",
+            "description": "ELK Stack 7.7.1 cluster with elastic, logstash and kibana nodes v1"
+        },
+        "distroID": "bluedata/elk771",
+        "version": "1.1",
+        "configSchemaVersion": 7,
+        "services": [
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "urlScheme": "http",
+                    "port": 9200,
+                    "path": "/"
+                },
+                "id": "elasticsearch",
+                "label": {
+                    "name": "Elasticsearch"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": true,
+                    "urlScheme": "http",
+                    "port": 5601,
+                    "path": "/"
+                },
+                "id": "kibana",
+                "label": {
+                    "name": "Kibana"
+                }
+            },
+            {
+                "endpoint": {
+                    "isDashboard": false,
+                    "port": 9600
+                },
+                "id": "logstash",
+                "label": {
+                    "name": "Logstash"
+                }
+            }
+        ],
+        "defaultConfigPackage":  {
+            "packageURL": "file:///opt/configscripts/appconfig.tgz"
+        },
+        "roles": [
+            {
+                "id": "master",
+                "cardinality": "1"
+            },
+            {
+                "id": "data",
+                "cardinality": "0+"
+            },
+            {
+                "id": "kibana",
+                "cardinality": "0+",
+		  "eventList": ["configure", "addnodes", "delnodes"]
+            },
+            {
+                "id": "logstash",
+                "cardinality": "0+",
+		  "eventList": ["configure", "addnodes", "delnodes"]
+            }
+      ]
+    }
+}

@@ -24,8 +24,6 @@ import (
 	"strconv"
 	"time"
 
-	"sync/atomic"
-
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/executor"
@@ -58,6 +56,10 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	if cr.Status == nil {
 		cr.Status = &kdv1.KubeDirectorClusterStatus{}
 		cr.Status.Roles = make([]kdv1.RoleStatus, 0)
+		if cr.Status.SpecGenerationToProcess == nil {
+			initSpecGen := int64(0)
+			cr.Status.SpecGenerationToProcess = &initSpecGen
+		}
 	}
 
 	// Set a defer func to write new status and/or finalizers if they change.
@@ -152,7 +154,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		}
 	}()
 	// Calculate md5check sum to generate unique hash for connection object
-	var currentHash string = calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
+	currentHash := calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
 
 	// We use a finalizer to maintain KubeDirector state consistency;
 	// e.g. app references and ClusterStatusGens.
@@ -198,6 +200,17 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	if rolesErr != nil {
 		errLog("roles", rolesErr)
 		return rolesErr
+	}
+
+	// The "state" calculated above can be different on next handler pass,
+	// so we need to make sure we bump the spec gen now if necessary.
+	// If we delay doing this, a handler error (e.g. in syncMemberServices)
+	// could cause a handler exit and we would lose the necessary spec gen
+	// update.
+	if state == clusterMembersChangedUnready || (currentHash != cr.Status.LastConnectionHash) {
+		incremented := *cr.Status.SpecGenerationToProcess + int64(1)
+		cr.Status.SpecGenerationToProcess = &incremented
+		cr.Status.LastConnectionHash = currentHash
 	}
 
 	memberServicesErr := syncMemberServices(reqLogger, cr, roles)
@@ -307,22 +320,13 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		)
 		return configMetaErr
 	}
-	if state == clusterMembersChangedUnready || (currentHash != cr.Status.LastConnectionHash) {
-		if cr.Status.SpecGenerationToProcess == nil {
-			initSpecGen := int64(1)
-			cr.Status.SpecGenerationToProcess = &initSpecGen
-		}
-		if currentHash != cr.Status.LastConnectionHash {
-			incremented := atomic.AddInt64(cr.Status.SpecGenerationToProcess, 1)
-			cr.Status.SpecGenerationToProcess = &incremented
-			cr.Status.LastConnectionHash = currentHash
-		}
-	}
+
 	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
 	if membersErr != nil {
 		errLog("members", membersErr)
 		return membersErr
 	}
+
 	return nil
 }
 

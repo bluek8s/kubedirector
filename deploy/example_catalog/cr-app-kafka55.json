@@ -1,0 +1,215 @@
+{
+    "apiVersion": "kubedirector.hpe.com/v1beta1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name" : "confluentkafka55"
+    },
+    "spec" : {
+        "systemdRequired" : true,
+        "defaultPersistDirs" : ["/var/log", "/opt/configscripts"],
+        "capabilities" : [
+            "SYS_PACCT",
+            "SYS_RESOURCE",
+            "CHOWN",
+            "FSETID",
+            "KILL",
+            "SETGID",
+            "SETUID",
+            "NET_BIND_SERVICE",
+            "NET_BROADCAST",
+            "SYS_PTRACE",
+            "SETFCAP"
+        ],
+
+    "config": {
+        "roleServices": [
+            {
+                "serviceIDs": [
+                    "control-center"
+                ],
+                "roleID": "control-center"
+            },
+            {
+                "serviceIDs": [
+                    "zookeeper"
+                ],
+                "roleID": "zookeeper"
+            },
+            {
+                "serviceIDs": [
+                    "broker"
+                ],
+                "roleID": "broker"
+            },
+            {
+                "serviceIDs": [
+                    "schema-registry"
+                ],
+                "roleID": "schema-registry"
+            },
+            {
+                "serviceIDs": [
+                    "rest-proxy"
+                ],
+                "roleID": "rest-proxy"
+            },
+            {
+                "serviceIDs": [
+                    "kafka-connect"
+                ],
+                "roleID": "kafka-connect"
+            },
+            {
+                "serviceIDs": [
+                    "ksqldb"
+                ],
+                "roleID": "ksqldb"
+            },
+            {
+                "serviceIDs": [
+                    "kafka-client"
+                ],
+                "roleID": "kafka-client"
+            }
+        ],
+        "selectedRoles": [
+            "control-center",
+            "zookeeper",
+            "broker",
+            "schema-registry",
+            "rest-proxy",
+            "kafka-connect",
+            "ksqldb",
+            "kafka-client"
+        ]
+    },
+    "defaultImageRepoTag": "bluedata/kafka:1.0",
+    "label": {
+        "name": "ConfluentKafka5.5",
+        "description": "Confluent Kafka Platform, with Control Center, KSQL, Kafka Broker, Zookeeper, Kafka Connect, REST Proxy, Schema Registry and optional Kafka Client"
+    },
+    "distroID": "bluedata/confluentkafka5",
+    "version": "1.0",
+    "configSchemaVersion": 7,
+    "services": [
+        {
+            "endpoint": {
+                "urlScheme": "http",
+                "path": "/",
+                "isDashboard": true,
+                "port": 9021
+            },
+            "id": "control-center",
+            "label": {
+                "name": "Confluent Control Center"
+            }
+        },
+        {
+            "endpoint": {
+		"path": "/",
+                "isDashboard": false,
+                "port": 2181
+            },
+            "id": "zookeeper",
+            "label": {
+                "name": "Kafka Zookeeper service"
+            }
+        },
+        {
+            "endpoint": {
+                "isDashboard": false,
+                "port": 9092
+            },
+            "id": "broker",
+            "label": {
+                "name": "Kafka Broker service"
+            }
+        },
+        {
+            "endpoint": {
+                "isDashboard": false,
+                "port": 8081
+            },
+            "id": "schema-registry",
+            "label": {
+                "name": "Kafka Schema Registry service"
+            }
+        },
+        {
+            "endpoint": {
+                "isDashboard": false,
+                "port": 8082
+            },
+            "id": "rest-proxy",
+            "label": {
+                "name": "Kafka REST Proxy service"
+            }
+        },
+        {
+            "endpoint": {
+                "isDashboard": false,
+                "port": 8083
+            },
+            "id": "kafka-connect",
+            "label": {
+                "name": "Kafka Connect REST API"
+            }
+        },
+        {
+            "endpoint": {
+                "isDashboard": false,
+                "port": 8088
+            },
+            "id": "ksqldb",
+            "label": {
+                "name": "Kafka SQL Server"
+            }
+        },
+        {
+            "id": "kafka-client",
+            "label": {
+                "name": "Kafka_Client"
+            }
+        }
+    ],
+    "defaultConfigPackage":  {
+            "packageURL": "file:///opt/configscripts/appconfig.tgz"
+        },
+    "roles": [
+        {
+            "cardinality": "1",
+            "id": "control-center"
+        },
+        {
+            "cardinality": "3",
+            "persistDirs": ["/var/lib/zookeeper"],
+            "id": "zookeeper"
+        },
+        {
+            "cardinality": "3+",
+            "id": "broker"
+        },
+        {
+            "cardinality": "1",
+            "id": "schema-registry"
+        },
+        {
+            "cardinality": "1",
+            "id": "rest-proxy"
+        },
+        {
+            "cardinality": "1",
+            "id": "kafka-connect"
+        },
+        {
+            "cardinality": "1",
+            "persistDirs": ["/usr/share/ksql","/var/lib/kafka-streams"],
+            "id": "ksqldb"
+        },
+        {
+            "cardinality": "0+",
+            "id": "kafka-client"
+        }
+    ]
+    }
+}

@@ -204,7 +204,13 @@ func validateCardinality(
 		totalMembers += *role.Members
 		if totalMembers > maxKDMembers {
 			anyError = true
-			valErrors = append(valErrors, maxMemberLimit)
+			valErrors = append(
+				valErrors,
+				fmt.Sprint(
+					maxMemberLimit,
+					maxKDMembers,
+				),
+			)
 			break
 		}
 

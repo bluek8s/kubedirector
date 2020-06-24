@@ -120,6 +120,9 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 					return
 				}
 			} else {
+				if currentCluster.DeletionTimestamp != nil {
+					statusChanged = false
+				}
 				// If we got a conflict error, update the CR with its current
 				// form, restore our desired status/finalizers, and try again
 				// immediately.

@@ -79,4 +79,6 @@ const (
 
 	nameLimit       = "When using the ClusterRole naming scheme, the total length of KD cluster name + any of its role IDs must not exceed 56 characters."
 	badNamingScheme = "Naming scheme not valid in the config file."
+
+	maxMemberLimit = "Maximum number of total members per KD cluster supported is %d."
 )

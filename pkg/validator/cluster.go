@@ -39,6 +39,8 @@ type secretValidateResult int
 
 const nameLengthLimit = 56
 
+const maxKDMembers = 1000
+
 const (
 	secretIsValid secretValidateResult = iota
 	secretPrefixNotMatched
@@ -150,6 +152,7 @@ func validateCardinality(
 ) ([]string, []clusterPatchSpec) {
 
 	anyError := false
+	totalMembers := int32(0)
 
 	numRoles := len(cr.Spec.Roles)
 	rolesPath := field.NewPath("spec", "roles")
@@ -197,6 +200,20 @@ func validateCardinality(
 				},
 			)
 		}
+
+		totalMembers += *role.Members
+		if totalMembers > maxKDMembers {
+			anyError = true
+			valErrors = append(
+				valErrors,
+				fmt.Sprint(
+					maxMemberLimit,
+					maxKDMembers,
+				),
+			)
+			break
+		}
+
 		// validate user-specified labels
 		rolePath := rolesPath.Index(i)
 		labelErrors := appsvalidation.ValidateLabels(

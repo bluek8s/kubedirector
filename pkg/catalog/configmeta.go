@@ -184,15 +184,24 @@ func servicesForRole(
 // configmaps to be connected to the given cluster
 func genConfigConnections(
 	cr *kdv1.KubeDirectorCluster,
-) (map[string]map[string]map[string]string, error) {
+) (map[string][]map[string]map[string]string, error) {
 
-	kdcm := make(map[string]map[string]map[string]string)
+	// Many connected configmaps can be of a given type, hence
+	// create a map of cmType:list of configmaps, where
+	// every configmap is a map of string and string
+	kdcm := make(map[string][]map[string]map[string]string)
 	for _, connectedCmName := range cr.Spec.Connections.ConfigMaps {
 		cm, err := observer.GetConfigMap(cr.Namespace, connectedCmName)
 		if kdConfigMapType, ok := cm.Labels[configMapType]; ok {
 			cmMap := make(map[string]map[string]string)
 			cmMap[connectedCmName] = cm.Data
-			kdcm[kdConfigMapType] = cmMap
+			if mapList, ok := kdcm[kdConfigMapType]; ok {
+				kdcm[kdConfigMapType] = append(mapList, cmMap)
+			} else {
+				typeMaps := make([]map[string]map[string]string, 0)
+				kdcm[kdConfigMapType] = append(typeMaps, cmMap)
+			}
+
 			if err != nil {
 				return nil, err
 			}
@@ -206,15 +215,24 @@ func genConfigConnections(
 // secrets to be connected to the given cluster
 func genSecretConnections(
 	cr *kdv1.KubeDirectorCluster,
-) (map[string]map[string]map[string][]byte, error) {
+) (map[string][]map[string]map[string][]byte, error) {
 
-	kdsecret := make(map[string]map[string]map[string][]byte)
+	// Many connected secrets can be of a given type, hence
+	// create a map of secretType:list of secrets, where
+	// every secret is a map of string and byte array
+	kdsecret := make(map[string][]map[string]map[string][]byte)
 	for _, connectedsecretName := range cr.Spec.Connections.Secrets {
 		sec, err := observer.GetSecret(cr.Namespace, connectedsecretName)
 		if kdSecretType, ok := sec.Labels[secretType]; ok {
 			secretMap := make(map[string]map[string][]byte)
 			secretMap[connectedsecretName] = sec.Data
-			kdsecret[kdSecretType] = secretMap
+			if secretList, ok := kdsecret[kdSecretType]; ok {
+				kdsecret[kdSecretType] = append(secretList, secretMap)
+			} else {
+				typeSecrets := make([]map[string]map[string][]byte, 0)
+				kdsecret[kdSecretType] = append(typeSecrets, secretMap)
+			}
+
 			if err != nil {
 				return nil, err
 			}

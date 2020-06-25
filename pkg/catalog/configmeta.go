@@ -134,10 +134,12 @@ func servicesForRole(
 								}
 								k8sService, err := observer.GetService(appCR.Namespace, m.Service)
 								if err == nil {
-									// Update service annotation with auth token
-									k8sService.Annotations[serviceAuthToken] = serviceToken
-									if shared.Update(context.TODO(), k8sService) == nil {
-										break
+									if k8sService.Annotations[serviceAuthToken] != serviceToken {
+										// Update service annotation with auth token
+										k8sService.Annotations[serviceAuthToken] = serviceToken
+										if shared.Update(context.TODO(), k8sService) == nil {
+											break
+										}
 									}
 								}
 								time.Sleep(wait)

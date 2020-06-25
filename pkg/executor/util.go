@@ -68,6 +68,13 @@ func labelsForCluster(
 		ClusterAppLabel:        cr.Spec.AppID,
 		ClusterAppCatalogLabel: *(cr.Spec.AppCatalog),
 	}
+	appCR, err := catalog.GetApp(cr)
+	if err == nil {
+		// Apply app labels to cluster
+		for name, val := range appCR.Labels {
+			result[name] = val
+		}
+	}
 	return result
 }
 
@@ -126,6 +133,10 @@ func labelsForService(
 		for name, value := range role.ServiceLabels {
 			result[name] = value
 		}
+	}
+	// Apply all cluster labels also
+	for name, val := range cr.Labels {
+		result[name] = val
 	}
 	return result
 }

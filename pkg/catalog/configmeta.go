@@ -19,6 +19,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -121,11 +122,10 @@ func servicesForRole(
 						if serviceDef.Endpoint.HasAuthToken {
 							if len(m.AuthToken) == 0 {
 								checksum := md5.Sum([]byte(uuid.New().String()))
-								serviceToken = hex.EncodeToString(checksum[:])
-								m.AuthToken = serviceToken
-							} else {
-								serviceToken = m.AuthToken
+								m.AuthToken = hex.EncodeToString(checksum[:])
 							}
+							fmt.Printf("\nsroleName %s, service %s, auth token %s", roleName, serviceID, m.AuthToken)
+							serviceToken = m.AuthToken
 							wait := time.Second
 							maxWait := 4096 * time.Second
 							for {

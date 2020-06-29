@@ -210,6 +210,18 @@ func Update(
 	return client.Update(ctx, obj)
 }
 
+// Patch uses the split client. Should write back directly to K8s, but we'll
+// use the split client in case it ever wants to use the knowledge that we
+// are changing the object.
+func Patch(
+	ctx context.Context,
+	obj runtime.Object,
+	patchspec k8sClient.Patch,
+) error {
+
+	return client.Patch(ctx, obj, patchspec)
+}
+
 // StatusUpdate uses the split client. Should write back directly to K8s, but
 // we'll use the split client in case it ever wants to use the knowledge that
 // we are changing the object.

@@ -19,7 +19,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -124,23 +123,19 @@ func servicesForRole(
 								checksum := md5.Sum([]byte(uuid.New().String()))
 								m.AuthToken = hex.EncodeToString(checksum[:])
 							}
-							fmt.Printf("\nsroleName %s, service %s, auth token %s", roleName, serviceID, m.AuthToken)
 							serviceToken = m.AuthToken
 							wait := time.Second
 							maxWait := 4096 * time.Second
 							for {
-								fmt.Println("in loop...")
 								if wait > maxWait {
 									break
 								}
 								k8sService, err := observer.GetService(appCR.Namespace, m.Service)
 								if err == nil {
-									if k8sService.Annotations[serviceAuthToken] != serviceToken {
-										// Update service annotation with auth token
-										k8sService.Annotations[serviceAuthToken] = serviceToken
-										if shared.Update(context.TODO(), k8sService) == nil {
-											break
-										}
+									// Update service annotation with auth token
+									k8sService.Annotations[serviceAuthToken] = serviceToken
+									if shared.Update(context.TODO(), k8sService) == nil {
+										break
 									}
 								}
 								time.Sleep(wait)

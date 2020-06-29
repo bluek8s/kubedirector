@@ -129,6 +129,7 @@ func servicesForRole(
 							wait := time.Second
 							maxWait := 4096 * time.Second
 							for {
+								fmt.Println("in loop...")
 								if wait > maxWait {
 									break
 								}

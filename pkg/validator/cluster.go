@@ -30,6 +30,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	appsvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -422,6 +423,28 @@ func validateRoleStorageClass(
 		role := &(cr.Spec.Roles[i])
 		if role.Storage == nil {
 			// No storage section.
+			continue
+		}
+		// Validate storage size.
+		storageSize, err := resource.ParseQuantity(role.Storage.Size)
+		if err != nil {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					invalidStorageDef,
+					role.Name,
+				),
+			)
+			continue
+		}
+		if storageSize.IsZero() {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					invalidStorageSize,
+					role.Name,
+				),
+			)
 			continue
 		}
 		storageClass := role.Storage.StorageClass

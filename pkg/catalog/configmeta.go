@@ -121,25 +121,24 @@ func servicesForRole(
 						if serviceDef.Endpoint.HasAuthToken {
 							if len(m.AuthToken) == 0 {
 								checksum := md5.Sum([]byte(uuid.New().String()))
-								serviceToken = hex.EncodeToString(checksum[:])
-								m.AuthToken = serviceToken
-								wait := time.Second
-								maxWait := 4096 * time.Second
-								for {
-									if wait > maxWait {
+								m.AuthToken = hex.EncodeToString(checksum[:])
+							}
+							serviceToken = m.AuthToken
+							wait := time.Second
+							maxWait := 4096 * time.Second
+							for {
+								if wait > maxWait {
+									break
+								}
+								k8sService, err := observer.GetService(appCR.Namespace, m.Service)
+								if err == nil {
+									k8sService.Annotations[serviceAuthToken] = serviceToken
+									if shared.Update(context.TODO(), k8sService) == nil {
 										break
 									}
-									k8sService, err := observer.GetService(appCR.Namespace, m.Service)
-									if err == nil {
-										// Update service annotation with auth token
-										k8sService.Annotations[serviceAuthToken] = serviceToken
-										if shared.Update(context.TODO(), k8sService) == nil {
-											break
-										}
-									}
-									time.Sleep(wait)
-									wait = wait * 2
 								}
+								time.Sleep(wait)
+								wait = wait * 2
 							}
 						}
 					}
@@ -177,20 +176,32 @@ func servicesForRole(
 	return result
 }
 
-// genconfigConnections will look at the cluster spec
+// genConfigConnections will look at the cluster spec
 // and generates a map of configmap type and corresponding
 // configmaps to be connected to the given cluster
-func genconfigConnections(
+func genConfigConnections(
 	cr *kdv1.KubeDirectorCluster,
-) (map[string]map[string]map[string]string, error) {
+) (map[string][]map[string]map[string]string, error) {
 
-	cmMap := make(map[string]map[string]string)
-	kdcm := make(map[string]map[string]map[string]string)
+	// Many connected configmaps can be of a given type, hence
+	// create a map of cmType:list of configmaps, where
+	// every configmap is a map of string and string
+	kdcm := make(map[string][]map[string]map[string]string)
 	for _, connectedCmName := range cr.Spec.Connections.ConfigMaps {
 		cm, err := observer.GetConfigMap(cr.Namespace, connectedCmName)
 		if kdConfigMapType, ok := cm.Labels[configMapType]; ok {
-			cmMap[connectedCmName] = cm.Data
-			kdcm[kdConfigMapType] = cmMap
+			cmMap := make(map[string]map[string]string)
+			cmMap["metadata"] = map[string]string{"name": cm.Name}
+			cmMap["data"] = cm.Data
+			cmMap["labels"] = cm.Labels
+			cmMap["annotations"] = cm.Annotations
+			if mapList, ok := kdcm[kdConfigMapType]; ok {
+				kdcm[kdConfigMapType] = append(mapList, cmMap)
+			} else {
+				typeMaps := make([]map[string]map[string]string, 0)
+				kdcm[kdConfigMapType] = append(typeMaps, cmMap)
+			}
+
 			if err != nil {
 				return nil, err
 			}
@@ -199,20 +210,39 @@ func genconfigConnections(
 	return kdcm, nil
 }
 
-// gensecretConnections will look at the cluster spec
+// genSecretConnections will look at the cluster spec
 // and generates a map of secret type and corresponding
 // secrets to be connected to the given cluster
-func gensecretConnections(
+func genSecretConnections(
 	cr *kdv1.KubeDirectorCluster,
-) (map[string]map[string]map[string][]byte, error) {
+) (map[string][]map[string]map[string][]byte, error) {
 
-	secretMap := make(map[string]map[string][]byte)
-	kdsecret := make(map[string]map[string]map[string][]byte)
+	// Many connected secrets can be of a given type, hence
+	// create a map of secretType:list of secrets, where
+	// every secret is a map of string and byte array
+	kdsecret := make(map[string][]map[string]map[string][]byte)
 	for _, connectedsecretName := range cr.Spec.Connections.Secrets {
 		sec, err := observer.GetSecret(cr.Namespace, connectedsecretName)
 		if kdSecretType, ok := sec.Labels[secretType]; ok {
-			secretMap[connectedsecretName] = sec.Data
-			kdsecret[kdSecretType] = secretMap
+			xlateMap := func(valueMap map[string]string) map[string][]byte {
+				convMap := make(map[string][]byte)
+				for k, v := range valueMap {
+					convMap[k] = []byte(v)
+				}
+				return convMap
+			}
+			secretMap := make(map[string]map[string][]byte)
+			secretMap["metadata"] = map[string][]byte{"name": []byte(sec.Name)}
+			secretMap["data"] = sec.Data
+			secretMap["labels"] = xlateMap(sec.Labels)
+			secretMap["annotations"] = xlateMap(sec.Annotations)
+			if secretList, ok := kdsecret[kdSecretType]; ok {
+				kdsecret[kdSecretType] = append(secretList, secretMap)
+			} else {
+				typeSecrets := make([]map[string]map[string][]byte, 0)
+				kdsecret[kdSecretType] = append(typeSecrets, secretMap)
+			}
+
 			if err != nil {
 				return nil, err
 			}
@@ -222,7 +252,7 @@ func gensecretConnections(
 }
 
 // genClusterConnections generates a map of running clusters that are to be connected
-// to this cluster.
+// to this cluster
 func genClusterConnections(
 	cr *kdv1.KubeDirectorCluster,
 ) (map[string]configmeta, error) {
@@ -351,8 +381,8 @@ func clusterBaseConfig(
 ) (*configmeta, error) {
 
 	clustersMeta, connErr := genClusterConnections(cr)
-	kdConfigMaps, cmErr := genconfigConnections(cr)
-	kdSecrets, secErr := gensecretConnections(cr)
+	kdConfigMaps, cmErr := genConfigConnections(cr)
+	kdSecrets, secErr := genSecretConnections(cr)
 
 	if cmErr != nil {
 		return nil, cmErr

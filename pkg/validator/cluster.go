@@ -437,7 +437,7 @@ func validateRoleStorageClass(
 			)
 			break
 		}
-		if storageSize.IsZero() {
+		if storageSize.Sign() == 1 {
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(

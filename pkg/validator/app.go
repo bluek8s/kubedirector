@@ -17,6 +17,7 @@ package validator
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -151,19 +152,26 @@ func validateSelectedRoles(
 // validateRoles checks each role for property constraints not expressible
 // in the schema. If any overrideable properties are unspecified, the corresponding
 // global values are used. This will add an PATCH spec for mutation the app CR.
+// The role in appCR will be correspondingly updated so that it can later be
+// to check whether the resulting CR differs from the current stored appCR.
 func validateRoles(
 	appCR *kdv1.KubeDirectorApp,
 	patches []appPatchSpec,
 	valErrors []string,
 ) ([]appPatchSpec, []string) {
 
+	// Any global defaults will be removed from the CR. Remember their values
+	// though for use in populating the role definitions.
 	var globalImageRepoTag *string
 	var globalSetupPackageURL *string
 	var globalPersistDirs *[]string
 	var globalEventList *[]string
-
-	globalImageRepoTag = appCR.Spec.DefaultImageRepoTag
-	if globalImageRepoTag != nil {
+	if appCR.Spec.DefaultImageRepoTag == nil {
+		globalImageRepoTag = nil
+	} else {
+		tagCopy := *appCR.Spec.DefaultImageRepoTag
+		globalImageRepoTag = &tagCopy
+		appCR.Spec.DefaultImageRepoTag = nil
 		patches = append(
 			patches,
 			appPatchSpec{
@@ -172,12 +180,16 @@ func validateRoles(
 			},
 		)
 	}
-
-	if (appCR.Spec.DefaultSetupPackage.IsSet == false) || (appCR.Spec.DefaultSetupPackage.IsNull == true) {
+	if !appCR.Spec.DefaultSetupPackage.IsSet {
 		globalSetupPackageURL = nil
 	} else {
-		globalSetupPackageURL = &appCR.Spec.DefaultSetupPackage.PackageURL.PackageURL
-
+		if appCR.Spec.DefaultSetupPackage.IsNull {
+			globalSetupPackageURL = nil
+		} else {
+			urlCopy := appCR.Spec.DefaultSetupPackage.PackageURL.PackageURL
+			globalSetupPackageURL = &urlCopy
+		}
+		appCR.Spec.DefaultSetupPackage = kdv1.SetupPackage{}
 		patches = append(
 			patches,
 			appPatchSpec{
@@ -186,9 +198,13 @@ func validateRoles(
 			},
 		)
 	}
-
-	globalPersistDirs = appCR.Spec.DefaultPersistDirs
-	if globalPersistDirs != nil {
+	if appCR.Spec.DefaultPersistDirs == nil {
+		globalPersistDirs = nil
+	} else {
+		dirsCopy := make([]string, len(*appCR.Spec.DefaultPersistDirs))
+		copy(dirsCopy, *appCR.Spec.DefaultPersistDirs)
+		globalPersistDirs = &dirsCopy
+		appCR.Spec.DefaultPersistDirs = nil
 		patches = append(
 			patches,
 			appPatchSpec{
@@ -197,9 +213,13 @@ func validateRoles(
 			},
 		)
 	}
-
-	globalEventList = appCR.Spec.DefaultEventList
-	if globalEventList != nil {
+	if appCR.Spec.DefaultEventList == nil {
+		globalEventList = nil
+	} else {
+		eventsCopy := make([]string, len(*appCR.Spec.DefaultEventList))
+		copy(eventsCopy, *appCR.Spec.DefaultEventList)
+		globalEventList = &eventsCopy
+		appCR.Spec.DefaultEventList = nil
 		patches = append(
 			patches,
 			appPatchSpec{
@@ -209,10 +229,15 @@ func validateRoles(
 		)
 	}
 
-	for index, role := range appCR.Spec.NodeRoles {
+	// OK let's do the roles.
+	numRoles := len(appCR.Spec.NodeRoles)
+	for index := 0; index < numRoles; index++ {
+		role := &(appCR.Spec.NodeRoles[index])
 		if role.SetupPackage.IsSet == false {
 			// Nothing specified so, inherit the global specification
 			if globalSetupPackageURL == nil {
+				role.SetupPackage.IsSet = true
+				role.SetupPackage.IsNull = true
 				patches = append(
 					patches,
 					appPatchSpec{
@@ -224,6 +249,11 @@ func validateRoles(
 					},
 				)
 			} else {
+				role.SetupPackage.IsSet = true
+				role.SetupPackage.IsNull = false
+				role.SetupPackage.PackageURL = kdv1.SetupPackageURL{
+					PackageURL: *globalSetupPackageURL,
+				}
 				patches = append(
 					patches,
 					appPatchSpec{
@@ -236,7 +266,6 @@ func validateRoles(
 				)
 			}
 		}
-
 		if role.ImageRepoTag == nil {
 			// We allow roles to have different container images but unlike the
 			// setup package there cannot be a role with no image.
@@ -251,6 +280,7 @@ func validateRoles(
 				continue
 			}
 			// No special image specified so inherit from global.
+			role.ImageRepoTag = globalImageRepoTag
 			patches = append(
 				patches,
 				appPatchSpec{
@@ -262,10 +292,9 @@ func validateRoles(
 				},
 			)
 		}
-
-		// If role didn't set persist dirs, take the default (if any).
 		if role.PersistDirs == nil {
 			if globalPersistDirs != nil {
+				role.PersistDirs = globalPersistDirs
 				patches = append(
 					patches,
 					appPatchSpec{
@@ -278,9 +307,9 @@ func validateRoles(
 				)
 			}
 		}
-
 		if role.EventList == nil {
 			if globalEventList != nil {
+				role.EventList = globalEventList
 				patches = append(
 					patches,
 					appPatchSpec{
@@ -335,18 +364,20 @@ func admitAppCR(
 		Allowed: false,
 	}
 
-	// Reject an update or delete if the app CR is currently in use.
-	if ar.Request.Operation == v1beta1.Update || ar.Request.Operation == v1beta1.Delete {
+	// Reject a delete if the app CR is currently in use.
+	if ar.Request.Operation == v1beta1.Delete {
 		references := shared.ClustersUsingApp(
 			ar.Request.Namespace,
 			ar.Request.Name,
 		)
 		if len(references) != 0 {
 			referencesStr := strings.Join(references, ", ")
+			appInUseMsg := fmt.Sprintf(
+				appInUse,
+				referencesStr,
+			)
 			admitResponse.Result = &metav1.Status{
-				Message: "\nKubeDirectorApp resource cannot be deleted or modified " +
-					"while referenced by the following KubeDirectorCluster resources: " +
-					referencesStr,
+				Message: "\n" + appInUseMsg,
 			}
 			return &admitResponse
 		}
@@ -389,6 +420,45 @@ func admitAppCR(
 				admitResponse.PatchType = &patchType
 			} else {
 				valErrors = append(valErrors, failedToPatch)
+			}
+		}
+	}
+
+	// Reject an update if the app CR is currently in use AND this update is
+	// changing the spec. Note that we don't do this at the beginning of the
+	// handler because we want to get defaults populated before comparing.
+	if ar.Request.Operation == v1beta1.Update {
+		references := shared.ClustersUsingApp(
+			ar.Request.Namespace,
+			ar.Request.Name,
+		)
+		if len(references) != 0 {
+			prevAppCR := kdv1.KubeDirectorApp{}
+			prevRaw := ar.Request.OldObject.Raw
+			if prevJSONErr := json.Unmarshal(prevRaw, &prevAppCR); prevJSONErr != nil {
+				admitResponse.Result = &metav1.Status{
+					Message: "\n" + prevJSONErr.Error(),
+				}
+				return &admitResponse
+			}
+			// Before doing the comparison, make sure we ignore differences
+			// in the global default setup package. Global defaults should
+			// NOT be set at this point in either object, and if they are then
+			// they have no functional effect on kdclusters, but there was a
+			// bug in KD pre-0.5 that could leave defaultConfigPackage set
+			// to null. See the commit comments in the PR that closes issue
+			// #319 for more details.
+			prevAppCR.Spec.DefaultSetupPackage = appCR.Spec.DefaultSetupPackage
+			if !reflect.DeepEqual(appCR.Spec, prevAppCR.Spec) {
+				referencesStr := strings.Join(references, ", ")
+				appInUseMsg := fmt.Sprintf(
+					appInUse,
+					referencesStr,
+				)
+				admitResponse.Result = &metav1.Status{
+					Message: "\n" + appInUseMsg,
+				}
+				return &admitResponse
 			}
 		}
 	}

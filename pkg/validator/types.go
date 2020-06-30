@@ -40,6 +40,7 @@ const (
 	multipleSpecChange = "Change to spec not allowed before previous spec change has been processed."
 	pendingNotifies    = "Change to spec not allowed because some members have not processed notifications of previous change."
 
+	appInUse           = "KubeDirectorApp resource cannot be deleted or modified while referenced by the following KubeDirectorCluster resources: %s"
 	invalidAppMessage  = "Invalid app(%s). This app resource ID has not been registered."
 	invalidCardinality = "Invalid member count for role(%s). Specified member count:%d Role cardinality:%s"
 	invalidRole        = "Invalid role(%s) in app(%s) specified. Valid roles: \"%s\""

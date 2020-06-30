@@ -517,6 +517,7 @@ github.com/operator-framework/operator-registry v1.5.3/go.mod h1:agrQlkWOo1q8U1S
 github.com/operator-framework/operator-registry v1.5.7-0.20200121213444-d8e2ec52c19a/go.mod h1:ekexcV4O8YMxdQuPb+Xco7MHfVmRIq7Jvj5e6NU7dHI=
 github.com/operator-framework/operator-sdk v0.15.2 h1:VlxI0J+HLmMKs5k53drQ/B1AXhyNj0OaD2BbREt8Hnk=
 github.com/operator-framework/operator-sdk v0.15.2/go.mod h1:RkC5LpluVONa08ORFIIVCYrEr855xG1/NltRL2jQ8qo=
+github.com/operator-framework/operator-sdk v0.18.2 h1:Ts5ckGcJ/Jf+2IXeagsEk87o83bEeA+Z7DwNkyWEBPs=
 github.com/otiai10/copy v1.0.1/go.mod h1:8bMCJrAqOtN/d9oyh5HR7HhLQMvcGMpGdwRDYsfOCHc=
 github.com/otiai10/curr v0.0.0-20150429015615-9b4961190c95/go.mod h1:9qAhocn7zKJG+0mI8eUu6xqkFDYS2kb2saOteoSB3cE=
 github.com/otiai10/curr v0.0.0-20190513014714-f5a3d24e5776/go.mod h1:3HNVkVOU7vZeFXocWuvtcS0XSFLcf2XUSDHkq9t1jU4=
@@ -820,6 +821,7 @@ google.golang.org/genproto v0.0.0-20190418145605-e7d98fc518a7/go.mod h1:VzzqZJRn
 google.golang.org/genproto v0.0.0-20190425155659-357c62f0e4bb/go.mod h1:VzzqZJRnGkLBvHegQrXjBqPurQTc5/KpmUdxsrq26oE=
 google.golang.org/genproto v0.0.0-20190502173448-54afdca5d873/go.mod h1:VzzqZJRnGkLBvHegQrXjBqPurQTc5/KpmUdxsrq26oE=
 google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55/go.mod h1:DMBHOl98Agz4BDEuKkezgsaosCRResVns1a3J2ZsMNc=
+google.golang.org/genproto v0.0.0-20191028173616-919d9bdd9fe6 h1:UXl+Zk3jqqcbEVV7ace5lrt4YdA4tXiz3f/KbmD29Vo=
 google.golang.org/genproto v0.0.0-20191028173616-919d9bdd9fe6/go.mod h1:n3cpQtvxv34hfy77yVDNjmbRyujviMdxYliBSkLhpCc=
 google.golang.org/grpc v1.16.0/go.mod h1:0JHn/cJsOMiMfNA9+DeHDlAU7KAAB5GDlYFpa9MZMio=
 google.golang.org/grpc v1.17.0/go.mod h1:6QZJwpn2B+Zp71q/5VxRsJ6NXXVCE5NRUHRo+f3cWCs=

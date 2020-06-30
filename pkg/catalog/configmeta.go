@@ -132,7 +132,6 @@ func servicesForRole(
 								}
 								k8sService, err := observer.GetService(appCR.Namespace, m.Service)
 								if err == nil {
-									// Update service annotation with auth token
 									k8sService.Annotations[serviceAuthToken] = serviceToken
 									if shared.Update(context.TODO(), k8sService) == nil {
 										break
@@ -192,7 +191,10 @@ func genConfigConnections(
 		cm, err := observer.GetConfigMap(cr.Namespace, connectedCmName)
 		if kdConfigMapType, ok := cm.Labels[configMapType]; ok {
 			cmMap := make(map[string]map[string]string)
-			cmMap[connectedCmName] = cm.Data
+			cmMap["metadata"] = map[string]string{"name": cm.Name}
+			cmMap["data"] = cm.Data
+			cmMap["labels"] = cm.Labels
+			cmMap["annotations"] = cm.Annotations
 			if mapList, ok := kdcm[kdConfigMapType]; ok {
 				kdcm[kdConfigMapType] = append(mapList, cmMap)
 			} else {
@@ -222,8 +224,18 @@ func genSecretConnections(
 	for _, connectedsecretName := range cr.Spec.Connections.Secrets {
 		sec, err := observer.GetSecret(cr.Namespace, connectedsecretName)
 		if kdSecretType, ok := sec.Labels[secretType]; ok {
+			xlateMap := func(valueMap map[string]string) map[string][]byte {
+				convMap := make(map[string][]byte)
+				for k, v := range valueMap {
+					convMap[k] = []byte(v)
+				}
+				return convMap
+			}
 			secretMap := make(map[string]map[string][]byte)
-			secretMap[connectedsecretName] = sec.Data
+			secretMap["metadata"] = map[string][]byte{"name": []byte(sec.Name)}
+			secretMap["data"] = sec.Data
+			secretMap["labels"] = xlateMap(sec.Labels)
+			secretMap["annotations"] = xlateMap(sec.Annotations)
 			if secretList, ok := kdsecret[kdSecretType]; ok {
 				kdsecret[kdSecretType] = append(secretList, secretMap)
 			} else {

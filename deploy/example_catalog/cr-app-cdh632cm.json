@@ -128,13 +128,13 @@
                 "arbiter"
             ]
         },
-        "defaultImageRepoTag": "bluedata/cdh632multi:1.2",
+        "defaultImageRepoTag": "bluedata/cdh632multi:1.3",
         "label": {
             "name": "CDH 6.3.2 multirole 7x",
             "description": "CDH 6.3.2 with YARN and HBase support. Includes Hive, Hue, Impala and Spark."
         },
         "distroID": "bluedata/cdh632multi",
-        "version": "1.2",
+        "version": "1.3",
         "configSchemaVersion": 7,
         "services": [
             {

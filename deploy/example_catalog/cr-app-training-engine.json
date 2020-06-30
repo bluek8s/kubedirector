@@ -57,7 +57,7 @@
                     "packageURL": "file:///opt/configscript/flask_configure.tgz"
                 },
                 "id": "LoadBalancer",
-                "imageRepoTag": "docker.io/bluedata/kd-flask_serving:latest"
+                "imageRepoTag": "bluedata/kd-flask_serving:latest"
             },
             {
                 "cardinality": "1+",
@@ -65,15 +65,15 @@
                     "packageURL": "file:///opt/configscript/flask_configure.tgz"
                 },
                 "id": "RESTServer",
-                "imageRepoTag": "docker.io/bluedata/kd-flask_serving:latest"
+                "imageRepoTag": "bluedata/kd-flask_serving:latest"
             },
             {
                 "cardinality": "1",
                 "configPackage": {
-                    "packageURL": "file:///opt/configscript/appconfig-1.8.tgz"
+                    "packageURL": "file:///opt/configscript/appconfig.tgz"
                 },
                 "id": "controller",
-                "imageRepoTag": "docker.io/bluedata/kd-notebook:latest"
+                "imageRepoTag": "bluedata/kd-training:latest"
             }
         ],
         "services": [{

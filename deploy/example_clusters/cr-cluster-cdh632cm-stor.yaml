@@ -59,6 +59,7 @@ spec:
     storage:
       size: "50Gi"
   # - id: gateway
+  #   members: 1
   #   resources:
   #     requests:
   #       memory: "4Gi"
@@ -69,6 +70,7 @@ spec:
   #   storage:
   #     size: "50Gi"
   # - id: hbase
+  #   members: 1
   #   resources:
   #     requests:
   #       memory: "2Gi"
@@ -79,6 +81,7 @@ spec:
   #   storage:
   #     size: "100Gi"
   # - id: apps
+  #   members: 1
   #   resources:
   #     requests:
   #       memory: "4Gi"
@@ -89,6 +92,7 @@ spec:
   #   storage:
   #     size: "100Gi"
   # - id: impala
+  #   members: 1
   #   resources:
   #     requests:
   #       memory: "2Gi"
@@ -99,6 +103,7 @@ spec:
   #   storage:
   #     size: "50Gi"
   # - id: standby
+  #   members: 1
   #   resources:
   #     requests:
   #       memory: "4Gi"
@@ -109,6 +114,7 @@ spec:
   #   storage:
   #     size: "50Gi"
   # - id: arbiter
+  #   members: 1
   #   resources:
   #     requests:
   #       memory: "2Gi"

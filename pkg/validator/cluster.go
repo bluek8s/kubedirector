@@ -435,7 +435,7 @@ func validateRoleStorageClass(
 					role.Name,
 				),
 			)
-			continue
+			break
 		}
 		if storageSize.IsZero() {
 			valErrors = append(
@@ -445,7 +445,7 @@ func validateRoleStorageClass(
 					role.Name,
 				),
 			)
-			continue
+			break
 		}
 		storageClass := role.Storage.StorageClass
 		if storageClass != nil {

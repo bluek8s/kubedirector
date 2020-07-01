@@ -153,7 +153,7 @@ func validateSelectedRoles(
 // in the schema. If any overrideable properties are unspecified, the corresponding
 // global values are used. This will add an PATCH spec for mutation the app CR.
 // The role in appCR will be correspondingly updated so that it can later be
-// to check whether the resulting CR differs from the current stored appCR.
+// used to check whether the resulting CR differs from the current stored appCR.
 func validateRoles(
 	appCR *kdv1.KubeDirectorApp,
 	patches []appPatchSpec,
@@ -166,6 +166,7 @@ func validateRoles(
 	var globalSetupPackageURL *string
 	var globalPersistDirs *[]string
 	var globalEventList *[]string
+
 	if appCR.Spec.DefaultImageRepoTag == nil {
 		globalImageRepoTag = nil
 	} else {

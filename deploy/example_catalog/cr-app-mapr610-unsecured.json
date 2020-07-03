@@ -112,6 +112,10 @@
         "history-server",
         "zookeeper",
         "cldb",
+        "hive-meta",
+        "hive-server2",
+        "hue",
+        "edge",
         "nodemanager",
         "fileserver"
       ]

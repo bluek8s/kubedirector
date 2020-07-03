@@ -2,7 +2,7 @@
   "apiVersion": "kubedirector.hpe.com/v1beta1",
   "kind": "KubeDirectorApp",
   "metadata": {
-    "name": "mapr610-unsecure"
+    "name": "mapr610-secure"
   },
   "spec": {
     "systemdRequired": true,
@@ -12,7 +12,7 @@
     "config": {
       "configMeta": {
         "storage": "60",
-        "secure": "false"
+        "secure": "true"
       },
       "roleServices": [
         {
@@ -120,7 +120,7 @@
       "name": "MapR 610",
       "description": "MapR 6.1 with MEP 6.3"
     },
-    "distroID": "bluedata/mapr610unsecure",
+    "distroID": "bluedata/mapr610secure",
     "version": "1.1",
     "configSchemaVersion": 7,
     "services": [
@@ -130,7 +130,7 @@
           "name": "MapR Control System"
         },
         "endpoint": {
-          "urlScheme": "http",
+          "urlScheme": "https",
           "path": "/app/mcs",
           "port": 8443,
           "isDashboard": true
@@ -142,7 +142,7 @@
           "name": "Hue Console"
         },
         "endpoint": {
-          "urlScheme": "http",
+          "urlScheme": "https",
           "path": "/",
           "port": 8888,
           "isDashboard": true
@@ -154,9 +154,9 @@
           "name": "ResourceManager"
         },
         "endpoint": {
-          "urlScheme": "http",
+          "urlScheme": "https",
           "path": "/cluster",
-          "port": 8088,
+          "port": 8090,
           "isDashboard": true
         }
       },
@@ -166,9 +166,9 @@
           "name": "NodeManager"
         },
         "endpoint": {
-          "urlScheme": "http",
+          "urlScheme": "https",
           "path": "/node",
-          "port": 8042,
+          "port": 8044,
           "isDashboard": true
         }
       },
@@ -178,9 +178,9 @@
           "name": "YARN HistoryServer"
         },
         "endpoint": {
-          "urlScheme": "http",
+          "urlScheme": "https",
           "path": "/jobhistory",
-          "port": 19888,
+          "port": 19890,
           "isDashboard": true
         }
       },
@@ -190,7 +190,7 @@
           "name": "CLDB Web Port"
         },
         "endpoint": {
-          "port": 7221,
+          "port": 7443,
           "isDashboard": false
         }
       },
@@ -226,7 +226,7 @@
           "name": "HTTPFS"
         },
         "endpoint": {
-          "urlScheme": "http",
+          "urlScheme": "https",
           "path": "/webhdfs/v1",
           "port": 14000,
           "isDashboard": true

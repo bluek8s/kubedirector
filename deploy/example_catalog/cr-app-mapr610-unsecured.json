@@ -125,7 +125,7 @@
       "description": "MapR 6.1 with MEP 6.3"
     },
     "distroID": "bluedata/mapr610unsecure",
-    "version": "1.0",
+    "version": "1.1",
     "configSchemaVersion": 7,
     "services": [
       {
@@ -289,7 +289,7 @@
         }
       }
     ],
-    "defaultImageRepoTag": "bluedata/mapr610:1.0",
+    "defaultImageRepoTag": "bluedata/mapr610:1.1",
     "defaultConfigPackage": {
       "packageURL": "file:///opt/configscripts/appconfig-1.0.tgz"
     },
@@ -320,7 +320,7 @@
       },
       {
         "id": "edge",
-        "imageRepoTag": "bluedata/mapr610edge:1.0",
+        "imageRepoTag": "bluedata/mapr610edge:1.1",
         "cardinality": "0+"
       },
       {

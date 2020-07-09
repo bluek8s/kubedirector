@@ -23,8 +23,8 @@
             ]
         },
         "label": {
-            "name": "Jupyter Notebook",
-            "description": "Jupyter Notebook with Tensorflow2",
+            "name": "Jupyter Notebook with ML toolkits",
+            "description": "Toolkits: TensorFlow, Scikit-Learn, PyTorch, Keras, XGBoost, LightGBM, Hyperopt; Core: Numpy, Scipy, Pandas, StatsModels, Anaconda, R kernel, Flask, Jupyter Notebook, Git, Jenkins; Visualization: Matplotlib, Seaborn, Plotly, Bokeh",
             "AIML_category": "Notebook"
         },
         "distroID": "hpecp/jupyter-notebook",

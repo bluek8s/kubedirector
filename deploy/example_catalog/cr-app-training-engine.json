@@ -47,8 +47,10 @@
         },
         "distroID": "hpecp/training-engine",
         "label": {
-            "description": "Training Cluster with endpoint wrapper",
-            "name": "Training Cluster with Tensorflow2",
+            "description": "Toolkit: TensorFlow, Scikit-Learn, PyTorch, Keras, XGBoost, LightGBM, hyperopt, Horovod; 
+                            Core: Numpy, Scipy, Pandas, StatsModels, Anaconda, R kernel, Flask, Jupyter Notebook, CUDA; 
+                            Visualization: Matplotlib, Seaborn, Plotly, Bokeh",
+            "name": "ML Training Toolkit, with GPU support",
             "AIML_category": "Training"
         },
         "roles": [{
@@ -134,7 +136,8 @@
                     "isDashboard": true,
                     "path": "/",
                     "port": 8888,
-                    "urlScheme": "http"
+                    "urlScheme": "http",
+                    "hasAuthToken": true
                 },
                 "id": "jupyter-nb",
                 "label": {

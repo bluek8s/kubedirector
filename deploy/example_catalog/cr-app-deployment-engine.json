@@ -13,8 +13,8 @@
         "version": "1.0",
         "configSchemaVersion": 7,
         "label": {
-            "name": "Deployment Cluster",
-            "description": "Cluster for deploying and serving ML models",
+            "name": "ML Inferencing",
+            "description": "Toolkit: TensorFLow, Keras, PyTorch, Scikit-Learn, XGBoost; Core: Pandas, numpy, Flask",
             "AIML_category": "Deployment"
         },
 

@@ -28,6 +28,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -384,13 +385,14 @@ func clusterBaseConfig(
 	kdConfigMaps, cmErr := genConfigConnections(cr)
 	kdSecrets, secErr := genSecretConnections(cr)
 
-	if cmErr != nil {
+	if !errors.IsNotFound(cmErr) && cmErr != nil {
 		return nil, cmErr
 	}
-	if connErr != nil {
+
+	if !errors.IsNotFound(connErr) && connErr != nil {
 		return nil, connErr
 	}
-	if secErr != nil {
+	if !errors.IsNotFound(secErr) && secErr != nil {
 		return nil, secErr
 	}
 

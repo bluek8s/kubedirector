@@ -343,31 +343,37 @@ func calcConnectionsHash(
 	clusterNames := con.Clusters
 	var buffer bytes.Buffer
 	for _, c := range clusterNames {
-		clusterObj, _ := observer.GetCluster(ns, c)
+		clusterObj, clusterErr := observer.GetCluster(ns, c)
 		buffer.WriteString(c)
 		var specNum string
-		// extra careful while dereferencing
-		if clusterObj.Status.SpecGenerationToProcess == nil {
-			specNum = "nil"
-		} else {
-			specNum = strconv.Itoa(
-				int(*clusterObj.Status.SpecGenerationToProcess))
+		if clusterErr == nil {
+			// extra careful while dereferencing
+			if clusterObj.Status.SpecGenerationToProcess == nil {
+				specNum = "nil"
+			} else {
+				specNum = strconv.Itoa(
+					int(*clusterObj.Status.SpecGenerationToProcess))
+			}
 		}
 		buffer.WriteString(specNum)
 	}
 	cmNames := con.ConfigMaps
 	for _, c := range cmNames {
-		cmObj, _ := observer.GetConfigMap(ns, c)
-		rv := cmObj.ResourceVersion
-		buffer.WriteString(c)
-		buffer.WriteString(rv)
+		cmObj, cmErr := observer.GetConfigMap(ns, c)
+		if cmErr == nil {
+			rv := cmObj.ResourceVersion
+			buffer.WriteString(c)
+			buffer.WriteString(rv)
+		}
 	}
 	secretNames := con.Secrets
 	for _, c := range secretNames {
-		secretObj, _ := observer.GetSecret(ns, c)
-		rv := secretObj.ResourceVersion
-		buffer.WriteString(c)
-		buffer.WriteString(rv)
+		secretObj, secErr := observer.GetSecret(ns, c)
+		if secErr == nil {
+			rv := secretObj.ResourceVersion
+			buffer.WriteString(c)
+			buffer.WriteString(rv)
+		}
 	}
 	// md5 is very cheap for small strings
 	md5Sum := md5.Sum([]byte(buffer.String()))

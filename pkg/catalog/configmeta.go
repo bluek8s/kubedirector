@@ -28,7 +28,6 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -190,6 +189,9 @@ func genConfigConnections(
 	kdcm := make(map[string][]map[string]map[string]string)
 	for _, connectedCmName := range cr.Spec.Connections.ConfigMaps {
 		cm, err := observer.GetConfigMap(cr.Namespace, connectedCmName)
+		if err != nil {
+			continue
+		}
 		if kdConfigMapType, ok := cm.Labels[configMapType]; ok {
 			cmMap := make(map[string]map[string]string)
 			cmMap["metadata"] = map[string]string{"name": cm.Name}
@@ -201,10 +203,6 @@ func genConfigConnections(
 			} else {
 				typeMaps := make([]map[string]map[string]string, 0)
 				kdcm[kdConfigMapType] = append(typeMaps, cmMap)
-			}
-
-			if err != nil {
-				return nil, err
 			}
 		}
 	}
@@ -224,6 +222,9 @@ func genSecretConnections(
 	kdsecret := make(map[string][]map[string]map[string][]byte)
 	for _, connectedsecretName := range cr.Spec.Connections.Secrets {
 		sec, err := observer.GetSecret(cr.Namespace, connectedsecretName)
+		if err != nil {
+			continue
+		}
 		if kdSecretType, ok := sec.Labels[secretType]; ok {
 			xlateMap := func(valueMap map[string]string) map[string][]byte {
 				convMap := make(map[string][]byte)
@@ -243,10 +244,6 @@ func genSecretConnections(
 				typeSecrets := make([]map[string]map[string][]byte, 0)
 				kdsecret[kdSecretType] = append(typeSecrets, secretMap)
 			}
-
-			if err != nil {
-				return nil, err
-			}
 		}
 	}
 	return kdsecret, nil
@@ -263,11 +260,11 @@ func genClusterConnections(
 		// Fetch the cluster object
 		clusterToConnect, connectedErr := observer.GetCluster(cr.Namespace, clusterName)
 		if connectedErr != nil {
-			return nil, connectedErr
+			continue
 		}
 		appForclusterToConnect, connectedAppErr := observer.GetApp(clusterToConnect.Namespace, clusterToConnect.Spec.AppID)
 		if connectedAppErr != nil {
-			return nil, connectedAppErr
+			continue
 		}
 		domain := clusterToConnect.Status.ClusterService + "." + clusterToConnect.Namespace + shared.GetSvcClusterDomainBase()
 		membersForRole := make(map[string][]*kdv1.MemberStatus)
@@ -381,20 +378,9 @@ func clusterBaseConfig(
 	domain string,
 ) (*configmeta, error) {
 
-	clustersMeta, connErr := genClusterConnections(cr)
-	kdConfigMaps, cmErr := genConfigConnections(cr)
-	kdSecrets, secErr := genSecretConnections(cr)
-
-	if !errors.IsNotFound(cmErr) && cmErr != nil {
-		return nil, cmErr
-	}
-
-	if !errors.IsNotFound(connErr) && connErr != nil {
-		return nil, connErr
-	}
-	if !errors.IsNotFound(secErr) && secErr != nil {
-		return nil, secErr
-	}
+	clustersMeta, _ := genClusterConnections(cr)
+	kdConfigMaps, _ := genConfigConnections(cr)
+	kdSecrets, _ := genSecretConnections(cr)
 
 	return &configmeta{
 		Version:    strconv.Itoa(appCR.Spec.SchemaVersion),

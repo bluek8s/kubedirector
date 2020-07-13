@@ -360,19 +360,23 @@ func calcConnectionsHash(
 	cmNames := con.ConfigMaps
 	for _, c := range cmNames {
 		cmObj, cmErr := observer.GetConfigMap(ns, c)
+		buffer.WriteString(c)
 		if cmErr == nil {
 			rv := cmObj.ResourceVersion
-			buffer.WriteString(c)
 			buffer.WriteString(rv)
+		} else {
+			buffer.WriteString("")
 		}
 	}
 	secretNames := con.Secrets
 	for _, c := range secretNames {
 		secretObj, secErr := observer.GetSecret(ns, c)
+		buffer.WriteString(c)
 		if secErr == nil {
 			rv := secretObj.ResourceVersion
-			buffer.WriteString(c)
 			buffer.WriteString(rv)
+		} else {
+			buffer.WriteString("")
 		}
 	}
 	// md5 is very cheap for small strings

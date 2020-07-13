@@ -1,0 +1,50 @@
+apiVersion: "kubedirector.hpe.com/v1beta1"
+kind: "KubeDirectorCluster"
+metadata:
+  name: "elkcluster"
+spec:
+  app: elkstack771
+  roles:
+  - id: master
+    resources:
+      requests:
+        memory: "8Gi"
+        cpu: "4"
+      limits:
+        memory: "8Gi"
+        cpu: "4"
+    storage:
+      size: "100Gi"
+  # - id: data
+  #   members: 1
+  #   resources:
+  #     requests:
+  #       memory: "8Gi"
+  #       cpu: "4"
+  #     limits:
+  #       memory: "8Gi"
+  #       cpu: "4"
+  #   storage:
+  #     size: "100Gi"
+  # - id: kibana
+  #   members: 1
+  #   resources:
+  #     requests:
+  #       memory: "8Gi"
+  #       cpu: "4"
+  #     limits:
+  #       memory: "8Gi"
+  #       cpu: "4"
+  #   storage:
+  #     size: "100Gi"
+  # - id: logstash
+  #   members: 1
+  #   resources:
+  #     requests:
+  #       memory: "8Gi"
+  #       cpu: "4"
+  #     limits:
+  #       memory: "8Gi"
+  #       cpu: "4"
+  #   storage:
+  #     size: "100Gi"

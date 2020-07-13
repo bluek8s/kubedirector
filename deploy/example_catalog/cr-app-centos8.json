@@ -40,7 +40,7 @@
                 }
             }
         ],
-        "defaultImageRepoTag": "docker.io/bluedata/centos8:1.0",
+        "defaultImageRepoTag": "bluedata/centos8:1.0",
         "defaultConfigPackage": null,
         "roles": [
             {

@@ -40,7 +40,7 @@
                 }
             }
         ],
-        "defaultImageRepoTag": "docker.io/bluedata/ubuntu18.04:1.0",
+        "defaultImageRepoTag": "bluedata/ubuntu18.04:1.0",
         "defaultConfigPackage": null,
         "roles": [
             {

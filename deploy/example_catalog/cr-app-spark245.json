@@ -1,0 +1,156 @@
+{
+  "apiVersion": "kubedirector.hpe.com/v1beta1",
+  "kind": "KubeDirectorApp",
+  "metadata": {
+    "name": "spark245"
+  },
+  "spec": {
+    "systemdRequired": true,
+    "config": {
+      "roleServices": [
+        {
+          "serviceIDs": [
+            "spark-web",
+            "spark-master"
+          ],
+          "roleID": "spark-master"
+        },
+        {
+          "serviceIDs": [
+            "livy-server"
+          ],
+          "roleID": "livy-server"
+        },
+        {
+          "serviceIDs": [
+            "spark-worker"
+          ],
+          "roleID": "spark-worker"
+        },
+        {
+          "serviceIDs": [
+            "jupyter-nb"
+          ],
+          "roleID": "notebook-server"
+        }
+      ],
+      "selectedRoles": [
+        "spark-master",
+        "livy-server",
+        "spark-worker",
+        "notebook-server"
+      ]
+    },
+    "label": {
+      "name": "Spark 2.4.5 + Jupyterhub",
+      "description": "Spark 2.4.5 with Jupyter notebook"
+    },
+    "distroID": "bluedata/spark245",
+    "version": "1.0",
+    "configSchemaVersion": 7,
+    "services": [
+      {
+        "endpoint": {
+          "urlScheme": "http",
+          "path": "/",
+          "isDashboard": true,
+          "port": 8080
+        },
+        "id": "spark-web",
+        "label": {
+          "name": "Spark-web"
+        }
+      },
+      {
+        "endpoint": {
+          "urlScheme": "spark",
+          "isDashboard": false,
+          "port": 7077
+        },
+        "id": "spark-master",
+        "label": {
+          "name": "Spark-master"
+        }
+      },
+      {
+        "endpoint": {
+          "urlScheme": "http",
+          "path": "/",
+          "isDashboard": true,
+          "port": 8998
+        },
+        "id": "livy-server",
+        "label": {
+          "name": "livy-server"
+        }
+      },
+      {
+        "endpoint": {
+          "urlScheme": "http",
+          "path": "/",
+          "isDashboard": true,
+          "port": 8081
+        },
+        "id": "spark-worker",
+        "label": {
+          "name": "spark-worker"
+        }
+      },
+      {
+        "endpoint": {
+          "urlScheme": "http",
+          "path": "/",
+          "isDashboard": true,
+          "port": 8888
+        },
+        "id": "jupyter-nb",
+        "label": {
+          "name": "jupyter-notebook"
+        }
+      }
+    ],
+    "defaultImageRepoTag": "bluedata/spark245:1.8",
+    "defaultConfigPackage": {
+      "packageURL": "file:///opt/configscripts/appconfig-1.8.tgz"
+    },
+    "roles": [
+      {
+        "cardinality": "1",
+        "id": "spark-master",
+        "persistDirs": [
+          "/usr/lib/spark/spark-2.4.5-bin-hadoop2.7/conf",
+          "/home",
+          "/etc"
+        ]
+      },
+      {
+        "cardinality": "1",
+        "id": "livy-server",
+        "persistDirs": [
+          "/usr/lib/spark/spark-2.4.5-bin-hadoop2.7/conf",
+          "/opt/livy/apache-livy-0.6.0-incubating-bin/conf",
+          "/home",
+          "/etc"
+        ]
+      },
+      {
+        "cardinality": "1+",
+        "id": "spark-worker",
+        "persistDirs": [
+          "/usr/lib/spark/spark-2.4.5-bin-hadoop2.7/conf",
+          "/home",
+          "/etc"
+        ]
+      },
+      {
+        "cardinality": "0+",
+        "id": "notebook-server",
+        "persistDirs": [
+          "/opt/sparkmagic",
+          "/home",
+          "/etc"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+apiVersion: "kubedirector.hpe.com/v1beta1"
+kind: "KubeDirectorCluster"
+metadata:
+  name: "jupyter-notebook"
+spec:
+  app: jupyter-notebook
+  roles:
+  - id: controller
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "4Gi"
+        cpu: "2"

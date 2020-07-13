@@ -159,6 +159,8 @@ spec:
                 configMeta:
                   type: object
                   nullable: true
+                  additionalProperties:
+                    type: string
                 selectedRoles:
                   type: array
                   items:

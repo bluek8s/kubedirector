@@ -1,17 +1,29 @@
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: ha
+#   labels:
+#     kubedirector.hpe.com/cmType : ha
+# data:
+#   ha: "true"
+---
 apiVersion: "kubedirector.hpe.com/v1beta1"
 kind: "KubeDirectorCluster"
 metadata:
   name: "cdh632-cm-persistent"
 spec:
   app: cdh632
+  # connections:
+  #   configmaps:
+  #   - ha
   roles:
   - id: cmserver
     resources:
       requests:
-        memory: "8Gi"
+        memory: "18Gi"
         cpu: "4"
       limits:
-        memory: "8Gi"
+        memory: "18Gi"
         cpu: "4"
     storage:
       size: "100Gi"
@@ -45,44 +57,71 @@ spec:
         memory: "4Gi"
         cpu: "2"
     storage:
-      size: "100Gi"
-  - id: gateway
-    resources:
-      requests:
-        memory: "4Gi"
-        cpu: "2"
-      limits:
-        memory: "4Gi"
-        cpu: "2"
-    storage:
-      size: "100Gi"
-  - id: hbase
-    resources:
-      requests:
-        memory: "2Gi"
-        cpu: "2"
-      limits:
-        memory: "2Gi"
-        cpu: "2"
-    storage:
-      size: "100Gi"
-  - id: apps
-    resources:
-      requests:
-        memory: "4Gi"
-        cpu: "4"
-      limits:
-        memory: "4Gi"
-        cpu: "4"
-    storage:
-      size: "100Gi"
-  - id: impala
-    resources:
-      requests:
-        memory: "2Gi"
-        cpu: "2"
-      limits:
-        memory: "2Gi"
-        cpu: "2"
-    storage:
-      size: "100Gi"
+      size: "50Gi"
+  # - id: gateway
+  #   members: 1
+  #   resources:
+  #     requests:
+  #       memory: "4Gi"
+  #       cpu: "2"
+  #     limits:
+  #       memory: "4Gi"
+  #       cpu: "2"
+  #   storage:
+  #     size: "50Gi"
+  # - id: hbase
+  #   members: 1
+  #   resources:
+  #     requests:
+  #       memory: "2Gi"
+  #       cpu: "2"
+  #     limits:
+  #       memory: "2Gi"
+  #       cpu: "2"
+  #   storage:
+  #     size: "100Gi"
+  # - id: apps
+  #   members: 1
+  #   resources:
+  #     requests:
+  #       memory: "4Gi"
+  #       cpu: "4"
+  #     limits:
+  #       memory: "4Gi"
+  #       cpu: "4"
+  #   storage:
+  #     size: "100Gi"
+  # - id: impala
+  #   members: 1
+  #   resources:
+  #     requests:
+  #       memory: "2Gi"
+  #       cpu: "2"
+  #     limits:
+  #       memory: "2Gi"
+  #       cpu: "2"
+  #   storage:
+  #     size: "50Gi"
+  # - id: standby
+  #   members: 1
+  #   resources:
+  #     requests:
+  #       memory: "4Gi"
+  #       cpu: "4"
+  #     limits:
+  #       memory: "4Gi"
+  #       cpu: "4"
+  #   storage:
+  #     size: "50Gi"
+  # - id: arbiter
+  #   members: 1
+  #   resources:
+  #     requests:
+  #       memory: "2Gi"
+  #       cpu: "2"
+  #     limits:
+  #       memory: "2Gi"
+  #       cpu: "2"
+  #   storage:
+  #     size: "50Gi"
+  

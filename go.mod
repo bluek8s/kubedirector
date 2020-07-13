@@ -7,7 +7,9 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/operator-framework/operator-sdk v0.15.2
 	github.com/spf13/pflag v1.0.5
+	google.golang.org/genproto v0.0.0-20191028173616-919d9bdd9fe6
 	k8s.io/api v0.0.0
+	k8s.io/apiextensions-apiserver v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v12.0.0+incompatible
 	sigs.k8s.io/controller-runtime v0.4.0

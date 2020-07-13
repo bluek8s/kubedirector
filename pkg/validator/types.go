@@ -40,6 +40,7 @@ const (
 	multipleSpecChange = "Change to spec not allowed before previous spec change has been processed."
 	pendingNotifies    = "Change to spec not allowed because some members have not processed notifications of previous change."
 
+	appInUse           = "KubeDirectorApp resource cannot be deleted or modified while referenced by the following KubeDirectorCluster resources: %s"
 	invalidAppMessage  = "Invalid app(%s). This app resource ID has not been registered."
 	invalidCardinality = "Invalid member count for role(%s). Specified member count:%d Role cardinality:%s"
 	invalidRole        = "Invalid role(%s) in app(%s) specified. Valid roles: \"%s\""
@@ -68,6 +69,8 @@ const (
 
 	failedToPatch = "Internal error: failed to populate default values for unspecified properties."
 
+	invalidStorageDef   = "Storage size for role (%s) is incorrectly defined."
+	invalidStorageSize  = "Storage size for role (%s) should be greater than zero."
 	invalidStorageClass = "Unable to fetch storageClass object with the provided name(%s)."
 
 	invalidRoleStorageClass = "Unable to fetch storageClassName(%s) for role(%s)."
@@ -79,4 +82,6 @@ const (
 
 	nameLimit       = "When using the ClusterRole naming scheme, the total length of KD cluster name + any of its role IDs must not exceed 56 characters."
 	badNamingScheme = "Naming scheme not valid in the config file."
+
+	maxMemberLimit = "Maximum number of total members per KD cluster supported is %d."
 )

@@ -85,6 +85,10 @@ func (r *ReconcileSecret) syncSecret(
 			for {
 				updateMetaGenerator := &kubecluster
 				annotations := updateMetaGenerator.Annotations
+				if annotations == nil {
+					annotations := make(map[string]string)
+					updateMetaGenerator.Annotations = annotations
+				}
 				if v, ok := annotations[connectionsIncrementor]; ok {
 					newV, _ := strconv.Atoi(v)
 					annotations[connectionsIncrementor] = strconv.Itoa(newV + 1)

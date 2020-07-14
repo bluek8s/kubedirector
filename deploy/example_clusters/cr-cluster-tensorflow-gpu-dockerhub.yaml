@@ -1,9 +1,9 @@
 apiVersion: "kubedirector.hpe.com/v1beta1"
 kind: "KubeDirectorCluster"
 metadata:
-  name: "ml-jupyter-notebook"
+  name: "tensorflow-gpu-jupyter"
 spec:
-  app: ml-jupyter-notebook
+  app: tensorflow-gpu-jupyter
   roles:
   - id: controller
     resources:

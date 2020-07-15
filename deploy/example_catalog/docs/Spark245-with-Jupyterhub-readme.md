@@ -8,18 +8,7 @@
 [Livy](https://livy.apache.org) enables programmatic, fault-tolerant, multi-tenant submission of Spark jobs from web/mobile apps (no Spark client needed). So, multiple users can interact with your Spark cluster concurrently and reliably.
 
 #### Sparkmagic BRIEF
-Sparkmagic is a library of kernels that allows Jupyter notebooks to interact with Apache Spark through Apache Livy, which is a REST server for Spark. Spark and Apache Livy are installed when you create a cluster with JupyterHub.
-
-
-#### SparkMagic Features
-Run Spark code in multiple languages against any remote Spark cluster through Livy
-Automatic SparkContext (sc) and HiveContext (sqlContext) creation
-Easily execute SparkSQL queries with the %%sql magic
-Automatic visualization of SQL queries in the PySpark, Spark and SparkR kernels; use an easy visual interface to interactively construct visualizations, no code required
-Easy access to Spark application information and logs (%%info magic)
-Ability to capture the output of SQL queries as Pandas dataframes to interact with other Python libraries (e.g. matplotlib)
-Send local files or dataframes to a remote cluster (e.g. sending pretrained local ML model straight to the Spark cluster)
-Authenticate to Livy via Basic Access authentication or via Kerberos
+[Sparkmagic](https://github.com/jupyter-incubator/sparkmagic) is a library of kernels that allows Jupyter notebooks to interact with Apache Spark through Apache Livy, which is a REST server for Spark. Spark and Apache Livy are installed when you create a cluster with JupyterHub.
 
 #### Apache Spark 2.4.5 with Jupyterhub ROLES
 * Apache Spark Master is the main component for Spark loads. 

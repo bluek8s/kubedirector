@@ -97,13 +97,13 @@ and following optional roles
 
    Go to HBASE Browser in Hue and execute HBASE queries.
 
-   **Adding workers**
+#### ADDING WORKERS
 
    Workers can be added by increasing the number of members corresponding to the worker role in cluster yaml.
 
 After changing the member count of  workers and reapplying the cluster,check if all the services are up after logging into cloudera manager.
 
-**Deleting workers**
+#### DELETING WORKERS
 
 Workers can be deleted by decreasing the number of members corresponding to the worker role in cluster yaml.
 

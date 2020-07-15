@@ -1,4 +1,4 @@
-#### Spark-2.4.5 BRIEF
+#### Apache Spark-2.4.5 BRIEF
 [Apache Spark](https://spark.apache.org/docs/2.4.5/) is a fast and general-purpose cluster computing system. It provides high-level APIs in Java, Scala, Python and R, and an optimized engine that supports general execution graphs. It also supports a rich set of higher-level tools including Spark SQL for SQL and structured data processing, MLlib for machine learning, GraphX for graph processing, and Spark Streaming.
 
 #### Jupyterhub BRIEF
@@ -21,6 +21,13 @@ Ability to capture the output of SQL queries as Pandas dataframes to interact wi
 Send local files or dataframes to a remote cluster (e.g. sending pretrained local ML model straight to the Spark cluster)
 Authenticate to Livy via Basic Access authentication or via Kerberos
 
+#### Apache Spark 2.4.5 with Jupyterhub ROLES
+* Apache Spark Master is the main component for Spark loads. 
+  * Spark is a cluster with one Spark Master node and minimum of 1 Spark Worker node. 
+  * With the increase in load, number of Spark Workers can be scaled up horizontally to be able to take more load.
+* Livy node is used to submit jobs from REST API or from Jupyter notebook. In the cluster, one node is required to be for Livy server.
+* Jupyterhub is an optional compoent. If user wants to submit jobs to Spark master from Jupyterhub notebook though Livy server, Jupyterhub requires one node.
+
 ##### Examples
 There are two ways to use sparkmagic. Head over to the examples section for a demonstration on how to use both models of execution.
 1. Via the IPython kernel
@@ -35,4 +42,4 @@ The sparkmagic library also provides a set of Scala and Python kernels that allo
 * Reduce Spark Worker nodes, test message transfer from client and cluster state in control center.
 * Power off nodes to see that the cluster health from control center is good and messages are transferred without issues.
 * Delete node and verify Kubernates re-creates node.
-* Run PySpark, Scala Spark, and SparkR from Notebook [References](https://spark.apache.org/docs/latest/ml-guide.html)
+* Run PySpark, Scala Spark, and SparkR from Jupyter Notebook througth Livy server [References](https://spark.apache.org/docs/latest/ml-guide.html)

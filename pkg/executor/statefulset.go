@@ -50,7 +50,7 @@ func CreateStatefulSet(
 	role *kdv1.Role,
 ) (*appsv1.StatefulSet, error) {
 
-	statefulSet, err := getStatefulSet(reqLogger, cr, nativeSystemdSupport, role, 0)
+	statefulSet, err := getStatefulset(reqLogger, cr, nativeSystemdSupport, role, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -160,10 +160,10 @@ func DeleteStatefulSet(
 	return shared.Delete(context.TODO(), toDelete)
 }
 
-// getStatefulSet composes the spec for creating a statefulset in k8s, based
+// getStatefulset composes the spec for creating a statefulset in k8s, based
 // on the given virtual cluster CR and for the purposes of implementing the
 // given role.
-func getStatefulSet(
+func getStatefulset(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	nativeSystemdSupport bool,
@@ -277,7 +277,7 @@ func getStatefulSet(
 	var name string
 
 	if namingScheme {
-		name = cr.Name + "-" + role.Name
+		name = cr.Name + "-" + role.Name + "-"
 	} else {
 		name = statefulSetNamePrefix
 	}
@@ -288,7 +288,7 @@ func getStatefulSet(
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            name,
+			GenerateName:    name,
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labels,

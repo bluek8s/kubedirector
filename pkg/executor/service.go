@@ -67,9 +67,9 @@ func CreateHeadlessService(
 
 	if cr.Status.ClusterService == "" {
 		if namingScheme {
-			service.ObjectMeta.Name = cr.Name
+			service.ObjectMeta.GenerateName = cr.Name + "-"
 		} else {
-			service.ObjectMeta.Name = headlessSvcNamePrefix
+			service.ObjectMeta.GenerateName = headlessSvcNamePrefix
 		}
 	} else {
 		service.ObjectMeta.Name = cr.Status.ClusterService

@@ -25,7 +25,7 @@ Ability to capture the output of SQL queries as Pandas dataframes to interact wi
 Send local files or dataframes to a remote cluster (e.g. sending pretrained local ML model straight to the Spark cluster)
 Authenticate to Livy via Basic Access authentication or via Kerberos
 
-####Examples
+##### Examples
 There are two ways to use sparkmagic. Head over to the examples section for a demonstration on how to use both models of execution.
 1. Via the IPython kernel
 The sparkmagic library provides a %%spark magic that you can use to easily run code against a remote Spark cluster from a normal IPython notebook. See the Spark Magics on IPython sample notebook

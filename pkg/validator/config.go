@@ -233,7 +233,7 @@ func admitKDConfigCR(
 	// Populate default naming scheme if necessary.
 	if configCR.Spec.DefaultNamingScheme == nil {
 		patches = append(patches,
-			newStrPatch("/spec/defaultNamingScheme", shared.DefaultNamingScheme),
+			newBoolPatch("/spec/nativeSystemdSupport", defaultNamingScheme),
 		)
 	}
 

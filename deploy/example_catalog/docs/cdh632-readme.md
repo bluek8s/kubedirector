@@ -31,6 +31,11 @@ More about the CDH can be read [here.](https://docs.cloudera.com/documentation/e
 * standby role runs Standby Namenode, Standby Resource manager,Failover controller,zookeeper and journal
   node.
 * arbiter role runs journal manager, job history server, zookeeper
+
+
+#### ENABLING HIGH AVAILABILITY
+
+High availability can be enabled by uncommenting configmap block and connections block in <b>deploy/example_clusters/cr-cluster-cdh632cm-stor.yaml</b>
   
 
 #### STEPS FOR SAMPLE TEST RUNS
@@ -43,13 +48,13 @@ More about the CDH can be read [here.](https://docs.cloudera.com/documentation/e
      
     Login to any pod and run
     
-      sudo -u hdfs hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-        mapreduce-examples.jar pi 10 100
+      sudo -u hdfs hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar pi 10 100
   
  2.  ***DFSIO write***
   
      Login to any pod and run 
      
-      sudo -u hdfs hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-    mapreduce-client-jobclient-3.0.0-cdh6.3.2-tests.jar TestDFSIO -write -nrFiles 10 -fileSize 1000 -resFile /tmp/TestDFSIOwrite.txt
+      sudo -u hdfs hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-client-jobclient-3.0.0-cdh6.3.2-tests.jar TestDFSIO -write -nrFiles 10 -fileSize 1000 -resFile /tmp/TestDFSIOwrite.txt
       
  3. ***DFSIO read***
     
@@ -95,7 +100,6 @@ More about the CDH can be read [here.](https://docs.cloudera.com/documentation/e
 
 <p align="center"><b><u>HBASE Service</b></u></b></p>
 
-
    Go to HBASE Browser in Hue and execute HBASE queries.
 
 #### ADDING WORKERS
@@ -109,3 +113,8 @@ After changing the member count of  workers and reapplying the cluster,check if 
 Workers can be deleted by decreasing the number of members corresponding to the worker role in cluster yaml.
 
 After changing the member count of  the workers and reapplying the cluster,check if all the services are up after logging into cloudera manager.
+
+
+#### FUTURE WORK
+
+Adding Kerberos support

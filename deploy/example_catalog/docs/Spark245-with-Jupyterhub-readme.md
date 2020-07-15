@@ -10,10 +10,6 @@
 #### Sparkmagic BRIEF
 Sparkmagic is a library of kernels that allows Jupyter notebooks to interact with Apache Spark through Apache Livy, which is a REST server for Spark. Spark and Apache Livy are installed when you create a cluster with JupyterHub.
 
-#### Spark Components
-Spark applications run as independent sets of processes on a cluster, coordinated by the SparkContext object in your main program (called the driver program).
-
-Specifically, to run on a cluster, the SparkContext can connect to several types of cluster managers (either Spark’s own standalone cluster manager, Mesos or YARN), which allocate resources across applications. Once connected, Spark acquires executors on nodes in the cluster, which are processes that run computations and store data for your application. Next, it sends your application code (defined by JAR or Python files passed to SparkContext) to the executors. Finally, SparkContext sends tasks to the executors to run.
 
 #### SparkMagic Features
 Run Spark code in multiple languages against any remote Spark cluster through Livy

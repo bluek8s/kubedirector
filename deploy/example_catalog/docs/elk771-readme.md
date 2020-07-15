@@ -24,37 +24,37 @@ More about the ELK cluster can be read [here.](https://www.elastic.co/what-is/el
 
     Send request
 
-      PUT /products
-      {
+        PUT /products
+        {
           "settings": 
           {
            "number_of_replicas": 2,
               "number_of_shards": 2
           }
-      }
+        }
 
      Verify that response status code is 200 Ok and the response is 
 
-      {
+        {
           "acknowledged" : true,
           "shards_acknowledged" : true,
           "index" : "products"
-      }
+        }
 
 2. Create document in product indice
 
      Send request
    
-      POST /products/_doc/100
-      {
+       POST /products/_doc/100
+       {
           "name": "product1",
           "price": 64,
           "in_stock": 10
-      }
+       }
 
       Verify that response code is 201 Created, and the document got created with id as 100 by verifying the response
 
-        {
+         {
           "_index" : "products",
           "_type" : "_doc",
           "_id" : "100",
@@ -77,7 +77,7 @@ More about the ELK cluster can be read [here.](https://www.elastic.co/what-is/el
 
    Response
 
-      {
+       {
         "_index" : "products",
         "_type" : "_doc",
         "_id" : "100",
@@ -90,6 +90,6 @@ More about the ELK cluster can be read [here.](https://www.elastic.co/what-is/el
           "price" : 64,
           "in_stock" : 10
         }
-      }
+       }
 
-Similarly we can perform update, delete on the product indice by sending rest request from the console tool in Kibana.
+   Similarly we can perform update, delete on the product indice by sending rest request from the console tool in Kibana.

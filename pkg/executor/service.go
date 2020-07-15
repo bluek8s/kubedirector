@@ -17,7 +17,6 @@ package executor
 import (
 	"context"
 
-	"github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
@@ -63,15 +62,8 @@ func CreateHeadlessService(
 			},
 		},
 	}
-
-	namingScheme := *cr.Spec.NamingScheme
-
 	if cr.Status.ClusterService == "" {
-		if namingScheme == v1beta1.ClusterRole {
-			service.ObjectMeta.Name = cr.Name
-		} else if namingScheme == v1beta1.UID {
-			service.ObjectMeta.GenerateName = headlessSvcNamePrefix
-		}
+		service.ObjectMeta.GenerateName = headlessSvcNamePrefix
 	} else {
 		service.ObjectMeta.Name = cr.Status.ClusterService
 	}
@@ -108,14 +100,6 @@ func CreatePodService(
 
 	serviceType := shared.ServiceType(*cr.Spec.ServiceType)
 
-	var name string
-	namingScheme := *cr.Spec.NamingScheme
-	if namingScheme == v1beta1.ClusterRole {
-		name = podName
-	} else if namingScheme == v1beta1.UID {
-		name = svcNamePrefix + podName
-	}
-
 	portInfoList, portsErr := catalog.PortsForRole(cr, role.Name)
 	if portsErr != nil {
 		return nil, portsErr
@@ -129,7 +113,7 @@ func CreatePodService(
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            name,
+			Name:            svcNamePrefix + podName,
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labelsForService(cr, role),

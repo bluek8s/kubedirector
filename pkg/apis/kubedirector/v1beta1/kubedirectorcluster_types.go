@@ -19,16 +19,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	// UID represents the old naming scheme where object names were generated
-	// with unique UID extensions.
-	UID string = "UID"
-
-	// ClusterRole represents the new naming scheme based on cluster name and
-	// respective role name.
-	ClusterRole string = "ClusterRole"
-)
-
 // KubeDirectorClusterSpec defines the desired state of KubeDirectorCluster.
 // AppID references a KubeDirectorApp CR. ServiceType indicates whether to
 // use NodePort or LoadBalancer services. The Roles field describes the
@@ -41,7 +31,6 @@ type KubeDirectorClusterSpec struct {
 	Roles         []Role      `json:"roles"`
 	DefaultSecret *KDSecret   `json:"defaultSecret,omitempty"`
 	Connections   Connections `json:"connections"`
-	NamingScheme  *string     `json:"namingScheme,omitempty"`
 }
 
 // Connections specifies list of cluster objects and configmaps objects that has

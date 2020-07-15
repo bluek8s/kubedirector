@@ -51,9 +51,6 @@ spec:
                   type: array
                   items:
                     type: string
-            namingScheme:
-              type: string
-              pattern: '^UID$|^ClusterRole$'
             serviceType:
               type: string
               pattern: '^ClusterIP$|^NodePort$|^LoadBalancer$'

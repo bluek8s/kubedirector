@@ -25,13 +25,13 @@ Authenticate to Livy via Basic Access authentication or via Kerberos
 * Apache Spark Master is the main component for Spark loads. 
   * Spark is a cluster with one Spark Master node and minimum of 1 Spark Worker node. 
   * With the increase in load, number of Spark Workers can be scaled up horizontally to be able to take more load.
-* Livy node is used to submit jobs from REST API or from Jupyter notebook. In the cluster, one node is required to be for Livy server.
-* Jupyterhub is an optional compoent. If user wants to submit jobs to Spark master from Jupyterhub notebook though Livy server, Jupyterhub requires one node.
+* Livy node is used to submit jobs from REST API or from Jupyter notebook. In the cluster, one node is required for Livy.
+* Jupyterhub is an optional component. If user wants to submit jobs to Spark master from Jupyterhub notebook though Livy server, Jupyterhub requires one node.
 
 ##### Examples
 There are two ways to use sparkmagic. Head over to the examples section for a demonstration on how to use both models of execution.
 1. Via the IPython kernel
-The sparkmagic library provides a %%spark magic that you can use to easily run code against a remote Spark cluster from a normal IPython notebook. See the Spark Magics on IPython sample notebook
+The Sparkmagic library provides a %%spark magic that you can use to easily run code against a remote Spark cluster from a normal IPython notebook. See the Spark Magics on IPython sample notebook
 2. Via the PySpark and Spark kernels
 The sparkmagic library also provides a set of Scala and Python kernels that allow you to automatically connect to a remote Spark cluster, run code and SQL queries, manage your Livy server and Spark job configuration, and generate automatic visualizations. See Pyspark and Spark sample notebooks.
 3. Sending local data to Spark Kernel
@@ -42,4 +42,5 @@ The sparkmagic library also provides a set of Scala and Python kernels that allo
 * Reduce Spark Worker nodes, test message transfer from client and cluster state in control center.
 * Power off nodes to see that the cluster health from control center is good and messages are transferred without issues.
 * Delete node and verify Kubernates re-creates node.
-* Run PySpark, Scala Spark, and SparkR from Jupyter Notebook througth Livy server [References](https://spark.apache.org/docs/latest/ml-guide.html)
+* Run PySpark, Scala Spark, and SparkR from Jupyter Notebook through Livy server [References](https://spark.apache.org/docs/latest/ml-guide.html)
+

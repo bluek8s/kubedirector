@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	// UID represents the old naming scheme where object names were generated
+	// UID represents the old naming scheme where object names were genrated
 	// with unique UID extensions.
 	UID string = "UID"
 

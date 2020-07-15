@@ -269,6 +269,10 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 					for {
 						updateMetaGenerator := &kubecluster
 						annotations := updateMetaGenerator.Annotations
+						if annotations == nil {
+							annotations = make(map[string]string)
+							updateMetaGenerator.Annotations = annotations
+						}
 						if v, ok := annotations[shared.ConnectionsIncrementor]; ok {
 							newV, _ := strconv.Atoi(v)
 							annotations[shared.ConnectionsIncrementor] = strconv.Itoa(newV + 1)

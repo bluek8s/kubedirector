@@ -85,7 +85,7 @@ func (r *ReconcileConfigMap) syncConfigMap(
 				updateMetaGenerator := &kubecluster
 				annotations := updateMetaGenerator.Annotations
 				if annotations == nil {
-					annotations := make(map[string]string)
+					annotations = make(map[string]string)
 					updateMetaGenerator.Annotations = annotations
 				}
 				if v, ok := annotations[shared.ConnectionsIncrementor]; ok {

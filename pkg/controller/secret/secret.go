@@ -31,8 +31,7 @@ import (
 const (
 	// secretType is a label placed on desired comfig maps that
 	// we want to watch and propogate inside containers
-	secretType             = shared.KdDomainBase + "/secretType"
-	connectionsIncrementor = shared.KdDomainBase + "/connUpdateCounter"
+	secretType = shared.KdDomainBase + "/secretType"
 )
 
 // syncSecret runs the reconciliation logic. It is invoked because of a
@@ -86,14 +85,14 @@ func (r *ReconcileSecret) syncSecret(
 				updateMetaGenerator := &kubecluster
 				annotations := updateMetaGenerator.Annotations
 				if annotations == nil {
-					annotations := make(map[string]string)
+					annotations = make(map[string]string)
 					updateMetaGenerator.Annotations = annotations
 				}
-				if v, ok := annotations[connectionsIncrementor]; ok {
+				if v, ok := annotations[shared.ConnectionsIncrementor]; ok {
 					newV, _ := strconv.Atoi(v)
-					annotations[connectionsIncrementor] = strconv.Itoa(newV + 1)
+					annotations[shared.ConnectionsIncrementor] = strconv.Itoa(newV + 1)
 				} else {
-					annotations[connectionsIncrementor] = "1"
+					annotations[shared.ConnectionsIncrementor] = "1"
 				}
 				updateMetaGenerator.Annotations = annotations
 				if shared.Update(context.TODO(), updateMetaGenerator) == nil {

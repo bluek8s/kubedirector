@@ -15,6 +15,7 @@ and following optional roles
 * standby(Applicable when cluster is in high availability mode)
 * aribiter(Applicable when cluster is in high availability mode)
 
+More about the CDH can be read [here.](https://docs.cloudera.com/documentation/enterprise/6/6.3/topics/cdh_intro.html)
 
 #### CDH ROLES
 

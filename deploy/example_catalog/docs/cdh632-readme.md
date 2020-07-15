@@ -34,7 +34,7 @@ and following optional roles
 
 #### STEPS FOR SAMPLE TEST RUNS
 
-<center><b><u>HDFS Service</b></u></center>
+<p align="center"><b><u>HDFS Service</b></u></p>
 
  
 
@@ -42,7 +42,7 @@ and following optional roles
      
     Login to any pod and run
     
-  sudo -u hdfs hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-        mapreduce-examples.jar pi 10 100
+      sudo -u hdfs hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-        mapreduce-examples.jar pi 10 100
   
  2.  ***DFSIO write***
   
@@ -54,9 +54,9 @@ and following optional roles
     
     Login to any pod and run
 
-  sudo -u hdfs hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-client-jobclient-3.0.0-cdh6.3.2-tests.jar TestDFSIO -read -nrFiles 10 -fileSize 1000 -resFile /tmp/TestDFSIOread.txt
+      sudo -u hdfs hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-client-jobclient-3.0.0-cdh6.3.2-tests.jar TestDFSIO -read -nrFiles 10 -fileSize 1000 -resFile /tmp/TestDFSIOread.txt
  
-<center><b><u>Spark Service</b></u></center>
+<p align="center"><b><u>Spark Service</b></u></p>
 
  1.  ***Spark Pi Job***
   
@@ -88,11 +88,11 @@ and following optional roles
         1)).reduceByKey(lambda v1,v2: v1 + v2)
         print counts.collect()
 
-<center><b><u>HIVE Service</b></u></center>
+<p align="center"><b><u>HIVE Service</b></u></p>
 
   Login to hue and go to HIVE Browser. Execute HIVE queries
 
-<center><b><u>HBASE Service</b></u></center>
+<p align="center"><b><u>HBASE Service</b></u></b></p>
 
 
    Go to HBASE Browser in Hue and execute HBASE queries.

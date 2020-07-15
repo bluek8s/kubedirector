@@ -273,22 +273,13 @@ func getStatefulset(
 		return nil, securityErr
 	}
 
-	namingScheme := shared.GetDefaultNamingScheme()
-	var name string
-
-	if namingScheme {
-		name = cr.Name + "-" + role.Name + "-"
-	} else {
-		name = statefulSetNamePrefix
-	}
-
 	return &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "StatefulSet",
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName:    name,
+			GenerateName:    statefulSetNamePrefix,
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labels,

@@ -32,7 +32,6 @@ const (
 	validationPath       = "/validate"
 	healthPath           = "/healthz"
 	defaultNativeSystemd = false
-	defaultNamingScheme  = true
 
 	appCrt  = "app.crt"
 	appKey  = "app.pem"

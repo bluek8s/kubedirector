@@ -1,3 +1,19 @@
+# v0.5.0 - Jul ??, 2020
+
+The major change in this release is the move from operator SDK v0.8.1 to v0.15.2, which has a couple of notable sets of consequences:
+* Anyone building KubeDirector from source, as opposed to using a pre-built operator image, should re-read [doc/kubedirector-development.md](doc/kubedirector-development.md) to become acquainted with new requirements and with some tips for continuing to build your existing local repo. We highly recommend reading this **before** merging the new release source into your existing source.
+* Anyone who is currently running a KubeDirector 0.4.x deployment and is interested in updating that deployment in-place should read [doc/upgrade.md](doc/upgrade.md).
+
+KD 0.5.0 supports some additional properties in [KubeDirectorApp](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorApp-Definition) and [KubeDirectorCluster](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorCluster-Definition); see the "properties supported by KD v0.5.0+" sections in those tables. These implement three new features:
+* A KD app can indicate that a unique token should be generated to be used for authentication to a service endpoint. This token will be visible in the KD cluster member status, as well as visible within the relevant container (through configcli) for use in setting up that service.
+* A KD app can define which lifecycle events (among "configure"/"addnodes"/"delnodes") the members in a role actually care about being notified for. If we can skip sending notifications to a member, then it matters less if that member is down when a KD cluster is reconfigured.
+* A KD cluster can specify a list of "connections" to certain other resources (secrets, configmaps, and/or other KD clusters) whose configuration will be shared within the container (through confligcli). This info will be updated as the connections list is edited or the resources are modified. See the wiki for more details.
+
+The [example catalog of KD apps](https://github.com/bluek8s/kubedirector/tree/master/deploy/example_catalog) has also been significantly reworked and expanded, including additional complex applications and a collection of [usage documentation](https://github.com/bluek8s/kubedirector/tree/master/deploy/example_catalog/docs). We know we have more to do on the front of app-development documentation and that will be a major focus of the next release!
+
+A final bonus QOL improvement is included for automated deployment of KD app CRs. The KD app validation will now allow a PUT to an existing KD app CR that is being used by existing KD clusters, if it is determined that the resulting document (after defaults-substitutions and any other mutations) will not end up changing the "spec" section that the clusters depend on.
+
+
 # v0.4.2 - Jun 20, 2020
 
 Capturing some bugfixes here while we continue to work toward the 0.5 release, which will introduce new features, add new example kdapps, and move to a newer version of the operator SDK.

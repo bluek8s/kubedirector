@@ -69,7 +69,7 @@ spec:
   # for this current app, the different roles which are defined in the JSON file supplied with the app are
   # control-system, cldb, resource-manager, history-server, zookeeper, hive-meta, hive-server2, hue, fileserver, nodemanager and edge
   # control-system hosts the MapR Control System, current cardinality/member count is fixed to 1
-  # cldb implements the CLDB facility of the MapR Eco System, current cardinality/member count is greater than 1. Greater than 1 is for HA environment but it needs MapR license to implement HA
+  # cldb implements the CLDB facility of the MapR Eco System
   # zookeeper implements Zookeeper facility, current cardinality/member count is fixed to 3
   # resource-manager implements YARN resource-manager, more than 1 member creates a HA  for it
   # history-server implements YARN history-server it is fixed to 1 member

@@ -29,6 +29,8 @@ The MapR distribution provides a full Hadoop stack that includes the MapR File S
 
 # Details on the Kubedirector App and its features/facilities
 MapR kubedirector app enables user to submit hive jobs on Tez. Hive jobs can be submitted either through hive client or Hue console. These Hive and Hue are customized to use the facilities offered by MapR-FS. By default following roles are defined in the app
+     Roles	                Services running roles
+    ==============================================================================
      control-system         On this pod/role MapR Control System is running. Its a
                             facility to manage MapR Ecosystem. It has a Web UI which
                             can be launched from "Service Endpoints" tab under

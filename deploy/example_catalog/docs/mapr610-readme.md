@@ -111,10 +111,10 @@ On the Hive editor of Hue console, against the Database option click on dropdown
 
 #### Sample usage of HttpFS
 HttpFS is used to list the content of maprfs. It can be used 2 ways, through browser or through curl commands.HttpFS
-1. Sample program to list contents of maprfs:///user. Launch the HttpFS web UI from "Service Endpoints". The URL is not complete and so will not be able to see anything. Now to complete in the below format to list the content of maprfs:///user
+1. Sample program to list contents of maprfs:///user. Launch the HttpFS web UI from "Service Endpoints". The URL is not complete and so will not be able to see anything. To complete the URL update in the below format. For example, to list the content of maprfs:///user
 
-        http(s)://<link given in the servcie endpoints:port as per service endpoints>/webhdfs/v1/user?op=LISTSTATUS&user=mapr
+        http(s)://<link given in the service endpoints:port as per service endpoints>/webhdfs/v1/user?op=LISTSTATUS&user=mapr
 
 2. Sample curl command to perform similar operation as 1st sample
     
-        curl -u mapr -i "http(s)://<link given in the servcie endpoints:port as per service endpoints>/webhdfs/v1/user?op=LISTSTATUS&user=mapr"
+        curl -u mapr -i "http(s)://<link given in the service endpoints:port as per service endpoints>/webhdfs/v1/user?op=LISTSTATUS&user=mapr"

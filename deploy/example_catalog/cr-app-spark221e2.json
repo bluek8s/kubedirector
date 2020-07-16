@@ -2,7 +2,10 @@
     "apiVersion": "kubedirector.hpe.com/v1beta1",
     "kind": "KubeDirectorApp",
     "metadata": {
-        "name" : "spark221e2"
+        "name" : "spark221e2",
+        "annotations": {
+            "password":"the jupyter notebook password in this example app is admin123"
+        }
     },
 
     "spec" : {

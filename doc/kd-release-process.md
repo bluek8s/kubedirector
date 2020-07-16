@@ -6,15 +6,23 @@ The below process could be reduced to a smaller number of steps that reach the s
 * Don't add commits directly to the main repo. Commits come in through reviewed PR merges. The only situation where this restriction doesn't apply is a trivial doc edit made by a maintainer.
 * Don't leave a main repo branch in a broken or misleading state at any point. We should not be relying on all of this release process happening quickly -- ideally it should, but in practice it could be paused or interrupted at some point.
 
-#### BRANCHING
+#### BRANCHES
 
-A "dev branch" will be referred to below. This will be the branch that is collecting the changes for the build of this release. In current KubeDirector development when simultaneous work on multiple releases is rare, the branching arrangement is simple. Leading-edge new release development happens on the master branch, and so master is the "dev branch" in that case. A patch for a previous release will be handled on a new dev branch created on demand for that patch release.
+In current KubeDirector development where simultaneous work on multiple releases is rare, the branching arrangement is simple. Leading-edge new release development happens on the master branch. If a patch for a previous release is required, that will be handled on a new branch created on demand for that patch release.
 
-To help make this a mistake-free process, copy the below text into a new document and make the following substitutions:
+If a new branch needs to be created to do a patch release, then that branch should be created at the common ancestor commit between master and the relevant release tag that the patch release will be based on. E.g. if you needed to develop an 0.4.3 release based on 0.4.2, you could create the 0.4.3 branch like so:
+```bash
+    branchpoint=$(git merge-base master v0.4.2)
+    git branch 0.4.3 $branchpoint
+```
+
+Note that by convention a tag for a release starts with "v", and any non-master branch for a release in progress is just the bare version string without a leading "v".
+
+A "dev branch" will be referred to in the steps below. This will be the branch that is collecting the changes for the build of this release, whether master or some patch release branch like "0.4.3". To help make the release process mistake-free, copy the below text into a new document and make the following substitutions:
 * Change "x.y.z" to whatever the version-to-be-released is, such as "0.5.0".
-* Change "the dev branch" to the actual name of the dev branch, such as "the master branch".
+* Change "the dev branch" to swap out "dev" for the actual name of the dev branch. So e.g. you should replace "the dev branch" with "the master branch" or "the 0.4.3 branch".
 
-Then follow the process using your copy of the text.
+Then follow the process using your modified copy of the text.
 
 #### ABOUT BUGFIXES
 

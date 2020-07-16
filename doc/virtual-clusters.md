@@ -9,9 +9,9 @@ For example, this would create an instance of a virtual cluster from the spark22
 
 You will see that some of the YAML file basenames have the "-stor" suffix. This is just a convention used among these example files to indicate that the virtual cluster spec requests persistent storage. Several of the examples have both persistent and non-persistent variants.
 
-Note that if you are using persistent storage, you may wish to create a [KubeDirectorConfig object](https://github.com/bluek8s/kubedirector/wiki/Type-Definitions-for-KubeDirectorConfig) (as described in [quickstart.md](quickstart.md)), in this case for the purpose of declaring a specific defaultStorageClassName value. Alternately you can declare a storageClassName in the persistent storage spec section of each virtual cluster spec. If no storage class value is declared in either the KubeDirectorConfig or the virtual cluster, then the K8s default storage class will be used.
+Note that if you are using persistent storage, you may wish to create a [KubeDirectorConfig object](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorConfig-Definition) (as described in [quickstart.md](quickstart.md)), in this case for the purpose of declaring a specific defaultStorageClassName value. Alternately you can declare a storageClassName in the persistent storage spec section of each virtual cluster spec. If no storage class value is declared in either the KubeDirectorConfig or the virtual cluster, then the K8s default storage class will be used.
 
-For more details about the available virtual cluster properties, see the KubeDirector wiki for a [complete spec of the KubeDirectorCluster resource type](https://github.com/bluek8s/kubedirector/wiki/Type-Definitions-for-KubeDirectorCluster).
+For more details about the available virtual cluster properties, see the KubeDirector wiki for a [complete spec of the KubeDirectorCluster resource type](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorCluster-Definition).
 
 #### INSPECTING
 
@@ -53,9 +53,8 @@ will result output that (among other things) contains an array that explicitly n
 ```
 
 A few notes about using the example applications:
-* In both the Spark and TensorFlow examples, the password for Jupyter is "admin123".
-* The deployed containers will be running sshd, but they will not initially have any login-capable accounts. For container access as a root user, use "kubectl exec" along with the podname. E.g. "kubectl exec -it kdss-vjtrc-0 bash". From there you can reconfigure sshd if you wish.
-* Clickable links to other IPs within the Spark web dashboard will not work, because Spark is not aware of NodePort ports or LoadBalancer IPs.
+* App CRs may have usage notes in their annotations. More detailed usage docs for the complex app examples are gathered in the "deploy/example_catalog/docs" directory.
+* Some deployed containers may be running sshd, but they may not initially have any login-capable accounts. For container access as a root user, use "kubectl exec" along with the podname. E.g. "kubectl exec -it kdss-vjtrc-0 -- bash". From there you can reconfigure sshd if you wish.
 
 #### RESIZING
 

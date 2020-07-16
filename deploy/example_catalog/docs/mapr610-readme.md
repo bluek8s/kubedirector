@@ -29,6 +29,7 @@ The MapR distribution provides a full Hadoop stack that includes the MapR File S
 
 # Details on the Kubedirector App and its features/facilities
 MapR kubedirector app enables user to submit hive jobs on Tez. Hive jobs can be submitted either through hive client or Hue console. These Hive and Hue are customized to use the facilities offered by MapR-FS. By default following roles are defined in the app
+
      Roles	                Services running roles
     ==============================================================================
      control-system         On this pod/role MapR Control System is running. Its a
@@ -74,38 +75,46 @@ MapR kubedirector app enables user to submit hive jobs on Tez. Hive jobs can be 
 
 # Sample Tests
 
-#### Finding information to connect to the pod
+#### Finding information to connect to pod
 We can login pods of different roles through "kubectl exec" to respective pods. For "edge" role we can also do ssh. To do "kubectl exec" we need to know the pod name or to ssh we need to know the url and port this can be found under "Service Endpoints" tab of Kubedirector tenant applications.
 
-#### Procedure to generate mapr ticket on secured cluster
+#### Procedure to generate mapr ticket on secure cluster
 To run jobs on secured MapR cluster, mapr ticket is mandatory. Switch to mapr user using "su". Now to generate the mapr ticket run "maprlogin password" and provide mapr user password when prompted. This will generate mapr ticket. This step can be skipped on unsecure cluster.
 
-#### Pre-setup for running sample jobs
+#### Prior Steps for running sample jobs
 Create a sample csv file like students.csv file having students id, students name and class. You can have this file locally on pod or on maprfs. To copy the file to maprfs, generate mapr ticket (secure cluster only) and use hadoop fs command. For example to copy the students.csv file to /tmp on maprfs run "hadoop fs -put students.csv /tmp". Successful copy can be confirmed by running "hadoop fs -ls /tmp"
 
 #### Running sample hive jobs
 To run sample hive jobs, login to "edge" role either through "ssh" or through "kubectl exec". If secured cluster then switch to mapr user and generate mapr ticket. As mapr user start hive service by running "hive" command. Once hive prompt is seen, try running following sample hive instructions
 1. Creating new database
-hive> create db sample;
+
+        hive> create db sample;
 
 2. Creating students table on new database using students.csv file which is saved in maprfs
-hive> use sample;
-hive> create external table students (student_id string, student_name string, student_class int) row format delimited fields terminated by "," stored as textfile location "maprfs:///tmp";
+
+        hive> use sample;
+
+        hive> create external table students (student_id string, student_name string, student_class int) row format delimited fields terminated by "," stored as textfile location "maprfs:///tmp";
 
 3. Displaying students details studying in class 10
-hive> use sample;
-hive> select * from students where student_class = 10;
+
+        hive> use sample;
+
+        hive> select * from students where student_class = 10;
 
 #### Running sample hive jobs through Hue
 Launch the Hue Web UI using the mapr user credential. If the hive sample jobs were executed before attempting to run Hue based Hive job then "sample" database should be visible on Hue console adn when clicked on "sample" database we should be able to see the "students" table. If "students" table is not present then submit the hive instructions given under hive samples in Hue console's hive editor and execute.
 1. List all the students details from the students table of sample database
 On the Hive editor of Hue console, against the Database option click on dropdown and select "sample". Execute the following instructions
+        
         select * from students;
 
 #### Sample usage of HttpFS
 HttpFS is used to list the content of maprfs. It can be used 2 ways, through browser or through curl commands.HttpFS
 1. Sample program to list contents of maprfs:///user. Launch the HttpFS web UI from "Service Endpoints". The URL is not complete and so will not be able to see anything. Now to complete in the below format to list the content of maprfs:///user
-http(s)://<link given in the servcie endpoints:port as per service endpoints>/webhdfs/v1/user?op=LISTSTATUS&user=mapr
+
+        http(s)://<link given in the servcie endpoints:port as per service endpoints>/webhdfs/v1/user?op=LISTSTATUS&user=mapr
 
 2. Sample curl command to perform similar operation as 1st sample
-    curl -u mapr -i "http(s)://<link given in the servcie endpoints:port as per service endpoints>/webhdfs/v1/user?op=LISTSTATUS&user=mapr"
+    
+        curl -u mapr -i "http(s)://<link given in the servcie endpoints:port as per service endpoints>/webhdfs/v1/user?op=LISTSTATUS&user=mapr"

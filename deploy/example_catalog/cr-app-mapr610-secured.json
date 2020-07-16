@@ -19,24 +19,21 @@
           "roleID": "control-system",
           "serviceIDs": [
             "warden",
-            "mapr-cs",
-            "ssh"
+            "mapr-cs"
           ]
         },
         {
           "roleID": "cldb",
           "serviceIDs": [
             "warden",
-            "cldb",
-            "ssh"
+            "cldb"
           ]
         },
         {
           "roleID": "zookeeper",
           "serviceIDs": [
             "warden",
-            "zookeeper",
-            "ssh"
+            "zookeeper"
           ]
         },
         {
@@ -44,8 +41,7 @@
           "serviceIDs": [
             "warden",
             "hive-server2",
-            "webhcat",
-            "ssh"
+            "webhcat"
           ]
         },
         {
@@ -53,8 +49,7 @@
           "serviceIDs": [
             "warden",
             "hive-meta",
-            "mysql",
-            "ssh"
+            "mysql"
           ]
         },
         {
@@ -62,8 +57,7 @@
           "serviceIDs": [
             "warden",
             "hue",
-            "httpfs",
-            "ssh"
+            "httpfs"
           ]
         },
         {
@@ -77,32 +71,28 @@
           "roleID": "nodemanager",
           "serviceIDs": [
             "warden",
-            "yarn-nm",
-            "ssh"
+            "yarn-nm"
           ]
         },
         {
           "roleID": "resource-manager",
           "serviceIDs": [
             "warden",
-            "yarn-rm",
-            "ssh"
+            "yarn-rm"
           ]
         },
         {
           "roleID": "history-server",
           "serviceIDs": [
             "warden",
-            "yarn-hs",
-            "ssh"
+            "yarn-hs"
           ]
         },
         {
           "roleID": "fileserver",
           "serviceIDs": [
             "warden",
-            "fileserver",
-            "ssh"
+            "fileserver"
           ]
         }
       ],
@@ -121,11 +111,11 @@
       ]
     },
     "label": {
-      "name": "MapR 610",
-      "description": "MapR 6.1 with MEP 6.3"
+      "name": "MapR 610 (SECURE)",
+      "description": "MapR 6.1 with MEP 6.3 (SECURE)"
     },
     "distroID": "bluedata/mapr610secure",
-    "version": "1.1",
+    "version": "1.2",
     "configSchemaVersion": 7,
     "services": [
       {
@@ -289,7 +279,7 @@
         }
       }
     ],
-    "defaultImageRepoTag": "bluedata/mapr610:1.1",
+    "defaultImageRepoTag": "bluedata/mapr610:1.2",
     "defaultConfigPackage": {
       "packageURL": "file:///opt/configscripts/appconfig-1.0.tgz"
     },
@@ -300,7 +290,7 @@
       },
       {
         "id": "cldb",
-        "cardinality": "1+"
+        "cardinality": "1"
       },
       {
         "id": "zookeeper",
@@ -320,7 +310,7 @@
       },
       {
         "id": "edge",
-        "imageRepoTag": "bluedata/mapr610edge:1.1",
+        "imageRepoTag": "bluedata/mapr610edge:1.2",
         "cardinality": "0+"
       },
       {

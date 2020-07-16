@@ -15,7 +15,7 @@ spec:
       serviceAccountName: kubedirector
       containers:
         - name: kubedirector
-          image: bluek8s/kubedirector:unstable
+          image: bluek8s/kubedirector:0.5.0
           # A liveness probe is desirable for in-use deployments, but if you
           # are doing iterations of "make redeploy" during development then
           # then you may inadvertently trigger the probe. Uncomment the

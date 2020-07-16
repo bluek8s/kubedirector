@@ -54,7 +54,7 @@ will result output that (among other things) contains an array that explicitly n
 
 A few notes about using the example applications:
 * App CRs may have usage notes in their annotations. More detailed usage docs for the complex app examples are gathered in the "deploy/example_catalog/docs" directory.
-* Some deployed containers may be running sshd, but they may not initially have any login-capable accounts. For container access as a root user, use "kubectl exec" along with the podname. E.g. "kubectl exec -it kdss-vjtrc-0 bash". From there you can reconfigure sshd if you wish.
+* Some deployed containers may be running sshd, but they may not initially have any login-capable accounts. For container access as a root user, use "kubectl exec" along with the podname. E.g. "kubectl exec -it kdss-vjtrc-0 -- bash". From there you can reconfigure sshd if you wish.
 
 #### RESIZING
 

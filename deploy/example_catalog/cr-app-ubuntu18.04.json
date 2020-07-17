@@ -26,7 +26,7 @@
             "description": "Ubuntu 18.04 with no preinstalled apps"
         },
         "distroID": "bluedata/ubuntu18x",
-        "version": "1.0",
+        "version": "1.1",
         "configSchemaVersion": 8,
         "services": [
             {
@@ -40,7 +40,7 @@
                 }
             }
         ],
-        "defaultImageRepoTag": "bluedata/ubuntu18.04:1.0",
+        "defaultImageRepoTag": "bluedata/ubuntu18.04:1.1",
         "defaultConfigPackage": null,
         "roles": [
             {

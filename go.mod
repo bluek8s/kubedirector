@@ -7,9 +7,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/operator-framework/operator-sdk v0.15.2
 	github.com/spf13/pflag v1.0.5
-	google.golang.org/genproto v0.0.0-20191028173616-919d9bdd9fe6
 	k8s.io/api v0.0.0
-	k8s.io/apiextensions-apiserver v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v12.0.0+incompatible
 	sigs.k8s.io/controller-runtime v0.4.0
@@ -43,3 +41,11 @@ replace (
 replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309 // Required by Helm
 
 replace github.com/openshift/api => github.com/openshift/api v0.0.0-20190924102528-32369d4db2ad // Required until https://github.com/operator-framework/operator-lifecycle-manager/pull/1241 is resolved
+
+// Avoid pulling in bou.ke/monkey. May be resolved with later operator-sdk
+// versions, so check back. Cf. issue #370.
+replace github.com/otiai10/copy => github.com/otiai10/copy v1.0.2
+
+// Avoid pulling in bou.ke/monkey. May be resolved with later operator-sdk
+// versions, so check back. Cf. issue #370.
+replace github.com/otiai10/mint => github.com/otiai10/mint v1.3.0

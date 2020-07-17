@@ -2,7 +2,7 @@
     "apiVersion": "kubedirector.hpe.com/v1beta1",
     "kind": "KubeDirectorApp",
     "metadata": {
-        "name": "ml-jupyter-notebook",
+        "name": "tensorflow-gpu-jupyter",
         "annotations": {
             "token":"execute this command to get the authentication token 'kubectl exec <pod-name> jupyter notebook list' and use this token in Jupyter notebook."
         }

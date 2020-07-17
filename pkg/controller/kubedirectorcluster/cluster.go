@@ -269,6 +269,10 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 					for {
 						updateMetaGenerator := &kubecluster
 						annotations := updateMetaGenerator.Annotations
+						if annotations == nil {
+							annotations = make(map[string]string)
+							updateMetaGenerator.Annotations = annotations
+						}
 						if v, ok := annotations[shared.ConnectionsIncrementor]; ok {
 							newV, _ := strconv.Atoi(v)
 							annotations[shared.ConnectionsIncrementor] = strconv.Itoa(newV + 1)
@@ -343,29 +347,37 @@ func calcConnectionsHash(
 	clusterNames := con.Clusters
 	var buffer bytes.Buffer
 	for _, c := range clusterNames {
-		clusterObj, _ := observer.GetCluster(ns, c)
+		clusterObj, clusterErr := observer.GetCluster(ns, c)
 		buffer.WriteString(c)
 		var specNum string
-		// extra careful while dereferencing
-		if clusterObj.Status.SpecGenerationToProcess == nil {
-			specNum = "nil"
-		} else {
-			specNum = strconv.Itoa(
-				int(*clusterObj.Status.SpecGenerationToProcess))
+		if clusterErr == nil {
+			// extra careful while dereferencing
+			if clusterObj.Status.SpecGenerationToProcess == nil {
+				specNum = "nil"
+			} else {
+				specNum = strconv.Itoa(
+					int(*clusterObj.Status.SpecGenerationToProcess))
+			}
 		}
 		buffer.WriteString(specNum)
 	}
 	cmNames := con.ConfigMaps
 	for _, c := range cmNames {
-		cmObj, _ := observer.GetConfigMap(ns, c)
-		rv := cmObj.ResourceVersion
+		cmObj, cmErr := observer.GetConfigMap(ns, c)
+		var rv string
+		if cmErr == nil {
+			rv = cmObj.ResourceVersion
+		}
 		buffer.WriteString(c)
 		buffer.WriteString(rv)
 	}
 	secretNames := con.Secrets
 	for _, c := range secretNames {
-		secretObj, _ := observer.GetSecret(ns, c)
-		rv := secretObj.ResourceVersion
+		secretObj, secErr := observer.GetSecret(ns, c)
+		var rv string
+		if secErr == nil {
+			rv = secretObj.ResourceVersion
+		}
 		buffer.WriteString(c)
 		buffer.WriteString(rv)
 	}

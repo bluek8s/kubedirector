@@ -6,15 +6,23 @@ The below process could be reduced to a smaller number of steps that reach the s
 * Don't add commits directly to the main repo. Commits come in through reviewed PR merges. The only situation where this restriction doesn't apply is a trivial doc edit made by a maintainer.
 * Don't leave a main repo branch in a broken or misleading state at any point. We should not be relying on all of this release process happening quickly -- ideally it should, but in practice it could be paused or interrupted at some point.
 
-#### BRANCHING
+#### BRANCHES
 
-A "dev branch" will be referred to below. This will be the branch that is collecting the changes for the build of this release. In current KubeDirector development when simultaneous work on multiple releases is rare, the branching arrangement is simple. Leading-edge new release development happens on the master branch, and so master is the "dev branch" in that case. A patch for a previous release will be handled on a new dev branch created on demand for that patch release.
+In current KubeDirector development where simultaneous work on multiple releases is rare, the branching arrangement is simple. Leading-edge new release development happens on the master branch. If a patch for a previous release is required, that will be handled on a new branch created on demand for that patch release.
 
-To help make this a mistake-free process, copy the below text into a new document and make the following substitutions:
+If a new branch needs to be created to do a patch release, then that branch should be created at the common ancestor commit between master and the relevant release tag that the patch release will be based on. E.g. if you needed to develop an 0.4.3 release based on 0.4.2, you could create the 0.4.3 branch like so:
+```bash
+    branchpoint=$(git merge-base master v0.4.2)
+    git branch 0.4.3 $branchpoint
+```
+
+Note that by convention a tag for a release starts with "v", and any non-master branch for a release in progress is just the bare version string without a leading "v".
+
+A "dev branch" will be referred to in the steps below. This will be the branch that is collecting the changes for the build of this release, whether master or some patch release branch like "0.4.3". To help make the release process mistake-free, copy the below text into a new document and make the following substitutions:
 * Change "x.y.z" to whatever the version-to-be-released is, such as "0.5.0".
-* Change "the dev branch" to the actual name of the dev branch, such as "the master branch".
+* Change "the dev branch" to swap out "dev" for the actual name of the dev branch. So e.g. you should replace "the dev branch" with "the master branch" or "the 0.4.3 branch".
 
-Then follow the process using your copy of the text.
+Then follow the process using your modified copy of the text.
 
 #### ABOUT BUGFIXES
 
@@ -43,7 +51,7 @@ Make sure your own repo, both on GitHub and in your local clone, has its copy of
 In your local clone of your own repo, create the x.y.z-release-info branch from the dev branch.
 
 Working on your local x.y.z-release-info branch:
-* Change references to the previous KD version to x.y.z in doc/quickstart.md - for example changing from "v0.1.0" to "v0.2.0".
+* Change references to the previous KD version to x.y.z in doc/quickstart.md.
 * Update/finalize HISTORY.md (i.e. release date and changes for version x.y.z).
 * Change the version string to "x.y.z-unstable" in version.go.
 
@@ -51,16 +59,13 @@ Push your local x.y.z-release-info branch to your own GitHub repo.
 
 Do NOT merge x.y.z-release-info to the main kubedirector repo yet!
 
-#### SNAPSHOT DATA STRUCTURES ON WIKI
-
-If the API version has changed, create versioned pages of wiki docs for CRs (app, cluster, config) as snapshots of that API. Make sure to change each page's initial text appropriately, to emphasize that it is for a particular API version.
+Finally, it is a good idea at this point to prepare any changes that will need to be made to the CRD definitions on the wiki (as described below in "ADVERTISE THE RELEASE"). If the release may be delayed, you could save these in local docs as opposed to updating the wiki. Note that you can choose to work with the wiki as a git repo (bluek8s/kubedirector.wiki.git) rather than using the web UI if you want.
 
 #### CREATE RELEASE TAG POINT
 
 In your local clone of your own repo, create the x.y.z-release branch from x.y.z-release-info.
 
 Working on your local x.y.z-release branch:
-* Search docs for links that include "kubedirector/wiki/Type-Definitions" (i.e. CR docs) and replace each with a link to the appropriate API-version-snapshot page.
 * Change image version from unstable to x.y.z in Makefile and deployment-prebuilt.yaml.
 * Change the version string to "x.y.z" in version.go.
 * Build and push that KD image (modify Local.mk to enable push_default if necessary).
@@ -88,7 +93,7 @@ Don't proceed to subsequent steps until you are ready to make the release public
 
 #### CREATE THE RELEASE
 
-On GitHub, go to the releases page and click "Draft a new release". Name the tag as "vx.y.z" (for example "v0.2.0") and select the x.y.z-release branch as the tag's location.
+On GitHub, go to the releases page and click "Draft a new release". Name the tag as "vx.y.z" and select the x.y.z-release branch as the tag's location.
 
 The release title should be in the form "KubeDirector vx.y.z". The release description needs some boilerplate text (about checking for latest release etc.); also copy the version's information from HISTORY.md into the release description. Note that any relative links from HISTORY.md will have to be changed to plaintext or absolute links.
 
@@ -98,7 +103,7 @@ Delete the x.y.z-release branch everywhere (local, your GitHub, main GitHub).
 
 #### ADVERTISE THE RELEASE
 
-Modify the "current" wiki page documenting each CR as necessary to indicate that it is documenting a released API version. If development begins on a new API version in the future this text should be changed at that time.
+Modify the wiki page documenting each CRD so that it includes documentation of the support for any new properties added in this release. (Reference the existing tables to see how properties for a new version are added and marked.) Note that this is assuming the K8s API versioning practice where new properties are added to an existing API version while maintaining backwards compatibility; if we reach the point where a new API version is required then the CRD documentation will have to be further restructured.
 
 Do a GitHub PR to merge the main repo's x.y.z-release-info branch to the dev branch.
 

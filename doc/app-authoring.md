@@ -1,6 +1,6 @@
 #### CONCEPTS
 
-This doc assumes that you are familiar with the topics covered on the [KubeDirector wiki](https://github.com/bluek8s/kubedirector/wiki), especially the page on [app definition authoring](https://github.com/bluek8s/kubedirector/wiki/App-Definition-Authoring-for-KubeDirector). The definition of [KubeDirectorApp](https://github.com/bluek8s/kubedirector/wiki/Type-Definitions-for-KubeDirectorApp) will be a useful reference during the authoring process.
+This doc assumes that you are familiar with the topics covered on the [KubeDirector wiki](https://github.com/bluek8s/kubedirector/wiki), especially the page on [app definition authoring](https://github.com/bluek8s/kubedirector/wiki/App-Definition-Authoring-for-KubeDirector). The definition of [KubeDirectorApp](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorApp-Definition) will be a useful reference during the authoring process.
 
 You should also be familiar with the process of [creating and managing virtual clusters with KubeDirector](virtual-clusters.md).
 

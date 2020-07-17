@@ -23,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
@@ -51,7 +50,7 @@ func CreateStatefulSet(
 	role *kdv1.Role,
 ) (*appsv1.StatefulSet, error) {
 
-	statefulSet, err := getStatefulSet(reqLogger, cr, nativeSystemdSupport, role, 0)
+	statefulSet, err := getStatefulset(reqLogger, cr, nativeSystemdSupport, role, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -161,10 +160,10 @@ func DeleteStatefulSet(
 	return shared.Delete(context.TODO(), toDelete)
 }
 
-// getStatefulSet composes the spec for creating a statefulset in k8s, based
+// getStatefulset composes the spec for creating a statefulset in k8s, based
 // on the given virtual cluster CR and for the purposes of implementing the
 // given role.
-func getStatefulSet(
+func getStatefulset(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	nativeSystemdSupport bool,
@@ -274,33 +273,18 @@ func getStatefulSet(
 		return nil, securityErr
 	}
 
-	namingScheme := *cr.Spec.NamingScheme
-	var objectMeta metav1.ObjectMeta
-
-	if namingScheme == v1beta1.ClusterRole {
-		objectMeta = metav1.ObjectMeta{
-			Name:            cr.Name + "-" + role.Name,
-			Namespace:       cr.Namespace,
-			OwnerReferences: ownerReferences(cr),
-			Labels:          labels,
-			Annotations:     annotationsForCluster(cr),
-		}
-	} else if namingScheme == v1beta1.UID {
-		objectMeta = metav1.ObjectMeta{
-			GenerateName:    statefulSetNamePrefix,
-			Namespace:       cr.Namespace,
-			OwnerReferences: ownerReferences(cr),
-			Labels:          labels,
-			Annotations:     annotationsForCluster(cr),
-		}
-	}
-
 	return &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "StatefulSet",
 			APIVersion: "apps/v1",
 		},
-		ObjectMeta: objectMeta,
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName:    statefulSetNamePrefix,
+			Namespace:       cr.Namespace,
+			OwnerReferences: ownerReferences(cr),
+			Labels:          labels,
+			Annotations:     annotationsForCluster(cr),
+		},
 		Spec: appsv1.StatefulSetSpec{
 			PodManagementPolicy: appsv1.ParallelPodManagement,
 			Replicas:            &replicas,

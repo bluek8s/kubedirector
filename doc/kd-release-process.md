@@ -38,8 +38,6 @@ If you make any functional changes to the dev branch, and ONLY IF the dev branch
 
 #### GENERAL PREP
 
-If deps have not been updated recently, commit the results of "make dep" and "make modules" and merge that to the dev branch.
-
 If the dev branch is the master branch, build and push the latest unstable KD image (modify Local.mk to enable push_default if necessary).
 
 Regression test this image.

@@ -1,4 +1,4 @@
-# v0.5.0 - Jul ??, 2020
+# v0.5.0 - Jul 16, 2020
 
 The major change in this release is the move from operator SDK v0.8.1 to v0.15.2, which has a couple of notable sets of consequences:
 * Anyone building KubeDirector from source, as opposed to using a pre-built operator image, should re-read [doc/kubedirector-development.md](doc/kubedirector-development.md) to become acquainted with new requirements and with some tips for continuing to build your existing local repo. We highly recommend reading this **before** merging the new release source into your existing source.

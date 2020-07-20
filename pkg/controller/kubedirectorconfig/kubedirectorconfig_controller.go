@@ -121,6 +121,5 @@ func (r *ReconcileKubeDirectorConfig) Reconcile(
 			fmt.Errorf("could not fetch KubeDirectorConfig instance: %s", err)
 	}
 
-	err = r.syncConfig(reqLogger, cr)
-	return reconcileResult, err
+	return r.syncConfig(reqLogger, cr)
 }

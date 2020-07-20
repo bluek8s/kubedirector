@@ -33,6 +33,7 @@ import (
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var (
@@ -46,7 +47,7 @@ var (
 func (r *ReconcileKubeDirectorCluster) syncCluster(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-) error {
+) (reconcile.Result, error) {
 
 	// Memoize state of the incoming object.
 	hadFinalizer := shared.HasFinalizer(cr)
@@ -159,23 +160,29 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	// Calculate md5check sum to generate unique hash for connection object
 	currentHash := calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
 
+	// Define default and shortened versions of ReconcileResult to handle new CRs faster
+	defaultReconcilePeriod := 30 * time.Second
+	shortReconcilePeriod := 2 * time.Second
+	defaultReconcileResult := reconcile.Result{RequeueAfter: defaultReconcilePeriod}
+	shortReconcileResult := reconcile.Result{RequeueAfter: shortReconcilePeriod}
+
 	// We use a finalizer to maintain KubeDirector state consistency;
 	// e.g. app references and ClusterStatusGens.
 	doExit, finalizerErr := r.handleFinalizers(reqLogger, cr)
 	if finalizerErr != nil {
-		return finalizerErr
+		return defaultReconcileResult, finalizerErr
 	}
 	if doExit {
-		return nil
+		return defaultReconcileResult, nil
 	}
 
 	// For a new CR just update the status state/gen.
 	shouldProcessCR, processErr := r.handleNewCluster(reqLogger, cr)
 	if processErr != nil {
-		return processErr
+		return defaultReconcileResult, processErr
 	}
 	if !shouldProcessCR {
-		return nil
+		return shortReconcileResult, nil
 	}
 
 	// Define a common error function for sync problems.
@@ -196,13 +203,13 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	clusterServiceErr := syncClusterService(reqLogger, cr)
 	if clusterServiceErr != nil {
 		errLog("cluster service", clusterServiceErr)
-		return clusterServiceErr
+		return defaultReconcileResult, clusterServiceErr
 	}
 
 	roles, state, rolesErr := syncClusterRoles(reqLogger, cr)
 	if rolesErr != nil {
 		errLog("roles", rolesErr)
-		return rolesErr
+		return defaultReconcileResult, rolesErr
 	}
 
 	// The "state" calculated above can be different on next handler pass,
@@ -219,7 +226,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	memberServicesErr := syncMemberServices(reqLogger, cr, roles)
 	if memberServicesErr != nil {
 		errLog("member services", memberServicesErr)
-		return memberServicesErr
+		return defaultReconcileResult, memberServicesErr
 	}
 
 	if state == clusterMembersStableReady {
@@ -292,7 +299,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 							}
 						}
 						if wait > maxWait {
-							return fmt.Errorf(
+							return defaultReconcileResult, fmt.Errorf(
 								"Unable to notify cluster {%s} of configmeta change",
 								updateMetaGenerator.Name)
 						}
@@ -305,7 +312,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		}
 
 		if currentHash == cr.Status.LastConnectionHash {
-			return nil
+			return defaultReconcileResult, nil
 		}
 	}
 
@@ -325,16 +332,16 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			shared.EventReasonCluster,
 			"failed to generate cluster config",
 		)
-		return configMetaErr
+		return defaultReconcileResult, configMetaErr
 	}
 
 	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
 	if membersErr != nil {
 		errLog("members", membersErr)
-		return membersErr
+		return defaultReconcileResult, membersErr
 	}
 
-	return nil
+	return defaultReconcileResult, nil
 }
 
 // Calculates md5sum of resource-versions of all resources

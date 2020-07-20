@@ -26,6 +26,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 type configState string
@@ -47,7 +48,7 @@ var (
 func (r *ReconcileKubeDirectorConfig) syncConfig(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorConfig,
-) error {
+) (reconcile.Result, error) {
 
 	// Memoize state of the incoming object.
 	hadFinalizer := shared.HasFinalizer(cr)
@@ -152,22 +153,28 @@ func (r *ReconcileKubeDirectorConfig) syncConfig(
 		}
 	}()
 
+	// Define default and shortened versions of ReconcileResult to handle new CRs faster
+	defaultReconcilePeriod := 30 * time.Second
+	shortReconcilePeriod := 2 * time.Second
+	defaultReconcileResult := reconcile.Result{RequeueAfter: defaultReconcilePeriod}
+	shortReconcileResult := reconcile.Result{RequeueAfter: shortReconcilePeriod}
+
 	// We use a finalizer to maintain config state consistency.
 	doExit, finalizerErr := r.handleFinalizers(reqLogger, cr)
 	if finalizerErr != nil {
-		return finalizerErr
+		return defaultReconcileResult, finalizerErr
 	}
 	if doExit {
-		return nil
+		return defaultReconcileResult, nil
 	}
 
 	// For a new KD config just update the status state/gen.
 	shouldProcessCR, processErr := r.handleNewConfig(reqLogger, cr)
 	if processErr != nil {
-		return processErr
+		return defaultReconcileResult, processErr
 	}
 	if !shouldProcessCR {
-		return nil
+		return shortReconcileResult, nil
 	}
 
 	if cr.Status.State == string(configCreating) {
@@ -181,7 +188,7 @@ func (r *ReconcileKubeDirectorConfig) syncConfig(
 	}
 
 	shared.AddGlobalConfig(cr)
-	return nil
+	return defaultReconcileResult, nil
 }
 
 // handleNewConfig looks in the cache for the last-known status generation

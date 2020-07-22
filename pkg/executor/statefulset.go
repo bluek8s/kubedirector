@@ -602,8 +602,8 @@ func generateSystemdSupport(
 	cr *kdv1.KubeDirectorCluster,
 ) ([]v1.VolumeMount, []v1.Volume) {
 
-	cgroupFsName := cr.Name + "-cgroupfs"
-	systemdFsName := cr.Name + "-systemd"
+	cgroupFsName := "cgroupfs"
+	systemdFsName := "systemd"
 	volumeMounts := []v1.VolumeMount{
 		v1.VolumeMount{
 			Name:      cgroupFsName,

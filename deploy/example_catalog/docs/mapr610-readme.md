@@ -1,5 +1,5 @@
 ## Overview
-The app is built with MapR 6.1 MEP 6.3 components. There are 2 set of kubedirector apps, the difference between the 2 is related to security setting only.
+The app is built with MapR 6.1 MEP 6.3 components. This is only secured version of the Ecosystem
 
 ## What is MapR ?
 MapR is a complete enterprise-grade distribution for Apache Hadoop. The MapR Converged Data Platform has been engineered to improve Hadoop’s reliability, performance, and ease of use. 

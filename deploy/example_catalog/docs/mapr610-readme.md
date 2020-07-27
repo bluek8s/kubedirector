@@ -1,5 +1,5 @@
 ## Overview
-The app is built with MapR 6.1 MEP 6.3 components. This is only secured version of the Ecosystem
+The app is built with MapR 6.1 MEP 6.3 components.
 
 ## What is MapR ?
 MapR is a complete enterprise-grade distribution for Apache Hadoop. The MapR Converged Data Platform has been engineered to improve Hadoop’s reliability, performance, and ease of use. 

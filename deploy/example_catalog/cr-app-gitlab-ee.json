@@ -1,0 +1,65 @@
+{
+    "apiVersion": "kubedirector.hpe.com/v1beta1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name" : "gitlab"
+    },
+
+    "spec" : {
+        "systemdRequired": true,
+        "defaultPersistDirs" : ["/home"],
+        "config": {
+            "roleServices": [
+                {
+                    "serviceIDs": [
+                        "ssh",
+                        "http"
+                    ],
+                    "roleID": "gitlab"
+                }
+            ],
+            "selectedRoles": [
+                "gitlab"
+            ]
+        },
+        "label": {
+            "name": "GitLab",
+            "description": "GitLab apps"
+        },
+        "distroID": "bluedata/gitlab",
+        "version": "1.0",
+        "configSchemaVersion": 8,
+        "services": [
+            {
+                "endpoint": {
+                    "port": 22,
+                    "isDashboard": false
+                },
+                "id": "ssh",
+                "label": {
+                    "name": "SSH"
+                }
+            },
+            {
+                "endpoint": {
+                    "urlScheme": "http",
+                    "path": "/",
+                    "isDashboard": true,
+                    "port": 80
+                },
+                "id": "http",
+                "label": {
+                    "name": "http"
+                }
+            }
+        ],
+        "defaultImageRepoTag": "gitlab/gitlab-ee:latest",
+        "defaultConfigPackage": null,
+        "roles": [
+            {
+                "cardinality": "1+",
+                "id": "gitlab"
+            }
+        ]
+    }
+}

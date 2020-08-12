@@ -275,10 +275,13 @@ func getStatefulset(
 	}
 
 	namingScheme := *cr.Spec.NamingScheme
+	var objectName string
 	var objectMeta metav1.ObjectMeta
 	if namingScheme == v1beta1.CrNameRole {
+		objectName = ValidateName(cr.Name + "-" + role.Name)
+		objectName += "-"
 		objectMeta = metav1.ObjectMeta{
-			Name:            cr.Name + "-" + role.Name,
+			GenerateName:    objectName,
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labels,

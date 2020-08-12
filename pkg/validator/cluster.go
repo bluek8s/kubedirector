@@ -40,8 +40,6 @@ type secretValidateResult int
 
 const maxKDMembers = 1000
 
-const nameLengthLimit = 56
-
 const (
 	secretIsValid secretValidateResult = iota
 	secretPrefixNotMatched
@@ -839,27 +837,7 @@ func validateNamingScheme(
 			},
 		)
 	} else {
-		if *cr.Spec.NamingScheme == kdv1.CrNameRole {
-			var maxCount int
-			count := len(cr.Name)
-			for _, v := range appCR.Spec.NodeRoles {
-				if len(v.ID) > maxCount {
-					maxCount = len(v.ID)
-				}
-			}
-			count += maxCount
-
-			if count > nameLengthLimit {
-				valErrors = append(
-					valErrors,
-					fmt.Sprintf(
-						nameLimit,
-					),
-				)
-			}
-		} else if *cr.Spec.NamingScheme == kdv1.UID {
-			return valErrors, patches
-		} else {
+		if *cr.Spec.NamingScheme != kdv1.CrNameRole && *cr.Spec.NamingScheme != kdv1.UID {
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(

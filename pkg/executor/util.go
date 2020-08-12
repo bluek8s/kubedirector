@@ -24,6 +24,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+const nameLengthLimit = 46
+
 // ownerReferences creates an owner reference spec that identifies the
 // custom resource as the owner.
 func ownerReferences(
@@ -141,4 +143,29 @@ func createPortNameForService(
 		return "generic-" + portInfo.ID
 	}
 	return strings.ToLower(portInfo.URLScheme) + "-" + portInfo.ID
+}
+
+// ValidateName is a utility function that limits object names to be below
+// nameLengthLimit threshold for the CrNameRole naming scheme.
+func ValidateName(
+	name string,
+) string {
+	length := len(name)
+	var modName string
+
+	if length == 0 {
+		return name
+	}
+
+	for i := 0; i < length && i < nameLengthLimit; i++ {
+		if name[i] == '.' || name[i] == '_' {
+			if i != nameLengthLimit-1 {
+				modName += string('-')
+			}
+		} else {
+			modName += strings.ToLower(string(name[i]))
+		}
+	}
+
+	return modName
 }

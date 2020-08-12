@@ -276,25 +276,11 @@ func getStatefulset(
 
 	namingScheme := *cr.Spec.NamingScheme
 	var objectName string
-	var objectMeta metav1.ObjectMeta
 	if namingScheme == v1beta1.CrNameRole {
 		objectName = ValidateName(cr.Name + "-" + role.Name)
 		objectName += "-"
-		objectMeta = metav1.ObjectMeta{
-			GenerateName:    objectName,
-			Namespace:       cr.Namespace,
-			OwnerReferences: ownerReferences(cr),
-			Labels:          labels,
-			Annotations:     annotationsForCluster(cr),
-		}
 	} else if namingScheme == v1beta1.UID {
-		objectMeta = metav1.ObjectMeta{
-			GenerateName:    statefulSetNamePrefix,
-			Namespace:       cr.Namespace,
-			OwnerReferences: ownerReferences(cr),
-			Labels:          labels,
-			Annotations:     annotationsForCluster(cr),
-		}
+		objectName = statefulSetNamePrefix
 	}
 
 	return &appsv1.StatefulSet{
@@ -302,7 +288,13 @@ func getStatefulset(
 			Kind:       "StatefulSet",
 			APIVersion: "apps/v1",
 		},
-		ObjectMeta: objectMeta,
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName:    objectName,
+			Namespace:       cr.Namespace,
+			OwnerReferences: ownerReferences(cr),
+			Labels:          labels,
+			Annotations:     annotationsForCluster(cr),
+		},
 		Spec: appsv1.StatefulSetSpec{
 			PodManagementPolicy: appsv1.ParallelPodManagement,
 			Replicas:            &replicas,

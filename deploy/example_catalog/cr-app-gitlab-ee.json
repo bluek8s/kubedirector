@@ -26,7 +26,7 @@
             "name": "GitLab",
             "description": "GitLab apps"
         },
-        "distroID": "bluedata/gitlab",
+        "distroID": "gitlab/gitlab-ee",
         "version": "1.0",
         "configSchemaVersion": 8,
         "services": [

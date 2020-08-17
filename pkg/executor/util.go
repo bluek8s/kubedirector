@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-const nameLengthLimit = 46
+const nameLengthLimit = 52
 
 // ownerReferences creates an owner reference spec that identifies the
 // custom resource as the owner.

@@ -279,7 +279,6 @@ func getStatefulset(
 	var objectName string
 	if namingScheme == v1beta1.CrNameRole {
 		objectName = ValidateName(cr.Name + "-" + role.Name)
-		//objectName += "-"
 		objectmeta = metav1.ObjectMeta{
 			Name:            objectName,
 			Namespace:       cr.Namespace,

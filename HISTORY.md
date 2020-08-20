@@ -1,3 +1,15 @@
+# v0.5.1 - Aug ??, 2020
+
+Maintenance release, primarily to fix [issue #387](https://github.com/bluek8s/kubedirector/issues/387) "possible to specify kdcluster name that prevents member pod creation".
+
+A few changes to the example kdapps catalog as well:
+
+* cr-app-gitlab-ee.json added
+* cr-app-tensorflow-cpu-dockerhub.json added
+* cr-app-mapr610-secured.json updated
+* cr-app-mapr610-unsecured.json removed
+
+
 # v0.5.0 - Jul 16, 2020
 
 The major change in this release is the move from operator SDK v0.8.1 to v0.15.2, which has a couple of notable sets of consequences:

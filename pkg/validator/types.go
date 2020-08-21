@@ -53,6 +53,7 @@ const (
 	invalidSelectedRoleID = "Invalid element(%s) in selectedRoles array in config section. Valid roles: \"%s\""
 	invalidServiceID      = "Invalid service_id(%s) in roleServices array in config section. Valid services: \"%s\""
 
+	kdappNameLength       = "KDApp name length violates the max name length of 63 characters."
 	nonUniqueRoleID       = "Each id in the roles array must be unique."
 	nonUniqueServiceID    = "Each id in the services array must be unique."
 	nonUniqueSelectedRole = "Each element of selectedRoles array in config section must be unique."
@@ -81,7 +82,4 @@ const (
 	invalidSrcURL   = "Unable to access the specified URL(\"%s\") in file injection spec for the role (%s). error: %s."
 
 	maxMemberLimit = "Maximum number of total members per KD cluster supported is %d."
-
-	nameLimit       = "When using the ClusterRole naming scheme, the total length of KD cluster name + any of its role IDs must not exceed 56 characters."
-	badNamingScheme = "Naming scheme not valid in the config file."
 )

@@ -24,7 +24,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-const nameLengthLimit = 52
+// We limit the statefulset, pod, service and pvc name to be lesser than 46
+// characters to accomodate for the controller revision hash and the unique
+// identifier that kubernetes adds while creating the statefulset pods.
+const nameLengthLimit = 46
 
 // ownerReferences creates an owner reference spec that identifies the
 // custom resource as the owner.
@@ -145,9 +148,9 @@ func createPortNameForService(
 	return strings.ToLower(portInfo.URLScheme) + "-" + portInfo.ID
 }
 
-// ValidateName is a utility function that limits object names to be below
-// nameLengthLimit threshold for the CrNameRole naming scheme.
-func ValidateName(
+// MungObjectName is a utility function that truncates the object names
+// to be below nameLengthLimit threshold set for the CrNameRole naming scheme.
+func MungObjectName(
 	name string,
 ) string {
 	length := len(name)

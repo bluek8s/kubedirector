@@ -807,21 +807,12 @@ func addServiceType(
 	return valErrors, patches
 }
 
-// validateNamingScheme function validates the namingScheme for all K8s objects.
-// If the naming scheme is unspecified, check to see if the default namingScheme
-// is provided through kubedirector's config CR, otherwise use a global constant
-// for naming scheme. In either of those cases add an entry to PATCH spec for mutating
-// cluster CR.
-// If the naming scheme is defined, validate the naming scheme for correctness
-// and that the cluster name, role name combination does not exceed the default object
-// length limit for K8s objects (63). The max length limit is set to 56 to account for
-// the additional '-' and/or digit characters that might be included in the name.
+// If the naming scheme is unspecified, use a global constant for the naming scheme.
 func validateNamingScheme(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
-	valErrors []string,
 	patches []clusterPatchSpec,
-) ([]string, []clusterPatchSpec) {
+) []clusterPatchSpec {
 
 	if cr.Spec.NamingScheme == nil {
 		namingScheme := shared.GetDefaultNamingScheme()
@@ -836,18 +827,9 @@ func validateNamingScheme(
 				},
 			},
 		)
-	} else {
-		if *cr.Spec.NamingScheme != kdv1.CrNameRole && *cr.Spec.NamingScheme != kdv1.UID {
-			valErrors = append(
-				valErrors,
-				fmt.Sprintf(
-					badNamingScheme,
-				),
-			)
-		}
 	}
 
-	return valErrors, patches
+	return patches
 }
 
 // admitClusterCR is the top-level cluster validation function, which invokes
@@ -971,7 +953,7 @@ func admitClusterCR(
 	valErrors, patches = addServiceType(&clusterCR, valErrors, patches)
 
 	// Validate naming scheme and generate patch in case no naming scheme defined or change
-	valErrors, patches = validateNamingScheme(&clusterCR, appCR, valErrors, patches)
+	patches = validateNamingScheme(&clusterCR, appCR, patches)
 
 	// Validate file injections and generate patches for default values (if any)
 	valErrors, patches = validateFileInjections(&clusterCR, valErrors, patches)

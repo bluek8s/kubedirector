@@ -67,7 +67,7 @@ func CreateHeadlessService(
 	namingScheme := *cr.Spec.NamingScheme
 	if cr.Status.ClusterService == "" {
 		if namingScheme == v1beta1.CrNameRole {
-			service.ObjectMeta.Name = cr.Name
+			service.ObjectMeta.GenerateName = MungObjectName(cr.Name)
 		} else if namingScheme == v1beta1.UID {
 			service.ObjectMeta.GenerateName = headlessSvcNamePrefix
 		}

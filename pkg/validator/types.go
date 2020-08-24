@@ -53,7 +53,6 @@ const (
 	invalidSelectedRoleID = "Invalid element(%s) in selectedRoles array in config section. Valid roles: \"%s\""
 	invalidServiceID      = "Invalid service_id(%s) in roleServices array in config section. Valid services: \"%s\""
 
-	kdappNameLength       = "KDApp name length violates the max name length of 63 characters."
 	nonUniqueRoleID       = "Each id in the roles array must be unique."
 	nonUniqueServiceID    = "Each id in the services array must be unique."
 	nonUniqueSelectedRole = "Each element of selectedRoles array in config section must be unique."

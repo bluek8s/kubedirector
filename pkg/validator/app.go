@@ -55,16 +55,6 @@ func (obj appPatchValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(obj.stringSliceValue)
 }
 
-func validateAppName(
-	appCR *kdv1.KubeDirectorApp,
-	valErrors []string,
-) []string {
-	if len(appCR.Name) > 63 {
-		valErrors = append(valErrors, kdappNameLength)
-	}
-	return valErrors
-}
-
 // validateUniqueness checks the lists of roles and service IDs for duplicates.
 // Any generated error messages will be added to the input list and returned.
 func validateUniqueness(
@@ -411,7 +401,7 @@ func admitAppCR(
 	}
 
 	// Now do validation for create/update.
-	valErrors = validateAppName(&appCR, valErrors)
+
 	allRoleIDs := catalog.GetAllRoleIDs(&appCR)
 	allServiceIDs := catalog.GetAllServiceIDs(&appCR)
 

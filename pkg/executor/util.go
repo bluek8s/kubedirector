@@ -24,9 +24,19 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// We limit the statefulset, pod, service and pvc name to be lesser than 46
-// characters to accomodate for the controller revision hash and the unique
-// identifier that kubernetes adds while creating the statefulset pods.
+// Service names size have a limitation of max 63 characters. The service
+// names are derived from statefulset names that have a 5 character UID
+// appended towards the end. While calculating the max prefix size for the
+// service names, the 5 digit UID and the 4 digit maxKDMember size (1000)
+// should be accounted for.
+// Also, as part of stateful pod creating a 10 digit hash value is added
+// to the controller revision hash label which needs to be accounted for
+// while calculating the prefix size.
+// Naming scheme for the service is as follows: prefix + UID + member index
+// Naming scheme for the label is as follows: prefix + UID + hash value
+// Since, the max member size currently is restricted to be 4 characters, take
+// the max of hash value digits and member size digits which is 10.
+// Prefix calculation is done as following = 63 - 10 - 5 - 2 ('-' characters) = 46.
 const nameLengthLimit = 46
 
 // ownerReferences creates an owner reference spec that identifies the
@@ -150,6 +160,8 @@ func createPortNameForService(
 
 // MungObjectName is a utility function that truncates the object names
 // to be below nameLengthLimit threshold set for the CrNameRole naming scheme.
+// The function also replaces '.' (dot) and '_' (underscore) characters with a
+// '-' (dash).
 func MungObjectName(
 	name string,
 ) string {

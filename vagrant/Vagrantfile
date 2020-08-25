@@ -5,16 +5,35 @@ Vagrant.configure("2") do |config|
 
   config.vm.box = "mrvantage/centos7-minikube"
   config.vm.network "forwarded_port", guest: 3000, host: 3000
-
-  # mount as theia user for theia-ide support
-  config.vm.synced_folder "..", "/vagrant" #, :owner => "1001", :group => "1001" 
+  config.vm.synced_folder "..", "/vagrant"
   
   config.vm.provision "file", source: "./package.json", destination: "/home/vagrant/package.json"
-  config.vm.provision "file", source: "./run_ide.sh", destination: "/home/vagrant/run_ide.sh"  
+  config.vm.provision "file", source: "./run_ide.sh", destination: "/home/vagrant/run_ide.sh"
+
+  #################
+  # Setup .bashrc #
+  #################
+
+  config.vm.provision "shell", privileged: false, inline: <<-SCRIPT
+    grep -q '^THEIA_DEFAULT_PLUGINS' /home/vagrant/.bashrc || echo 'THEIA_DEFAULT_PLUGINS=local-dir:/home/vagrant/plugins' >> /home/vagrant/.bashrc
+
+    #grep -q '^GOPATH' /home/vagrant/.bashrc || echo 'GOPATH=/vagrant' >> /home/vagrant/.bashrc
+    grep -q '^PATH=$PATH:/home/go/bin:$GOPATH/bin' /home/vagrant/.bashrc || echo 'PATH=$PATH:/home/go/bin:$GOPATH/bin' >> /home/vagrant/.bashrc
+
+    grep -q '^export GOROOT' /home/vagrant/.bashrc || echo 'export GOROOT=`go env GOROOT`' >> /home/vagrant/.bashrc
+  SCRIPT
+
+  #############################
+  # Install Development Tools #
+  #############################
 
   config.vm.provision "shell", privileged: false, inline: <<-SCRIPT
     sudo yum groupinstall -y 'Development Tools'
   SCRIPT
+
+  ##############
+  # Install GO #
+  ##############
 
   config.vm.provision "shell", inline: <<-SCRIPT
 
@@ -78,15 +97,12 @@ Vagrant.configure("2") do |config|
     curl --silent --location https://dl.yarnpkg.com/rpm/yarn.repo | sudo tee /etc/yum.repos.d/yarn.repo
     echo y | sudo rpm --import https://dl.yarnpkg.com/rpm/pubkey.gpg
     sudo yum install -y yarn
+    
+    cd /home/vagrant
+    yarn
+    yarn theia build
 
-    #cd /vagrant/vagrant
-
-    #yarn --pure-lockfile && \
-    #NODE_OPTIONS="--max_old_space_size=4096" yarn theia build && \
-    #yarn theia download:plugins && \
-    #yarn --production 
   SCRIPT
-
 
   ########################
   # Install Operator SDK #
@@ -94,8 +110,10 @@ Vagrant.configure("2") do |config|
 
   config.vm.provision "shell", inline: <<-SCRIPT
     set -x
+
     export RELEASE_VERSION=v0.15.2
     export KEY_ID=9391EA2A
+
     curl -LO -C - https://github.com/operator-framework/operator-sdk/releases/download/${RELEASE_VERSION}/operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu
     curl -LO -C - https://github.com/operator-framework/operator-sdk/releases/download/${RELEASE_VERSION}/operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu.asc
     gpg --recv-key "$KEY_ID"

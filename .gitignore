@@ -10,6 +10,8 @@ pkg/apis/kubedirector/v1beta1/zz_generated.*.go
 # temporary build files
 build/_output
 
+.vagrant/
+
 # Created by https://www.gitignore.io/api/go,vim,emacs,visualstudiocode
 ### Emacs ###
 # -*- mode: gitignore; -*-

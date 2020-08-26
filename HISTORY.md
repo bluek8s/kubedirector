@@ -1,4 +1,4 @@
-# v0.5.1 - Aug ??, 2020
+# v0.5.1 - Aug 26, 2020
 
 Maintenance release, primarily to fix [issue #387](https://github.com/bluek8s/kubedirector/issues/387) "possible to specify kdcluster name that prevents member pod creation".
 

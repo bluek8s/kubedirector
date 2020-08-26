@@ -12,8 +12,8 @@ The vagrant environment contains:
 
 The following should be installed on your development environment
 
- - [Vagrant](https://www.vagrantup.com/downloads)
  - [Virtualbox](https://www.virtualbox.org/)
+ - [Vagrant](https://www.vagrantup.com/downloads)
 
 ## Usage
 

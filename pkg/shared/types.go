@@ -32,6 +32,10 @@ const (
 	// DefaultServiceType - default service type if not specified in
 	// the configCR
 	DefaultServiceType = "LoadBalancer"
+
+	// DefaultNamingScheme - default naming scheme if not specified in
+	// the configCR
+	DefaultNamingScheme = "UID"
 )
 
 // Event reason constants for recording events

@@ -29,9 +29,14 @@ Open a terminal, then enter the following:
  ./run_ide.sh
  ```
 
- Open a browser and navigate to: [http://localhost:3000](http://localhost:3000) - this will load the Theia IDE.
+Open a browser and navigate to: [http://localhost:3000](http://localhost:3000) - this will load the Theia IDE.
 
- ### Stop environment
+Open a terminal in Theia, from here you can:
+
+ - Build and Deploy Kubedirector
+ - Use `kubectl` to interact with minikube
+
+### Stop environment
 
  - Open the terminal where you cloned kubedirector
  - Navigate to the `vagrant` folder

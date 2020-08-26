@@ -24,7 +24,7 @@ Open a terminal, then enter the following:
  ```
  git clone https://github.com/hpe-container-platform-community/kubedirector
  cd kubedirector/vagrant
- vagrant up
+ vagrant up # this step can take ~ 20 minutes
  vagrant ssh
  ./run_ide.sh
  ```

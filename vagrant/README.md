@@ -33,6 +33,7 @@ Open a browser and navigate to: [http://localhost:3000](http://localhost:3000) -
 
 Open a terminal in Theia, from here you can:
 
+ - Change to the source code folder for kubedirector (/vagrant/src/github.com/bluek8s/kubedirector)
  - Build and Deploy Kubedirector
  - Use `kubectl` to interact with minikube
 

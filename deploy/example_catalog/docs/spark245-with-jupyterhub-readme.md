@@ -33,3 +33,8 @@ The sparkmagic library also provides a set of Scala and Python kernels that allo
 * Delete node and verify Kubernates re-creates node.
 * Run PySpark, Scala Spark, and SparkR from Jupyter Notebook through Livy server [References](https://spark.apache.org/docs/latest/ml-guide.html)
 
+#### Docker Image location:
+* docker.io/bluedata/spark245
+
+#### docker pull command: 
+* docker pull docker.io/bluedata/spark245:1.8

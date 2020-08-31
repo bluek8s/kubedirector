@@ -8,9 +8,11 @@ The below process could be reduced to a smaller number of steps that reach the s
 
 #### BRANCHES
 
-In current KubeDirector development where simultaneous work on multiple releases is rare, the branching arrangement is simple. Leading-edge new release development happens on the master branch. If a patch for a previous release is required, that will be handled on a new branch created on demand for that patch release.
+In current KubeDirector development where simultaneous work on multiple releases is rare, the branching arrangement is simple. Leading-edge new release development usually happens on the master branch.
 
-If a new branch needs to be created to do a patch release, then that branch should be created at the common ancestor commit between master and the relevant release tag that the patch release will be based on. E.g. if you needed to develop an 0.4.3 release based on 0.4.2, you could create the 0.4.3 branch like so:
+If an imminent release needs to be finished up while new commits continue to land for subsequent releases, then a release branch should be created from master to isolate the work for the upcoming release.
+
+If a patch release based on some previous release is required, that will also be handled on a release branch. A release branch for a patch to some previous release should be created at the common ancestor commit between master and the relevant release tag that the patch release will be based on. E.g. if you needed to develop an 0.4.3 release based on 0.4.2, you could create the 0.4.3 branch like so:
 ```bash
     branchpoint=$(git merge-base master v0.4.2)
     git branch 0.4.3 $branchpoint
@@ -18,7 +20,7 @@ If a new branch needs to be created to do a patch release, then that branch shou
 
 Note that by convention a tag for a release starts with "v", and any non-master branch for a release in progress is just the bare version string without a leading "v".
 
-A "dev branch" will be referred to in the steps below. This will be the branch that is collecting the changes for the build of this release, whether master or some patch release branch like "0.4.3". To help make the release process mistake-free, copy the below text into a new document and make the following substitutions:
+A "dev branch" will be referred to in the steps below. This will be the branch that is collecting the changes for the build of this release, whether master or some release branch like "0.4.3". To help make the release process mistake-free, copy the below text into a new document and make the following substitutions:
 * Change "x.y.z" to whatever the version-to-be-released is, such as "0.5.0".
 * Change "the dev branch" to swap out "dev" for the actual name of the dev branch. So e.g. you should replace "the dev branch" with "the master branch" or "the 0.4.3 branch".
 
@@ -37,8 +39,6 @@ If a fix happens even after the x.y.z-release branch has been created and modifi
 If you make any functional changes to the dev branch, and ONLY IF the dev branch is the master branch, also remember to build and push the latest unstable KD image (modify Local.mk to enable push_default if necessary).
 
 #### GENERAL PREP
-
-If deps have not been updated recently, commit the results of "make dep" and "make modules" and merge that to the dev branch.
 
 If the dev branch is the master branch, build and push the latest unstable KD image (modify Local.mk to enable push_default if necessary).
 
@@ -108,3 +108,13 @@ Modify the wiki page documenting each CRD so that it includes documentation of t
 Do a GitHub PR to merge the main repo's x.y.z-release-info branch to the dev branch.
 
 Delete the x.y.z-release-info branch everywhere (local, your GitHub, main GitHub).
+
+#### PROPAGATE CHANGES TO MASTER
+
+If the dev branch is the master branch, you're done. Skip this whole section.
+
+If the dev branch is NOT the master branch, merge it to master. This may of course involve resolving some conflicts.
+
+If the merge results in any non-docs changes on master, then build, regression-test, and push the latest unstable KD image (modify Local.mk to enable push_default if necessary).
+
+Delete the dev branch -- remember, this section only applies if the dev branch is NOT the master branch.

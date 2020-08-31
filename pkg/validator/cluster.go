@@ -807,6 +807,31 @@ func addServiceType(
 	return valErrors, patches
 }
 
+// If the naming scheme is unspecified, use a global constant for the naming scheme.
+func validateNamingScheme(
+	cr *kdv1.KubeDirectorCluster,
+	appCR *kdv1.KubeDirectorApp,
+	patches []clusterPatchSpec,
+) []clusterPatchSpec {
+
+	if cr.Spec.NamingScheme == nil {
+		namingScheme := shared.GetDefaultNamingScheme()
+		cr.Spec.NamingScheme = &namingScheme
+		patches = append(
+			patches,
+			clusterPatchSpec{
+				Op:   "add",
+				Path: "/spec/namingScheme",
+				Value: clusterPatchValue{
+					ValueStr: cr.Spec.NamingScheme,
+				},
+			},
+		)
+	}
+
+	return patches
+}
+
 // admitClusterCR is the top-level cluster validation function, which invokes
 // the top-specific validation subroutines and composes the admission
 // response.
@@ -922,14 +947,13 @@ func admitClusterCR(
 	// Validate minimum resources for all roles
 	valErrors = validateMinResources(&clusterCR, appCR, valErrors)
 
-	valErrors, patches = validateRoleStorageClass(
-		&clusterCR,
-		valErrors,
-		patches,
-	)
+	valErrors, patches = validateRoleStorageClass(&clusterCR, valErrors, patches)
 
 	// Validate service type and generate patch in case no service type defined or change
 	valErrors, patches = addServiceType(&clusterCR, valErrors, patches)
+
+	// Validate naming scheme and generate patch in case no naming scheme defined or change
+	patches = validateNamingScheme(&clusterCR, appCR, patches)
 
 	// Validate file injections and generate patches for default values (if any)
 	valErrors, patches = validateFileInjections(&clusterCR, valErrors, patches)

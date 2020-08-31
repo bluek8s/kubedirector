@@ -1,0 +1,56 @@
+{
+    "apiVersion": "kubedirector.hpe.com/v1beta1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name": "tensorflow-cpu-jupyter",
+        "annotations": {
+            "token":"execute this command to get the authentication token 'kubectl exec <pod-name> jupyter notebook list' and use this token in Jupyter notebook."
+        }
+    },
+
+    "spec": {
+        "systemdRequired": true,
+        "config": {
+            "roleServices": [
+                {
+                    "serviceIDs": [
+                        "jupyter-nb"
+                    ],
+                    "roleID": "controller"
+                }
+            ],
+            "selectedRoles": [
+                "controller"
+            ]
+        },
+        "label": {
+            "name": "TensorFlow + Jupyter(CPU)",
+            "description": "TensorFlow CPU with Jupyter notebook"
+        },
+        "defaultImageRepoTag": "tensorflow/tensorflow:nightly-jupyter",
+        "distroID": "tensorflow/nightly-tensorflow",
+        "version": "2.0",
+        "configSchemaVersion": 7,
+        "services": [
+            {
+                "endpoint": {
+                    "urlScheme": "http",
+                    "path": "/",
+                    "isDashboard": true,
+                    "port": 8888
+                },
+                "id": "jupyter-nb",
+                "label": {
+                    "name": "Jupyter Notebook"
+                }
+            }
+        ],
+        "defaultConfigPackage": null,
+        "roles": [
+            {
+                "cardinality": "1",
+                "id": "controller"
+            }
+        ]
+    }
+}

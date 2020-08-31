@@ -2,7 +2,7 @@
     "apiVersion": "kubedirector.hpe.com/v1beta1",
     "kind": "KubeDirectorApp",
     "metadata": {
-        "name" : "ubuntu18x"
+        "name" : "gitlab"
     },
 
     "spec" : {
@@ -12,21 +12,22 @@
             "roleServices": [
                 {
                     "serviceIDs": [
-                        "ssh"
+                        "ssh",
+                        "http"
                     ],
-                    "roleID": "vanilla_ubuntu"
+                    "roleID": "gitlab"
                 }
             ],
             "selectedRoles": [
-                "vanilla_ubuntu"
+                "gitlab"
             ]
         },
         "label": {
-            "name": "Ubuntu 18.04",
-            "description": "Ubuntu 18.04 with no preinstalled apps"
+            "name": "GitLab",
+            "description": "GitLab apps"
         },
-        "distroID": "bluedata/ubuntu18x",
-        "version": "1.1",
+        "distroID": "gitlab/gitlab-ee",
+        "version": "1.0",
         "configSchemaVersion": 8,
         "services": [
             {
@@ -38,14 +39,26 @@
                 "label": {
                     "name": "SSH"
                 }
+            },
+            {
+                "endpoint": {
+                    "urlScheme": "http",
+                    "path": "/",
+                    "isDashboard": true,
+                    "port": 80
+                },
+                "id": "http",
+                "label": {
+                    "name": "http"
+                }
             }
         ],
-        "defaultImageRepoTag": "bluedata/ubuntu18.04:1.1",
+        "defaultImageRepoTag": "gitlab/gitlab-ee:latest",
         "defaultConfigPackage": null,
         "roles": [
             {
                 "cardinality": "1+",
-                "id": "vanilla_ubuntu"
+                "id": "gitlab"
             }
         ]
     }

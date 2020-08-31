@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
@@ -273,13 +274,22 @@ func getStatefulset(
 		return nil, securityErr
 	}
 
+	namingScheme := *cr.Spec.NamingScheme
+	var objectName string
+	if namingScheme == v1beta1.CrNameRole {
+		objectName = MungObjectName(cr.Name + "-" + role.Name)
+		objectName += "-"
+	} else if namingScheme == v1beta1.UID {
+		objectName = statefulSetNamePrefix
+	}
+
 	return &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "StatefulSet",
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName:    statefulSetNamePrefix,
+			GenerateName:    objectName,
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labels,
@@ -602,8 +612,8 @@ func generateSystemdSupport(
 	cr *kdv1.KubeDirectorCluster,
 ) ([]v1.VolumeMount, []v1.Volume) {
 
-	cgroupFsName := cr.Name + "-cgroupfs"
-	systemdFsName := cr.Name + "-systemd"
+	cgroupFsName := "cgroupfs"
+	systemdFsName := "systemd"
 	volumeMounts := []v1.VolumeMount{
 		v1.VolumeMount{
 			Name:      cgroupFsName,

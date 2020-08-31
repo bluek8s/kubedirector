@@ -36,5 +36,5 @@ The sparkmagic library also provides a set of Scala and Python kernels that allo
 #### Docker Image location:
 * docker.io/bluedata/spark245
 
-#### Docker Pull Command 
+#### Docker Pull Command:
 * docker pull docker.io/bluedata/spark245:1.8

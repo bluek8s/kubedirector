@@ -14,6 +14,7 @@ The following should be installed on your development environment
 
  - [Virtualbox](https://www.virtualbox.org/)
  - [Vagrant](https://www.vagrantup.com/downloads)
+ - Linux/OSX local environment
 
 ## Usage
 

@@ -10,6 +10,8 @@ git_vars=1
 if [[ -z $GIT_USER ]]; then
   echo "GIT_USER variable not found"
   git_vars=0
+else
+  git config credential.https://github.com.username $GIT_USER
 fi
 
 if [[ -z $GIT_PASS ]]; then

@@ -11,7 +11,22 @@ if [[ -z $GIT_USER ]]; then
   echo "GIT_USER variable not found"
   git_vars=0
 else
-  git config credential.https://github.com.username $GIT_USER
+  
+  CURRENT_GIT_USER=$(git config credential.https://github.com.username)
+  if [[ "$CURRENT_GIT_USER" != "$GIT_USER" ]]; then
+
+    echo "Found username '${CURRENT_GIT_USER}' in project git config."
+    echo "Found username '${GIT_USER}' in GIT_USER environment variable."
+
+    while true; do
+        read -p "Would you like to update your git config to '${GIT_USER}'?" yn
+        case $yn in
+            [Yy]* ) git config credential.https://github.com.username $GIT_USER; break;;
+            [Nn]* ) break;;
+            * ) echo "Please answer yes or no.";;
+        esac
+    done
+  fi
 fi
 
 if [[ -z $GIT_PASS ]]; then

@@ -9,7 +9,7 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder "..", "/vagrant/src/github.com/bluek8s/kubedirector"
   
   config.vm.provision "file", source: "./package.json", destination: "/home/vagrant/package.json"
-  config.vm.provision "file", source: "./git_env_pass.sh", destination: "/home/vagrant/git_env_pass.sh"
+  config.vm.provision "file", source: "./git_env_password.sh", destination: "/home/vagrant/git_env_password.sh"
 
   #################
   # Setup .bashrc #
@@ -22,6 +22,8 @@ Vagrant.configure("2") do |config|
     grep -q '^PATH=$PATH:/home/go/bin:$GOPATH/bin' /home/vagrant/.bashrc || echo 'PATH=$PATH:/home/go/bin:$GOPATH/bin' >> /home/vagrant/.bashrc
 
     grep -q '^export GOROOT' /home/vagrant/.bashrc || echo 'export GOROOT=`go env GOROOT`' >> /home/vagrant/.bashrc
+
+    chmod 755 /home/vagrant/git_env_password.sh
   SCRIPT
 
   #############################

@@ -25,7 +25,6 @@ Open a terminal, then enter the following:
  git clone https://github.com/hpe-container-platform-community/kubedirector
  cd kubedirector/vagrant
  vagrant up # this step can take ~ 20 minutes
- vagrant ssh
  ./run_ide.sh
  ```
 
@@ -39,6 +38,6 @@ Open a terminal in Theia, from here you can:
 
 ### Stop environment
 
- - Open the terminal where you cloned kubedirector
+ - Open the terminal on your developement machine where you cloned kubedirector
  - Navigate to the `vagrant` folder
  - Issue `vagrant suspend` 

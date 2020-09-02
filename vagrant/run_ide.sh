@@ -13,4 +13,4 @@ PATH=$PATH:$GOPATH/bin
 
 cd /home/vagrant
 
-node ./src-gen/backend/main.js /vagrant --hostname=0.0.0.0
+node ./src-gen/backend/main.js /vagrant/src/github.com/bluek8s/kubedirector/ --hostname=0.0.0.0

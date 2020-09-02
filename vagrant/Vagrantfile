@@ -5,6 +5,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.box = "mrvantage/centos7-minikube"
   config.vm.network "forwarded_port", guest: 3000, host: 3000
+  config.vm.synced_folder '.', '/vagrant', disabled: true
   config.vm.synced_folder "..", "/vagrant/src/github.com/bluek8s/kubedirector"
   
   config.vm.provision "file", source: "./package.json", destination: "/home/vagrant/package.json"
@@ -29,6 +30,19 @@ Vagrant.configure("2") do |config|
 
   config.vm.provision "shell", privileged: false, inline: <<-SCRIPT
     sudo yum groupinstall -y 'Development Tools'
+
+    # Theia requires a recent version of git
+    sudo yum remove git*
+    sudo yum -y install wget
+    export VER="2.27.0"
+    wget https://github.com/git/git/archive/v${VER}.tar.gz
+    tar -xvf v${VER}.tar.gz
+    rm -f v${VER}.tar.gz
+    cd git-*
+    make configure
+    sudo ./configure --prefix=/usr
+    sudo make
+    sudo make install
   SCRIPT
 
   ##############

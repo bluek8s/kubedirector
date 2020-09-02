@@ -78,7 +78,7 @@ vagrant ssh -c "
     export GIT_COMMITTER_NAME='$GIT_COMMITTER_NAME'
     export GIT_AUTHOR_EMAIL='$GIT_AUTHOR_EMAIL'
     export GIT_COMMITTER_EMAIL='$GIT_COMMITTER_EMAIL'
-    export GIT_ASKPASS=/home/project/git_env_password.sh
+    export GIT_ASKPASS=/home/vagrant/git_env_password.sh
     
     cd /home/vagrant
     

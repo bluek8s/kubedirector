@@ -6,7 +6,7 @@ Vagrant.configure("2") do |config|
   config.vm.box = "mrvantage/centos7-minikube"
   config.vm.network "forwarded_port", guest: 3000, host: 3000
   config.vm.synced_folder '.', '/vagrant', disabled: true
-  config.vm.synced_folder "..", "/vagrant/src/github.com/bluek8s/kubedirector"
+  config.vm.synced_folder "..", "/vagrant/src/github.com/bluek8s/kubedirector", owner: "vagrant", group: "vagrant"
   
   config.vm.provision "file", source: "./package.json", destination: "/home/vagrant/package.json"
   config.vm.provision "file", source: "./git_env_password.sh", destination: "/home/vagrant/git_env_password.sh"
@@ -137,6 +137,15 @@ Vagrant.configure("2") do |config|
     chmod +x operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu && sudo mkdir -p /usr/local/bin/ && sudo cp operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu /usr/local/bin/operator-sdk && rm operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu
     echo
     /usr/local/bin/operator-sdk version
+  SCRIPT
+
+
+  ###################
+  # Fix permissions #
+  ###################
+
+  config.vm.provision "shell", inline: <<-SCRIPT
+    sudo chown -R vagrant:vagrant /home
   SCRIPT
 
 end

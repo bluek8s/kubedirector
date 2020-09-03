@@ -4,6 +4,8 @@
 Vagrant.configure("2") do |config|
 
   config.vm.box = "chris-snow/kubedirector-lab"
+  config.vm.box_version = "0.0.1-20200902"
+
   config.vm.network "forwarded_port", guest: 3000, host: 3000
   config.vm.synced_folder '.', '/vagrant', disabled: true
   config.vm.synced_folder "..", "/vagrant/src/github.com/bluek8s/kubedirector", owner: "vagrant", group: "vagrant"

@@ -25,6 +25,7 @@ Open a terminal, then enter the following:
  ```
  git clone https://github.com/hpe-container-platform-community/kubedirector
  cd kubedirector/vagrant
+ vagrant plugin install vagrant-vbguest
  vagrant up # this step can take ~ 20 minutes
  ./run_ide.sh
  ```

@@ -4,26 +4,14 @@
 Vagrant.configure("2") do |config|
 
   config.vm.box = "chris-snow/kubedirector-lab"
-  config.vm.box_version = "0.0.1-20200902"
+  config.vm.box_version = "0.0.2-20200903"
 
   config.vm.network "forwarded_port", guest: 3000, host: 3000
   config.vm.synced_folder '.', '/vagrant', disabled: true
   config.vm.synced_folder "..", "/vagrant/src/github.com/bluek8s/kubedirector", owner: "vagrant", group: "vagrant"
-  config.vm.provision "file", source: "./git_env_password.sh", destination: "/home/vagrant/git_env_password.sh"
-
-  #################
-  # Setup .bashrc #
-  #################
 
   config.vm.provision "shell", privileged: false, inline: <<-SCRIPT
-    grep -q '^THEIA_DEFAULT_PLUGINS' /home/vagrant/.bashrc || echo 'THEIA_DEFAULT_PLUGINS=local-dir:/home/vagrant/plugins' >> /home/vagrant/.bashrc
-
-    #grep -q '^GOPATH' /home/vagrant/.bashrc || echo 'GOPATH=/vagrant' >> /home/vagrant/.bashrc
-    grep -q '^PATH=$PATH:/home/go/bin:$GOPATH/bin' /home/vagrant/.bashrc || echo 'PATH=$PATH:/home/go/bin:$GOPATH/bin' >> /home/vagrant/.bashrc
-
-    grep -q '^export GOROOT' /home/vagrant/.bashrc || echo 'export GOROOT=`go env GOROOT`' >> /home/vagrant/.bashrc
-
-    chmod 755 /home/vagrant/git_env_password.sh
+    sudo chmod 777 /vagrant/
   SCRIPT
 
 end

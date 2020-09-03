@@ -3,7 +3,7 @@
 set -e
 
 # Set version info
-BOX_VERSION_BASE=0.0.1
+BOX_VERSION_BASE=0.0.2
 
 # Set versions requested of main components (These will be used in Packer and passed to Ansible downstream)
 export BOX_BASE="centos/7"
@@ -112,7 +112,7 @@ $(cat CHANGELOG.md)
 ---
 
 ## Source info
-[View source on Github](https://github.com/mrvantage/vagrant-box-centos7-minikube)
+[View source on Github](https://github.com/hpe-container-platform-community/kubedirector/vagrant/packer)
 
 Built on commit: \`${commit}\`
 "

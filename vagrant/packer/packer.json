@@ -1,0 +1,93 @@
+{
+  "variables": {
+    "box_base": "{{ env `BOX_BASE` }}",
+    "box_base_version": "{{ env `BOX_BASE_VERSION` }}",
+    "ansible_version": "{{ env `ANSIBLE_VERSION` }}",
+    "minikube_version": "{{ env `MINIKUBE_VERSION` }}",
+    "docker_version": "{{ env `DOCKER_VERSION` }}",
+    "kubectl_version": "{{ env `KUBECTL_VERSION` }}",
+    "helm_version": "{{ env `HELM_VERSION` }}",
+    "kubetail_version": "{{ env `KUBETAIL_VERSION` }}",
+    "vagrant_cloud_user": "{{ env `VAGRANT_CLOUD_USER` }}",
+    "vagrant_cloud_box_user": "{{ env `VAGRANT_CLOUD_BOX_USER` }}",
+    "vagrant_cloud_box_name": "{{ env `VAGRANT_CLOUD_BOX_NAME` }}",
+    "vagrant_cloud_token": "{{ env `VAGRANT_CLOUD_TOKEN` }}",
+    "box_version": "{{ env `BOX_VERSION` }}",
+    "box_version_description": "{{ env `BOX_VERSION_DESCRIPTION` }}"
+  },
+  "builders": [
+    {
+      "type": "vagrant",
+      "communicator": "ssh",
+      "source_path": "{{ user `box_base` }}",
+      "box_version": "{{ user `box_base_version` }}",
+      "provider": "virtualbox",
+      "box_name": "{{ user `box_base` }}",
+      "add_force": true,
+      "template": "templates/Vagrantfile.tpl",
+      "output_dir": "build"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "sudo yum install -y epel-release",
+        "sudo yum install -y python-pip",
+        "sudo pip install --upgrade pip",
+        "sudo pip install ansible=={{ user `ansible_version` }}",
+	"sudo yum groupinstall -y 'Development Tools'",
+	"sudo yum remove -y git*"
+      ]
+    },
+    {
+      "type": "shell",
+      "execute_command": "echo 'vagrant' | {{.Vars}} sudo -S -E sh -eux '{{.Path}}'",
+      "script": "install-git-client.sh"
+    },
+    {
+      "type": "shell",
+      "execute_command": "echo 'vagrant' | {{.Vars}} sudo -S -E sh -eux '{{.Path}}'",
+      "script": "install-go.sh"
+    },
+    {
+      "type": "file",
+      "source": "package.json",
+      "destination": "/home/vagrant/package.json"
+    },
+    {
+      "type": "shell",
+      "script": "install-theia.sh"
+    },
+    {
+      "type": "ansible-local",
+      "playbook_file": "ansible/install-minikube.yml",
+      "extra_arguments": [
+        "--extra-vars \"minikube_version={{user `minikube_version`}} docker_version={{user `docker_version`}} kubectl_version={{user `kubectl_version`}} helm_version={{user `helm_version`}} kubetail_version={{user `kubetail_version`}}\""
+      ]
+    },
+    {
+      "type": "shell",
+      "script": "install-operator-sdk.sh"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo chown -R vagrant:vagrant /home"
+      ]
+    }
+  ],
+  "post-processors": [
+    [
+      {
+        "type": "vagrant-cloud",
+        "box_tag": "{{ user `vagrant_cloud_box_user` }}/{{ user `vagrant_cloud_box_name` }}",
+        "access_token": "{{user `vagrant_cloud_token`}}",
+        "version": "{{user `box_version`}}",
+        "version_description": "{{user `box_version_description`}}",
+        "no_release": true,
+        "keep_input_artifact": true
+      }
+    ]
+  ]
+}

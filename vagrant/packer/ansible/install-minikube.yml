@@ -1,0 +1,209 @@
+- hosts: all
+  become: yes
+  become_method: sudo
+  tasks:
+
+    - name: install system updates
+      yum: name=* state=latest update_cache=yes
+
+    - name: Disable SELinux
+      selinux:
+        state: disabled
+
+    - name: disable swap
+      shell: /usr/sbin/swapoff -a
+
+    - name: disable swap permanently
+      lineinfile:
+        path: /etc/fstab
+        regexp: '^[^#].*swap.*$'
+        state: absent
+
+    - name: delete swapfile
+      file:
+        path: /swapfile
+        state: absent
+
+    - name: install prerequisites
+      yum:
+        name: [ vim, socat, device-mapper-persistent-data, lvm2, telnet, tcpdump, conntrack-tools, bind-utils ]
+
+    - name: download minikube version {{ minikube_version }} rpm
+      get_url:
+        url: https://github.com/kubernetes/minikube/releases/download/v{{ minikube_version }}/minikube-{{ minikube_version }}-0.x86_64.rpm
+        dest: /var/tmp/minikube-{{ minikube_version }}.rpm
+        mode: '0644'
+
+    - name: install minikube version {{ minikube_version }} rpm
+      yum:
+        name: /var/tmp/minikube-{{ minikube_version }}.rpm
+
+    - name: delete minikube version {{ minikube_version }} rpm
+      file:
+        path: /var/tmp/minikube-{{ minikube_version }}.rpm
+        state: absent
+
+    - name: add docker repository
+      yum_repository:
+        name: docker-ce-stable
+        description: Docker CE Stable - $basearch
+        baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+        gpgcheck: yes
+        gpgkey: https://download.docker.com/linux/centos/gpg
+
+    - name: install docker-ce version {{ docker_version }}
+      yum:
+        name: docker-ce-{{ docker_version }}
+
+    - name: start and enable docker service
+      service:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Add vagrant user to docker group
+      user:
+        name: vagrant
+        groups: docker
+        append: yes
+
+    - name: set bridge-nf-call-iptables = 1
+      lineinfile:
+        path: /etc/sysctl.conf
+        line: net.bridge.bridge-nf-call-iptables = 1
+
+    - name: apply sysctl config
+      shell: sysctl -p
+
+    - name: start minikube
+      shell: minikube start --vm-driver=none
+
+    - name: Add service-node-port-range parameter to minikube config file
+      lineinfile:
+        state: present
+        path: /etc/kubernetes/manifests/kube-apiserver.yaml
+        line: '    - --service-node-port-range=1024-65535'
+        insertafter: '^.*service-account-key-file.*$'
+
+    - name: start and enable kubelet service
+      service:
+        name: kubelet
+        enabled: yes
+        state: started
+    
+    - name: create dir /home/vagrant/bin
+      file:
+        path: /home/vagrant/bin
+        state: directory
+
+    - name: add kubernetes repository
+      yum_repository:
+        name: Kubernetes
+        description: Kubernetes
+        baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+        gpgcheck: yes
+        gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+    - name: install kubectl version {{ kubectl_version }}
+      yum:
+        name: kubectl-{{ kubectl_version }}
+
+    - name: copy kubectl conf
+      copy:
+        src: /root/.kube
+        dest: /home/vagrant/
+        remote_src: yes
+        owner: vagrant
+        group: vagrant
+
+    - name: fix kubectl conf
+      replace:
+        path: /home/vagrant/.kube/config
+        regexp: '/root'
+        replace: '/home/vagrant'
+
+    - name: enable kubectl autocompletion
+      lineinfile:
+        path: /home/vagrant/.bashrc
+        line: source <(kubectl completion bash)
+        insertafter: EOF
+
+    - name: enable kubectl alias k
+      lineinfile:
+        path: /home/vagrant/.bashrc
+        line: alias k="kubectl"
+        insertafter: EOF
+
+    - name: enable kubectl alias kc
+      lineinfile:
+        path: /home/vagrant/.bashrc
+        line: alias kc="kubectl"
+        insertafter: EOF
+
+    - name: copy minikube conf
+      copy:
+        src: /root/.minikube
+        dest: /home/vagrant/
+        remote_src: yes
+        owner: vagrant
+        group: vagrant
+
+    - name: create /vagrant directory
+      file:
+        path: /vagrant
+        state: directory
+
+    - name: download helm version {{ helm_version }}
+      get_url:
+        url: https://get.helm.sh/helm-v{{ helm_version }}-linux-amd64.tar.gz
+        dest: /var/tmp/helm-v{{ helm_version }}-linux-amd64.tar.gz
+        mode: 0755
+
+    - name: extract helm version {{ helm_version }}
+      unarchive:
+        src: /var/tmp/helm-v{{ helm_version }}-linux-amd64.tar.gz
+        remote_src: yes
+        dest: /home/vagrant/bin
+        extra_opts:
+          - "linux-amd64/helm"
+          - "--strip-components=1"
+        mode: 0755
+
+    - name: delete downloaded helm version {{ helm_version }} installer
+      file:
+        path: /var/tmp/helm-v{{ helm_version }}-linux-amd64.tar.gz
+        state: absent
+
+    - name: change helm executable ownership to vagrant
+      file:
+        path: /home/vagrant/bin/helm
+        mode: 0755
+        owner: vagrant
+        group: vagrant
+      
+    - name: Download kubetail
+      get_url:
+        url: https://codeload.github.com/johanhaleby/kubetail/tar.gz/{{ kubetail_version }}
+        dest: /var/tmp/kubetail-{{ kubetail_version }}.tar.gz
+
+    - name: Extract kubetail
+      unarchive:
+        src: /var/tmp/kubetail-{{ kubetail_version }}.tar.gz
+        dest: /opt
+        remote_src: yes
+
+    - name: Install kubetail
+      file:
+        src: /opt/kubetail-{{ kubetail_version }}/kubetail
+        dest: /usr/bin/kubetail
+        state: link
+        
+    - name: Install the 'Development tools' package group
+      yum:
+       name: "@Development tools"
+       state: present
+        
+    - name: Remove git* package
+      yum:
+       name: "git*"
+       state: removed

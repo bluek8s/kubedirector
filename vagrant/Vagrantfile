@@ -3,12 +3,11 @@
 
 Vagrant.configure("2") do |config|
 
-  config.vm.box = "mrvantage/centos7-minikube"
+  config.vm.box = "chris-snow/kubedirector-lab"
   config.vm.network "forwarded_port", guest: 3000, host: 3000
-  config.vm.synced_folder "..", "/vagrant"
-  
-  config.vm.provision "file", source: "./package.json", destination: "/home/vagrant/package.json"
-  config.vm.provision "file", source: "./run_ide.sh", destination: "/home/vagrant/run_ide.sh"
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+  config.vm.synced_folder "..", "/vagrant/src/github.com/bluek8s/kubedirector", owner: "vagrant", group: "vagrant"
+  config.vm.provision "file", source: "./git_env_password.sh", destination: "/home/vagrant/git_env_password.sh"
 
   #################
   # Setup .bashrc #
@@ -21,106 +20,8 @@ Vagrant.configure("2") do |config|
     grep -q '^PATH=$PATH:/home/go/bin:$GOPATH/bin' /home/vagrant/.bashrc || echo 'PATH=$PATH:/home/go/bin:$GOPATH/bin' >> /home/vagrant/.bashrc
 
     grep -q '^export GOROOT' /home/vagrant/.bashrc || echo 'export GOROOT=`go env GOROOT`' >> /home/vagrant/.bashrc
-  SCRIPT
 
-  #############################
-  # Install Development Tools #
-  #############################
-
-  config.vm.provision "shell", privileged: false, inline: <<-SCRIPT
-    sudo yum groupinstall -y 'Development Tools'
-  SCRIPT
-
-  ##############
-  # Install GO #
-  ##############
-
-  config.vm.provision "shell", inline: <<-SCRIPT
-
-    # script adapted from https://github.com/theia-ide/theia-apps/blob/a54aaa676e3db07d22ab75dde9f3447576135b4d/theia-go-docker/Dockerfile
-
-    GO_VERSION=1.15 \
-    GOOS=linux \
-    GOARCH=amd64 \
-    GOROOT=/home/go \
-    GOPATH=/home/go-tools
-    PATH=$GOPATH/bin:$GOROOT/bin:$PATH
-
-    mkdir -p /home/go && \
-    mkdir -p /home/go-tools && \
-    chown -R vagrant:vagrant /home/go && \
-    chown -R vagrant:vagrant /home/go-tools
-
-    curl -fsSL https://storage.googleapis.com/golang/go$GO_VERSION.$GOOS-$GOARCH.tar.gz | tar -C /home -xzv
-
-    go get -u -v github.com/mdempsky/gocode && \
-    go get -u -v github.com/uudashr/gopkgs/cmd/gopkgs && \
-    go get -u -v github.com/ramya-rao-a/go-outline && \
-    go get -u -v github.com/acroca/go-symbols && \
-    go get -u -v golang.org/x/tools/cmd/guru && \
-    go get -u -v golang.org/x/tools/cmd/gorename && \
-    go get -u -v github.com/fatih/gomodifytags && \
-    go get -u -v github.com/haya14busa/goplay/cmd/goplay && \
-    go get -u -v github.com/josharian/impl && \
-    go get -u -v github.com/tylerb/gotype-live && \
-    go get -u -v github.com/rogpeppe/godef && \
-    go get -u -v github.com/zmb3/gogetdoc && \
-    go get -u -v golang.org/x/tools/cmd/goimports && \
-    go get -u -v github.com/sqs/goreturns && \
-    go get -u -v winterdrache.de/goformat/goformat && \
-    go get -u -v golang.org/x/lint/golint && \
-    go get -u -v github.com/cweill/gotests/... && \
-    go get -u -v github.com/alecthomas/gometalinter && \
-    go get -u -v honnef.co/go/tools/... && \
-    GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint && \
-    go get -u -v github.com/mgechev/revive && \
-    go get -u -v github.com/sourcegraph/go-langserver && \
-    go get -u -v github.com/go-delve/delve/cmd/dlv && \
-    go get -u -v github.com/davidrjenni/reftools/cmd/fillstruct && \
-    go get -u -v github.com/godoctor/godoctor
-
-    go get -u -v -d github.com/stamblerre/gocode && \
-    go build -o $GOPATH/bin/gocode-gomod github.com/stamblerre/gocode
-
-  SCRIPT
-
-  #####################
-  # Install Theia IDE #
-  #####################
-
-  config.vm.provision "shell", privileged: false, inline: <<-SCRIPT
-
-    rm -rf /home/vagrant/.cache/yarn/
-
-    curl --silent --location https://rpm.nodesource.com/setup_10.x | sudo bash -
-    sudo yum install -y nodejs
-    curl --silent --location https://dl.yarnpkg.com/rpm/yarn.repo | sudo tee /etc/yum.repos.d/yarn.repo
-    echo y | sudo rpm --import https://dl.yarnpkg.com/rpm/pubkey.gpg
-    sudo yum install -y yarn
-    
-    cd /home/vagrant
-    yarn
-    yarn theia build
-
-  SCRIPT
-
-  ########################
-  # Install Operator SDK #
-  ########################
-
-  config.vm.provision "shell", inline: <<-SCRIPT
-    set -x
-
-    export RELEASE_VERSION=v0.15.2
-    export KEY_ID=9391EA2A
-
-    curl -LO -C - https://github.com/operator-framework/operator-sdk/releases/download/${RELEASE_VERSION}/operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu
-    curl -LO -C - https://github.com/operator-framework/operator-sdk/releases/download/${RELEASE_VERSION}/operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu.asc
-    gpg --recv-key "$KEY_ID"
-    gpg --verify operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu.asc
-    chmod +x operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu && sudo mkdir -p /usr/local/bin/ && sudo cp operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu /usr/local/bin/operator-sdk && rm operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu
-    echo
-    /usr/local/bin/operator-sdk version
+    chmod 755 /home/vagrant/git_env_password.sh
   SCRIPT
 
 end

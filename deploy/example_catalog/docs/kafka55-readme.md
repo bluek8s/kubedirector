@@ -11,7 +11,7 @@ More about the Confluent Kafka cluster can be read [here.](https://docs.confluen
 * Schema registry is a schema management component used by other components to adhere to a common message format.
 * Control-center is s a GUI-based system used for managing and monitoring Kafka.
 * Test-client is provided for testing basic functionality using sample producers and consumers. It is not a Kafka role and is optional to include during cluster creation.
- 
+
 #### STEPS FOR SAMPLE TEST RUNS ON kafka-client
 * Add 2 kafka-clients in the kafka cluster.
 * On one client, where you want to run the producer, run the script: 
@@ -30,4 +30,10 @@ More about the Confluent Kafka cluster can be read [here.](https://docs.confluen
 * Reduce broker nodes, test message transfer from client and cluster state in control center.
 * Power off nodes to see that the cluster health from control center is good and messages are transferred without issues.
 * Run message streaming test. Sample [streaming test using KSQL.](https://kafka-tutorials.confluent.io/transform-a-stream-of-events/ksql.html) 
-* Delete cluster.
+* Delete cluster
+
+#### Docker Image location:
+* docker.io/bluedata/kafka
+
+##### Docker Pull Command 
+* docker pull docker.io/bluedata/kafka:1.0

@@ -16,6 +16,7 @@ package kubedirectorcluster
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -310,10 +311,59 @@ func handleReadyMembers(
 				)
 				return
 			}
+
+			if cr.Annotations[shared.ConnectionsChanged] == "true" {
+				shared.LogInfo(
+					reqLogger,
+					cr,
+					shared.EventReasonCluster,
+					fmt.Sprintf("--reconnect will be called here for pod : %s", m.Pod),
+				)
+
+				containerID := m.StateDetail.LastConfiguredContainer
+				cmd := fmt.Sprintf(appPrepConfigRunCmdTest, containerID)
+
+				shared.LogInfo(
+					reqLogger,
+					cr,
+					shared.EventReasonCluster,
+					fmt.Sprintf("Executing command %s", cmd),
+				)
+				cmdErr := executor.RunScript(
+					reqLogger,
+					cr,
+					cr.Namespace,
+					m.Pod,
+					containerID,
+					executor.AppContainerName,
+					"app config",
+					strings.NewReader(cmd),
+				)
+				if cmdErr != nil {
+					shared.LogInfo(
+						reqLogger,
+						cr,
+						shared.EventReasonCluster,
+						fmt.Sprintf("Exited with errors: %s", cmdErr.Error()),
+					)
+				}
+
+			}
+
 			m.StateDetail.LastConfigDataGeneration = cr.Status.SpecGenerationToProcess
 		}(member)
 	}
 	wgReady.Wait()
+
+	cr.Annotations[shared.ConnectionsChanged] = "false"
+	if shared.Update(context.TODO(), cr) == nil {
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonCluster,
+			"Updated context to false",
+		)
+	}
 }
 
 // handleCreatePendingMembers operates on all members in the role that are

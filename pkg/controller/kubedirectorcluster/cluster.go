@@ -162,8 +162,8 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 
 	annotations := cr.Annotations
 	if annotations == nil {
-		annotations = make(map[string]string)
-		cr.Annotations = annotations
+		newAnnotations := make(map[string]string)
+		cr.Annotations = newAnnotations
 
 		shared.LogInfo(
 			reqLogger,
@@ -172,7 +172,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			fmt.Sprintf("Annotations initialized: %s", cr.Annotations[shared.ConnectionsChanged]),
 		)
 	}
-	if v, ok := annotations[shared.ConnectionsChanged]; ok {
+	if v, ok := cr.Annotations[shared.ConnectionsChanged]; ok {
 		shared.LogInfo(
 			reqLogger,
 			cr,
@@ -180,7 +180,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			fmt.Sprintf("Annotation already present: %s", v),
 		)
 	} else {
-		annotations[shared.ConnectionsChanged] = "false"
+		cr.Annotations[shared.ConnectionsChanged] = "false"
 
 		shared.LogInfo(
 			reqLogger,
@@ -244,9 +244,11 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	if state == clusterMembersChangedUnready || (currentHash != cr.Status.LastConnectionHash) {
 		if currentHash != cr.Status.LastConnectionHash {
 
-			annotations := cr.Annotations
-			annotations[shared.ConnectionsChanged] = "true"
-			cr.Annotations = annotations
+			//annotations := cr.Annotations
+			//annotations[shared.ConnectionsChanged] = "true"
+			//cr.Annotations = annotations
+
+			cr.Annotations[shared.ConnectionsChanged] = "true"
 
 			connChg = true
 			shared.LogInfo(
@@ -255,6 +257,15 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 				shared.EventReasonCluster,
 				fmt.Sprintf("HASH CHANGED, CONN CHANGED: %s", cr.Annotations[shared.ConnectionsChanged]),
 			)
+
+			if shared.Update(context.TODO(), cr) == nil {
+				shared.LogInfo(
+					reqLogger,
+					cr,
+					shared.EventReasonCluster,
+					"Updated context",
+				)
+			}
 
 		}
 

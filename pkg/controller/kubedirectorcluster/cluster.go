@@ -158,6 +158,37 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	}()
 	// Calculate md5check sum to generate unique hash for connection object
 	currentHash := calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
+	connChg := false
+
+	annotations := cr.Annotations
+	if annotations == nil {
+		annotations = make(map[string]string)
+		cr.Annotations = annotations
+
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonCluster,
+			fmt.Sprintf("Annotations initialized: %s", cr.Annotations[shared.ConnectionsChanged]),
+		)
+	}
+	if v, ok := annotations[shared.ConnectionsChanged]; ok {
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonCluster,
+			fmt.Sprintf("Annotation already present: %s", v),
+		)
+	} else {
+		annotations[shared.ConnectionsChanged] = "false"
+
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonCluster,
+			"Annotation initialized to false",
+		)
+	}
 
 	// We use a finalizer to maintain KubeDirector state consistency;
 	// e.g. app references and ClusterStatusGens.
@@ -211,6 +242,22 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	// could cause a handler exit and we would lose the necessary spec gen
 	// update.
 	if state == clusterMembersChangedUnready || (currentHash != cr.Status.LastConnectionHash) {
+		if currentHash != cr.Status.LastConnectionHash {
+
+			annotations := cr.Annotations
+			annotations[shared.ConnectionsChanged] = "true"
+			cr.Annotations = annotations
+
+			connChg = true
+			shared.LogInfo(
+				reqLogger,
+				cr,
+				shared.EventReasonCluster,
+				fmt.Sprintf("HASH CHANGED, CONN CHANGED: %s", cr.Annotations[shared.ConnectionsChanged]),
+			)
+
+		}
+
 		incremented := *cr.Status.SpecGenerationToProcess + int64(1)
 		cr.Status.SpecGenerationToProcess = &incremented
 		cr.Status.LastConnectionHash = currentHash
@@ -328,7 +375,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return configMetaErr
 	}
 
-	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen)
+	membersErr := syncMembers(reqLogger, cr, roles, configmetaGen, connChg)
 	if membersErr != nil {
 		errLog("members", membersErr)
 		return membersErr

@@ -60,3 +60,8 @@ const (
 const (
 	ConnectionsIncrementor = KdDomainBase + "/connUpdateCounter"
 )
+
+// variable for checking if connections change
+const (
+	ConnectionsChanged = KdDomainBase + "/connectionsChanged"
+)

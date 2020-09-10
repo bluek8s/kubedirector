@@ -49,7 +49,22 @@ func syncMembers(
 	cr *kdv1.KubeDirectorCluster,
 	roles []*roleInfo,
 	configmetaGenerator func(string) string,
+	connChg bool,
 ) error {
+
+	shared.LogInfo(
+		reqLogger,
+		cr,
+		shared.EventReasonCluster,
+		fmt.Sprintf("In sync members, Conn chg: %t", connChg),
+	)
+
+	shared.LogInfo(
+		reqLogger,
+		cr,
+		shared.EventReasonCluster,
+		fmt.Sprintf("In sync members, Annotations chg: %s", cr.Annotations[shared.ConnectionsChanged]),
+	)
 
 	// Update configmeta in current ready members if necessary. These may not
 	// all succeed if any members are down. We'll return early if we fail to
@@ -70,7 +85,7 @@ func syncMembers(
 	}
 	for _, r := range roles {
 		if ready, readyOk := r.membersByState[memberReady]; readyOk {
-			handleReadyMembers(reqLogger, cr, r, configmetaGenerator)
+			handleReadyMembers(reqLogger, cr, r, configmetaGenerator, connChg)
 			if allMembersUpdated {
 				allMembersUpdated = checkGenOk(ready)
 			}
@@ -238,7 +253,22 @@ func handleReadyMembers(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 	configmetaGenerator func(string) string,
+	connChg bool,
 ) {
+
+	shared.LogInfo(
+		reqLogger,
+		cr,
+		shared.EventReasonCluster,
+		fmt.Sprintf("In handle ready members, Conn chg: %t", connChg),
+	)
+
+	shared.LogInfo(
+		reqLogger,
+		cr,
+		shared.EventReasonCluster,
+		fmt.Sprintf("In sync members, Annotations chg: %s", cr.Annotations[shared.ConnectionsChanged]),
+	)
 
 	ready := role.membersByState[memberReady]
 	var wgReady sync.WaitGroup

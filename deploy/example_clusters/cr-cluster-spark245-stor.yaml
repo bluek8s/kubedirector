@@ -5,6 +5,10 @@
 #  labels:
 #    kubedirector.hpe.com/cmType : jupyterhub_ldap_config
 #data:
+## auth_type options are LDAP/Active Directory
+#  jupyterhub_auth_type: Active Directory
+#  jupyterhub_ssl_enabled: "False"
+## use ',' as a delimiter to provide multiple server_address
 #  jupyterhub_server_address: "16.143.20.82"
 #  jupyterhub_server_port: "389"
 #  jupyterhub_lookup_dn: "True"
@@ -13,7 +17,9 @@
 #  jupyterhub_bind_user_dn: "cn=admin,dc=mip,dc=storage,dc=hpecorp,dc=net"
 ##  #optional parameter. "use ":" as a delimiter to provide multiple templates"
 #  jupyterhub_bind_dn_template: "cn={username},ou=People,dc=mip,dc=storage,dc=hpecorp,dc=net"
-#  jupyterhub_valid_username_regex: "^[a-z][.@a-z0-9_-]*$"
+#  jupyterhub_valid_username_regex: "^[A-Za-z][.@A-Za-z0-9_-]*$"
+##  "use ":" as a delimiter to provide multiple jupyterhub_member_of"
+#  jupyterhub_member_of: CN=Eng,OU=Engineering,DC=mip,DC=storage,DC=hpecorp,DC=net:CN=QA,OU=Engineering,DC=mip,DC=storage,DC=hpecorp,DC=net
 #---
 #apiVersion: v1
 #kind: Secret
@@ -58,7 +64,7 @@ spec:
         memory: "4Gi"
         cpu: "2"
     storage:
-      size: "40Gi" 
+      size: "40Gi"
   - id: livy-server
     members: 1
     resources:

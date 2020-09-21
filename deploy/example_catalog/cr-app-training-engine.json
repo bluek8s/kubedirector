@@ -54,7 +54,7 @@
         "roles": [{
                 "cardinality": "1",
                 "configPackage": {
-                    "packageURL": "file:///opt/configscript/flask_configure.tgz"
+                    "packageURL": "http://16.143.21.166/thirdparty/k8sapps/hooks/bluedata-catalog/flask.tgz"
                 },
                 "id": "LoadBalancer",
                 "imageRepoTag": "bluedata/kd-api-serving:1.0"
@@ -62,7 +62,7 @@
             {
                 "cardinality": "1+",
                 "configPackage": {
-                    "packageURL": "file:///opt/configscript/flask_configure.tgz"
+                    "packageURL": "http://16.143.21.166/thirdparty/k8sapps/hooks/bluedata-catalog/flask.tgz"
                 },
                 "id": "RESTServer",
                 "imageRepoTag": "bluedata/kd-api-serving:1.0"
@@ -70,7 +70,7 @@
             {
                 "cardinality": "1",
                 "configPackage": {
-                    "packageURL": "file:///opt/configscript/appconfig.tgz"
+                    "packageURL": "http://16.143.21.166/thirdparty/k8sapps/hooks/bluedata-catalog/tr_nb.tgz"
                 },
                 "id": "controller",
                 "imageRepoTag": "bluedata/kd-training:1.0"

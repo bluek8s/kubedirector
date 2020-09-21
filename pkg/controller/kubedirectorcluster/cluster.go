@@ -160,35 +160,51 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	currentHash := calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
 	connChg := false
 
-	annotations := cr.Annotations
-	if annotations == nil {
-		newAnnotations := make(map[string]string)
-		cr.Annotations = newAnnotations
+	// if _, ok := cr.Annotations[shared.ConnectionsVersion]; ok {
 
-		shared.LogInfo(
-			reqLogger,
-			cr,
-			shared.EventReasonCluster,
-			fmt.Sprintf("Annotations initialized: %s", cr.Annotations[shared.ConnectionsChanged]),
-		)
-	}
-	if v, ok := cr.Annotations[shared.ConnectionsChanged]; ok {
-		shared.LogInfo(
-			reqLogger,
-			cr,
-			shared.EventReasonCluster,
-			fmt.Sprintf("Annotation already present: %s", v),
-		)
-	} else {
-		cr.Annotations[shared.ConnectionsChanged] = "false"
+	// } else {
+	// 	cr.Annotations[shared.ConnectionsVersion] = "1"
 
-		shared.LogInfo(
-			reqLogger,
-			cr,
-			shared.EventReasonCluster,
-			"Annotation initialized to false",
-		)
-	}
+	// 	shared.LogInfo(
+	// 		reqLogger,
+	// 		cr,
+	// 		shared.EventReasonCluster,
+	// 		"Annotation initialized to 1",
+	// 	)
+
+	// 	if shared.Update(context.TODO(), cr) == nil {
+	// 		shared.LogInfo(
+	// 			reqLogger,
+	// 			cr,
+	// 			shared.EventReasonCluster,
+	// 			"Updated context",
+	// 		)
+	// 	}
+	// }
+
+	// annotations := cr.Annotations
+	// if annotations == nil {
+	// 	newAnnotations := make(map[string]string)
+	// 	cr.Annotations = newAnnotations
+
+	// 	shared.LogInfo(
+	// 		reqLogger,
+	// 		cr,
+	// 		shared.EventReasonCluster,
+	// 		fmt.Sprintf("Annotations initialized: %s", cr.Annotations[shared.ConnectionsChanged]),
+	// 	)
+	// }
+	// if _, ok := cr.Annotations[shared.ConnectionsChanged]; ok {
+	// } else {
+	// 	cr.Annotations[shared.ConnectionsChanged] = "false"
+
+	// 	shared.LogInfo(
+	// 		reqLogger,
+	// 		cr,
+	// 		shared.EventReasonCluster,
+	// 		"Annotation initialized to false",
+	// 	)
+	// }
 
 	// We use a finalizer to maintain KubeDirector state consistency;
 	// e.g. app references and ClusterStatusGens.
@@ -242,32 +258,56 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	// could cause a handler exit and we would lose the necessary spec gen
 	// update.
 	if state == clusterMembersChangedUnready || (currentHash != cr.Status.LastConnectionHash) {
-		if currentHash != cr.Status.LastConnectionHash {
 
-			//annotations := cr.Annotations
-			//annotations[shared.ConnectionsChanged] = "true"
-			//cr.Annotations = annotations
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonCluster,
+			fmt.Sprintf("CONNECTIONS INCREMENTOR VALUE IN IF LOOP IS %s", cr.Annotations[shared.ConnectionsIncrementor]),
+		)
 
-			cr.Annotations[shared.ConnectionsChanged] = "true"
+		// if (currentHash != cr.Status.LastConnectionHash) && (cr.Status.LastConnectionHash != "") {
 
-			connChg = true
-			shared.LogInfo(
-				reqLogger,
-				cr,
-				shared.EventReasonCluster,
-				fmt.Sprintf("HASH CHANGED, CONN CHANGED: %s", cr.Annotations[shared.ConnectionsChanged]),
-			)
+		// 	//annotations := cr.Annotations
+		// 	//annotations[shared.ConnectionsChanged] = "true"
+		// 	//cr.Annotations = annotations
 
-			if shared.Update(context.TODO(), cr) == nil {
-				shared.LogInfo(
-					reqLogger,
-					cr,
-					shared.EventReasonCluster,
-					"Updated context",
-				)
-			}
+		// 	//*****
+		// 	// cr.Annotations["cluster"]++;
+		// 	//*****
 
-		}
+		// 	if v, ok := cr.Annotations[shared.ConnectionsIncrementor]; ok {
+		// 		newV, _ := strconv.Atoi(v)
+		// 		cr.Annotations[shared.ConnectionsIncrementor] = strconv.Itoa(newV + 1)
+
+		// 		shared.LogInfo(
+		// 			reqLogger,
+		// 			cr,
+		// 			shared.EventReasonCluster,
+		// 			fmt.Sprintf("Annotation incremented to %s", strconv.Itoa(newV+1)),
+		// 		)
+
+		// 	} else {
+		// 		cr.Annotations[shared.ConnectionsVersion] = "1"
+
+		// 		shared.LogInfo(
+		// 			reqLogger,
+		// 			cr,
+		// 			shared.EventReasonCluster,
+		// 			"Annotation NOT PRESENT WHERE REQUIRED",
+		// 		)
+		// 	}
+
+		// 	if shared.Update(context.TODO(), cr) == nil {
+		// 		shared.LogInfo(
+		// 			reqLogger,
+		// 			cr,
+		// 			shared.EventReasonCluster,
+		// 			"Updated context",
+		// 		)
+		// 	}
+
+		// }
 
 		incremented := *cr.Status.SpecGenerationToProcess + int64(1)
 		cr.Status.SpecGenerationToProcess = &incremented
@@ -391,6 +431,16 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		errLog("members", membersErr)
 		return membersErr
 	}
+
+	// cr.Annotations[shared.ConnectionsChanged] = "false"
+	// if shared.Update(context.TODO(), cr) == nil {
+	// 	shared.LogInfo(
+	// 		reqLogger,
+	// 		cr,
+	// 		shared.EventReasonCluster,
+	// 		"Updated context to false",
+	// 	)
+	// }
 
 	return nil
 }

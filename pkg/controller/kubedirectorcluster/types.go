@@ -97,7 +97,7 @@ const (
 	curl -L %s -o %s`
 	appPrepConfigRunCmdTest = `rm -f /opt/guestconfig/configure.* &&
 	echo -n %s= > ` + appPrepConfigStatus + ` &&
-	nohup sh -c "` + appPrepStartscript + ` --configure;
+	nohup sh -c "` + appPrepStartscript + ` --reconnect;
 	echo -n $? >> ` + appPrepConfigStatus + `" > /opt/guestconfig/configure.stdout  
 	2> /opt/guestconfig/configure.stderr  &`
 )

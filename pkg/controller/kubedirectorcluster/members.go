@@ -16,7 +16,6 @@ package kubedirectorcluster
 
 import (
 	"bufio"
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -60,12 +59,12 @@ func syncMembers(
 		fmt.Sprintf("In sync members, Conn chg: %t", connChg),
 	)
 
-	shared.LogInfo(
-		reqLogger,
-		cr,
-		shared.EventReasonCluster,
-		fmt.Sprintf("In sync members, Annotations chg: %s", cr.Annotations[shared.ConnectionsChanged]),
-	)
+	// shared.LogInfo(
+	// 	reqLogger,
+	// 	cr,
+	// 	shared.EventReasonCluster,
+	// 	fmt.Sprintf("In sync members, Annotations chg: %s", cr.Annotations[shared.ConnectionsChanged]),
+	// )
 
 	// Update configmeta in current ready members if necessary. These may not
 	// all succeed if any members are down. We'll return early if we fail to
@@ -264,12 +263,32 @@ func handleReadyMembers(
 		fmt.Sprintf("In handle ready members, Conn chg: %t", connChg),
 	)
 
-	shared.LogInfo(
-		reqLogger,
-		cr,
-		shared.EventReasonCluster,
-		fmt.Sprintf("In sync members, Annotations chg: %s", cr.Annotations[shared.ConnectionsChanged]),
-	)
+	// shared.LogInfo(
+	// 	reqLogger,
+	// 	cr,
+	// 	shared.EventReasonCluster,
+	// 	fmt.Sprintf("In sync members, Annotations chg: %s", cr.Annotations[shared.ConnectionsChanged]),
+	// )
+	var connectionsVersion int64
+
+	if connectionsVersionStr, ok := cr.Annotations[shared.ConnectionsIncrementor]; ok {
+		connectionsVersion, _ = strconv.ParseInt(connectionsVersionStr, 10, 64)
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonCluster,
+			fmt.Sprintf("In HandleReadyMembers ConnectionsIncrementor value is: %d", connectionsVersion),
+		)
+	} else {
+		connectionsVersion = int64(0)
+
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonCluster,
+			fmt.Sprintf("In HandleReadyMembers ConnectionsIncrementor ::::::::NOT GOT::::::: %d", connectionsVersion),
+		)
+	}
 
 	ready := role.membersByState[memberReady]
 	var wgReady sync.WaitGroup
@@ -312,13 +331,42 @@ func handleReadyMembers(
 				return
 			}
 
-			if cr.Annotations[shared.ConnectionsChanged] == "true" {
+			memberVersion := m.StateDetail.LastConnectionVersion
+
+			shared.LogInfo(
+				reqLogger,
+				cr,
+				shared.EventReasonCluster,
+				fmt.Sprintf("memberVersion for pod %s is %d", m.Pod, memberVersion),
+			)
+
+			if memberVersion < connectionsVersion {
 				shared.LogInfo(
 					reqLogger,
 					cr,
 					shared.EventReasonCluster,
 					fmt.Sprintf("--reconnect will be called here for pod : %s", m.Pod),
 				)
+
+				//*****
+				// currVersion = cr.Annotations["cluster"]
+
+				// if cr.Annotations[m.Pod] == nil
+				// 		then, initialize new key and value cr.Annotations[m.Pod] = currVersion
+
+				// if cr.Annotations[m.Pod] < currVersion
+				// it means that the Pod wasn't updated after conns changed
+				// call --reconnect and cr.Annotations[m.Pod]++.
+				// We don't do cr.Annotations[m.Pod]=currVersion because if the version changes when this is being updated,
+				// we want to call --reconnect again
+
+				// if cr.Annotations[m.Pod] > currVersion
+				// We dont want such a scenario, error out
+
+				//if cr.Annotations[m.Pod] == currVersion
+				// no action, continue
+
+				//*****
 
 				containerID := m.StateDetail.LastConfiguredContainer
 				cmd := fmt.Sprintf(appPrepConfigRunCmdTest, containerID)
@@ -334,7 +382,7 @@ func handleReadyMembers(
 					cr,
 					cr.Namespace,
 					m.Pod,
-					containerID,
+					m.StateDetail.LastConfiguredContainer,
 					executor.AppContainerName,
 					"app config",
 					strings.NewReader(cmd),
@@ -346,6 +394,10 @@ func handleReadyMembers(
 						shared.EventReasonCluster,
 						fmt.Sprintf("Exited with errors: %s", cmdErr.Error()),
 					)
+				} else {
+					memberVersion = memberVersion + int64(1)
+					m.StateDetail.LastConnectionVersion = memberVersion
+
 				}
 
 			}
@@ -355,15 +407,6 @@ func handleReadyMembers(
 	}
 	wgReady.Wait()
 
-	cr.Annotations[shared.ConnectionsChanged] = "false"
-	if shared.Update(context.TODO(), cr) == nil {
-		shared.LogInfo(
-			reqLogger,
-			cr,
-			shared.EventReasonCluster,
-			"Updated context to false",
-		)
-	}
 }
 
 // handleCreatePendingMembers operates on all members in the role that are
@@ -480,6 +523,23 @@ func handleCreatingMembers(
 				m.State = string(state)
 				m.StateDetail.ConfigErrorDetail = errorDetail
 			}
+
+			connectionVersion := int64(0)
+			if v, ok := cr.Annotations[shared.ConnectionsIncrementor]; ok {
+				connectionVersion, _ = strconv.ParseInt(v, 10, 64)
+
+			}
+
+			m.StateDetail.LastConnectionVersion = connectionVersion
+			shared.LogInfof(
+				reqLogger,
+				cr,
+				shared.EventReasonMember,
+				"LastConnection for member{%s} in role{%s} is {%d}",
+				m.Pod,
+				role.roleStatus.Name,
+				m.StateDetail.LastConnectionVersion,
+			)
 
 			// Check to see if we have to inject one or more files for this member
 			if len(role.roleSpec.FileInjections) != 0 {

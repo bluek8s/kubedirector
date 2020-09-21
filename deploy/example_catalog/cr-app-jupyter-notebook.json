@@ -55,7 +55,7 @@
             }
         ],
         "defaultConfigPackage": {
-            "packageURL": "file:///opt/configscript/appconfig.tgz"
+            "packageURL": "http://16.143.21.166/thirdparty/k8sapps/hooks/bluedata-catalog/appconfig.tgz"
         },
         "roles": [{
             "imageRepoTag": "bluedata/kd-notebook:1.0",

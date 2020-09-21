@@ -62,6 +62,6 @@ const (
 )
 
 // variable for checking if connections change
-const (
-	ConnectionsChanged = KdDomainBase + "/connectionsChanged"
-)
+// const (
+// 	ConnectionsVersion = KdDomainBase + "/connectionsVersion"
+// )

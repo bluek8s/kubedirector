@@ -1,47 +1,38 @@
 #apiVersion: v1
 #kind: ConfigMap
 #metadata:
-#  name: jupyterhub
+#  name: ldapauthentication
 #  labels:
-#    kubedirector.hpe.com/cmType : jupyterhub_ldap_config
+#    kubedirector.hpe.com/cmType : ldap_config
 #data:
 ## auth_type options are LDAP/Active Directory
-#  jupyterhub_auth_type: Active Directory
-#  jupyterhub_ssl_enabled: "False"
+#  auth_type: "Active Directory"
+#  ssl_enabled: "False"
 ## use ',' as a delimiter to provide multiple server_address
-#  jupyterhub_server_address: "16.143.20.82"
-#  jupyterhub_ssl_enabled: "False"
-#  jupyterhub_server_port: "389"
-#  jupyterhub_lookup_dn: "True"
-#  jupyterhub_user_search_base: "dc=mip,dc=storage,dc=hpecorp,dc=net"
-#  jupyterhub_user_attribute: "cn"
-#  jupyterhub_bind_user_dn: "cn=admin,dc=mip,dc=storage,dc=hpecorp,dc=net"
+#  server_address: "10.10.10.100,10.10.10.101"
+#  ssl_enabled: "False"
+#  server_port: "389"
+#  lookup_dn: "True"
+#  user_search_base: "ou=people,dc=wikimedia,dc=org"
+#  user_attribute: "cn"
+#  bind_user_dn: "cn=admin,ou=people,dc=wikimedia,dc=org"
 ##  #optional parameter. "use ":" as a delimiter to provide multiple templates"
-#  jupyterhub_bind_dn_template: "cn={username},ou=People,dc=mip,dc=storage,dc=hpecorp,dc=net"
-#  jupyterhub_valid_username_regex: "^[A-Za-z][.@A-Za-z0-9_-]*$"
-##  "use ":" as a delimiter to provide multiple jupyterhub_member_of"
-#  jupyterhub_member_of: CN=Eng,OU=Engineering,DC=mip,DC=storage,DC=hpecorp,DC=net:CN=QA,OU=Engineering,DC=mip,DC=storage,DC=hpecorp,DC=net
+#  bind_dn_template: "cn={username},ou=People,ou=people,dc=wikimedia,dc=org"
+#  valid_username_regex: "^[A-Za-z][.@A-Za-z0-9_-]*$"
+##  "use ":" as a delimiter to provide multiple member_of"
+#  member_of:
+#     - CN=Eng,OU=Engineering,ou=people,dc=wikimedia,dc=org
+#     - CN=QA,OU=Engineering,ou=people,dc=wikimedia,dc=org
 #---
 #apiVersion: v1
 #kind: Secret
 #metadata:
-#  name: jupyterhubsecret
+#  name: ldapsecret
 #  labels:
-#    kubedirector.hpe.com/secretType : jupyterhub_ldap_secret
+#    kubedirector.hpe.com/secretType : ldap_secret
 #type: Opaque
 #data:
-#  jupyterhub_bind_user_password: YWRtaW4xMjMK
-#---
-#apiVersion: v1
-#kind: Secret
-#metadata:
-#  name: notebookusersecret
-#  labels:
-#    kubedirector.hpe.com/secretType : notebookusersecret
-#type: Opaque
-#data:
-#  notebook_username: YWRtaW4K
-#  notebook_password: YWRtaW4xMjMK
+#  bind_user_password: YWRtaW4xMjMK
 #---
 apiVersion: "kubedirector.hpe.com/v1beta1"
 kind: "KubeDirectorCluster"
@@ -51,10 +42,9 @@ spec:
   app: spark245
 #  connections:
 #    configmaps:
-#    - jupyterhub
+#    - ldapauthentication
 #    secrets:
-#    - notebookusersecret
-#    - jupyterhubsecret
+#    - ldapsecret
   roles:
   - id: spark-master
     resources:

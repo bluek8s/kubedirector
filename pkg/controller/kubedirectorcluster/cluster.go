@@ -341,16 +341,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return membersErr
 	}
 
-	// cr.Annotations[shared.ConnectionsChanged] = "false"
-	// if shared.Update(context.TODO(), cr) == nil {
-	// 	shared.LogInfo(
-	// 		reqLogger,
-	// 		cr,
-	// 		shared.EventReasonCluster,
-	// 		"Updated context to false",
-	// 	)
-	// }
-
 	return nil
 }
 

@@ -4,15 +4,12 @@ metadata:
   name: "jupyter-notebook"
 spec:
   app: jupyter-notebook
-  connections:
-    secrets:
-    - "test-secret"
   roles:
   - id: controller
     resources:
       requests:
         memory: "4Gi"
-        cpu: "1"
+        cpu: "2"
       limits:
         memory: "4Gi"
-        cpu: "1"
+        cpu: "2"

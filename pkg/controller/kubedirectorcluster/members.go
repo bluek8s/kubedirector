@@ -241,15 +241,31 @@ func handleReadyMembers(
 ) {
 
 	var connectionsVersion int64
+	var connVersionError error
 
 	if connectionsVersionStr, ok := cr.Annotations[shared.ConnectionsIncrementor]; ok {
-		connectionsVersion, _ = strconv.ParseInt(connectionsVersionStr, 10, 64)
+		connectionsVersion, connVersionError = strconv.ParseInt(connectionsVersionStr, 10, 64)
+
+		if connVersionError != nil {
+			shared.LogErrorf(
+				reqLogger,
+				connVersionError,
+				cr,
+				shared.EventReasonMember,
+				"Invalid connectionsIncrementor for role{%s}",
+				role.roleStatus.Name,
+			)
+			return
+
+		}
+
 		shared.LogInfo(
 			reqLogger,
 			cr,
 			shared.EventReasonCluster,
 			fmt.Sprintf("In HandleReadyMembers ConnectionsIncrementor value is: %d", connectionsVersion),
 		)
+
 	} else {
 		connectionsVersion = int64(0)
 
@@ -319,26 +335,6 @@ func handleReadyMembers(
 					fmt.Sprintf("--reconnect will be called here for pod : %s", m.Pod),
 				)
 
-				//*****
-				// currVersion = cr.Annotations["cluster"]
-
-				// if cr.Annotations[m.Pod] == nil
-				// 		then, initialize new key and value cr.Annotations[m.Pod] = currVersion
-
-				// if cr.Annotations[m.Pod] < currVersion
-				// it means that the Pod wasn't updated after conns changed
-				// call --reconnect and cr.Annotations[m.Pod]++.
-				// We don't do cr.Annotations[m.Pod]=currVersion because if the version changes when this is being updated,
-				// we want to call --reconnect again
-
-				// if cr.Annotations[m.Pod] > currVersion
-				// We dont want such a scenario, error out
-
-				//if cr.Annotations[m.Pod] == currVersion
-				// no action, continue
-
-				//*****
-
 				containerID := m.StateDetail.LastConfiguredContainer
 				cmd := fmt.Sprintf(appPrepConfigReconnectCmd, containerID)
 
@@ -359,12 +355,16 @@ func handleReadyMembers(
 					strings.NewReader(cmd),
 				)
 				if cmdErr != nil {
-					shared.LogInfo(
+					shared.LogErrorf(
 						reqLogger,
+						cmdErr,
 						cr,
-						shared.EventReasonCluster,
-						fmt.Sprintf("Exited with errors: %s", cmdErr.Error()),
+						shared.EventReasonMember,
+						"failed to run startcsript with --reconnect in member{%s} in role{%s}",
+						m.Pod,
+						role.roleStatus.Name,
 					)
+					return
 				} else {
 					memberVersion = memberVersion + int64(1)
 					m.StateDetail.LastConnectionVersion = &memberVersion

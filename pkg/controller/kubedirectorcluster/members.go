@@ -302,7 +302,7 @@ func handleReadyMembers(
 				return
 			}
 
-			memberVersion := m.StateDetail.LastConnectionVersion
+			memberVersion := *m.StateDetail.LastConnectionVersion
 
 			shared.LogInfo(
 				reqLogger,
@@ -367,7 +367,7 @@ func handleReadyMembers(
 					)
 				} else {
 					memberVersion = memberVersion + int64(1)
-					m.StateDetail.LastConnectionVersion = memberVersion
+					m.StateDetail.LastConnectionVersion = &memberVersion
 
 				}
 
@@ -501,7 +501,7 @@ func handleCreatingMembers(
 
 			}
 
-			m.StateDetail.LastConnectionVersion = connectionVersion
+			m.StateDetail.LastConnectionVersion = &connectionVersion
 			shared.LogInfof(
 				reqLogger,
 				cr,

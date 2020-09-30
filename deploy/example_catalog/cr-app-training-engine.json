@@ -54,7 +54,7 @@
         "roles": [{
                 "cardinality": "1",
                 "configPackage": {
-                    "packageURL": "file:///opt/configscript/appconfig.tgz"
+                    "packageURL": "file:///opt/configscript/flask_configure.tgz"
                 },
                 "id": "LoadBalancer",
                 "imageRepoTag": "bluedata/kd-api-serving:1.0"
@@ -62,7 +62,7 @@
             {
                 "cardinality": "1+",
                 "configPackage": {
-                    "packageURL": "file:///opt/configscript/appconfig.tgz"
+                    "packageURL": "file:///opt/configscript/flask_configure.tgz"
                 },
                 "id": "RESTServer",
                 "imageRepoTag": "bluedata/kd-api-serving:1.0"

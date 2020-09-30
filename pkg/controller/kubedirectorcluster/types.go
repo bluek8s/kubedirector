@@ -95,7 +95,7 @@ const (
 	2> /opt/guestconfig/configure.stderr  &`
 	fileInjectionCommand = `mkdir -p %s && cd %s &&
 	curl -L %s -o %s`
-	appPrepConfigRunCmdTest = `rm -f /opt/guestconfig/configure.* &&
+	appPrepConfigReconnectCmd = `rm -f /opt/guestconfig/configure.* &&
 	echo -n %s= > ` + appPrepConfigStatus + ` &&
 	nohup sh -c "` + appPrepStartscript + ` --reconnect;
 	echo -n $? >> ` + appPrepConfigStatus + `" > /opt/guestconfig/configure.stdout  

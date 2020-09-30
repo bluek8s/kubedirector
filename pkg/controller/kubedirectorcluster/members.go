@@ -365,11 +365,9 @@ func handleReadyMembers(
 						role.roleStatus.Name,
 					)
 					return
-				} else {
-					memberVersion = memberVersion + int64(1)
-					m.StateDetail.LastConnectionVersion = &memberVersion
-
 				}
+				memberVersion = memberVersion + int64(1)
+				m.StateDetail.LastConnectionVersion = &memberVersion
 
 			}
 

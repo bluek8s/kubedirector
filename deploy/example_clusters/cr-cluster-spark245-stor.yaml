@@ -32,6 +32,17 @@
 #data:
 #  bind_user_password: YWRtaW4xMjMK
 #---
+#apiVersion: v1
+#kind: Secret
+#metadata:
+#  name: notebookusersecret
+#  labels:
+#    kubedirector.hpe.com/secretType : notebookusersecret
+#type: Opaque
+#data:
+#  notebook_username: YWRtaW4K
+#  notebook_password: YWRtaW4xMjMK
+#---
 apiVersion: "kubedirector.hpe.com/v1beta1"
 kind: "KubeDirectorCluster"
 metadata:
@@ -43,6 +54,7 @@ spec:
 #    - ldapauthentication
 #    secrets:
 #    - ldapsecret
+#    - notebookusersecret
   roles:
   - id: spark-master
     resources:

@@ -109,9 +109,9 @@
         }
       }
     ],
-    "defaultImageRepoTag": "bluedata/spark245:5.2.0.1",
+    "defaultImageRepoTag": "bluedata/spark245:5.2.0.10",
     "defaultConfigPackage": {
-      "packageURL": "file:///opt/configscripts/appconfig-5.2.0.1.tgz"
+      "packageURL": "file:///opt/configscripts/appconfig-5.2.0.10.tgz"
     },
     "roles": [
       {

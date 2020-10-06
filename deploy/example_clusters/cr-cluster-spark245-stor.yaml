@@ -30,6 +30,7 @@
 #    kubedirector.hpe.com/secretType : ldap_secret
 #type: Opaque
 #data:
+## secret value is updated with base64 encoded
 #  bind_user_password: YWRtaW4xMjMK
 #---
 #apiVersion: v1
@@ -40,6 +41,7 @@
 #    kubedirector.hpe.com/secretType : notebookusersecret
 #type: Opaque
 #data:
+## secret values are updated with base64 encoded
 #  notebook_username: YWRtaW4K
 #  notebook_password: YWRtaW4xMjMK
 #---

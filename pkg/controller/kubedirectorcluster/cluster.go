@@ -62,6 +62,21 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		}
 	}
 
+	annotations := cr.Annotations
+	if annotations == nil {
+		annotations = make(map[string]string)
+		cr.Annotations = annotations
+
+		if shared.Update(context.TODO(), cr) == nil {
+			shared.LogInfo(
+				reqLogger,
+				cr,
+				shared.EventReasonCluster,
+				"Initialized Annotations and updated context",
+			)
+		}
+	}
+
 	// Set a defer func to write new status and/or finalizers if they change.
 	defer func() {
 		syncMemberNotifies(reqLogger, cr)
@@ -212,12 +227,33 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	// update.
 	if state == clusterMembersChangedUnready || (currentHash != cr.Status.LastConnectionHash) {
 
-		shared.LogInfo(
-			reqLogger,
-			cr,
-			shared.EventReasonCluster,
-			fmt.Sprintf("CONNECTIONS INCREMENTOR VALUE IN IF LOOP IS %s", cr.Annotations[shared.ConnectionsIncrementor]),
-		)
+		if currentHash != cr.Status.LastConnectionHash {
+
+			annotations := cr.Annotations
+			if hashVersion, ok := annotations[shared.HashChangeIncrementor]; ok {
+				newV, _ := strconv.ParseInt(hashVersion, 10, 64)
+				annotations[shared.HashChangeIncrementor] = strconv.FormatInt(newV+int64(1), 10)
+			} else {
+				annotations[shared.HashChangeIncrementor] = "1"
+				shared.LogInfo(
+					reqLogger,
+					cr,
+					shared.EventReasonCluster,
+					"Annotation initialized to 1",
+				)
+			}
+			cr.Annotations = annotations
+
+			if shared.Update(context.TODO(), cr) == nil {
+				shared.LogInfo(
+					reqLogger,
+					cr,
+					shared.EventReasonCluster,
+					"Updated context",
+				)
+			}
+
+		}
 		incremented := *cr.Status.SpecGenerationToProcess + int64(1)
 		cr.Status.SpecGenerationToProcess = &incremented
 		cr.Status.LastConnectionHash = currentHash

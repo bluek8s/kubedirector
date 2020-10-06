@@ -18,6 +18,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -240,42 +241,7 @@ func handleReadyMembers(
 	configmetaGenerator func(string) string,
 ) {
 
-	var connectionsVersion int64
-	var connVersionError error
-
-	if connectionsVersionStr, ok := cr.Annotations[shared.ConnectionsIncrementor]; ok {
-		connectionsVersion, connVersionError = strconv.ParseInt(connectionsVersionStr, 10, 64)
-
-		if connVersionError != nil {
-			shared.LogErrorf(
-				reqLogger,
-				connVersionError,
-				cr,
-				shared.EventReasonMember,
-				"Invalid connectionsIncrementor for role{%s}",
-				role.roleStatus.Name,
-			)
-			return
-
-		}
-
-		shared.LogInfo(
-			reqLogger,
-			cr,
-			shared.EventReasonCluster,
-			fmt.Sprintf("In HandleReadyMembers ConnectionsIncrementor value is: %d", connectionsVersion),
-		)
-
-	} else {
-		connectionsVersion = int64(0)
-
-		shared.LogInfo(
-			reqLogger,
-			cr,
-			shared.EventReasonCluster,
-			fmt.Sprintf("In HandleReadyMembers ConnectionsIncrementor ::::::::NOT GOT::::::: %d", connectionsVersion),
-		)
-	}
+	connectionsVersion := getConnectionVersion(reqLogger, cr, role)
 
 	ready := role.membersByState[memberReady]
 	var wgReady sync.WaitGroup
@@ -319,13 +285,6 @@ func handleReadyMembers(
 			}
 
 			memberVersion := *m.StateDetail.LastConnectionVersion
-
-			shared.LogInfo(
-				reqLogger,
-				cr,
-				shared.EventReasonCluster,
-				fmt.Sprintf("memberVersion for pod %s is %d", m.Pod, memberVersion),
-			)
 
 			if memberVersion < connectionsVersion {
 				shared.LogInfo(
@@ -493,22 +452,9 @@ func handleCreatingMembers(
 				m.StateDetail.ConfigErrorDetail = errorDetail
 			}
 
-			connectionVersion := int64(0)
-			if v, ok := cr.Annotations[shared.ConnectionsIncrementor]; ok {
-				connectionVersion, _ = strconv.ParseInt(v, 10, 64)
-
-			}
+			connectionVersion := getConnectionVersion(reqLogger, cr, role)
 
 			m.StateDetail.LastConnectionVersion = &connectionVersion
-			shared.LogInfof(
-				reqLogger,
-				cr,
-				shared.EventReasonMember,
-				"LastConnection for member{%s} in role{%s} is {%d}",
-				m.Pod,
-				role.roleStatus.Name,
-				m.StateDetail.LastConnectionVersion,
-			)
 
 			// Check to see if we have to inject one or more files for this member
 			if len(role.roleSpec.FileInjections) != 0 {
@@ -1394,4 +1340,66 @@ func fqdnsList(
 		}
 	}
 	return strings.Join(fqdns, ",")
+}
+
+// getConnectionVersion will fetch the HashChangeIncrementor from the cluster Annotations
+// if the Annotation isn't available or, for some reason cannot be parsed to an int64,
+// we get the connection version from members that are in "Ready" state
+func getConnectionVersion(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	role *roleInfo,
+) int64 {
+
+	if connectionsVersionStr, ok := cr.Annotations[shared.HashChangeIncrementor]; ok {
+		connectionsVersion, connVersionError := strconv.ParseInt(connectionsVersionStr, 10, 64)
+
+		if connVersionError != nil {
+			shared.LogErrorf(
+				reqLogger,
+				connVersionError,
+				cr,
+				shared.EventReasonMember,
+				"Invalid connectionsIncrementor for role{%s}",
+				role.roleStatus.Name,
+			)
+			return getDefaultConnectionVersion(reqLogger, cr, role)
+
+		}
+
+		return connectionsVersion
+
+	}
+
+	return getDefaultConnectionVersion(reqLogger, cr, role)
+
+}
+
+// getDefaultConnectionVersion returns a conneciton version by parsing the version of members in "ready" state
+// if no member is in "Ready" state, we return 0.
+// otherwise, we return the smallest LastConnectionVersion from all the members.
+// This is because we are better off running --reconnect when no connection has changed, rather than not running --reconnect when a connection change does happen
+func getDefaultConnectionVersion(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	role *roleInfo,
+) int64 {
+
+	ready := role.membersByState[memberReady]
+
+	if len(ready) == 0 {
+		x := int64(0)
+		return x
+	}
+
+	min := int64(math.MaxInt64)
+	for _, memberStatus := range ready {
+		memberVersion := *memberStatus.StateDetail.LastConnectionVersion
+		if min > memberVersion {
+			min = memberVersion
+		}
+	}
+
+	return min
+
 }

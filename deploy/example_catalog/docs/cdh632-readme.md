@@ -118,3 +118,13 @@ After changing the member count of  the workers and reapplying the cluster,check
 #### FUTURE WORK
 
 Adding Kerberos support
+
+
+#### Docker Image location
+
+* docker.io/bluedata/cdh632multi
+
+#### Docker Pull command
+
+* docker pull docker.io/bluedata/cdh632multi:1.4
+

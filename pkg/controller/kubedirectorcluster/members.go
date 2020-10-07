@@ -291,18 +291,12 @@ func handleReadyMembers(
 					reqLogger,
 					cr,
 					shared.EventReasonCluster,
-					fmt.Sprintf("--reconnect will be called here for pod : %s", m.Pod),
+					fmt.Sprintf("--reconnect will be called for pod : %s", m.Pod),
 				)
 
 				containerID := m.StateDetail.LastConfiguredContainer
 				cmd := fmt.Sprintf(appPrepConfigReconnectCmd, containerID)
 
-				shared.LogInfo(
-					reqLogger,
-					cr,
-					shared.EventReasonCluster,
-					fmt.Sprintf("Executing command %s", cmd),
-				)
 				cmdErr := executor.RunScript(
 					reqLogger,
 					cr,
@@ -1350,10 +1344,8 @@ func getConnectionVersion(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 ) int64 {
-
 	if connectionsVersionStr, ok := cr.Annotations[shared.HashChangeIncrementor]; ok {
 		connectionsVersion, connVersionError := strconv.ParseInt(connectionsVersionStr, 10, 64)
-
 		if connVersionError != nil {
 			shared.LogErrorf(
 				reqLogger,
@@ -1366,16 +1358,12 @@ func getConnectionVersion(
 			return getDefaultConnectionVersion(reqLogger, cr, role)
 
 		}
-
 		return connectionsVersion
-
 	}
-
 	return getDefaultConnectionVersion(reqLogger, cr, role)
-
 }
 
-// getDefaultConnectionVersion returns a conneciton version by parsing the version of members in "ready" state
+// getDefaultConnectionVersion returns a connection version by parsing the version of members in "ready" state
 // if no member is in "Ready" state, we return 0.
 // otherwise, we return the smallest LastConnectionVersion from all the members.
 // This is because we are better off running --reconnect when no connection has changed, rather than not running --reconnect when a connection change does happen
@@ -1384,14 +1372,11 @@ func getDefaultConnectionVersion(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 ) int64 {
-
 	ready := role.membersByState[memberReady]
-
 	if len(ready) == 0 {
 		x := int64(0)
 		return x
 	}
-
 	min := int64(math.MaxInt64)
 	for _, memberStatus := range ready {
 		memberVersion := *memberStatus.StateDetail.LastConnectionVersion
@@ -1399,7 +1384,5 @@ func getDefaultConnectionVersion(
 			min = memberVersion
 		}
 	}
-
 	return min
-
 }

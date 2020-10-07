@@ -34,6 +34,7 @@ type KubeDirectorAppSpec struct {
 	DefaultEventList    *[]string           `json:"defaultEventList,omitempty"`
 	Capabilities        []corev1.Capability `json:"capabilities,omitempty"`
 	SystemdRequired     bool                `json:"systemdRequired,omitempty"`
+	DefaultLogoURL      string              `json:"defaultLogoURL,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

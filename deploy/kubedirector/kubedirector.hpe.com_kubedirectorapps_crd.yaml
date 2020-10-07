@@ -208,4 +208,4 @@ spec:
             defaultLogoURL:
               type: string
               minLength: 1
-              pattern: '^(file|https?)://.+\.tgz$'
+              pattern: '^(file|https|http?)://.+\.(jpeg|png)$'

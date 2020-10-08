@@ -18,6 +18,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -240,6 +241,8 @@ func handleReadyMembers(
 	configmetaGenerator func(string) string,
 ) {
 
+	connectionsVersion := getConnectionVersion(reqLogger, cr, role)
+
 	ready := role.membersByState[memberReady]
 	var wgReady sync.WaitGroup
 	wgReady.Add(len(ready))
@@ -280,10 +283,52 @@ func handleReadyMembers(
 				)
 				return
 			}
+
+			memberVersion := *m.StateDetail.LastConnectionVersion
+
+			if memberVersion < connectionsVersion {
+				shared.LogInfo(
+					reqLogger,
+					cr,
+					shared.EventReasonCluster,
+					fmt.Sprintf("--reconnect will be called for pod : %s", m.Pod),
+				)
+
+				containerID := m.StateDetail.LastConfiguredContainer
+				cmd := fmt.Sprintf(appPrepConfigReconnectCmd, containerID)
+
+				cmdErr := executor.RunScript(
+					reqLogger,
+					cr,
+					cr.Namespace,
+					m.Pod,
+					m.StateDetail.LastConfiguredContainer,
+					executor.AppContainerName,
+					"app config",
+					strings.NewReader(cmd),
+				)
+				if cmdErr != nil {
+					shared.LogErrorf(
+						reqLogger,
+						cmdErr,
+						cr,
+						shared.EventReasonMember,
+						"failed to run startcsript with --reconnect in member{%s} in role{%s}",
+						m.Pod,
+						role.roleStatus.Name,
+					)
+					return
+				}
+				memberVersion = memberVersion + int64(1)
+				m.StateDetail.LastConnectionVersion = &memberVersion
+
+			}
+
 			m.StateDetail.LastConfigDataGeneration = cr.Status.SpecGenerationToProcess
 		}(member)
 	}
 	wgReady.Wait()
+
 }
 
 // handleCreatePendingMembers operates on all members in the role that are
@@ -400,6 +445,10 @@ func handleCreatingMembers(
 				m.State = string(state)
 				m.StateDetail.ConfigErrorDetail = errorDetail
 			}
+
+			connectionVersion := getConnectionVersion(reqLogger, cr, role)
+
+			m.StateDetail.LastConnectionVersion = &connectionVersion
 
 			// Check to see if we have to inject one or more files for this member
 			if len(role.roleSpec.FileInjections) != 0 {
@@ -1285,4 +1334,55 @@ func fqdnsList(
 		}
 	}
 	return strings.Join(fqdns, ",")
+}
+
+// getConnectionVersion will fetch the HashChangeIncrementor from the cluster Annotations
+// if the Annotation isn't available or, for some reason cannot be parsed to an int64,
+// we get the connection version from members that are in "Ready" state
+func getConnectionVersion(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	role *roleInfo,
+) int64 {
+	if connectionsVersionStr, ok := cr.Annotations[shared.HashChangeIncrementor]; ok {
+		connectionsVersion, connVersionError := strconv.ParseInt(connectionsVersionStr, 10, 64)
+		if connVersionError != nil {
+			shared.LogErrorf(
+				reqLogger,
+				connVersionError,
+				cr,
+				shared.EventReasonMember,
+				"Invalid connectionsIncrementor for role{%s}",
+				role.roleStatus.Name,
+			)
+			return getDefaultConnectionVersion(reqLogger, cr, role)
+
+		}
+		return connectionsVersion
+	}
+	return getDefaultConnectionVersion(reqLogger, cr, role)
+}
+
+// getDefaultConnectionVersion returns a connection version by parsing the version of members in "ready" state
+// if no member is in "Ready" state, we return 0.
+// otherwise, we return the smallest LastConnectionVersion from all the members.
+// This is because we are better off running --reconnect when no connection has changed, rather than not running --reconnect when a connection change does happen
+func getDefaultConnectionVersion(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	role *roleInfo,
+) int64 {
+	ready := role.membersByState[memberReady]
+	if len(ready) == 0 {
+		x := int64(0)
+		return x
+	}
+	min := int64(math.MaxInt64)
+	for _, memberStatus := range ready {
+		memberVersion := *memberStatus.StateDetail.LastConnectionVersion
+		if min > memberVersion {
+			min = memberVersion
+		}
+	}
+	return min
 }

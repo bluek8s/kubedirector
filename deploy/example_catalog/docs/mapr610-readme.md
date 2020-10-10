@@ -118,3 +118,10 @@ HttpFS is used to list the content of maprfs. It can be used 2 ways, through bro
 2. Sample curl command to perform similar operation as 1st sample
     
         curl -u mapr -i "http(s)://<link given in the service endpoints:port as per service endpoints>/webhdfs/v1/user?op=LISTSTATUS&user=mapr"
+        
+#### Docker image location
+
+There are 2 images used in the app and the following are the location of images.
+
+docker.io/bluedata/mapr610:1.3
+docker.io/bluedata/mapr610edge:1.3

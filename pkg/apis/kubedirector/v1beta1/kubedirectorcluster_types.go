@@ -183,6 +183,7 @@ type MemberStateDetail struct {
 	LastConfiguredContainer  string              `json:"lastConfiguredContainer,omitempty"`
 	LastKnownContainerState  string              `json:"lastKnownContainerState,omitempty"`
 	PendingNotifyCmds        []*NotificationDesc `json:"pendingNotifyCmds,omitempty"`
+	LastConnectionVersion    *int64              `json:"lastConnectionVersion,omitempty"`
 }
 
 // NotificationDesc contains the info necessary to perform a notify command.

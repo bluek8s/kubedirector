@@ -205,3 +205,7 @@ spec:
                 minLength: 1
             systemdRequired:
               type: boolean
+            logoURL:
+              type: string
+              minLength: 1
+              pattern: '^(file|https|http?)://.+\.(jpeg|png)$'

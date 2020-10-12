@@ -5,7 +5,7 @@
         "name": "jupyter-notebook",
         "labels": {
             "kubedirector.hpe.com/AIML_category": "Notebook"
-        }
+         }
     },
 
     "spec": {
@@ -28,7 +28,7 @@
             "AIML_category": "Notebook"
         },
         "distroID": "hpecp/jupyter-notebook",
-        "version": "1.0",
+        "version": "2.0",
         "configSchemaVersion": 7,
         "services": [{
                 "endpoint": {
@@ -45,8 +45,7 @@
                     "urlScheme": "http",
                     "path": "/",
                     "isDashboard": true,
-                    "port": 8888,
-                    "hasAuthToken": true
+                    "port": 8000
                 },
                 "id": "jupyter-nb",
                 "label": {
@@ -58,9 +57,14 @@
             "packageURL": "file:///opt/configscript/appconfig.tgz"
         },
         "roles": [{
-            "imageRepoTag": "bluedata/kd-notebook:1.0",
+            "imageRepoTag": "bluedata/kd-notebook:1.4",
             "cardinality": "1",
-            "id": "controller"
+            "id": "controller",
+            "persistDirs": [
+              "/opt",
+              "/home",
+              "/usr/local/git/etc/gitconfig"
+            ]
         }]
     }
 }

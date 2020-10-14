@@ -1,15 +1,27 @@
+---
 apiVersion: "kubedirector.hpe.com/v1beta1"
 kind: "KubeDirectorCluster"
 metadata:
   name: "jupyter-notebook"
 spec:
-  app: jupyter-notebook
+  app: "jupyter-notebook"
+  appCatalog: "local"
+#  connections:
+#    secrets:
+#      - "hpecp-ext-auth-secret"
+#      - "hpecp-source-control-secret-d4c2c7467201788666a6347ce339fc41"
+#    clusters:
+#      - "training-cluster"
   roles:
-  - id: controller
-    resources:
-      requests:
-        memory: "4Gi"
-        cpu: "2"
-      limits:
-        memory: "4Gi"
-        cpu: "2"
+    -
+      id: "controller"
+      members: 1
+      resources:
+        requests:
+          memory: "2Gi"
+          cpu: "2"
+        limits:
+          memory: "2Gi"
+          cpu: "2"
+#      podLabels:
+#        hpecp.hpe.com/dtap: "inject"

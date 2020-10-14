@@ -1,31 +1,4 @@
 #apiVersion: v1
-#kind: ConfigMap
-#metadata:
-#  name: jupyterhub
-#  labels:
-#    kubedirector.hpe.com/cmType : jupyterhub_ldap_config
-#data:
-#  jupyterhub_server_address: "16.143.20.82"
-#  jupyterhub_server_port: "389"
-#  jupyterhub_lookup_dn: "True"
-#  jupyterhub_user_search_base: "dc=mip,dc=storage,dc=hpecorp,dc=net"
-#  jupyterhub_user_attribute: "cn"
-#  jupyterhub_bind_user_dn: "cn=admin,dc=mip,dc=storage,dc=hpecorp,dc=net"
-##  #optional parameter. "use ":" as a delimiter to provide multiple templates"
-#  jupyterhub_bind_dn_template: "cn={username},ou=People,dc=mip,dc=storage,dc=hpecorp,dc=net"
-#  jupyterhub_valid_username_regex: "^[a-z][.@a-z0-9_-]*$"
-#---
-#apiVersion: v1
-#kind: Secret
-#metadata:
-#  name: jupyterhubsecret
-#  labels:
-#    kubedirector.hpe.com/secretType : jupyterhub_ldap_secret
-#type: Opaque
-#data:
-#  jupyterhub_bind_user_password: YWRtaW4xMjMK
-#---
-#apiVersion: v1
 #kind: Secret
 #metadata:
 #  name: notebookusersecret
@@ -42,12 +15,10 @@ metadata:
   name: "spark245-instance"
 spec:
   app: spark245
-#  connections:
-#    configmaps:
-#    - jupyterhub
-#    secrets:
+  connections:
+    secrets:
 #    - notebookusersecret
-#    - jupyterhubsecret
+    - hpecp-ext-auth-secret
   roles:
   - id: spark-master
     resources:

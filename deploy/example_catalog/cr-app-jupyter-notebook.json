@@ -57,13 +57,12 @@
             "packageURL": "file:///opt/configscript/appconfig.tgz"
         },
         "roles": [{
-            "imageRepoTag": "bluedata/kd-notebook:1.9",
+            "imageRepoTag": "bluedata/kd-notebook:1.8",
             "cardinality": "1",
             "id": "controller",
             "persistDirs": [
               "/opt",
-              "/home",
-              "/usr/local/git/etc/gitconfig"
+              "/home"
             ]
         }]
     }

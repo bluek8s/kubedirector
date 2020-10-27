@@ -60,3 +60,11 @@ const (
 const (
 	ConnectionsIncrementor = KdDomainBase + "/connUpdateCounter"
 )
+
+// Used as a counter for number of times the hash of connections changes, which is an indicator of the number of times the connections change
+const (
+	HashChangeIncrementor = KdDomainBase + "/hashChangeCounter"
+)
+
+// connUpdateCounter is updated whenever a connection object is updated/created.
+// hashchangrincrementor is updated whenever the hash of connected object changes. It includes connection object CRUD changes.

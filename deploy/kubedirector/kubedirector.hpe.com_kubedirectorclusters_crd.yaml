@@ -264,6 +264,8 @@ spec:
                               type: string
                             lastKnownContainerState:
                               type: string
+                            lastConnectionVersion:
+                              type: integer
                             pendingNotifyCmds:
                               type: array
                               items:

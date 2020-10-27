@@ -14,7 +14,7 @@ project_name := kubedirector
 bin_name := kubedirector
 
 home_dir := /home/kubedirector
-configcli_version := 0.7
+configcli_version := 0.7.1
 
 local_deploy_yaml := deploy/kubedirector/deployment-localbuilt.yaml
 

@@ -57,7 +57,7 @@
             "packageURL": "file:///opt/configscript/appconfig.tgz"
         },
         "roles": [{
-            "imageRepoTag": "bluedata/kd-notebook:1.8",
+            "imageRepoTag": "bluedata/kd-notebook:1.10",
             "cardinality": "1",
             "id": "controller",
             "persistDirs": [

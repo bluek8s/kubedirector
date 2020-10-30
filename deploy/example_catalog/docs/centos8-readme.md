@@ -1,5 +1,5 @@
 #### Docker Image location:
-* docker.io/bluedata/centos8:5.1.1
+* docker.io/bluedata/centos8:latest
 
 ##### Docker Pull Command 
-* docker pull docker.io/bluedata/centos8:5.1.1
+* docker pull docker.io/bluedata/centos8:latest

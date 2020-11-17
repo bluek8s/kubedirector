@@ -9,6 +9,7 @@
     },
 
     "spec": {
+        "logoURL": "https://raw.githubusercontent.com/bluedatainc/solutions/master/MLOps/logos/training-engine-logo.png",
         "categories": [
             "AIML/Training"
         ],

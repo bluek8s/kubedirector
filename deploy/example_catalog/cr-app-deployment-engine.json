@@ -9,6 +9,7 @@
     },
 
     "spec": {
+        "logoURL": "https://raw.githubusercontent.com/bluedatainc/solutions/master/MLOps/logos/deployment-engine-logo.png",
         "distroID": "hpecp/deploymt-engine",
         "version": "1.0",
         "configSchemaVersion": 7,

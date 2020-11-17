@@ -9,6 +9,7 @@
     },
 
     "spec": {
+        "logoURL": "https://raw.githubusercontent.com/bluedatainc/solutions/master/MLOps/logos/tensorlfow-gpu-jupyter.png",
         "systemdRequired": true,
         "config": {
             "roleServices": [

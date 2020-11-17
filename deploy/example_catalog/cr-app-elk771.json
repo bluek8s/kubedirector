@@ -5,6 +5,7 @@
         "name" : "elkstack771"
     },
     "spec" : {
+        "logoURL": "https://raw.githubusercontent.com/bluedatainc/solutions/master/MLOps/logos/elkstack771-logo.png",
         "systemdRequired" : true,
         "defaultPersistDirs" : ["/opt", "/var"],
         "defaultEventList" : ["configure"],

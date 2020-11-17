@@ -93,3 +93,11 @@ More about the ELK cluster can be read [here.](https://www.elastic.co/what-is/el
        }
 
    Similarly we can perform update, delete on the product indice by sending rest request from the console tool in Kibana.
+
+#### Docker Image location
+
+* docker.io/bluedata/elk771
+
+#### Docker Pull command
+
+* docker pull docker.io/bluedata/elk771:1.1

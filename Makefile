@@ -14,7 +14,7 @@ project_name := kubedirector
 bin_name := kubedirector
 
 home_dir := /home/kubedirector
-configcli_version := 0.5
+configcli_version := 0.7.2
 
 local_deploy_yaml := deploy/kubedirector/deployment-localbuilt.yaml
 
@@ -32,7 +32,7 @@ endif
 build_dir := build/_output
 configcli_dest := build/configcli.tgz
 goarch := amd64
-cgo_enabled := 0 
+cgo_enabled := 0
 
 .DEFAULT_GOAL := build
 

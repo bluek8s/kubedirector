@@ -110,9 +110,9 @@
         }
       }
     ],
-    "defaultImageRepoTag": "bluedata/spark245:1.8",
+    "defaultImageRepoTag": "bluedata/spark245:5.2.0.35",
     "defaultConfigPackage": {
-      "packageURL": "file:///opt/configscripts/appconfig-1.8.tgz"
+      "packageURL": "file:///opt/configscripts/appconfig-5.2.0.35.tgz"
     },
     "roles": [
       {
@@ -121,7 +121,7 @@
         "persistDirs": [
           "/usr/lib/spark/spark-2.4.5-bin-hadoop2.7/conf",
           "/home",
-          "/etc"
+          "/etc/hadoop"
         ]
       },
       {
@@ -131,7 +131,7 @@
           "/usr/lib/spark/spark-2.4.5-bin-hadoop2.7/conf",
           "/opt/livy/apache-livy-0.6.0-incubating-bin/conf",
           "/home",
-          "/etc"
+          "/etc/hadoop"
         ]
       },
       {
@@ -140,7 +140,7 @@
         "persistDirs": [
           "/usr/lib/spark/spark-2.4.5-bin-hadoop2.7/conf",
           "/home",
-          "/etc"
+          "/etc/hadoop"
         ]
       },
       {
@@ -149,7 +149,8 @@
         "persistDirs": [
           "/opt/sparkmagic",
           "/home",
-          "/etc"
+          "/etc/hadoop",
+          "/opt/jupyterhub/etc"
         ]
       }
     ]

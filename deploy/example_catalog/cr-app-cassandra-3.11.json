@@ -6,6 +6,7 @@
     },
 
     "spec" : {
+        "logoURL": "https://raw.githubusercontent.com/bluedatainc/solutions/master/MLOps/logos/cassandra-3.11.png",
         "systemdRequired" : true,
         "defaultPersistDirs" : ["/usr", "/opt", "/var", "/data"],
         "defaultEventList" : ["configure", "addnodes", "delnodes"],

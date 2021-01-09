@@ -135,6 +135,7 @@ type Role struct {
 	EnvVars        []corev1.EnvVar             `json:"env,omitempty"`
 	FileInjections []FileInjections            `json:"fileInjections,omitempty"`
 	Secret         *KDSecret                   `json:"secret,omitempty"`
+	BlockStorage   *BlockStorage               `json:"blockStorage,omitempty"`
 }
 
 // StateRollup surfaces whether any per-member statuses have problems that
@@ -153,6 +154,14 @@ type StateRollup struct {
 type ClusterStorage struct {
 	Size         string  `json:"size"`
 	StorageClass *string `json:"storageClassName,omitempty"`
+}
+
+// BlockStorage defines the block storage type and quantity, if any, to be used
+// for mounting a block volume in a role.
+type BlockStorage struct {
+	StorageClass *string `json:"storageClassName,omitempty"`
+	Path         *string `json:"path,omitempty"`
+	Size         *string `json:"size,omitempty"`
 }
 
 // RoleStatus describes the component objects of a virtual cluster role.

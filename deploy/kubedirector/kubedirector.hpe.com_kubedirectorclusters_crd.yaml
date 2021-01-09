@@ -169,6 +169,19 @@ spec:
                       storageClassName:
                         type: string
                         minLength: 1
+                  blockStorage:
+                    type: object
+                    nullable: true
+                    required: [storageClassName, path]
+                    properties:
+                      path:
+                        type: string
+                      storageClassName:
+                        type: string
+                        minLength: 1
+                      size:
+                        type: string
+                        pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                   fileInjections:
                     type: array
                     items:

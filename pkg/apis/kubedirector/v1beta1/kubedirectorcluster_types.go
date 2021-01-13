@@ -160,8 +160,9 @@ type ClusterStorage struct {
 // for mounting a block volume in a role.
 type BlockStorage struct {
 	StorageClass *string `json:"storageClassName,omitempty"`
-	Path         *string `json:"path,omitempty"`
+	Path         *string `json:"pathPrefix,omitempty"`
 	Size         *string `json:"size,omitempty"`
+	NumDevices   *int32  `json:"numDevices,omitempty"`
 }
 
 // RoleStatus describes the component objects of a virtual cluster role.
@@ -180,7 +181,7 @@ type MemberStatus struct {
 	State           string            `json:"state"`
 	StateDetail     MemberStateDetail `json:"stateDetail,omitempty"`
 	NodeID          int64             `json:"nodeID"`
-	BlockDevicePath string            `json:"blockdevicepath,omitempty"`
+	BlockDevicePath []string          `json:"blockdevicepath,omitempty"`
 }
 
 // MemberStateDetail digs into detail about the management of configmeta and

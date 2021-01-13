@@ -17,6 +17,7 @@ package executor
 import (
 	"context"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -267,11 +268,23 @@ func getStatefulset(
 	// check if BlockStorage field is present. If it is, create a volumeDevices field
 	var volumeDevices []v1.VolumeDevice
 	if role.BlockStorage != nil {
-		volumeDevice := v1.VolumeDevice{
-			Name:       blockPvcNamePrefix,
-			DevicePath: *role.BlockStorage.Path,
+
+		numDevices := *role.BlockStorage.NumDevices
+		var i int32
+
+		for i = 0; i < numDevices; i++ {
+
+			deviceID := strconv.FormatInt(int64(i), 10)
+			devicePath := *role.BlockStorage.Path + deviceID
+			deviceName := blockPvcNamePrefix + deviceID
+
+			volumeDevice := v1.VolumeDevice{
+				Name:       deviceName,
+				DevicePath: devicePath,
+			}
+			volumeDevices = append(volumeDevices, volumeDevice)
+
 		}
-		volumeDevices = append(volumeDevices, volumeDevice)
 
 	}
 	imageID, imageErr := catalog.ImageForRole(cr, role.Name)
@@ -475,30 +488,39 @@ func getVolumeClaimTemplate(
 			blockVolSize, _ = resource.ParseQuantity(*role.BlockStorage.Size)
 		}
 
-		blockClaim := v1.PersistentVolumeClaim{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: blockPvcNamePrefix,
-				Annotations: map[string]string{
-					storageClassName: *role.BlockStorage.StorageClass,
-				},
-				OwnerReferences: ownerReferences(cr),
-			},
-			Spec: v1.PersistentVolumeClaimSpec{
-				AccessModes: []v1.PersistentVolumeAccessMode{
-					v1.ReadWriteOnce,
-				},
-				Resources: v1.ResourceRequirements{
-					Requests: v1.ResourceList{
-						v1.ResourceStorage: blockVolSize,
+		numDevices := *role.BlockStorage.NumDevices
+		var i int32
+
+		for i = 0; i < numDevices; i++ {
+
+			deviceID := strconv.FormatInt(int64(i), 10)
+			deviceName := blockPvcNamePrefix + deviceID
+
+			blockClaim := v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: deviceName,
+					Annotations: map[string]string{
+						storageClassName: *role.BlockStorage.StorageClass,
 					},
+					OwnerReferences: ownerReferences(cr),
 				},
-				StorageClassName: role.BlockStorage.StorageClass,
+				Spec: v1.PersistentVolumeClaimSpec{
+					AccessModes: []v1.PersistentVolumeAccessMode{
+						v1.ReadWriteOnce,
+					},
+					Resources: v1.ResourceRequirements{
+						Requests: v1.ResourceList{
+							v1.ResourceStorage: blockVolSize,
+						},
+					},
+					StorageClassName: role.BlockStorage.StorageClass,
 
-				VolumeMode: &block,
-			},
+					VolumeMode: &block,
+				},
+			}
+
+			volTemplate = append(volTemplate, blockClaim)
 		}
-
-		volTemplate = append(volTemplate, blockClaim)
 	}
 	return volTemplate
 }

@@ -65,7 +65,7 @@ type node struct {
 	Domain          string     `json:"domain"`
 	DistroID        string     `json:"distro_id"`
 	DependsOn       refkeysMap `json:"depends_on"`
-	BlockDevicePath string     `json:"block_device_path,omitempty"`
+	BlockDevicePath []string   `json:"block_device_path,omitempty"`
 	// we do not want the field if no block device is attached. Hence omitempty
 }
 

@@ -499,10 +499,17 @@ func addMemberStatuses(
 		}
 		// check if there is block device to be mounted in the member.
 		// assign path value if there is else it'd be an empty string
-		blockDevPath := ""
+		var blockDevPaths []string
 
 		if role.roleSpec.BlockStorage != nil {
-			blockDevPath = *role.roleSpec.BlockStorage.Path
+			numDevices := *role.roleSpec.BlockStorage.NumDevices
+			pathPrefix := *role.roleSpec.BlockStorage.Path
+			var i int32
+			for i = 0; i < numDevices; i++ {
+				blockDevPath := pathPrefix + strconv.FormatInt(int64(i), 10)
+				blockDevPaths = append(blockDevPaths, blockDevPath)
+			}
+
 		}
 
 		// role.roleStatus.Members was created with enough capacity to
@@ -516,7 +523,7 @@ func addMemberStatuses(
 				PVC:             pvcName,
 				NodeID:          atomic.AddInt64(lastNodeID, 1),
 				State:           string(memberCreatePending),
-				BlockDevicePath: blockDevPath,
+				BlockDevicePath: blockDevPaths,
 			},
 		)
 		role.membersByState[memberCreatePending] = append(

@@ -172,10 +172,14 @@ spec:
                   blockStorage:
                     type: object
                     nullable: true
-                    required: [storageClassName, path]
+                    required: [storageClassName, pathPrefix, numDevices]
                     properties:
-                      path:
+                      numDevices:
+                        type: integer
+                        minimum: 1
+                      pathPrefix:
                         type: string
+                        minLength: 1
                       storageClassName:
                         type: string
                         minLength: 1
@@ -259,7 +263,7 @@ spec:
                         pvc:
                           type: string
                         blockdevicepath:
-                          type: string
+                          type: array
                         authToken:
                           type: string  
                         state:

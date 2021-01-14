@@ -70,6 +70,11 @@ const (
 	// nvidiaGpuVisWorkaroundEnvVarValue is the value to be set for the environment variable
 	// named nvidiaGpuVisWorkaroundEnvVarName, in the above work-around
 	nvidiaGpuVisWorkaroundEnvVarValue = "VOID"
+	// defaultBlockDeviceSize is the size for a block volume if it is not specified in the spec
+	defaultBlockDeviceSize = "1Gi"
+	// blockPvcNamePrefix is the prefix name for the volume device that is auto-created by the statefulset.
+	// This is assigned in accordance with the PvcPrefix
+	blockPvcNamePrefix = "b"
 )
 
 // Streams for stdin, stdout, stderr of executed commands

@@ -517,12 +517,12 @@ func addMemberStatuses(
 		role.roleStatus.Members = append(
 			role.roleStatus.Members,
 			kdv1.MemberStatus{
-				Pod:             memberName,
-				Service:         "",
-				PVC:             pvcName,
-				NodeID:          atomic.AddInt64(lastNodeID, 1),
-				State:           string(memberCreatePending),
-				BlockDevicePath: blockDevPaths,
+				Pod:              memberName,
+				Service:          "",
+				PVC:              pvcName,
+				NodeID:           atomic.AddInt64(lastNodeID, 1),
+				State:            string(memberCreatePending),
+				BlockDevicePaths: blockDevPaths,
 			},
 		)
 		role.membersByState[memberCreatePending] = append(

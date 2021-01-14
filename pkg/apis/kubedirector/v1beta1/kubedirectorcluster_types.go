@@ -174,14 +174,14 @@ type RoleStatus struct {
 
 // MemberStatus describes the component objects of a virtual cluster member.
 type MemberStatus struct {
-	Pod             string            `json:"pod"`
-	Service         string            `json:"service"`
-	AuthToken       string            `json:"authToken,omitempty"`
-	PVC             string            `json:"pvc,omitempty"`
-	State           string            `json:"state"`
-	StateDetail     MemberStateDetail `json:"stateDetail,omitempty"`
-	NodeID          int64             `json:"nodeID"`
-	BlockDevicePath []string          `json:"blockDevicePath,omitempty"`
+	Pod              string            `json:"pod"`
+	Service          string            `json:"service"`
+	AuthToken        string            `json:"authToken,omitempty"`
+	PVC              string            `json:"pvc,omitempty"`
+	State            string            `json:"state"`
+	StateDetail      MemberStateDetail `json:"stateDetail,omitempty"`
+	NodeID           int64             `json:"nodeID"`
+	BlockDevicePaths []string          `json:"blockDevicePaths,omitempty"`
 }
 
 // MemberStateDetail digs into detail about the management of configmeta and

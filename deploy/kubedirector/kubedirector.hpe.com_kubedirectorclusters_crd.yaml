@@ -180,7 +180,7 @@ spec:
                       pathPrefix:
                         type: string
                         minLength: 1
-                        pattern: '^/.*$' #start with '/'. 
+                        pattern: '^/.*$'
                       storageClassName:
                         type: string
                         minLength: 1
@@ -263,7 +263,7 @@ spec:
                           type: string
                         pvc:
                           type: string
-                        blockDevicePath:
+                        blockDevicePaths:
                           type: array
                         authToken:
                           type: string  

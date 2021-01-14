@@ -57,16 +57,15 @@ type cluster struct {
 }
 
 type node struct {
-	RoleID          string     `json:"role_id"`
-	NodegroupID     string     `json:"nodegroup_id"`
-	ID              string     `json:"id"`
-	Hostname        string     `json:"hostname"`
-	FQDN            string     `json:"fqdn"`
-	Domain          string     `json:"domain"`
-	DistroID        string     `json:"distro_id"`
-	DependsOn       refkeysMap `json:"depends_on"`
-	BlockDevicePath []string   `json:"block_device_path,omitempty"`
-	// we do not want the field if no block device is attached. Hence omitempty
+	RoleID           string     `json:"role_id"`
+	NodegroupID      string     `json:"nodegroup_id"`
+	ID               string     `json:"id"`
+	Hostname         string     `json:"hostname"`
+	FQDN             string     `json:"fqdn"`
+	Domain           string     `json:"domain"`
+	DistroID         string     `json:"distro_id"`
+	DependsOn        refkeysMap `json:"depends_on"`
+	BlockDevicePaths []string   `json:"block_device_paths,omitempty"`
 }
 
 type role struct {

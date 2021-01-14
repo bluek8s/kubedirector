@@ -270,9 +270,8 @@ func getStatefulset(
 	if role.BlockStorage != nil {
 
 		numDevices := *role.BlockStorage.NumDevices
-		var i int32
 
-		for i = 0; i < numDevices; i++ {
+		for i := int32(0); i < numDevices; i++ {
 
 			deviceID := strconv.FormatInt(int64(i), 10)
 			devicePath := *role.BlockStorage.Path + deviceID
@@ -489,9 +488,8 @@ func getVolumeClaimTemplate(
 		}
 
 		numDevices := *role.BlockStorage.NumDevices
-		var i int32
 
-		for i = 0; i < numDevices; i++ {
+		for i := int32(0); i < numDevices; i++ {
 
 			deviceID := strconv.FormatInt(int64(i), 10)
 			deviceName := blockPvcNamePrefix + deviceID

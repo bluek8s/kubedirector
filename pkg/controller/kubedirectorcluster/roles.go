@@ -504,8 +504,7 @@ func addMemberStatuses(
 		if role.roleSpec.BlockStorage != nil {
 			numDevices := *role.roleSpec.BlockStorage.NumDevices
 			pathPrefix := *role.roleSpec.BlockStorage.Path
-			var i int32
-			for i = 0; i < numDevices; i++ {
+			for i := int32(0); i < numDevices; i++ {
 				blockDevPath := pathPrefix + strconv.FormatInt(int64(i), 10)
 				blockDevPaths = append(blockDevPaths, blockDevPath)
 			}

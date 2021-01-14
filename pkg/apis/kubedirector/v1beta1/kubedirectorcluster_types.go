@@ -181,7 +181,7 @@ type MemberStatus struct {
 	State           string            `json:"state"`
 	StateDetail     MemberStateDetail `json:"stateDetail,omitempty"`
 	NodeID          int64             `json:"nodeID"`
-	BlockDevicePath []string          `json:"blockdevicepath,omitempty"`
+	BlockDevicePath []string          `json:"blockDevicePath,omitempty"`
 }
 
 // MemberStateDetail digs into detail about the management of configmeta and

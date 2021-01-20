@@ -1,0 +1,232 @@
+{
+  "apiVersion": "kubedirector.hpe.com/v1beta1",
+  "kind": "KubeDirectorApp",
+  "metadata": {
+    "name": "datafabric610"
+  },
+  "spec": {
+    "systemdRequired": true,
+    "defaultPersistDirs": [
+      "/opt/mapr"
+    ],
+    "config": {
+      "configMeta": {
+        "storage": "60",
+        "secure": "true"
+      },
+      "roleServices": [
+        {
+          "roleID": "control-system",
+          "serviceIDs": [
+            "warden",
+	    "zookeeper",
+            "yarn-hs",
+            "mapr-cs"
+          ]
+        },
+        {
+          "roleID": "cldb",
+          "serviceIDs": [
+            "warden",
+	    "zookeeper",
+            "cldb"
+          ]
+        },
+        {
+        "roleID": "oozie",
+        "serviceIDs": ["warden", "oozie", "mysql"]
+      },
+        {
+          "roleID": "edge",
+          "serviceIDs": [
+            "mapr-client",
+            "ssh"
+          ]
+        },
+        {
+          "roleID": "nodemanager",
+          "serviceIDs": [
+            "warden",
+            "yarn-nm"
+          ]
+        },
+        {
+          "roleID": "resource-manager",
+          "serviceIDs": [
+            "warden",
+	    "zookeeper",
+            "yarn-rm"
+          ]
+        }
+      ],
+      "selectedRoles": [
+        "control-system",
+        "resource-manager",
+        "cldb",
+        "oozie",
+        "edge",
+        "nodemanager"
+      ]
+    },
+    "label": {
+      "name": "Ezmeral Datafabric 610",
+      "description": "Ezmeral Datafabric 610 with YARN and Oozie"
+    },
+    "distroID": "ezmeral/datafabric610",
+    "version": "1.0",
+    "configSchemaVersion": 7,
+    "services": [
+      {
+        "id": "mapr-cs",
+        "label": {
+          "name": "MapR Control System"
+        },
+        "endpoint": {
+          "urlScheme": "https",
+          "path": "/app/mcs",
+          "port": 8443,
+          "isDashboard": true
+        }
+      },
+      {
+        "id": "yarn-rm",
+        "label": {
+          "name": "ResourceManager"
+        },
+        "endpoint": {
+          "urlScheme": "https",
+          "path": "/cluster",
+          "port": 8090,
+          "isDashboard": true
+        }
+      },
+      {
+        "id": "yarn-nm",
+        "label": {
+          "name": "NodeManager"
+        },
+        "endpoint": {
+          "urlScheme": "https",
+          "path": "/node",
+          "port": 8044,
+          "isDashboard": true
+        }
+      },
+      {
+        "id": "yarn-hs",
+        "label": {
+          "name": "YARN HistoryServer"
+        },
+        "endpoint": {
+          "urlScheme": "https",
+          "path": "/jobhistory",
+          "port": 19890,
+          "isDashboard": true
+        }
+      },
+      {
+        "id": "cldb",
+        "label": {
+          "name": "CLDB Web Port"
+        },
+        "endpoint": {
+          "port": 7443,
+          "isDashboard": false
+        }
+      },
+      {
+        "id": "mapr-client",
+        "label": {
+          "name": "MapR Client."
+        }
+      },
+      {
+        "id": "zookeeper",
+        "label": {
+          "name": "Zookeeper Server"
+        },
+        "endpoint": {
+          "port": 5181,
+          "isDashboard": false
+        }
+      },
+      {
+      "id": "oozie",
+      "label": {
+        "name": "OOZIE"
+      },
+      "endpoint": {
+        "urlScheme": "https",
+        "path": "/oozie",
+        "port": 11443,
+        "isDashboard": true
+      }
+    },
+      {
+        "id": "mysql",
+        "label": {
+          "name": "MySQL"
+        }
+      },
+      {
+        "id": "warden",
+        "label": {
+          "name": "Warden"
+        }
+      },
+      {
+        "id": "fileserver",
+        "label": {
+          "name": "FileServer"
+        }
+      },
+      {
+        "id": "ssh",
+        "label": {
+          "name": "ssh"
+        },
+        "endpoint": {
+          "port": 22,
+          "isDashboard": false
+        }
+      },
+      {
+        "id": "ticketserver",
+        "label": {
+          "name": "Simple Http server to distribute MapR tickets"
+        }
+      }
+    ],
+    "defaultImageRepoTag": "bluedata/datafabric610:1.0",
+    "defaultConfigPackage": {
+      "packageURL": "file:///opt/configscripts/appconfig-1.0.tgz"
+    },
+    "roles": [
+      {
+        "id": "control-system",
+        "cardinality": "1"
+      },
+      {
+        "id": "cldb",
+        "cardinality": "1"
+      },
+      {
+        "id": "oozie",
+        "cardinality": "0+"
+      },
+      {
+        "id": "edge",
+        "imageRepoTag": "bluedata/datafabric610edge:1.0",
+        "cardinality": "0+"
+      },
+      {
+        "id": "nodemanager",
+        "cardinality": "1+"
+      },
+      {
+        "id": "resource-manager",
+        "cardinality": "1+"
+      }
+    ]
+  }
+}

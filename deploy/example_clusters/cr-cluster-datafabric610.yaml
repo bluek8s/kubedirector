@@ -1,0 +1,153 @@
+# Admin user will have all the permissions for performing every activity on the cluster and hence is an important user of the cluster
+# if admin user details is not provided through details then a default user "mapr" is created without password".
+# This admin user can be AD/LDAP user else a local user of same name gets created.
+# The default user "mapr" or local user that gets created will not have any password set and so will not be able launch UI's with these username. To make UI
+# accessible for these users, password has to be set for these users by logging to each pod. If AD/LDAP user is used then AD/LDAP user's password can be used to
+# launch UI
+# Following Secret is a template for providing admin user details to pod
+#apiVersion: v1
+#kind: Secret
+#metadata:
+#  name: users-data
+#  labels:
+#    kubedirector.hpe.com/secretType : users-data
+#data:
+#  admin_user: <admin username in base64 encoding>
+---
+#------------------------------------------------------------------------------------------------------------------------------------
+# This is the main section of the kubedirector cluster. In this section we define different roles that should be created in the cluster
+# We also define the resources to be associated with each roles.
+# metadata and spec section of kubedirector are standard kubernetes section
+# under spec, kubedirector provides connections and roles section
+# connections section is used to pass the configmaps and secrets data to the pod
+# roles section defines the different roles that should be implemented in the app.
+# each roles section will have an id, members, resources and podLabels to define specification of the roles.
+# id should match with roles in app definition (JSON file),
+# members should match the cardinality in the JSON file,
+# resources has fields, requests and limits, requests is the default allocation of resources to the pod and limits says how much the resources can be stretched. Here the resources means memory and cpu
+# In the latest kubedirectory each roles has additional field, blockStorage, this is used for providing raw disks (volumeDevice) to the pods
+# Before using the blockStorage field, the respective storage class and PV's should be applied.
+apiVersion: "kubedirector.hpe.com/v1beta1"
+kind: "KubeDirectorCluster"
+metadata:
+  name: "datafabric610"
+spec:
+  app: datafabric610
+# connections:
+#   # attaching secrets data to the cluster
+#   secrets:
+#     - users-data
+  # Defining the roles to be implemented
+  # for this current app, the different roles which are defined in the JSON file supplied with the app are
+  # control-system, cldb, resource-manager, nodemanager and edge
+  # control-system hosts the MapR Control System,Zookeeper and YARN History Server, current cardinality/member count is fixed to 1
+  # cldb implements the CLDB, Zookeeper and fileserver facility of the MapR Eco System.
+  # resource-manager implements YARN resource-manager and Zookeeper more than 1 member creates a HA for it but Zookeeper will run only on first resource-manager
+  # nodemanager implements YARN nodemanager and it can be more than 1 member
+  # oozie node runs Oozie services.
+  # edge is a client service pod and can be 0 or more of it
+
+  # NOTE: The memory and cpu values are for reference only, higher than the given values is recommended
+  # CLDB and Nodemanager pods compulsorily requires disks either raw disk (block storage) or flat-file-storage. So if raw disks(block storage) are not provided then by default flat-file-storage will be used
+  roles:
+  - id: control-system
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"
+  - id: cldb
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "4"
+      limits:
+        memory: "4Gi"
+        cpu: "4"
+    # Following tags create a raw disk storage on the pod
+    # pathPrefix is the location of device file and name prefix and numDevices tells number of instances of these devices
+    # if only 1 device is mentioned, then we will find /dev/xdb0 in the pod, if more than 1 device was mentioned
+    # then name of the device on pod will be /dev/xdb1, /dev/xdb2 and so on. The name xdb is just a name given, it can be
+    # any name and that name will act as the prefix for the device file.
+    #blockStorage:
+    #  pathPrefix: "/dev/xdb"
+    #  storageClassName: "kd-block-storage"
+    #  numDevices: 1
+  - id: resource-manager
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "4Gi"
+        cpu: "2"
+  - id: nodemanager
+    members: 1
+    resources:
+      requests:
+        memory: "8Gi"
+        cpu: "4"
+      limits:
+        memory: "16Gi"
+        cpu: "4"
+    # Following tags create a raw disk storage on the pod
+    #blockStorage:
+    #  pathPrefix: "/dev/xdb"
+    #  storageClassName: "kd-block-storage"
+    #  numDevices: 1
+  - id: edge
+    members: 0
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "4Gi"
+        cpu: "2"
+  - id: oozie
+      members: 1
+      resources:
+        requests:
+          memory: "4Gi"
+          cpu: "2"
+        limits:
+          memory: "4Gi"
+          cpu: "2"
+---
+# Following is a template for applying storage class
+#apiVersion: storage.k8s.io/v1
+#kind: StorageClass
+#metadata:
+#  name: kd-block-storage
+#provisioner: kubernetes.io/no-provisioner
+#volumeBindingMode: Immediate
+#reclaimPolicy: Delete
+---
+# Template for creating PV for block storage
+#apiVersion: v1
+#kind: PersistentVolume
+#metadata:
+#  name: cldb1
+#spec:
+#  accessModes:
+#  - <access modes supported by kubernetes>
+#  capacity:
+#    storage: <size of the raw disk>
+#  local:
+#    path: <raw disk path>
+#  nodeAffinity:
+#    required:
+#      nodeSelectorTerms:
+#      - matchExpressions:
+#        - key: kubernetes.io/hostname
+#          operator: In
+#          values:
+#          - <hostname of the node having the disk>
+#  persistentVolumeReclaimPolicy: <PVC policy supported by kubernetes>
+#  storageClassName: kd-block-storage
+#  volumeMode: Block

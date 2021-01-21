@@ -5,6 +5,7 @@
     "name": "spark245"
   },
   "spec": {
+    "logoURL": "https://raw.githubusercontent.com/bluedatainc/solutions/master/MLOps/logos/spark245-logo.png",
     "systemdRequired": true,
     "config": {
       "roleServices": [

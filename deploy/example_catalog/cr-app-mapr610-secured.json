@@ -5,6 +5,7 @@
     "name": "mapr610-secure"
   },
   "spec": {
+    "logoURL": "https://raw.githubusercontent.com/bluedatainc/solutions/master/MLOps/logos/mapr610-secure.png",
     "systemdRequired": true,
     "defaultPersistDirs": [
       "/opt/mapr"

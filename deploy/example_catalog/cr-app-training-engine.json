@@ -9,6 +9,7 @@
     },
 
     "spec": {
+        "logoURL": "https://raw.githubusercontent.com/bluedatainc/solutions/master/MLOps/logos/training-engine-logo.png",
         "categories": [
             "AIML/Training"
         ],
@@ -57,7 +58,7 @@
                     "packageURL": "file:///opt/configscript/flask_configure.tgz"
                 },
                 "id": "LoadBalancer",
-                "imageRepoTag": "bluedata/kd-api-serving:1.0"
+                "imageRepoTag": "bluedata/kd-api-serving:1.2"
             },
             {
                 "cardinality": "1+",
@@ -65,7 +66,7 @@
                     "packageURL": "file:///opt/configscript/flask_configure.tgz"
                 },
                 "id": "RESTServer",
-                "imageRepoTag": "bluedata/kd-api-serving:1.0"
+                "imageRepoTag": "bluedata/kd-api-serving:1.2"
             },
             {
                 "cardinality": "1",
@@ -73,7 +74,7 @@
                     "packageURL": "file:///opt/configscript/appconfig.tgz"
                 },
                 "id": "controller",
-                "imageRepoTag": "bluedata/kd-training:1.0"
+                "imageRepoTag": "bluedata/kd-training:1.3"
             }
         ],
         "services": [{
@@ -133,7 +134,7 @@
                 "endpoint": {
                     "isDashboard": true,
                     "path": "/",
-                    "port": 8888,
+                    "port": 8000,
                     "urlScheme": "http",
                     "hasAuthToken": true
                 },

@@ -6,6 +6,7 @@
     },
 
     "spec" : {
+        "logoURL": "https://raw.githubusercontent.com/bluedatainc/solutions/master/MLOps/logos/ubuntu18x-logo.png",
         "systemdRequired": true,
         "defaultPersistDirs" : ["/home"],
         "config": {

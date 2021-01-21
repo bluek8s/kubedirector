@@ -9,6 +9,7 @@
     },
 
     "spec": {
+        "logoURL": "https://raw.githubusercontent.com/bluedatainc/solutions/master/MLOps/logos/deployment-engine-logo.png",
         "distroID": "hpecp/deploymt-engine",
         "version": "1.0",
         "configSchemaVersion": 7,
@@ -79,7 +80,7 @@
 
         ],
 
-        "defaultImageRepoTag": "bluedata/kd-api-serving:1.0",
+        "defaultImageRepoTag": "bluedata/kd-api-serving:1.2",
         "defaultConfigPackage": {
             "packageURL": "file:///opt/configscript/flask_configure.tgz"
         },

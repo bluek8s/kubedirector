@@ -66,15 +66,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	if annotations == nil {
 		annotations = make(map[string]string)
 		cr.Annotations = annotations
-
-		if shared.Update(context.TODO(), cr) == nil {
-			shared.LogInfo(
-				reqLogger,
-				cr,
-				shared.EventReasonCluster,
-				"Initialized Annotations and updated context",
-			)
-		}
 	}
 
 	// Set a defer func to write new status and/or finalizers if they change.

@@ -79,7 +79,7 @@
       {
         "id": "mapr-cs",
         "label": {
-          "name": "MapR Control System"
+          "name": "Datafabric Control System"
         },
         "endpoint": {
           "urlScheme": "https",
@@ -137,7 +137,7 @@
       {
         "id": "mapr-client",
         "label": {
-          "name": "MapR Client."
+          "name": "Datafabric Client."
         }
       },
       {
@@ -193,7 +193,7 @@
       {
         "id": "ticketserver",
         "label": {
-          "name": "Simple Http server to distribute MapR tickets"
+          "name": "Simple Http server to distribute Datafabric tickets"
         }
       }
     ],

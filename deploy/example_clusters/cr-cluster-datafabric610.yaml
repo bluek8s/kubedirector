@@ -40,8 +40,8 @@ spec:
   # Defining the roles to be implemented
   # for this current app, the different roles which are defined in the JSON file supplied with the app are
   # control-system, cldb, resource-manager, nodemanager and edge
-  # control-system hosts the MapR Control System,Zookeeper and YARN History Server, current cardinality/member count is fixed to 1
-  # cldb implements the CLDB, Zookeeper and fileserver facility of the MapR Eco System.
+  # control-system hosts the Datafabric Control System,Zookeeper and YARN History Server, current cardinality/member count is fixed to 1
+  # cldb implements the CLDB, Zookeeper and fileserver facility of the Datafabric Eco System.
   # resource-manager implements YARN resource-manager and Zookeeper more than 1 member creates a HA for it but Zookeeper will run only on first resource-manager
   # nodemanager implements YARN nodemanager and it can be more than 1 member
   # oozie node runs Oozie services.

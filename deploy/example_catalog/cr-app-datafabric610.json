@@ -19,7 +19,7 @@
           "roleID": "control-system",
           "serviceIDs": [
             "warden",
-	    "zookeeper",
+            "zookeeper",
             "yarn-hs",
             "mapr-cs"
           ]
@@ -28,14 +28,18 @@
           "roleID": "cldb",
           "serviceIDs": [
             "warden",
-	    "zookeeper",
+            "zookeeper",
             "cldb"
           ]
         },
         {
-        "roleID": "oozie",
-        "serviceIDs": ["warden", "oozie", "mysql"]
-      },
+          "roleID": "oozie",
+          "serviceIDs": [
+            "warden",
+            "oozie",
+            "mysql"
+          ]
+        },
         {
           "roleID": "edge",
           "serviceIDs": [
@@ -54,7 +58,7 @@
           "roleID": "resource-manager",
           "serviceIDs": [
             "warden",
-	    "zookeeper",
+            "zookeeper",
             "yarn-rm"
           ]
         }
@@ -151,17 +155,17 @@
         }
       },
       {
-      "id": "oozie",
-      "label": {
-        "name": "OOZIE"
+        "id": "oozie",
+        "label": {
+          "name": "OOZIE"
+        },
+        "endpoint": {
+          "urlScheme": "https",
+          "path": "/oozie",
+          "port": 11443,
+          "isDashboard": true
+        }
       },
-      "endpoint": {
-        "urlScheme": "https",
-        "path": "/oozie",
-        "port": 11443,
-        "isDashboard": true
-      }
-    },
       {
         "id": "mysql",
         "label": {

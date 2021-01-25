@@ -2,7 +2,7 @@
   "apiVersion": "kubedirector.hpe.com/v1beta1",
   "kind": "KubeDirectorApp",
   "metadata": {
-    "name": "datafabric610"
+    "name": "dfcompute610"
   },
   "spec": {
     "systemdRequired": true,
@@ -73,17 +73,17 @@
       ]
     },
     "label": {
-      "name": "Ezmeral Datafabric 610",
-      "description": "Ezmeral Datafabric 610 with YARN and Oozie"
+      "name": "Ezmeral Datafabric Compute 610",
+      "description": "Ezmeral Datafabric Compute 610 with YARN and Oozie"
     },
-    "distroID": "ezmeral/datafabric610",
+    "distroID": "ezmeral/dfcompute610",
     "version": "1.0",
     "configSchemaVersion": 7,
     "services": [
       {
         "id": "mapr-cs",
         "label": {
-          "name": "Datafabric Control System"
+          "name": "Datafabric Compute Control System"
         },
         "endpoint": {
           "urlScheme": "https",
@@ -141,7 +141,7 @@
       {
         "id": "mapr-client",
         "label": {
-          "name": "Datafabric Client."
+          "name": "Datafabric Compute Client."
         }
       },
       {
@@ -197,7 +197,7 @@
       {
         "id": "ticketserver",
         "label": {
-          "name": "Simple Http server to distribute Datafabric tickets"
+          "name": "Simple Http server to distribute Datafabric Compute tickets"
         }
       }
     ],

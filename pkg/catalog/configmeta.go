@@ -467,15 +467,17 @@ func ConfigmetaGenerator(
 	for roleName, members := range membersForRole {
 		for _, member := range members {
 			memberName := member.Pod
+
 			perNodeConfig[memberName] = &node{
-				RoleID:      roleName,
-				NodegroupID: "1",
-				ID:          strconv.FormatInt(member.NodeID, 10),
-				Hostname:    memberName + "." + domain,
-				FQDN:        memberName + "." + domain,
-				Domain:      domain,
-				DistroID:    appCR.Spec.DistroID,
-				DependsOn:   make(refkeysMap), // currently, always empty
+				RoleID:           roleName,
+				NodegroupID:      "1",
+				ID:               strconv.FormatInt(member.NodeID, 10),
+				Hostname:         memberName + "." + domain,
+				FQDN:             memberName + "." + domain,
+				Domain:           domain,
+				DistroID:         appCR.Spec.DistroID,
+				DependsOn:        make(refkeysMap), // currently, always empty
+				BlockDevicePaths: member.BlockDevicePaths,
 			}
 		}
 	}

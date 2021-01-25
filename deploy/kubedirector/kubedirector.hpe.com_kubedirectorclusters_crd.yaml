@@ -169,6 +169,24 @@ spec:
                       storageClassName:
                         type: string
                         minLength: 1
+                  blockStorage:
+                    type: object
+                    nullable: true
+                    required: [storageClassName, pathPrefix, numDevices]
+                    properties:
+                      numDevices:
+                        type: integer
+                        minimum: 1
+                      pathPrefix:
+                        type: string
+                        minLength: 1
+                        pattern: '^/.*$'
+                      storageClassName:
+                        type: string
+                        minLength: 1
+                      size:
+                        type: string
+                        pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                   fileInjections:
                     type: array
                     items:
@@ -245,6 +263,8 @@ spec:
                           type: string
                         pvc:
                           type: string
+                        blockDevicePaths:
+                          type: array
                         authToken:
                           type: string  
                         state:

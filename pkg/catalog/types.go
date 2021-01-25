@@ -57,14 +57,15 @@ type cluster struct {
 }
 
 type node struct {
-	RoleID      string     `json:"role_id"`
-	NodegroupID string     `json:"nodegroup_id"`
-	ID          string     `json:"id"`
-	Hostname    string     `json:"hostname"`
-	FQDN        string     `json:"fqdn"`
-	Domain      string     `json:"domain"`
-	DistroID    string     `json:"distro_id"`
-	DependsOn   refkeysMap `json:"depends_on"`
+	RoleID           string     `json:"role_id"`
+	NodegroupID      string     `json:"nodegroup_id"`
+	ID               string     `json:"id"`
+	Hostname         string     `json:"hostname"`
+	FQDN             string     `json:"fqdn"`
+	Domain           string     `json:"domain"`
+	DistroID         string     `json:"distro_id"`
+	DependsOn        refkeysMap `json:"depends_on"`
+	BlockDevicePaths []string   `json:"block_device_paths,omitempty"`
 }
 
 type role struct {

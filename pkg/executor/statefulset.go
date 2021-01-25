@@ -17,6 +17,7 @@ package executor
 import (
 	"context"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -264,6 +265,27 @@ func getStatefulset(
 		return nil, volumesErr
 	}
 
+	// check if BlockStorage field is present. If it is, create a volumeDevices field
+	var volumeDevices []v1.VolumeDevice
+	if role.BlockStorage != nil {
+
+		numDevices := *role.BlockStorage.NumDevices
+
+		for i := int32(0); i < numDevices; i++ {
+
+			deviceID := strconv.FormatInt(int64(i), 10)
+			devicePath := *role.BlockStorage.Path + deviceID
+			deviceName := blockPvcNamePrefix + deviceID
+
+			volumeDevice := v1.VolumeDevice{
+				Name:       deviceName,
+				DevicePath: devicePath,
+			}
+			volumeDevices = append(volumeDevices, volumeDevice)
+
+		}
+
+	}
 	imageID, imageErr := catalog.ImageForRole(cr, role.Name)
 	if imageErr != nil {
 		return nil, imageErr
@@ -282,6 +304,8 @@ func getStatefulset(
 	} else if namingScheme == v1beta1.UID {
 		objectName = statefulSetNamePrefix
 	}
+
+	vct := getVolumeClaimTemplate(cr, role, PvcNamePrefix)
 
 	return &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
@@ -324,6 +348,7 @@ func getStatefulset(
 							Lifecycle:       &v1.Lifecycle{PostStart: &startupScript},
 							Ports:           endpointPorts,
 							VolumeMounts:    volumeMounts,
+							VolumeDevices:   volumeDevices,
 							SecurityContext: securityContext,
 							Env:             chkModifyEnvVars(role),
 						},
@@ -331,7 +356,7 @@ func getStatefulset(
 					Volumes: volumes,
 				},
 			},
-			VolumeClaimTemplates: getVolumeClaimTemplate(cr, role, PvcNamePrefix),
+			VolumeClaimTemplates: vct,
 		},
 	}, nil
 }
@@ -417,22 +442,20 @@ func getInitContainer(
 	return
 }
 
-// getVolumeClaimTemplate prepares the PVC template to be used with the
+// getVolumeClaimTemplate prepares the PVC templates to be used with the
 // given role (for acquiring shared persistent storage). The result will be
-// empty if the role does not use shared persistent storage.
+// empty if the role does not use shared persistent storage. If the spec contains
+// Storage field, a volume Volume Claim with Filesystem volume mode is created. If spec contains a BlockStorage field,
+// BlockStorage field, a block Claim with Block volume mode is created.
 func getVolumeClaimTemplate(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
 	pvcNamePrefix string,
 ) (volTemplate []v1.PersistentVolumeClaim) {
 
-	if role.Storage == nil {
-		return
-	}
-
-	volSize, _ := resource.ParseQuantity(role.Storage.Size)
-	volTemplate = []v1.PersistentVolumeClaim{
-		v1.PersistentVolumeClaim{
+	if role.Storage != nil {
+		volSize, _ := resource.ParseQuantity(role.Storage.Size)
+		volClaim := v1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: pvcNamePrefix,
 				Annotations: map[string]string{
@@ -450,9 +473,54 @@ func getVolumeClaimTemplate(
 					},
 				},
 			},
-		},
+		}
+		volTemplate = append(volTemplate, volClaim)
 	}
-	return
+
+	if role.BlockStorage != nil {
+
+		block := v1.PersistentVolumeBlock
+
+		blockVolSize, _ := resource.ParseQuantity(defaultBlockDeviceSize)
+
+		if role.BlockStorage.Size != nil {
+			blockVolSize, _ = resource.ParseQuantity(*role.BlockStorage.Size)
+		}
+
+		numDevices := *role.BlockStorage.NumDevices
+
+		for i := int32(0); i < numDevices; i++ {
+
+			deviceID := strconv.FormatInt(int64(i), 10)
+			deviceName := blockPvcNamePrefix + deviceID
+
+			blockClaim := v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: deviceName,
+					Annotations: map[string]string{
+						storageClassName: *role.BlockStorage.StorageClass,
+					},
+					OwnerReferences: ownerReferences(cr),
+				},
+				Spec: v1.PersistentVolumeClaimSpec{
+					AccessModes: []v1.PersistentVolumeAccessMode{
+						v1.ReadWriteOnce,
+					},
+					Resources: v1.ResourceRequirements{
+						Requests: v1.ResourceList{
+							v1.ResourceStorage: blockVolSize,
+						},
+					},
+					StorageClassName: role.BlockStorage.StorageClass,
+
+					VolumeMode: &block,
+				},
+			}
+
+			volTemplate = append(volTemplate, blockClaim)
+		}
+	}
+	return volTemplate
 }
 
 // getStartupScript composes the startup script used for each app container.

@@ -497,17 +497,32 @@ func addMemberStatuses(
 		} else {
 			pvcName = executor.PvcNamePrefix + "-" + memberName
 		}
+		// check if there is block device to be mounted in the member.
+		// assign path value if there is else it'd be an empty string
+		var blockDevPaths []string
+
+		if role.roleSpec.BlockStorage != nil {
+			numDevices := *role.roleSpec.BlockStorage.NumDevices
+			pathPrefix := *role.roleSpec.BlockStorage.Path
+			for i := int32(0); i < numDevices; i++ {
+				blockDevPath := pathPrefix + strconv.FormatInt(int64(i), 10)
+				blockDevPaths = append(blockDevPaths, blockDevPath)
+			}
+
+		}
+
 		// role.roleStatus.Members was created with enough capacity to
 		// avoid realloc, so we can safely grow it w/o disturbing our
 		// pointers to its elements.
 		role.roleStatus.Members = append(
 			role.roleStatus.Members,
 			kdv1.MemberStatus{
-				Pod:     memberName,
-				Service: "",
-				PVC:     pvcName,
-				NodeID:  atomic.AddInt64(lastNodeID, 1),
-				State:   string(memberCreatePending),
+				Pod:              memberName,
+				Service:          "",
+				PVC:              pvcName,
+				NodeID:           atomic.AddInt64(lastNodeID, 1),
+				State:            string(memberCreatePending),
+				BlockDevicePaths: blockDevPaths,
 			},
 		)
 		role.membersByState[memberCreatePending] = append(

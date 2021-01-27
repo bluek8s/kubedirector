@@ -72,6 +72,21 @@ To run sample YARN job, login to "edge" role either through "ssh" or through "ku
 `hadoop jar /opt/mapr/hadoop/hadoop-2.7.0/share/hadoop/mapreduce/hadoop-mapreduce-client-jobclient-2.7.0-mapr-1808-tests.jar TestDFSIO -write -nrFiles 2 -size 10`
 
 In the above code i am running TestDFSIO write test. I am creating 2 file of size 10.
+
+
+#### Establishing Cross-Cluster trust with HPE Ezmeral Datafabric
+Cross Cluster trust requests ssl_truststore data and mapr-clusters.conf data of HPE Ezmeral Datafabric. These data are passed to the pod through kubernetes secret. The data should be base64 encoded. Name of the key for ssl_truststore is truststore and name of the key for mapr-clusters.conf is conf. A sample template of this is given below
+<br/><br/>
+apiVersion: v1 <br/>
+kind: Secret<br/>
+metadata:<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: ssl-remote<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;labels:<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;kubedirector.hpe.com/secretType : ssl-remote<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data:<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;truststore: <remote MapR's ssl_truststore in base64 -w0 encoding><br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conf: <remote MapR's mapr-clusters.conf in base64 encoding><br/>
+---<br/>
        
 #### Docker image location
 

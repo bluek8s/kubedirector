@@ -14,6 +14,17 @@
 #data:
 #  admin_user: <admin username in base64 encoding>
 ---
+# Following Secret is a template
+#apiVersion: v1
+#kind: Secret
+#metadata:
+#  name: ssl-remote
+#  labels:
+#    kubedirector.hpe.com/secretType : ssl-remote
+#data:
+#  truststore: <remote MapR's ssl_truststore in base64 -w0 encoding>
+#  conf: <remote MapR's mapr-clusters.conf in base64 encoding>
+# ---
 #------------------------------------------------------------------------------------------------------------------------------------
 # This is the main section of the kubedirector cluster. In this section we define different roles that should be created in the cluster
 # We also define the resources to be associated with each roles.

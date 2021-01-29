@@ -14,6 +14,15 @@
 #data:
 #  admin_user: <admin username in base64 encoding>
 ---
+#------------------------------------------------------------------------------------------------------------------------------------
+# Following is the example yaml for Secret kind
+# The data section has few standard fields which are used for some predefined actions, following are the predefined fields
+# mapr, truststore, conf
+# mapr field is used to change the password for mapr user, password should be base64 encoded
+# truststore field is used to send the base mapr's ssl_truststore file content encoded with base64 -w0
+# conf field is used to send the mapr-clusters.conf content of base mapr, even this data should be base64 encoded
+# truststore and conf fields are mutually dependent fields hence when provided both has to be given
+
 # Following Secret is a template
 #apiVersion: v1
 #kind: Secret

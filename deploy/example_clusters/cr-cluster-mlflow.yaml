@@ -3,15 +3,13 @@ apiVersion: "kubedirector.hpe.com/v1beta1"
 kind: "KubeDirectorCluster"
 metadata:
   name: "mlflow-instance"
-  namespace: "aiml"
-  labels:
-    description: ""
 spec:
   app: "mlflow"
   appCatalog: "local"
   connections:
     secrets:
-      - mlflow-sc
+## Attach the name of the mlflow secret here
+#      - mlflow-sc
   roles:
     -
       id: "controller"

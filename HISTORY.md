@@ -1,13 +1,11 @@
-# v0.5.1 - Aug 26, 2020
+# v0.5.3 - Jan 25, 2021
 
-Maintenance release, primarily to fix [issue #387](https://github.com/bluek8s/kubedirector/issues/387) "possible to specify kdcluster name that prevents member pod creation".
+Maintenance release, primarily to fix [issue #444](https://github.com/bluek8s/kubedirector/issues/444) "surface block device in cluster Pods".
 
 A few changes to the example kdapps catalog as well:
 
-* cr-app-gitlab-ee.json added
-* cr-app-tensorflow-cpu-dockerhub.json added
-* cr-app-mapr610-secured.json updated
-* cr-app-mapr610-unsecured.json removed
+* cr-app-datafabric610.json added
+* cr-app-jupyter-notebook.json updated
 
 
 # v0.5.0 - Jul 16, 2020

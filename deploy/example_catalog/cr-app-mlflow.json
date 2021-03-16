@@ -1,0 +1,89 @@
+{
+    "apiVersion": "kubedirector.hpe.com/v1beta1",
+    "kind": "KubeDirectorApp",
+    "metadata": {
+        "name" : "mlflow"
+    },
+
+    "spec" : {
+        "systemdRequired": true,
+        "defaultPersistDirs" : ["/home", "/opt/minio", "/opt/mlflow", "/opt/mysql"],
+        "config": {
+            "roleServices": [
+                {
+                    "serviceIDs": [
+                        "ssh",
+                        "mysql",
+                        "minio-server",
+                        "mlflow-server"
+                    ],
+                    "roleID": "controller"
+                }
+            ],
+            "selectedRoles": [
+                "controller"
+            ]
+        },
+        "label": {
+            "name": "MLFlow server",
+            "description": "MLFlow server with SQLdb and Minio s3 server"
+        },
+        "distroID": "hpecp/mlflow",
+        "version": "1.0",
+        "configSchemaVersion": 8,
+        "services": [
+            {
+                "endpoint": {
+                    "port": 22,
+                    "isDashboard": false
+                },
+                "id": "ssh",
+                "label": {
+                    "name": "SSH"
+                }
+            },
+                        {
+                "endpoint": {
+                    "port": 3306,
+                    "isDashboard": false
+                },
+                "id": "mysql",
+                "label": {
+                    "name": "MySQL"
+                }
+            },
+                        {
+                "endpoint": {
+                    "port": 9000,
+                    "isDashboard": true,
+                    "urlScheme" : "http"
+                },
+                "id": "minio-server",
+                "label": {
+                    "name": "Minio s3 bucket"
+                }
+            },
+                        {
+                "endpoint": {
+                    "port": 5000,
+                    "isDashboard": true,
+                    "urlScheme" : "http"
+                },
+                "id": "mlflow-server",
+                "label": {
+                    "name": "MLFlow Server"
+                }
+            }
+        ],
+        "defaultImageRepoTag": "bluedata/mlflow:1.2",
+        "defaultConfigPackage":  {
+            "packageURL": "file:///opt/configscripts/appconfig.tgz"
+        },
+        "roles": [
+            {
+                "cardinality": "1+",
+                "id": "controller"
+            }
+        ]
+    }
+}

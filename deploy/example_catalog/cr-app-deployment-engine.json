@@ -80,7 +80,7 @@
 
         ],
 
-        "defaultImageRepoTag": "bluedata/kd-api-serving:1.2",
+        "defaultImageRepoTag": "bluedata/kd-api-serving:1.4",
         "defaultConfigPackage": {
             "packageURL": "file:///opt/configscript/flask_configure.tgz"
         },

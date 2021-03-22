@@ -135,6 +135,7 @@ type Role struct {
 	EnvVars        []corev1.EnvVar             `json:"env,omitempty"`
 	FileInjections []FileInjections            `json:"fileInjections,omitempty"`
 	Secret         *KDSecret                   `json:"secret,omitempty"`
+	BlockStorage   *BlockStorage               `json:"blockStorage,omitempty"`
 }
 
 // StateRollup surfaces whether any per-member statuses have problems that
@@ -155,6 +156,15 @@ type ClusterStorage struct {
 	StorageClass *string `json:"storageClassName,omitempty"`
 }
 
+// BlockStorage defines the block storage type, path, and optionally size, if any, to be used
+// for mounting a block volume in a role.
+type BlockStorage struct {
+	StorageClass *string `json:"storageClassName,omitempty"`
+	Path         *string `json:"pathPrefix,omitempty"`
+	Size         *string `json:"size,omitempty"`
+	NumDevices   *int32  `json:"numDevices,omitempty"`
+}
+
 // RoleStatus describes the component objects of a virtual cluster role.
 type RoleStatus struct {
 	Name        string         `json:"id"`
@@ -164,13 +174,14 @@ type RoleStatus struct {
 
 // MemberStatus describes the component objects of a virtual cluster member.
 type MemberStatus struct {
-	Pod         string            `json:"pod"`
-	Service     string            `json:"service"`
-	AuthToken   string            `json:"authToken,omitempty"`
-	PVC         string            `json:"pvc,omitempty"`
-	State       string            `json:"state"`
-	StateDetail MemberStateDetail `json:"stateDetail,omitempty"`
-	NodeID      int64             `json:"nodeID"`
+	Pod              string            `json:"pod"`
+	Service          string            `json:"service"`
+	AuthToken        string            `json:"authToken,omitempty"`
+	PVC              string            `json:"pvc,omitempty"`
+	State            string            `json:"state"`
+	StateDetail      MemberStateDetail `json:"stateDetail,omitempty"`
+	NodeID           int64             `json:"nodeID"`
+	BlockDevicePaths []string          `json:"blockDevicePaths,omitempty"`
 }
 
 // MemberStateDetail digs into detail about the management of configmeta and

@@ -1,0 +1,25 @@
+---
+apiVersion: "kubedirector.hpe.com/v1beta1"
+kind: "KubeDirectorCluster"
+metadata:
+  name: "mlflow-instance"
+spec:
+  app: "mlflow"
+  appCatalog: "local"
+  connections:
+    secrets:
+## Attach the name of the mlflow secret here
+#      - mlflow-sc
+  roles:
+    -
+      id: "controller"
+      members: 1
+      resources:
+        requests:
+          cpu: "1"
+          memory: "4Gi"
+          nvidia.com/gpu: "0"
+        limits:
+          cpu: "1"
+          memory: "4Gi"
+          nvidia.com/gpu: "0"

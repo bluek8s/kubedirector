@@ -41,7 +41,7 @@
                 }
             }
         ],
-        "defaultImageRepoTag": "bluedata/centos8:1.0",
+        "defaultImageRepoTag": "bluedata/centos8:5.1.1",
         "defaultConfigPackage": null,
         "roles": [
             {

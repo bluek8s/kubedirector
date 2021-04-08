@@ -1,6 +1,6 @@
 #### KAFKA BRIEF
-Kafka is a distributed stream processing, message broker service. Confluent Kafka Platform has 7 components and corresponding roles: broker, zookeeper, schema-registry, ksql, connect, rest-proxy, and control-center. An optional client pod for running test loads is also provided in the yaml file. The client pod role is test-client. The first six components are available in the community version whereas the seventh - control center has to be licensed in 30 days.
-More about the Confluent Kafka cluster can be read [here.](https://docs.confluent.io/current/platform.html#cp-platform)
+Kafka is a distributed stream processing, message broker service. Confluent Platform has 7 components and corresponding roles: broker, zookeeper, schema-registry, ksql, connect, rest-proxy, and control-center. An optional client pod for running test loads is also provided in the yaml file. The client pod role is test-client. The first six components are available in the community version whereas the seventh - control center has to be licensed in 30 days.
+More about the Confluent cluster can be read [here.](https://docs.confluent.io/current/platform.html#cp-platform)
 
 #### KAFKA ROLES
 * Broker is the main component for Kafka loads. It is a cluster with minimum of 3 nodes. With the increase in load, number of brokers can be scaled up horizontally to be able to take more load.

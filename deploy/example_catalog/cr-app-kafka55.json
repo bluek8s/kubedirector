@@ -2,7 +2,7 @@
     "apiVersion": "kubedirector.hpe.com/v1beta1",
     "kind": "KubeDirectorApp",
     "metadata": {
-        "name" : "confluentkafka55"
+        "name" : "confluentplatform55"
     },
     "spec" : {
         "logoURL": "https://raw.githubusercontent.com/bluedatainc/solutions/master/MLOps/logos/confluentkafka55-logo.png",
@@ -86,10 +86,10 @@
     },
     "defaultImageRepoTag": "bluedata/kafka:1.0",
     "label": {
-        "name": "ConfluentKafka5.5",
-        "description": "Confluent Kafka Platform, with Control Center, KSQL, Kafka Broker, Zookeeper, Kafka Connect, REST Proxy, Schema Registry and optional Kafka Client"
+        "name": "ConfluentPlatform5.5",
+        "description": "Confluent Platform, with Control Center, Kafka KSQL, Kafka Broker, Zookeeper, Kafka Connect, REST Proxy, Schema Registry and optional Kafka Client"
     },
-    "distroID": "bluedata/confluentkafka5",
+    "distroID": "bluedata/confluentplatform55",
     "version": "1.0",
     "configSchemaVersion": 7,
     "services": [

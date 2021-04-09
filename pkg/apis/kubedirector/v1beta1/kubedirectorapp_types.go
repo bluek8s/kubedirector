@@ -103,13 +103,20 @@ type ServiceEndpoint struct {
 // the same services. At deployment time all role members will receive
 // identical resource assignments.
 type NodeRole struct {
-	ID           string               `json:"id"`
-	Cardinality  string               `json:"cardinality"`
-	ImageRepoTag *string              `json:"imageRepoTag,omitempty"`
-	SetupPackage SetupPackage         `json:"configPackage,omitempty"`
-	PersistDirs  *[]string            `json:"persistDirs,omitempty"`
-	EventList    *[]string            `json:"eventList,omitempty"`
-	MinResources *corev1.ResourceList `json:"minResources,omitempty"`
+	ID            string               `json:"id"`
+	Cardinality   string               `json:"cardinality"`
+	ImageRepoTag  *string              `json:"imageRepoTag,omitempty"`
+	SetupPackage  SetupPackage         `json:"configPackage,omitempty"`
+	PersistDirs   *[]string            `json:"persistDirs,omitempty"`
+	EventList     *[]string            `json:"eventList,omitempty"`
+	MinResources  *corev1.ResourceList `json:"minResources,omitempty"`
+	ContainerSpec *ContainerSpec       `json:"containerSpec"`
+}
+
+//ContainerSpec comments
+type ContainerSpec struct {
+	Stdin bool `json:"stdin"`
+	Tty   bool `json:"tty"`
 }
 
 // NodeGroupConfig identifies a set of roles, and the services on those roles.

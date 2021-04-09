@@ -305,6 +305,33 @@ func AppPersistDirs(
 	)
 }
 
+// RoleContainerSpecs fetches the required directories for a given role that
+// has be persisted on a PVC.
+func RoleContainerSpecs(
+	cr *kdv1.KubeDirectorCluster,
+	role string,
+) (*kdv1.ContainerSpec, error) {
+
+	//s := make([]*kdv1.ContainerSpec, 5, 5)
+	// Fetch the app type definition if we haven't yet cached it in this
+	// handler pass.
+	appCR, err := GetApp(cr)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, nodeRole := range appCR.Spec.NodeRoles {
+		if role == nodeRole.ID {
+			if nodeRole.ContainerSpec != nil {
+				return nodeRole.ContainerSpec, nil
+			}
+		}
+	}
+
+	// Should never reach here.
+	return nil, nil
+}
+
 // FindApp returns the app type definition for the given virtual cluster. If
 // the appCatalog property is set to "local", it looks in the same namespace
 // as the cluster. If set to "system", it looks in the same namespace as

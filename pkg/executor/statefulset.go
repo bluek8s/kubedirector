@@ -352,6 +352,8 @@ func getStatefulset(
 							VolumeDevices:   volumeDevices,
 							SecurityContext: securityContext,
 							Env:             chkModifyEnvVars(role),
+							TTY:             hasTTY(cr, role.Name),
+							Stdin:           hasSTDIN(cr, role.Name),
 						},
 					},
 					Volumes: volumes,
@@ -777,4 +779,35 @@ func generateSecurityContext(
 			Add: appCapabilities,
 		},
 	}, nil
+}
+
+// isContainerStdIn creates security context with Add Capabilities property
+// based on app's capability list. If app doesn't require additional capabilities
+// return nil
+func hasSTDIN(
+	cr *kdv1.KubeDirectorCluster,
+	role string,
+) bool {
+
+	containerSpec, err := catalog.RoleContainerSpecs(cr, role)
+	if err != nil {
+		return false
+	}
+	return containerSpec.Stdin
+}
+
+// isContainerStdIn creates security context with Add Capabilities property
+// based on app's capability list. If app doesn't require additional capabilities
+// return nil
+func hasTTY(
+	cr *kdv1.KubeDirectorCluster,
+	role string,
+) bool {
+
+	containerSpec, err := catalog.RoleContainerSpecs(cr, role)
+	if err != nil {
+		return false
+	}
+	return containerSpec.Tty
+
 }

@@ -131,6 +131,7 @@ type Role struct {
 	ServiceLabels  map[string]string           `json:"serviceLabels,omitempty"`
 	Members        *int32                      `json:"members,omitempty"`
 	Resources      corev1.ResourceRequirements `json:"resources"`
+	Affinity       *corev1.Affinity            `json:"affinity,omitempty"`
 	Storage        *ClusterStorage             `json:"storage,omitempty"`
 	EnvVars        []corev1.EnvVar             `json:"env,omitempty"`
 	FileInjections []FileInjections            `json:"fileInjections,omitempty"`

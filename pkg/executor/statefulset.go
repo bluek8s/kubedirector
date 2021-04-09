@@ -340,6 +340,7 @@ func getStatefulset(
 						imageID,
 						persistDirs,
 					),
+					Affinity: role.Affinity,
 					Containers: []v1.Container{
 						{
 							Name:            AppContainerName,

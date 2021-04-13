@@ -790,7 +790,7 @@ func hasSTDIN(
 ) bool {
 
 	containerSpec, err := catalog.RoleContainerSpecs(cr, role)
-	if err != nil {
+	if errors.IsNotFound(err) || err != nil {
 		return false
 	}
 	return containerSpec.Stdin
@@ -805,7 +805,7 @@ func hasTTY(
 ) bool {
 
 	containerSpec, err := catalog.RoleContainerSpecs(cr, role)
-	if err != nil {
+	if errors.IsNotFound(err) || err != nil {
 		return false
 	}
 	return containerSpec.Tty

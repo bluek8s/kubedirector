@@ -781,9 +781,9 @@ func generateSecurityContext(
 	}, nil
 }
 
-// isContainerStdIn creates security context with Add Capabilities property
-// based on app's capability list. If app doesn't require additional capabilities
-// return nil
+// hasSTDIN is a utility function to find out
+// if STDIN was requested by the KubeDirectorApp
+// default is False if left blank by the App
 func hasSTDIN(
 	cr *kdv1.KubeDirectorCluster,
 	role string,
@@ -796,9 +796,9 @@ func hasSTDIN(
 	return containerSpec.Stdin
 }
 
-// isContainerStdIn creates security context with Add Capabilities property
-// based on app's capability list. If app doesn't require additional capabilities
-// return nil
+// hasTTY is a utility function to find out
+// if TTY was requested by the KubeDirectorApp
+// default is False if left blank by the App
 func hasTTY(
 	cr *kdv1.KubeDirectorCluster,
 	role string,

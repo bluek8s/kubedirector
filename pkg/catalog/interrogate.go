@@ -305,16 +305,13 @@ func AppPersistDirs(
 	)
 }
 
-// RoleContainerSpecs fetches the required directories for a given role that
-// has be persisted on a PVC.
+// RoleContainerSpecs fetches container spec properties
+// that needs to be overridden by KDApp author
 func RoleContainerSpecs(
 	cr *kdv1.KubeDirectorCluster,
 	role string,
 ) (*kdv1.ContainerSpec, error) {
 
-	//s := make([]*kdv1.ContainerSpec, 5, 5)
-	// Fetch the app type definition if we haven't yet cached it in this
-	// handler pass.
 	appCR, err := GetApp(cr)
 	if err != nil {
 		return nil, err
@@ -328,7 +325,6 @@ func RoleContainerSpecs(
 		}
 	}
 
-	// Should never reach here.
 	return nil, nil
 }
 

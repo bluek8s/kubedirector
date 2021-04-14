@@ -110,7 +110,7 @@ type NodeRole struct {
 	PersistDirs   *[]string            `json:"persistDirs,omitempty"`
 	EventList     *[]string            `json:"eventList,omitempty"`
 	MinResources  *corev1.ResourceList `json:"minResources,omitempty"`
-	ContainerSpec *ContainerSpec       `json:"containerSpec, omitempty"`
+	ContainerSpec *ContainerSpec       `json:"containerSpec,omitempty"`
 }
 
 //ContainerSpec comments

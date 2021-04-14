@@ -47,5 +47,4 @@ spec:
   defaultPersistDirs: []
   capabilities: []
   systemdRequired: false
-  logoURL: http://mip-bd-vm32.mip.storage.hpecorp.net/repos/OSS-Nvidia-Partnership-Tensorflow.png
 

@@ -75,7 +75,7 @@
                 }
             }
         ],
-        "defaultImageRepoTag": "bluedata/mlflow:1.2",
+        "defaultImageRepoTag": "bluedata/mlflow:1.3",
         "defaultConfigPackage":  {
             "packageURL": "file:///opt/configscripts/appconfig.tgz"
         },

@@ -789,14 +789,15 @@ func hasSTDIN(
 	role string,
 ) bool {
 
-	containerSpec, err := catalog.RoleContainerSpecs(cr, role)
-	if errors.IsNotFound(err) {
+	containerSpec, _ := catalog.RoleContainerSpecs(cr, role)
+	if containerSpec == nil {
 		return false
 	}
-	if err != nil {
-		return false
+
+	if containerSpec.Stdin != nil {
+		return *containerSpec.Stdin
 	}
-	return containerSpec.Stdin
+	return false
 }
 
 // hasTTY is a utility function to find out
@@ -807,13 +808,13 @@ func hasTTY(
 	role string,
 ) bool {
 
-	containerSpec, err := catalog.RoleContainerSpecs(cr, role)
-	if errors.IsNotFound(err) {
+	containerSpec, _ := catalog.RoleContainerSpecs(cr, role)
+	if containerSpec == nil {
 		return false
 	}
-	if err != nil {
-		return false
-	}
-	return containerSpec.Tty
 
+	if containerSpec.Tty != nil {
+		return *containerSpec.Tty
+	}
+	return false
 }

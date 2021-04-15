@@ -137,6 +137,14 @@ spec:
                     items:
                       type: string
                       pattern: '^configure$|^addnodes$|^delnodes$'
+                  containerSpec:
+                    type: object
+                    nullable: true
+                    properties:
+                      stdin:
+                        type: boolean
+                      tty:
+                        type: boolean
                   minResources:
                     type: object
                     nullable: true

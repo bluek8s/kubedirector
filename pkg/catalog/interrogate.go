@@ -305,6 +305,29 @@ func AppPersistDirs(
 	)
 }
 
+// RoleContainerSpecs fetches container spec properties
+// that needs to be overridden by KDApp author
+func RoleContainerSpecs(
+	cr *kdv1.KubeDirectorCluster,
+	role string,
+) (*kdv1.ContainerSpec, error) {
+
+	appCR, err := GetApp(cr)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, nodeRole := range appCR.Spec.NodeRoles {
+		if role == nodeRole.ID {
+			if nodeRole.ContainerSpec != nil {
+				return nodeRole.ContainerSpec, nil
+			}
+		}
+	}
+
+	return nil, nil
+}
+
 // FindApp returns the app type definition for the given virtual cluster. If
 // the appCatalog property is set to "local", it looks in the same namespace
 // as the cluster. If set to "system", it looks in the same namespace as

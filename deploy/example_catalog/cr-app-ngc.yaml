@@ -1,0 +1,50 @@
+apiVersion: kubedirector.hpe.com/v1beta1
+kind: KubeDirectorApp
+metadata:
+  name: ngc-tensorflow
+spec:
+#  volumes:
+#  - name: dshm
+#    emptyDir:
+#      medium: Memory
+  label:
+    name: NVIDIA:TensorFlow(NGC)
+    description: TensorFlow is an open-source software library for high-performance
+      numerical computation. Its flexible architecture allows easy deployment of computation
+      across a variety of platforms (CPUs, GPUs, TPUs), and from desktops to clusters
+      of servers to mobile and edge devices.
+  distroID: ngc-tensorflow
+  version: '1.0'
+  configSchemaVersion: 8
+  config:
+    roleServices:
+    - roleID: tensorflow
+      serviceIDs:
+      - ssh
+    selectedRoles:
+    - tensorflow
+  services:
+  - id: ssh
+    label:
+      name: ssh
+    endpoint:
+      port: 22
+      isDashboard: false
+      hasAuthToken: false
+  roles:
+  - id: tensorflow
+    cardinality: 1+
+    minResources:
+      memory: 2000Mi
+      cpu: '2'
+    containerSpec:
+      tty: true
+      stdin: true
+  defaultImageRepoTag: nvcr.io/nvidia/tensorflow:20.12-tf1-py3
+#  volumeMounts:
+#    - mountPath: /dev/shm
+#      name: dshm
+  defaultPersistDirs: []
+  capabilities: []
+  systemdRequired: false
+

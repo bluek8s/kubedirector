@@ -38,8 +38,7 @@ spec:
       memory: 2000Mi
       cpu: '2'
     containerSpec:
-      tty: true
-      stdin: true
+      #tty: true
   defaultImageRepoTag: nvcr.io/nvidia/tensorflow:20.12-tf1-py3
 #  volumeMounts:
 #    - mountPath: /dev/shm

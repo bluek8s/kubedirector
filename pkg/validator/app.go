@@ -267,6 +267,19 @@ func validateRoles(
 				)
 			}
 		}
+		if role.ContainerSpec != nil {
+			if role.ContainerSpec.Tty != nil {
+				if role.ContainerSpec.Stdin == nil {
+					valErrors = append(
+						valErrors,
+						fmt.Sprintf(
+							ttyWithoutStdin,
+							role.ID,
+						),
+					)
+				}
+			}
+		}
 		if role.ImageRepoTag == nil {
 			// We allow roles to have different container images but unlike the
 			// setup package there cannot be a role with no image.

@@ -268,8 +268,8 @@ func validateRoles(
 			}
 		}
 		if role.ContainerSpec != nil {
-			if role.ContainerSpec.Tty != nil {
-				if role.ContainerSpec.Stdin == nil {
+			if role.ContainerSpec.Tty {
+				if !role.ContainerSpec.Stdin {
 					valErrors = append(
 						valErrors,
 						fmt.Sprintf(

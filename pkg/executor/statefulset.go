@@ -794,10 +794,7 @@ func hasSTDIN(
 		return false
 	}
 
-	if containerSpec.Stdin != nil {
-		return *containerSpec.Stdin
-	}
-	return false
+	return containerSpec.Stdin
 }
 
 // hasTTY is a utility function to find out
@@ -813,8 +810,5 @@ func hasTTY(
 		return false
 	}
 
-	if containerSpec.Tty != nil {
-		return *containerSpec.Tty
-	}
-	return false
+	return containerSpec.Tty
 }

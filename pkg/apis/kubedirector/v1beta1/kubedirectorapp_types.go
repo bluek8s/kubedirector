@@ -115,8 +115,8 @@ type NodeRole struct {
 
 //ContainerSpec comments
 type ContainerSpec struct {
-	Stdin *bool `json:"stdin,omitempty"`
-	Tty   *bool `json:"tty,omitempty"`
+	Stdin bool `json:"stdin,omitempty"`
+	Tty   bool `json:"tty,omitempty"`
 }
 
 // NodeGroupConfig identifies a set of roles, and the services on those roles.

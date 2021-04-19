@@ -1,6 +1,6 @@
 # v0.6.0 - Apr 19, 2021
 
-The major change in this release is adding couple of important features -
+The major change in this release is the addition of a couple of important features -
 * Surfacing role level placement constraints for pod. We are surfacing affinity property from pod spec in KubedirectorCluster Spec. [issue #48](https://github.com/bluek8s/kubedirector/issues/48)
 
 * Ability to set STDIN and TTY as part of KubeDirectorApplication role config. [issue #462](https://github.com/bluek8s/kubedirector/pull/462) 

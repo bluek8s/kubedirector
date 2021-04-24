@@ -730,6 +730,10 @@ func generateTmpfsSupport(
 			Name:      "tmpfs-run",
 			MountPath: "/run",
 		},
+		v1.VolumeMount{
+			Name:      "tmpfs-run-lock",
+			MountPath: "/run/lock",
+		},
 	}
 	maxTmpSize, _ := resource.ParseQuantity(tmpFSVolSize)
 	volumes := []v1.Volume{
@@ -744,6 +748,15 @@ func generateTmpfsSupport(
 		},
 		v1.Volume{
 			Name: "tmpfs-run",
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{
+					Medium:    "Memory",
+					SizeLimit: &maxTmpSize,
+				},
+			},
+		},
+		v1.Volume{
+			Name: "tmpfs-run-lock",
 			VolumeSource: v1.VolumeSource{
 				EmptyDir: &v1.EmptyDirVolumeSource{
 					Medium:    "Memory",

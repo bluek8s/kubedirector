@@ -340,6 +340,7 @@ func getStatefulset(
 						imageID,
 						persistDirs,
 					),
+					Affinity: role.Affinity,
 					Containers: []v1.Container{
 						{
 							Name:            AppContainerName,
@@ -351,6 +352,8 @@ func getStatefulset(
 							VolumeDevices:   volumeDevices,
 							SecurityContext: securityContext,
 							Env:             chkModifyEnvVars(role),
+							TTY:             hasTTY(cr, role.Name),
+							Stdin:           hasSTDIN(cr, role.Name),
 						},
 					},
 					Volumes: volumes,
@@ -789,4 +792,36 @@ func generateSecurityContext(
 			Add: appCapabilities,
 		},
 	}, nil
+}
+
+// hasSTDIN is a utility function to find out
+// if STDIN was requested by the KubeDirectorApp
+// default is False if left blank by the App
+func hasSTDIN(
+	cr *kdv1.KubeDirectorCluster,
+	role string,
+) bool {
+
+	containerSpec, _ := catalog.RoleContainerSpecs(cr, role)
+	if containerSpec == nil {
+		return false
+	}
+
+	return containerSpec.Stdin
+}
+
+// hasTTY is a utility function to find out
+// if TTY was requested by the KubeDirectorApp
+// default is False if left blank by the App
+func hasTTY(
+	cr *kdv1.KubeDirectorCluster,
+	role string,
+) bool {
+
+	containerSpec, _ := catalog.RoleContainerSpecs(cr, role)
+	if containerSpec == nil {
+		return false
+	}
+
+	return containerSpec.Tty
 }

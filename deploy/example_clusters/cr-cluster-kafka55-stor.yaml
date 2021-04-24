@@ -3,7 +3,7 @@ kind: "KubeDirectorCluster"
 metadata:
   name: "kafka55-persistent"
 spec:
-  app: confluentkafka55
+  app: confluentplatform55
   roles:
   - id: control-center
     members: 1

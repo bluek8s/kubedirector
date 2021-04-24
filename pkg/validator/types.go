@@ -63,7 +63,8 @@ const (
 	invalidSecretPrefix        = "Secret(%s) for role(%s) does not have the required name prefix(%s)."
 	invalidSecret              = "Unable to find secret(%s) for role(%s) in namespace(%s)."
 
-	noDefaultImage = "Role(%s) has no specified image, and no top-level default image is specified."
+	noDefaultImage  = "Role(%s) has no specified image, and no top-level default image is specified."
+	ttyWithoutStdin = "Role(%s) requested TTY without STDIN."
 
 	noURLScheme = "The endpoint for service(%s) must include a urlScheme value because isDashboard is true."
 

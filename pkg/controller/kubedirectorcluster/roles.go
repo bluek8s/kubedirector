@@ -305,12 +305,14 @@ func handleRoleCreate(
 		// pointers to its elements.
 		cr.Status.Roles = append(cr.Status.Roles, newRoleStatus)
 		role.roleStatus = &(cr.Status.Roles[len(cr.Status.Roles)-1])
+	} else {
+		role.roleStatus.StatefulSet = statefulSet.Name
 	}
 	addMemberStatuses(cr, role)
 	return nil
 }
 
-// handleRoleCreate deals with the unusual-but-possible case of the role
+// handleRoleReCreate deals with the unusual-but-possible case of the role
 // status existing but the statefulset gone missing. It may need to clean up
 // the role status or re-create the statefulset. Failure to create a
 // statefulset will be a reconciler-stopping error.
@@ -331,14 +333,6 @@ func handleRoleReCreate(
 			return handleRoleCreate(reqLogger, cr, role, anyMembersChanged)
 		}
 	} else {
-		shared.LogInfof(
-			reqLogger,
-			cr,
-			shared.EventReasonRole,
-			"restoring role{%s}",
-			role.roleStatus.Name,
-		)
-		*anyMembersChanged = true
 		// Need to clean up from the old status before we make a new
 		// statefulset. For any pods that had reached "ready" or "error" state,
 		// we should mark them first as "delete pending" -- we know we have notified
@@ -353,10 +347,25 @@ func handleRoleReCreate(
 			case memberReady:
 				fallthrough
 			case memberConfigError:
-				member.State = string(memberDeletePending)
+				if member.State != string(memberDeletePending) {
+					member.State = string(memberDeletePending)
+					*anyMembersChanged = true
+				}
 			default:
-				member.State = string(memberDeleting)
+				if member.State != string(memberDeleting) {
+					member.State = string(memberDeleting)
+					*anyMembersChanged = true
+				}
 			}
+		}
+		if *anyMembersChanged {
+			shared.LogInfof(
+				reqLogger,
+				cr,
+				shared.EventReasonRole,
+				"restoring role{%s}",
+				role.roleStatus.Name,
+			)
 		}
 		// This should be quite unusual so we won't try to be clever about
 		// updating the membersByState map. Just nuke and re-create it.

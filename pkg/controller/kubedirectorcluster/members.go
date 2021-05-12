@@ -284,7 +284,21 @@ func handleReadyMembers(
 				return
 			}
 
-			memberVersion := *m.StateDetail.LastConnectionVersion
+			var memberVersion int64
+
+			if m.StateDetail.LastConnectionVersion != nil {
+				memberVersion = *m.StateDetail.LastConnectionVersion
+
+			} else {
+				memberVersion = connectionsVersion - 1
+
+				shared.LogInfo(
+					reqLogger,
+					cr,
+					shared.EventReasonCluster,
+					fmt.Sprintf("Member Version is : %d. Was NIL", memberVersion),
+				)
+			}
 
 			if memberVersion < connectionsVersion {
 				shared.LogInfo(
@@ -1379,10 +1393,17 @@ func getDefaultConnectionVersion(
 	}
 	min := int64(math.MaxInt64)
 	for _, memberStatus := range ready {
-		memberVersion := *memberStatus.StateDetail.LastConnectionVersion
-		if min > memberVersion {
-			min = memberVersion
+		if memberStatus.StateDetail.LastConnectionVersion != nil {
+			memberVersion := *memberStatus.StateDetail.LastConnectionVersion
+			if min > memberVersion {
+				min = memberVersion
+			}
 		}
 	}
+
+	if min == int64(math.MaxInt64) {
+		return int64(0)
+	}
+
 	return min
 }

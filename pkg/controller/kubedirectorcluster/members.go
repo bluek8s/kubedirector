@@ -284,20 +284,26 @@ func handleReadyMembers(
 				return
 			}
 
+			// memberVersion is the connectionVersion of the member.
+			// If it is nil, we set it to connectionsVersion - 1. This is to call startscript with --reconnect and then equalize connectionsVersion and memberVersion
+			// If it is not nil, we set it to the member's connectionVersion
 			var memberVersion int64
 
 			if m.StateDetail.LastConnectionVersion != nil {
 				memberVersion = *m.StateDetail.LastConnectionVersion
 
 			} else {
-				memberVersion = connectionsVersion - 1
 
-				shared.LogInfo(
+				shared.LogInfof(
 					reqLogger,
 					cr,
 					shared.EventReasonCluster,
-					fmt.Sprintf("Member Version is : %d. Was NIL", memberVersion),
+					"Member Version for {%s} is nil. Resetting.",
+					m.Pod,
 				)
+
+				memberVersion = connectionsVersion - 1
+
 			}
 
 			if memberVersion < connectionsVersion {

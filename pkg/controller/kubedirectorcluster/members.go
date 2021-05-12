@@ -297,7 +297,7 @@ func handleReadyMembers(
 				shared.LogInfof(
 					reqLogger,
 					cr,
-					shared.EventReasonCluster,
+					"",
 					"Member Version for {%s} is nil. Resetting.",
 					m.Pod,
 				)

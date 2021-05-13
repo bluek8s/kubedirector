@@ -297,7 +297,7 @@ func handleReadyMembers(
 				shared.LogInfof(
 					reqLogger,
 					cr,
-					"",
+					shared.EventReasonNoEvent,
 					"LastConnectionVersion for {%s} is nil. Resetting.",
 					m.Pod,
 				)

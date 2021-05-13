@@ -298,7 +298,7 @@ func handleReadyMembers(
 					reqLogger,
 					cr,
 					"",
-					"Member Version for {%s} is nil. Resetting.",
+					"LastConnectionVersion for {%s} is nil. Resetting.",
 					m.Pod,
 				)
 

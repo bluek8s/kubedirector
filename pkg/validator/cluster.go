@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -30,6 +29,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	appsvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
@@ -390,7 +390,7 @@ func validateRoleChanges(
 		// the new spec if anything other than the members count is different.
 		compareRole := *role
 		compareRole.Members = prevRole.Members
-		if !reflect.DeepEqual(&compareRole, prevRole) {
+		if !equality.Semantic.DeepEqual(&compareRole, prevRole) {
 			roleModifiedMsg := fmt.Sprintf(
 				modifiedRole,
 				role.Name,
@@ -890,7 +890,7 @@ func admitClusterCR(
 				return &admitResponse
 			}
 		} else {
-			if !reflect.DeepEqual(clusterCR.Status, prevClusterCR.Status) {
+			if !equality.Semantic.DeepEqual(clusterCR.Status, prevClusterCR.Status) {
 				admitResponse.Result = statusViolation
 				return &admitResponse
 			}
@@ -899,7 +899,7 @@ func admitClusterCR(
 		// it's OK to write the status again as long as nothing is changing.
 		// (For example we'll see this when a PATCH happens.)
 		if expectedStatusGen.Validated {
-			if !reflect.DeepEqual(clusterCR.Status, prevClusterCR.Status) {
+			if !equality.Semantic.DeepEqual(clusterCR.Status, prevClusterCR.Status) {
 				admitResponse.Result = statusViolation
 				return &admitResponse
 			}
@@ -914,7 +914,7 @@ func admitClusterCR(
 	// metadata generation number here because that is incremented after this
 	// validator sees the request.
 	if ar.Request.Operation == v1beta1.Update {
-		if reflect.DeepEqual(clusterCR.Spec, prevClusterCR.Spec) {
+		if equality.Semantic.DeepEqual(clusterCR.Spec, prevClusterCR.Spec) {
 			admitResponse.Allowed = true
 			return &admitResponse
 		}

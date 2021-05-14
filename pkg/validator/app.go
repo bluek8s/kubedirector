@@ -17,7 +17,6 @@ package validator
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -25,6 +24,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -463,7 +463,7 @@ func admitAppCR(
 			// to null. See the commit comments in the PR that closes issue
 			// #319 for more details.
 			prevAppCR.Spec.DefaultSetupPackage = appCR.Spec.DefaultSetupPackage
-			if !reflect.DeepEqual(appCR.Spec, prevAppCR.Spec) {
+			if !equality.Semantic.DeepEqual(appCR.Spec, prevAppCR.Spec) {
 				referencesStr := strings.Join(references, ", ")
 				appInUseMsg := fmt.Sprintf(
 					appInUse,

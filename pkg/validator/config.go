@@ -17,7 +17,6 @@ package validator
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/bluek8s/kubedirector/pkg/controller/kubedirectorconfig"
@@ -26,6 +25,7 @@ import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"k8s.io/api/admission/v1beta1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -176,7 +176,7 @@ func admitKDConfigCR(
 				return &admitResponse
 			}
 		} else {
-			if !reflect.DeepEqual(configCR.Status, prevConfigCR.Status) {
+			if !equality.Semantic.DeepEqual(configCR.Status, prevConfigCR.Status) {
 				admitResponse.Result = statusViolation
 				return &admitResponse
 			}
@@ -185,7 +185,7 @@ func admitKDConfigCR(
 		// it's OK to write the status again as long as nothing is changing.
 		// (For example we'll see this when a PATCH happens.)
 		if expectedStatusGen.Validated {
-			if !reflect.DeepEqual(configCR.Status, prevConfigCR.Status) {
+			if !equality.Semantic.DeepEqual(configCR.Status, prevConfigCR.Status) {
 				admitResponse.Result = statusViolation
 				return &admitResponse
 			}

@@ -1,4 +1,4 @@
-#### From KubeDirector v0.5.0 or later
+#### If upgrading from KubeDirector v0.5.0 or later:
 
 **1) Update the Deployment resource named "kubedirector".**
 
@@ -17,7 +17,7 @@ kubectl replace -f kubedirector.hpe.com_kubedirectorclusters_crd.yaml
 ```
 
 
-#### From KubeDirector v0.4.x
+#### If upgrading from KubeDirector v0.4.x:
 
 **1) Remove the Service resource named "kubedirector".**
 
@@ -65,6 +65,6 @@ kubectl replace -f kubedirector.hpe.com_kubedirectorclusters_crd.yaml
 ```
 
 
-#### From before KubeDirector v0.4.0
+#### If upgrading from before KubeDirector v0.4.0:
 
 We do not have a recommended upgrade process for KubeDirector deployments from before v0.4.0, since they are using alpha versions of the CRDs. The migration approach in this case is a complete teardown and clean re-deploy.

@@ -1,10 +1,23 @@
-#### From before KubeDirector v0.4.0
+#### From KubeDirector v0.5.0 or later
 
-We do not have a recommended upgrade process for KubeDirector deployments from before v0.4.0, since they are using alpha versions of the CRDs. The migration approach in this case is a complete teardown and clean re-deploy.
+**1) Update the Deployment resource named "kubedirector".**
 
-#### From KubeDirector v0.4.0
+The deployment needs to be updated to use the current container image. There are various ways to do this; "kubectl apply" with the latest deployment YAML is the simplest. E.g. if you are using deployment-prebuilt.yaml, then (assuming a kubectl context that is operating in the correct namespace):
+```
+kubectl apply -f deployment-prebuilt.yaml
+```
 
-Follow these steps, in order:
+**2) Update the CRDs.**
+
+Replace the CRDs for kubedirectorconfig, kubedirectorapp, and kubedirectorcluster with the current version. E.g., while in the deploy/kubedirector directory:
+```
+kubectl replace -f kubedirector.hpe.com_kubedirectorconfigs_crd.yaml
+kubectl replace -f kubedirector.hpe.com_kubedirectorapps_crd.yaml
+kubectl replace -f kubedirector.hpe.com_kubedirectorclusters_crd.yaml
+```
+
+
+#### From KubeDirector v0.4.x
 
 **1) Remove the Service resource named "kubedirector".**
 
@@ -32,7 +45,7 @@ The existing KubeDirector deployment can now be updated to the new version. This
 
 There are various ways to apply these changes, but keep in mind that every edit to a deployment will cause its pod(s) to be restarted, so it is preferable to do this in a small number of changes. Unfortunately just doing a "kubectl apply" of a complete spec such as deploy/kubedirector/deployment-prebuilt.yaml or deploy/kubedirector/deployment-localbuilt.yaml will not properly update the container ports or env.
 
-One way to make the desired changes in a single update of the resource is to apply a list of JSON patch operations in a single kubectl patch command. For example if you want to use the bluek8s/kubedirector:unstable image, you could use the following command: 
+One way to make the desired changes in a single update of the resource is to apply a list of JSON patch operations in a single kubectl patch command. For example if you want to use the bluek8s/kubedirector:unstable image, you could use the following command (assuming a kubectl context that is operating in the correct namespace):
 ```
 kubectl patch deployment kubedirector --type=json -p='[
     {"op": "remove", "path": "/spec/template/spec/containers/0/ports/0"},
@@ -41,3 +54,17 @@ kubectl patch deployment kubedirector --type=json -p='[
 ]'
 ```
 Note that this form of patching does make assumptions about which elements of the deployment spec are in which positions in various lists, so it is constructed assuming the exact form of the deployment spec included in this repo. If your deployment spec is different, your required patch specifications may be different.
+
+**3) Update the CRDs.**
+
+Replace the CRDs for kubedirectorconfig, kubedirectorapp, and kubedirectorcluster with the latest version. E.g., while in the deploy/kubedirector directory:
+```
+kubectl replace -f kubedirector.hpe.com_kubedirectorconfigs_crd.yaml
+kubectl replace -f kubedirector.hpe.com_kubedirectorapps_crd.yaml
+kubectl replace -f kubedirector.hpe.com_kubedirectorclusters_crd.yaml
+```
+
+
+#### From before KubeDirector v0.4.0
+
+We do not have a recommended upgrade process for KubeDirector deployments from before v0.4.0, since they are using alpha versions of the CRDs. The migration approach in this case is a complete teardown and clean re-deploy.

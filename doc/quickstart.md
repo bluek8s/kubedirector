@@ -1,12 +1,14 @@
 #### KUBERNETES SETUP
 
-You will need a K8s (Kubernetes) cluster for deploying KubeDirector and KubeDirector-managed virtual clusters. Currently we require using K8s version 1.14 or later. Especially if you are using a cloud service to spin up K8s clusters, take care that you are getting the necessary K8s version.
+You will need a K8s (Kubernetes) cluster for deploying KubeDirector and KubeDirector-managed virtual clusters. Currently we require using K8s version 1.14 or later.
 
 We often run KubeDirector on [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine); see [gke-notes.md](gke-notes.md) for GKE-specific elaborations on the various steps in this document. Or if you would rather use [Amazon Elastic Kubernetes Service](https://aws.amazon.com/eks/), see [eks-notes.md](eks-notes.md). We have also run it on [DigitalOcean Kubernetes](https://www.digitalocean.com/products/kubernetes/) without issues.
 
-Cloud K8s services are not the only option. KubeDirector is also deployed by default on every K8s cluster managed by the [HPE Container Platform](https://www.hpe.com/us/en/solutions/container-platform.html); those clusters are currently installed through [kubeadm](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm/) using HyperKube images, so any similar K8s installation (or more broadly any installation using open-source K8s images) is likely to be compatible with KubeDirector. The only K8s configuration issue that has historically been a "gotcha" for KubeDirector is that you must ensure that [admission webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites) are enabled. If you are using kubeadm, you shouldn't have to explicitly worry about that requirement -- its default configuration should be good.
+Cloud K8s services are not the only option. KubeDirector is also deployed by default on every K8s cluster managed by the [HPE Ezmeral Container Platform](https://www.hpe.com/us/en/solutions/container-platform.html), both on the clusters that Ezmeral creates as well as the clusters it "imports" for management from cloud K8s services.
 
-We have typically not recommended KubeDirector deployment on [OpenShift](https://www.openshift.com/) for new KubeDirector users/developers, because of a variety of issues, but this is a topic that we need to revisit since both KubeDirector and OpenShift have undergone relevant changes that should make them a better match.
+Broadly speaking, any CNCF-compliant K8s installation should be compatible with KubeDirector. The only K8s configuration issue that has historically been a "gotcha" for KubeDirector is that you must ensure that [admission webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites) are enabled. These days any widely used method of creating K8s clusters should have that feature enabled by default.
+
+One possible exception: we have typically not recommended KubeDirector deployment on [OpenShift](https://www.openshift.com/) for new KubeDirector users/developers, because of a variety of issues, but this is a topic that we need to revisit since both KubeDirector and OpenShift have undergone relevant changes that should make them a better match.
 
 #### KUBECTL SETUP
 

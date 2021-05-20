@@ -90,8 +90,8 @@ const (
 	appPrepConfigStatus = "/opt/guestconfig/configure.status"
 	appPrepConfigRunCmd = `rm -f /opt/guestconfig/configure.* &&
 	echo -n %s= > ` + appPrepConfigStatus + ` && 
-	nohup sh -c "` + appPrepStartscript + ` --configure 2>/opt/guestconfig/configure.stderr 1>/opt/guestconfig/configure.stdout;
-	echo $? >> ` + appPrepConfigStatus + `" &`
+	nohup sh -c '` + appPrepStartscript + ` --configure 2>/opt/guestconfig/configure.stderr 1>/opt/guestconfig/configure.stdout;
+	echo -n $? >> ` + appPrepConfigStatus + `' &`
 	fileInjectionCommand = `mkdir -p %s && cd %s &&
 	curl -L %s -o %s`
 	appPrepConfigReconnectCmd = `echo -n %s= > ` + appPrepConfigStatus + ` &&

@@ -95,9 +95,8 @@ const (
 	fileInjectionCommand = `mkdir -p %s && cd %s &&
 	curl -L %s -o %s`
 	appPrepConfigReconnectCmd = `echo -n %s= > ` + appPrepConfigStatus + ` &&
-	nohup sh -c "` + appPrepStartscript + ` --reconnect;
-	echo -n $? >> ` + appPrepConfigStatus + `" >> /opt/guestconfig/configure.stdout  
-	2>> /opt/guestconfig/configure.stderr  &`
+	nohup sh -c '` + appPrepStartscript + ` --reconnect 2>/opt/guestconfig/configure.stderr 1>/opt/guestconfig/configure.stdout;
+	echo -n $? >> ` + appPrepConfigStatus + `' &`
 )
 
 const (

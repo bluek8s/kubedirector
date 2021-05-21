@@ -1,3 +1,8 @@
+# v0.6.2 - May 21, 2021
+
+Maintenance release to address the following bugs:
+* [stderr and stdstatus is never correctly reported while running startscript](https://github.com/bluek8s/kubedirector/issues/482)
+
 # v0.6.1 - May 14, 2021
 
 Maintenance release to address the following bugs:

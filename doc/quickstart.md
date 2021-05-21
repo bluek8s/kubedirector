@@ -38,13 +38,13 @@ So if you intend to later work with the KubeDirector source, you would clone the
     git clone https://github.com/bluek8s/kubedirector
 ```
 
-If you want to work with a specific released version of KubeDirector (instead of the tip of the master branch), now is the time to switch the repo to that. This is recommended, especially for your first time trying out KubeDirector. At the time of last updating this doc, the most recent KubeDirector release was v0.6.1; you can set the repo to that release as follows:
+If you want to work with a specific released version of KubeDirector (instead of the tip of the master branch), now is the time to switch the repo to that. This is recommended, especially for your first time trying out KubeDirector. At the time of last updating this doc, the most recent KubeDirector release was v0.6.2; you can set the repo to that release as follows:
 ```bash
     cd kubedirector
-    git checkout v0.6.1
+    git checkout v0.6.2
 ```
 
-If you have switched to a tagged version of KubeDirector in your local repo, make sure that when you read the doc files (like this one) you reference the files that are consistent with that version. The files in your local repo will be consistent; you could also reference the online files at a particular tag, for example the [doc files for v0.6.1](https://github.com/bluek8s/kubedirector/tree/v0.6.1/doc).
+If you have switched to a tagged version of KubeDirector in your local repo, make sure that when you read the doc files (like this one) you reference the files that are consistent with that version. The files in your local repo will be consistent; you could also reference the online files at a particular tag, for example the [doc files for v0.6.2](https://github.com/bluek8s/kubedirector/tree/v0.6.2/doc).
 
 Now you can deploy KubeDirector:
 ```bash

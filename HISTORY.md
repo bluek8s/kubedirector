@@ -1,8 +1,23 @@
+# v0.6.2 - May 21, 2021
+
+Maintenance release to address the following bugs:
+* [stderr and stdstatus is never correctly reported while running startscript](https://github.com/bluek8s/kubedirector/issues/482)
+
+# v0.6.1 - May 14, 2021
+
+Maintenance release to address the following bugs:
+* [systemd checks report issue in Ubuntu image](https://github.com/bluek8s/kubedirector/issues/417)
+* [failure if fractional CPU resource requested for kdcluster](https://github.com/bluek8s/kubedirector/issues/466)
+* [possibility of nil deref in handleReadyMembers](https://github.com/bluek8s/kubedirector/issues/467)
+* [manual deletion of kdcluster-backing statefulset causes sset spam](https://github.com/bluek8s/kubedirector/issues/470)
+
+Related to the Ubuntu fix, the container image for the example app cr-app-ubuntu18.04.json has also been updated.
+
+
 # v0.6.0 - Apr 19, 2021
 
 The major change in this release is the addition of a couple of important features -
 * Surfacing role level placement constraints for pod. We are surfacing affinity property from pod spec in KubedirectorCluster Spec. [issue #48](https://github.com/bluek8s/kubedirector/issues/48)
-
 * Ability to set STDIN and TTY as part of KubeDirectorApplication role config. [issue #462](https://github.com/bluek8s/kubedirector/pull/462) 
 
 New application(s) in the example catalog
@@ -18,6 +33,23 @@ A few changes to the example kdapps catalog as well:
 
 * cr-app-datafabric610.json added
 * cr-app-jupyter-notebook.json updated
+
+
+# v0.5.2 - Oct 28, 2020
+
+Adding support for connections "reconnect" notifications via startscript ([issue #395](https://github.com/bluek8s/kubedirector/issues/395)) and updating configcli to support Python 3 ([bluek8s/configcli#4](https://github.com/bluek8s/configcli/issues/4)).
+
+
+# v0.5.1 - Aug 26, 2020
+
+Maintenance release, primarily to fix [issue #387](https://github.com/bluek8s/kubedirector/issues/387) "possible to specify kdcluster name that prevents member pod creation".
+
+A few changes to the example kdapps catalog as well:
+
+* cr-app-gitlab-ee.json added
+* cr-app-tensorflow-cpu-dockerhub.json added
+* cr-app-mapr610-secured.json updated
+* cr-app-mapr610-unsecured.json removed
 
 
 # v0.5.0 - Jul 16, 2020

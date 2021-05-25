@@ -20,7 +20,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -32,6 +31,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -77,7 +77,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		// don't care if status has changed.
 		statusChanged := false
 		if (cr.DeletionTimestamp == nil) || nowHasFinalizer {
-			statusChanged = !reflect.DeepEqual(cr.Status, oldStatus)
+			statusChanged = !equality.Semantic.DeepEqual(cr.Status, oldStatus)
 		}
 		finalizersChanged := (hadFinalizer != nowHasFinalizer)
 		if !(statusChanged || finalizersChanged) {

@@ -41,7 +41,7 @@
                 }
             }
         ],
-        "defaultImageRepoTag": "bluedata/ubuntu18.04:1.1",
+        "defaultImageRepoTag": "bluedata/ubuntu18.04:1.2",
         "defaultConfigPackage": null,
         "roles": [
             {

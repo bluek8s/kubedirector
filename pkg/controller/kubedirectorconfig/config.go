@@ -17,7 +17,6 @@ package kubedirectorconfig
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"time"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
@@ -25,6 +24,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -65,7 +65,7 @@ func (r *ReconcileKubeDirectorConfig) syncConfig(
 		// don't care if status has changed.
 		statusChanged := false
 		if (cr.DeletionTimestamp == nil) || nowHasFinalizer {
-			statusChanged = !reflect.DeepEqual(cr.Status, oldStatus)
+			statusChanged = !equality.Semantic.DeepEqual(cr.Status, oldStatus)
 		}
 		finalizersChanged := (hadFinalizer != nowHasFinalizer)
 		if !(statusChanged || finalizersChanged) {

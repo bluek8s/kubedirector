@@ -13,6 +13,7 @@ In longer-term plans, especially the overall effort to reach a 1.0 release, Kube
 These are features that are required before we can reasonably say that KD covers the aspects of app lifecycle management that are in its purview. Current issues in this bucket:
 
 * [service account management](https://github.com/bluek8s/kubedirector/issues/475) (currently in the [0.7.0/July](https://github.com/bluek8s/kubedirector/issues/475) milestone)
+* [kdcluster backup/restore enablement](https://github.com/bluek8s/kubedirector/issues/500) (currently in the [0.7.0/July](https://github.com/bluek8s/kubedirector/issues/475) milestone)
 * [live app upgrade](https://github.com/bluek8s/kubedirector/issues/229) (currently in the [on deck](https://github.com/bluek8s/kubedirector/milestone/12) milestone)
 * [policy for terminated pods](https://github.com/bluek8s/kubedirector/issues/274) (currently in the [on deck](https://github.com/bluek8s/kubedirector/milestone/12) milestone)
 

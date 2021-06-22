@@ -82,4 +82,8 @@ const (
 	invalidSrcURL   = "Unable to access the specified URL(\"%s\") in file injection spec for the role (%s). error: %s."
 
 	maxMemberLimit = "Maximum number of total members per KD cluster supported is %d."
+
+	failedSecretKeyEncryption                       = "cannot encrypt secret key %s"
+	forbiddenManualSecretKeyEncryptedValuePlacement = "manually setting secret key (%s) encrypted value is forbidden"
+	invalidMasterEncryptionKey                      = "masterEncryptionKey is invalid. error: %s."
 )

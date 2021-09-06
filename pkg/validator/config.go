@@ -237,6 +237,13 @@ func admitKDConfigCR(
 		)
 	}
 
+	// Populate backup-cluster-status flag if necessary.
+	if configCR.Spec.BackupClusterStatus == nil {
+		patches = append(patches,
+			newBoolPatch("/spec/backupClusterStatus", defaultBackupClusterStatus),
+		)
+	}
+
 	if len(valErrors) == 0 {
 		if len(patches) != 0 {
 			patchResult, patchErr := json.Marshal(patches)

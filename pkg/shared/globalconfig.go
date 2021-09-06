@@ -100,6 +100,18 @@ func GetSvcClusterDomainBase() string {
 	return DefaultSvcDomainBase
 }
 
+// GetBackupClusterStatus extracts the flag definition from the
+// globalConfig CR data if present, otherwise returns false
+func GetBackupClusterStatus() bool {
+
+	globalConfigLock.RLock()
+	defer globalConfigLock.RUnlock()
+	if globalConfig != nil && globalConfig.Spec.BackupClusterStatus != nil {
+		return *globalConfig.Spec.BackupClusterStatus
+	}
+	return false
+}
+
 // RemoveGlobalConfig removes the current globalConfig
 func RemoveGlobalConfig() {
 

@@ -26,6 +26,7 @@ type KubeDirectorConfigSpec struct {
 	RequiredSecretPrefix *string `json:"requiredSecretPrefix,omitempty"`
 	ClusterSvcDomainBase *string `json:"clusterSvcDomainBase,omitempty"`
 	DefaultNamingScheme  *string `json:"defaultNamingScheme,omitempty"`
+	BackupClusterStatus  *bool   `json:"backupClusterStatus,omitempty"`
 }
 
 // KubeDirectorConfigStatus defines the observed state of KubeDirectorConfig.

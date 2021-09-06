@@ -7,8 +7,13 @@ default_image := bluek8s/kubedirector:unstable
 image ?= ${default_image}
 
 cluster_resource_name := kubedirectorcluster
+cluster_resource_name_plural := kubedirectorclusters
 app_resource_name := kubedirectorapp
+app_resource_name_plural := kubedirectorapps
 config_resource_name := kubedirectorconfig
+config_resource_name_plural := kubedirectorconfigs
+status_resource_name := kubedirectorstatusbackup
+status_resource_name_plural := kubedirectorstatusbackups
 
 project_name := kubedirector
 bin_name := kubedirector
@@ -67,9 +72,10 @@ configcli:
      curl -L -o $(configcli_dest) https://github.com/bluek8s/configcli/archive/v$(configcli_version).tar.gz
 
 pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go:  \
-        pkg/apis/kubedirector/v1beta1/kubedirectorapp_types.go \
-        pkg/apis/kubedirector/v1beta1/kubedirectorcluster_types.go \
-        pkg/apis/kubedirector/v1beta1/kubedirectorconfig_types.go
+        pkg/apis/kubedirector/v1beta1/${app_resource_name}_types.go \
+        pkg/apis/kubedirector/v1beta1/${cluster_resource_name}_types.go \
+        pkg/apis/kubedirector/v1beta1/${config_resource_name}_types.go \
+        pkg/apis/kubedirector/v1beta1/${status_resource_name}_types.go
 	operator-sdk generate k8s
 
 push:
@@ -100,9 +106,10 @@ deploy:
 
 	@echo
 	@echo \* Creating custom resource definitions...
-	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_kubedirectorapps_crd.yaml
-	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_kubedirectorclusters_crd.yaml
-	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_kubedirectorconfigs_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_${app_resource_name_plural}_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_${cluster_resource_name_plural}_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_${config_resource_name_plural}_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_${status_resource_name_plural}_crd.yaml
 	@echo
 	@echo \* Creating role and service account...
 	kubectl create -f deploy/kubedirector/rbac.yaml
@@ -252,6 +259,7 @@ undeploy:
         }; \
         echo \* Deleting any managed virtual clusters...; \
         delete_all_things ${cluster_resource_name}; \
+        delete_all_things ${status_resource_name}; \
         echo; \
         echo \* Deleting any application types...; \
         delete_all_things ${app_resource_name}; \
@@ -268,9 +276,10 @@ undeploy:
         delete_namespaced_thing serviceaccount ${project_name}; \
         echo; \
         echo \* Deleting custom resource definitions...; \
-        delete_cluster_thing customresourcedefinition ${app_resource_name}s.kubedirector.hpe.com; \
-        delete_cluster_thing customresourcedefinition ${cluster_resource_name}s.kubedirector.hpe.com; \
-        delete_cluster_thing customresourcedefinition ${config_resource_name}s.kubedirector.hpe.com
+        delete_cluster_thing customresourcedefinition ${app_resource_name_plural}.kubedirector.hpe.com; \
+        delete_cluster_thing customresourcedefinition ${cluster_resource_name_plural}.kubedirector.hpe.com; \
+        delete_cluster_thing customresourcedefinition ${config_resource_name_plural}.kubedirector.hpe.com; \
+        delete_cluster_thing customresourcedefinition ${status_resource_name_plural}.kubedirector.hpe.com
 	@echo
 	@echo -n \* Waiting for all cluster resources to finish cleanup...
 	@set -e; \

@@ -56,14 +56,16 @@ type Connections struct {
 // It identifies which native k8s objects make up the cluster, and broadly
 // indicates ongoing operations of cluster creation or reconfiguration.
 type KubeDirectorClusterStatus struct {
-	State                   string       `json:"state"`
-	MemberStateRollup       StateRollup  `json:"memberStateRollup"`
-	GenerationUID           string       `json:"generationUID"`
-	SpecGenerationToProcess *int64       `json:"specGenerationToProcess,omitempty"`
-	ClusterService          string       `json:"clusterService"`
-	LastNodeID              int64        `json:"lastNodeID"`
-	Roles                   []RoleStatus `json:"roles"`
-	LastConnectionHash      string       `json:"lastConnectionHash"`
+	State                   string           `json:"state"`
+	StateDetail             string           `json:"stateDetail"`
+	RestoreProgress         *RestoreProgress `json:"restoreProgress"`
+	MemberStateRollup       StateRollup      `json:"memberStateRollup"`
+	GenerationUID           string           `json:"generationUID"`
+	SpecGenerationToProcess *int64           `json:"specGenerationToProcess,omitempty"`
+	ClusterService          string           `json:"clusterService"`
+	LastNodeID              int64            `json:"lastNodeID"`
+	Roles                   []RoleStatus     `json:"roles"`
+	LastConnectionHash      string           `json:"lastConnectionHash"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -137,6 +139,14 @@ type Role struct {
 	FileInjections []FileInjections            `json:"fileInjections,omitempty"`
 	Secret         *KDSecret                   `json:"secret,omitempty"`
 	BlockStorage   *BlockStorage               `json:"blockStorage,omitempty"`
+}
+
+// RestoreProgress identifies any necessary kdcluster components that have
+// not yet been re-created by a backup restore.
+type RestoreProgress struct {
+	AwaitingApp       bool `json:"awaitingApp"`
+	AwaitingStatus    bool `json:"awaitingStatus"`
+	AwaitingResources bool `json:"awaitingResources"`
 }
 
 // StateRollup surfaces whether any per-member statuses have problems that

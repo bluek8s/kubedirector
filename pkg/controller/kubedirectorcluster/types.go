@@ -25,6 +25,7 @@ const (
 	clusterCreating clusterState = "creating"
 	clusterUpdating              = "updating"
 	clusterReady                 = "configured"
+	clusterInvalid               = "invalid"
 	// ClusterSpecModified is exported because it is actually only used by
 	// the validator; declaring it here just to keep all cluster states in
 	// one spot.

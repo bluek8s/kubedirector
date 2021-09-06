@@ -49,6 +49,8 @@ spec:
             defaultNamingScheme:
               type: string
               pattern: '^UID$|^CrNameRole$'
+            backupClusterStatus:
+              type: boolean
         status:
           type: object
           nullable: true

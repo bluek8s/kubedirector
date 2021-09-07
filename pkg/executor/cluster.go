@@ -19,6 +19,7 @@ import (
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // UpdateClusterStatus propagates status changes back to k8s. Roles or members
@@ -26,12 +27,52 @@ import (
 // set to emptystring) will be removed before the writeback.
 func UpdateClusterStatus(
 	cr *kdv1.KubeDirectorCluster,
+	statusBackupShouldExist bool,
+	statusBackup *kdv1.KubeDirectorStatusBackup,
 ) error {
 
 	// Before writing back, remove any RoleStatus where StatefulSet is
 	// emptystring, and remove any MemberStatus where Pod is emptystring.
 	compact(&(cr.Status.Roles))
 
+	// First sync the backup status CR (this includes deleting it if it is
+	// not supposed to exist).
+	if statusBackupShouldExist {
+		if statusBackup != nil {
+			// Overwrite
+			statusBackup.Spec.StatusBackup = cr.Status
+			updateErr := shared.Update(context.TODO(), statusBackup)
+			if updateErr != nil {
+				return updateErr
+			}
+		} else {
+			// Create
+			statusBackup := &kdv1.KubeDirectorStatusBackup{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeDirectorStatusBackup",
+					APIVersion: "v1beta1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      cr.Name,
+					Namespace: cr.Namespace,
+				},
+				Spec: kdv1.KubeDirectorStatusBackupSpec{
+					StatusBackup: cr.Status,
+				},
+			}
+			createErr := shared.Create(context.TODO(), statusBackup)
+			if createErr != nil {
+				return createErr
+			}
+		}
+	} else {
+		if statusBackup != nil {
+			// Best-effort delete.
+			shared.Delete(context.TODO(), statusBackup)
+		}
+	}
+
+	// OK finally let's update the status subresource.
 	return shared.StatusUpdate(context.TODO(), cr)
 }
 

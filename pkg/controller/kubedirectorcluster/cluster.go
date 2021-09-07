@@ -79,6 +79,18 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		if (cr.DeletionTimestamp == nil) || nowHasFinalizer {
 			statusChanged = !equality.Semantic.DeepEqual(cr.Status, oldStatus)
 		}
+		// Even if status content has not changed, we still need to go through
+		// the status-writing process if we need to create or delete a
+		// status-backup CR.
+		statusBackupShouldExist := shared.GetBackupClusterStatus()
+		statusBackup, statusBackupErr := observer.GetStatusBackup(cr.Namespace, cr.Name)
+		statusBackupExists := (statusBackupErr == nil)
+		if !statusBackupExists {
+			statusBackup = nil
+		}
+		if !statusChanged {
+			statusChanged = (statusBackupShouldExist != statusBackupExists)
+		}
 		finalizersChanged := (hadFinalizer != nowHasFinalizer)
 		if !(statusChanged || finalizersChanged) {
 			return
@@ -93,7 +105,11 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			if statusChanged {
 				cr.Status.GenerationUID = uuid.New().String()
 				ClusterStatusGens.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
-				updateErr = executor.UpdateClusterStatus(cr)
+				updateErr = executor.UpdateClusterStatus(
+					cr,
+					statusBackupShouldExist,
+					statusBackup,
+				)
 				// If this succeeded, no need to do it again on next iteration
 				// if we're just cycling because of a failure to update the
 				// finalizer.

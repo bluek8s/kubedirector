@@ -15,6 +15,7 @@
 package validator
 
 import (
+	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
 )
 
@@ -37,6 +38,8 @@ const (
 	appCrt  = "app.crt"
 	appKey  = "app.pem"
 	rootCrt = "ca.crt"
+
+	allowDeleteLabel = shared.KdDomainBase + "/allow-delete-while-restoring"
 
 	multipleSpecChange = "Change to spec not allowed before previous spec change has been processed."
 	pendingNotifies    = "Change to spec not allowed because some members have not processed notifications of previous change."
@@ -84,3 +87,5 @@ const (
 
 	maxMemberLimit = "Maximum number of total members per KD cluster supported is %d."
 )
+
+type dictValue map[string]string

@@ -26,8 +26,12 @@ const (
 	// KubeDirectorGlobalConfig is the name of the kubedirector config CR
 	KubeDirectorGlobalConfig = "kd-global-config"
 
-	//KdDomainBase - Annotation DNS subdomain prefix
+	// KdDomainBase is the prefix for label and annotation keys.
 	KdDomainBase = "kubedirector.hpe.com"
+
+	// RestoringLabel is the label placed on a kdcluster while it and objects
+	// it depends on are being restored from a backup.
+	RestoringLabel = KdDomainBase + "/restoring"
 
 	// DefaultServiceType - default service type if not specified in
 	// the configCR

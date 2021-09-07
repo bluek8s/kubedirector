@@ -56,10 +56,10 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	if cr.Status == nil {
 		cr.Status = &kdv1.KubeDirectorClusterStatus{}
 		cr.Status.Roles = make([]kdv1.RoleStatus, 0)
-		if cr.Status.SpecGenerationToProcess == nil {
-			initSpecGen := int64(0)
-			cr.Status.SpecGenerationToProcess = &initSpecGen
-		}
+	}
+	if cr.Status.SpecGenerationToProcess == nil {
+		initSpecGen := int64(0)
+		cr.Status.SpecGenerationToProcess = &initSpecGen
 	}
 
 	annotations := cr.Annotations
@@ -178,6 +178,13 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			time.Sleep(wait)
 		}
 	}()
+
+	// If we're in this reconciliation function, restoreProgress should not
+	// be set. This only matters if this is the first iteration right after
+	// the being-restored label is removed, but it's fine just to always
+	// clear it here.
+	cr.Status.RestoreProgress = nil
+
 	// Calculate md5check sum to generate unique hash for connection object
 	currentHash := calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
 

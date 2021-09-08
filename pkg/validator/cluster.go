@@ -924,11 +924,14 @@ func admitClusterCR(
 		}
 	}
 
+	// Record whether we're in "restoring" state.
+	_, isRestoring := prevClusterCR.Labels[shared.RestoringLabel]
+
 	// If this is a delete and the being-restored label is set, reject the
 	// deletion unless allow-delete-while-restoring is also set. In all other
 	// cases allow the deletion.
 	if ar.Request.Operation == v1beta1.Delete {
-		if _, isRestoring := prevClusterCR.Labels[shared.RestoringLabel]; !isRestoring {
+		if !isRestoring {
 			return &admitResponse
 		}
 		if _, allowDelete := prevClusterCR.Labels[allowDeleteLabel]; allowDelete {
@@ -962,7 +965,7 @@ func admitClusterCR(
 	// If this is an update and the being-restored label is set, don't allow
 	// any spec change.
 	if ar.Request.Operation == v1beta1.Update {
-		if _, isRestoring := prevClusterCR.Labels[shared.RestoringLabel]; isRestoring {
+		if isRestoring {
 			if !equality.Semantic.DeepEqual(clusterCR.Spec, prevClusterCR.Spec) {
 				valErrors = append(
 					valErrors,
@@ -1010,9 +1013,20 @@ func admitClusterCR(
 	// referenced app is bad/gone. Note that we can't just check the
 	// metadata generation number here because that is incremented after this
 	// validator sees the request.
+	// We will NOT take this shortcut if we're trying to change from
+	// "restoring" to "reconciling". Need to validate in that case.
 	if ar.Request.Operation == v1beta1.Update {
-		if equality.Semantic.DeepEqual(clusterCR.Spec, prevClusterCR.Spec) {
-			return &admitResponse
+		doShortcut := true
+		if isRestoring {
+			_, willStillBeRestoring := clusterCR.Labels[shared.RestoringLabel]
+			if !willStillBeRestoring {
+				doShortcut = false
+			}
+		}
+		if doShortcut {
+			if equality.Semantic.DeepEqual(clusterCR.Spec, prevClusterCR.Spec) {
+				return &admitResponse
+			}
 		}
 	}
 

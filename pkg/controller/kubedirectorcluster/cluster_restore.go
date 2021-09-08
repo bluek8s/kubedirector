@@ -18,6 +18,7 @@ import (
 	"time"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
+	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
@@ -113,7 +114,7 @@ func (r *ReconcileKubeDirectorCluster) handleRestore(
 			reqLogger,
 			cr,
 			shared.EventReasonCluster,
-			"setting initial restore-progress flags",
+			"being restored: setting initial restore-progress flags",
 		)
 		cr.Status.RestoreProgress = &kdv1.RestoreProgress{
 			AwaitingApp:       true,
@@ -122,5 +123,48 @@ func (r *ReconcileKubeDirectorCluster) handleRestore(
 		}
 	}
 
+	// OK let's look for the resources we depend on. Note that it's possible
+	// (tho hopefully unlikely) for a flag to flop from true to false and
+	// back to true if a resource appears and then disappears. Only when all
+	// are simultaneously false will we auto-switch back to normal reconciling.
+
+	checkAppRestored(reqLogger, cr)
+
 	return nil
+}
+
+// checkAppRestored looks to see if the appropriate kdapp is present, and
+// sets the restoreProgress.awaitingApp flag accordingly.
+func checkAppRestored(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+) {
+
+	_, err := catalog.FindApp(cr)
+	catalogStr := "auto"
+	if cr.Spec.AppCatalog != nil {
+		catalogStr = *(cr.Spec.AppCatalog)
+	}
+
+	if err == nil {
+		cr.Status.RestoreProgress.AwaitingApp = false
+		shared.LogInfof(
+			reqLogger,
+			cr,
+			shared.EventReasonCluster,
+			"being restored: kdapp %s (%s catalog) is present",
+			cr.Spec.AppID,
+			catalogStr,
+		)
+	} else {
+		cr.Status.RestoreProgress.AwaitingApp = true
+		shared.LogInfof(
+			reqLogger,
+			cr,
+			shared.EventReasonCluster,
+			"being restored: awaiting kdapp %s (%s catalog)",
+			cr.Spec.AppID,
+			catalogStr,
+		)
+	}
 }

@@ -132,6 +132,10 @@ func (r *ReconcileKubeDirectorCluster) handleRestore(
 
 	checkStatusRestored(reqLogger, cr)
 
+	if cr.Status.RestoreProgress.AwaitingStatus == false {
+		checkResourcesRestored(reqLogger, cr)
+	}
+
 	return nil
 }
 
@@ -149,7 +153,7 @@ func checkAppRestored(
 	}
 
 	if err == nil {
-		if cr.Status.RestoreProgress.AwaitingApp == true {
+		if cr.Status.RestoreProgress.AwaitingApp {
 			cr.Status.RestoreProgress.AwaitingApp = false
 			shared.LogInfof(
 				reqLogger,
@@ -193,7 +197,7 @@ func checkStatusRestored(
 	)
 
 	if err == nil {
-		if cr.Status.RestoreProgress.AwaitingStatus == true {
+		if cr.Status.RestoreProgress.AwaitingStatus {
 			cr.Status.RestoreProgress.AwaitingStatus = false
 			shared.LogInfo(
 				reqLogger,
@@ -213,4 +217,114 @@ func checkStatusRestored(
 			"being restored: awaiting kdstatusbackup",
 		)
 	}
+}
+
+// checkResourcesRestored looks to see if resources named in the status,
+// which KD is responsible for directly creating, all exist. Set the
+// restoreProgress.awaitingResources flag accordingly.
+func checkResourcesRestored(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+) {
+
+	// We need to check for the cluster (headless) service, the statefulsets,
+	// and the per-member services associated with statefulset pods.
+	// Everything else will be created by the statefulset controller.
+
+	resourcesPresent := clusterServiceExists(reqLogger, cr)
+	resourcesPresent = resourcesPresent && roleResourcesExist(reqLogger, cr)
+
+	if resourcesPresent {
+		if cr.Status.RestoreProgress.AwaitingResources {
+			cr.Status.RestoreProgress.AwaitingResources = false
+			shared.LogInfo(
+				reqLogger,
+				cr,
+				shared.EventReasonCluster,
+				"being restored: component resources are present",
+			)
+		}
+	} else {
+		cr.Status.RestoreProgress.AwaitingResources = true
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonCluster,
+			"being restored: awaiting component resources",
+		)
+	}
+}
+
+// clusterServiceExists looks to see if a headless service named in the
+// status exists.
+func clusterServiceExists(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+) bool {
+
+	clusterService := cr.Status.ClusterService
+	if clusterService != "" {
+		_, serviceErr := observer.GetService(
+			cr.Namespace,
+			clusterService,
+		)
+		if serviceErr != nil {
+			shared.LogInfof(
+				reqLogger,
+				cr,
+				shared.EventReasonCluster,
+				"being restored: cluster service %s does not exist",
+				clusterService,
+			)
+			return false
+		}
+	}
+	return true
+}
+
+// roleResourcesExist looks to see if a statefulsets named in the
+// status exist, along with the necessary per-member services.
+func roleResourcesExist(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+) bool {
+
+	for _, roleStatus := range cr.Status.Roles {
+		if roleStatus.StatefulSet != "" {
+			_, statefulSetErr := observer.GetStatefulSet(
+				cr.Namespace,
+				roleStatus.StatefulSet,
+			)
+			if statefulSetErr != nil {
+				shared.LogInfof(
+					reqLogger,
+					cr,
+					shared.EventReasonCluster,
+					"being restored: statefulset %s does not exist",
+					roleStatus.StatefulSet,
+				)
+				return false
+			}
+		}
+		for _, memberStatus := range roleStatus.Members {
+			memberService := memberStatus.Service
+			if memberService != "" && memberService != zeroPortsService {
+				_, serviceErr := observer.GetService(
+					cr.Namespace,
+					memberService,
+				)
+				if serviceErr != nil {
+					shared.LogInfof(
+						reqLogger,
+						cr,
+						shared.EventReasonCluster,
+						"being restored: member service %s does not exist",
+						memberService,
+					)
+					return false
+				}
+			}
+		}
+	}
+	return true
 }

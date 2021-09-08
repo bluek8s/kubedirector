@@ -130,6 +130,8 @@ func (r *ReconcileKubeDirectorCluster) handleRestore(
 
 	checkAppRestored(reqLogger, cr)
 
+	checkStatusRestored(reqLogger, cr)
+
 	return nil
 }
 
@@ -147,15 +149,17 @@ func checkAppRestored(
 	}
 
 	if err == nil {
-		cr.Status.RestoreProgress.AwaitingApp = false
-		shared.LogInfof(
-			reqLogger,
-			cr,
-			shared.EventReasonCluster,
-			"being restored: kdapp %s (%s catalog) is present",
-			cr.Spec.AppID,
-			catalogStr,
-		)
+		if cr.Status.RestoreProgress.AwaitingApp == true {
+			cr.Status.RestoreProgress.AwaitingApp = false
+			shared.LogInfof(
+				reqLogger,
+				cr,
+				shared.EventReasonCluster,
+				"being restored: kdapp %s (%s catalog) is present",
+				cr.Spec.AppID,
+				catalogStr,
+			)
+		}
 	} else {
 		cr.Status.RestoreProgress.AwaitingApp = true
 		shared.LogInfof(
@@ -165,6 +169,48 @@ func checkAppRestored(
 			"being restored: awaiting kdapp %s (%s catalog)",
 			cr.Spec.AppID,
 			catalogStr,
+		)
+	}
+}
+
+// checkStatusRestored looks to see if the appropriate kdstatusbackup is
+// present, and if it is, copy its contents to this kdcluster's status.
+// Set the restoreProgress.awaitingApp flag accordingly.
+func checkStatusRestored(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+) {
+
+	// If we've already restored the status, do nothing. This is one case where
+	// it's not possible for the flag to flip from false to true.
+	if cr.Status.RestoreProgress.AwaitingStatus == false {
+		return
+	}
+
+	statusBackup, err := observer.GetStatusBackup(
+		cr.Namespace,
+		cr.Name,
+	)
+
+	if err == nil {
+		if cr.Status.RestoreProgress.AwaitingStatus == true {
+			cr.Status.RestoreProgress.AwaitingStatus = false
+			shared.LogInfo(
+				reqLogger,
+				cr,
+				shared.EventReasonCluster,
+				"being restored: kdstatusbackup is present",
+			)
+			statusBackup.Spec.StatusBackup.RestoreProgress = cr.Status.RestoreProgress
+			cr.Status = statusBackup.Spec.StatusBackup
+		}
+	} else {
+		cr.Status.RestoreProgress.AwaitingStatus = true
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonCluster,
+			"being restored: awaiting kdstatusbackup",
 		)
 	}
 }

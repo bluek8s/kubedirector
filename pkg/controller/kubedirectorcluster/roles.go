@@ -276,6 +276,7 @@ func handleRoleCreate(
 		cr,
 		nativeSystemdSupport,
 		role.roleSpec,
+		role.roleStatus,
 	)
 	if createErr != nil {
 		// Not much to do if we can't create it... we'll just keep trying

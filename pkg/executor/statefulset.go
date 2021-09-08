@@ -50,9 +50,17 @@ func CreateStatefulSet(
 	cr *kdv1.KubeDirectorCluster,
 	nativeSystemdSupport bool,
 	role *kdv1.Role,
+	roleStatus *kdv1.RoleStatus,
 ) (*appsv1.StatefulSet, error) {
 
-	statefulSet, err := getStatefulset(reqLogger, cr, nativeSystemdSupport, role, 0)
+	statefulSet, err := getStatefulset(
+		reqLogger,
+		cr,
+		nativeSystemdSupport,
+		role,
+		roleStatus,
+		0,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +178,7 @@ func getStatefulset(
 	cr *kdv1.KubeDirectorCluster,
 	nativeSystemdSupport bool,
 	role *kdv1.Role,
+	roleStatus *kdv1.RoleStatus,
 	replicas int32,
 ) (*appsv1.StatefulSet, error) {
 
@@ -296,24 +305,14 @@ func getStatefulset(
 		return nil, securityErr
 	}
 
-	namingScheme := *cr.Spec.NamingScheme
-	var objectName string
-	if namingScheme == v1beta1.CrNameRole {
-		objectName = MungObjectName(cr.Name + "-" + role.Name)
-		objectName += "-"
-	} else if namingScheme == v1beta1.UID {
-		objectName = statefulSetNamePrefix
-	}
-
 	vct := getVolumeClaimTemplate(cr, role, PvcNamePrefix)
 
-	return &appsv1.StatefulSet{
+	sset := &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "StatefulSet",
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName:    objectName,
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labels,
@@ -361,7 +360,21 @@ func getStatefulset(
 			},
 			VolumeClaimTemplates: vct,
 		},
-	}, nil
+	}
+
+	namingScheme := *cr.Spec.NamingScheme
+	if (roleStatus == nil) || (roleStatus.StatefulSet == "") {
+		if namingScheme == v1beta1.CrNameRole {
+			sset.ObjectMeta.GenerateName = MungObjectName(cr.Name + "-" + role.Name)
+			sset.ObjectMeta.GenerateName += "-"
+		} else if namingScheme == v1beta1.UID {
+			sset.ObjectMeta.GenerateName = statefulSetNamePrefix
+		}
+	} else {
+		sset.ObjectMeta.Name = roleStatus.StatefulSet
+	}
+
+	return sset, nil
 }
 
 // chkModifyEnvVars checks a role's resource requests. If an NVIDIA GPU resource has

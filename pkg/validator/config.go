@@ -17,6 +17,7 @@ package validator
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/bluek8s/kubedirector/pkg/secretkeys"
 	"strings"
 
 	"github.com/bluek8s/kubedirector/pkg/controller/kubedirectorconfig"
@@ -99,6 +100,31 @@ func validateConfigStorageClass(
 	)
 
 	return valErrors
+}
+
+// validateOrPopulateMasterEncryptionKey checks key length to be supported by AES (16,24,32)
+// or generates default 32 bytes encryption key for AES-256
+func validateOrPopulateMasterEncryptionKey(
+	configCR kdv1.KubeDirectorConfig,
+	patches []configPatchSpec,
+	valErrors []string,
+) ([]configPatchSpec, []string) {
+	if configCR.Spec.MasterEncryptionKey == nil {
+		patches = append(patches,
+			newStrPatch("/spec/masterEncryptionKey", secretkeys.GenerateEncryptionKey()),
+		)
+	} else {
+		err := secretkeys.ValidateEncryptionKey(*configCR.Spec.MasterEncryptionKey)
+		if err != nil {
+			valErrors = append(valErrors,
+				fmt.Sprintf(
+					invalidMasterEncryptionKey,
+					err,
+				),
+			)
+		}
+	}
+	return patches, valErrors
 }
 
 // admitKDConfigCR is the top-level config validation function, which invokes
@@ -236,6 +262,8 @@ func admitKDConfigCR(
 			newStrPatch("/spec/defaultNamingScheme", shared.DefaultNamingScheme),
 		)
 	}
+
+	patches, valErrors = validateOrPopulateMasterEncryptionKey(configCR, patches, valErrors)
 
 	if len(valErrors) == 0 {
 		if len(patches) != 0 {

@@ -210,6 +210,20 @@ spec:
                               type: string
                             fileGroup:
                               type: string
+                  secretKeys:
+                    type: array
+                    items:
+                      type: object
+                      required: [ name ]
+                      properties:
+                        name:
+                          type: string
+                          minLength: 1
+                        value:
+                          type: string
+                        encryptedValue:
+                          type: string
+                          minLength: 1
                   affinity:
                     properties:
                       nodeAffinity:

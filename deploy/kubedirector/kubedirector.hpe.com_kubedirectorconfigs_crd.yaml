@@ -49,6 +49,8 @@ spec:
             defaultNamingScheme:
               type: string
               pattern: '^UID$|^CrNameRole$'
+            masterEncryptionKey:
+              type: string
         status:
           type: object
           nullable: true

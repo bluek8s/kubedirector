@@ -53,8 +53,9 @@ func UpdateClusterStatus(
 					APIVersion: "v1beta1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      cr.Name,
-					Namespace: cr.Namespace,
+					Name:            cr.Name,
+					Namespace:       cr.Namespace,
+					OwnerReferences: ownerReferences(cr),
 				},
 				Spec: kdv1.KubeDirectorStatusBackupSpec{
 					StatusBackup: cr.Status,

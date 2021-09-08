@@ -2,10 +2,6 @@
 
 [![Build Status](https://travis-ci.com/bluek8s/kubedirector.svg?branch=master)](https://travis-ci.com/bluek8s/kubedirector)
 
-The [**BlueK8s**](https://github.com/bluek8s) open source initiative will include a number of projects to help bring enterprise-level capabilities for distributed stateful applications to Kubernetes. 
-
-The first open source project in this initiative is **Kubernetes Director** or **KubeDirector** for short.
-
 ## What is KubeDirector?
 
 **KubeDirector** uses standard Kubernetes (K8s) facilities of custom resources and API extensions to implement stateful scaleout application clusters. This approach enables transparent integration with K8s user/resource management and existing K8s clients and tools.

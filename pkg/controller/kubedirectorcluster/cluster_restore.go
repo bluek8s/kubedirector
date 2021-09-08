@@ -15,6 +15,7 @@
 package kubedirectorcluster
 
 import (
+	"context"
 	"time"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
@@ -135,6 +136,9 @@ func (r *ReconcileKubeDirectorCluster) handleRestore(
 	if cr.Status.RestoreProgress.AwaitingStatus == false {
 		checkResourcesRestored(reqLogger, cr)
 	}
+
+	// If all "waiting" flags are false we can try to resume reconcile.
+	checkRestoreDone(reqLogger, cr)
 
 	return nil
 }
@@ -327,4 +331,52 @@ func roleResourcesExist(
 		}
 	}
 	return true
+}
+
+// checkRestoreDone will try to clear the being-restored label if all the
+// "waiting" flags are false. If that fails it will populate the error field
+// of the restore progress object.
+func checkRestoreDone(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+) {
+
+	if cr.Status.RestoreProgress.AwaitingApp ||
+		cr.Status.RestoreProgress.AwaitingStatus ||
+		cr.Status.RestoreProgress.AwaitingResources {
+		return
+	}
+
+	// Let's not deep-copy the whole CR; we just need to modify Labels.
+	patchedCR := *cr
+	patchedCR.Labels = make(map[string]string)
+	for key, value := range cr.Labels {
+		if key != shared.RestoringLabel {
+			patchedCR.Labels[key] = value
+		}
+	}
+	patchErr := shared.Patch(
+		context.TODO(),
+		cr,
+		&patchedCR,
+	)
+	if patchErr == nil {
+		shared.LogInfo(
+			reqLogger,
+			cr,
+			shared.EventReasonCluster,
+			"resuming reconciliation",
+		)
+		return
+	}
+	// Don't want to use LogError here because it generates a stacktrace.
+	// We don't really care about that, just about the message.
+	shared.LogInfof(
+		reqLogger,
+		cr,
+		shared.EventReasonCluster,
+		"failed to resume reconciliation: %s",
+		patchErr.Error(),
+	)
+	cr.Status.RestoreProgress.Error = patchErr.Error()
 }

@@ -57,7 +57,6 @@ type Connections struct {
 // indicates ongoing operations of cluster creation or reconfiguration.
 type KubeDirectorClusterStatus struct {
 	State                   string           `json:"state"`
-	StateDetail             string           `json:"stateDetail"`
 	RestoreProgress         *RestoreProgress `json:"restoreProgress"`
 	MemberStateRollup       StateRollup      `json:"memberStateRollup"`
 	GenerationUID           string           `json:"generationUID"`
@@ -144,9 +143,10 @@ type Role struct {
 // RestoreProgress identifies any necessary kdcluster components that have
 // not yet been re-created by a backup restore.
 type RestoreProgress struct {
-	AwaitingApp       bool `json:"awaitingApp"`
-	AwaitingStatus    bool `json:"awaitingStatus"`
-	AwaitingResources bool `json:"awaitingResources"`
+	AwaitingApp       bool   `json:"awaitingApp"`
+	AwaitingStatus    bool   `json:"awaitingStatus"`
+	AwaitingResources bool   `json:"awaitingResources"`
+	Error             string `json:"error"`
 }
 
 // StateRollup surfaces whether any per-member statuses have problems that

@@ -478,8 +478,6 @@ spec:
           properties:
             state:
               type: string
-            stateDetail:
-              type: string
             restoreProgress:
               type: object
               nullable: true
@@ -490,6 +488,8 @@ spec:
                   type: boolean
                 awaitingResources:
                   type: boolean
+                error:
+                  type: string
             memberStateRollup:
               type: object
               properties:

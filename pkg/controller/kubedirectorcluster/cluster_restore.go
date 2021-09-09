@@ -66,6 +66,7 @@ func (r *ReconcileKubeDirectorCluster) handleRestore(
 			// Do the status write.
 			cr.Status.GenerationUID = uuid.New().String()
 			ClusterStatusGens.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
+			// false/nil used here to avoid making changes to any backup.
 			updateErr := executor.UpdateClusterStatus(cr, false, nil)
 			// If this succeeded, no need to do it again on next iteration.
 			if updateErr == nil {
@@ -124,6 +125,12 @@ func (r *ReconcileKubeDirectorCluster) handleRestore(
 		}
 	}
 
+	// If all "waiting" flags are false when we enter this function, then we
+	// can try to resume reconcile.
+	if checkRestoreDone(reqLogger, cr) {
+		return nil
+	}
+
 	// OK let's look for the resources we depend on. Note that it's possible
 	// (tho hopefully unlikely) for a flag to flop from true to false and
 	// back to true if a resource appears and then disappears. Only when all
@@ -136,9 +143,6 @@ func (r *ReconcileKubeDirectorCluster) handleRestore(
 	if cr.Status.RestoreProgress.AwaitingStatus == false {
 		checkResourcesRestored(reqLogger, cr)
 	}
-
-	// If all "waiting" flags are false we can try to resume reconcile.
-	checkRestoreDone(reqLogger, cr)
 
 	return nil
 }
@@ -335,16 +339,17 @@ func roleResourcesExist(
 
 // checkRestoreDone will try to clear the being-restored label if all the
 // "waiting" flags are false. If that fails it will populate the error field
-// of the restore progress object.
+// of the restore progress object. Return true if and only if we have
+// successfully cleared that label.
 func checkRestoreDone(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-) {
+) bool {
 
 	if cr.Status.RestoreProgress.AwaitingApp ||
 		cr.Status.RestoreProgress.AwaitingStatus ||
 		cr.Status.RestoreProgress.AwaitingResources {
-		return
+		return false
 	}
 
 	// Let's not deep-copy the whole CR; we just need to modify Labels.
@@ -367,7 +372,7 @@ func checkRestoreDone(
 			shared.EventReasonCluster,
 			"resuming reconciliation",
 		)
-		return
+		return true
 	}
 	// Don't want to use LogError here because it generates a stacktrace.
 	// We don't really care about that, just about the message.
@@ -379,4 +384,5 @@ func checkRestoreDone(
 		patchErr.Error(),
 	)
 	cr.Status.RestoreProgress.Error = patchErr.Error()
+	return false
 }

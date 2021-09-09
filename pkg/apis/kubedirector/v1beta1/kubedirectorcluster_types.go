@@ -57,7 +57,7 @@ type Connections struct {
 // indicates ongoing operations of cluster creation or reconfiguration.
 type KubeDirectorClusterStatus struct {
 	State                   string           `json:"state"`
-	RestoreProgress         *RestoreProgress `json:"restoreProgress"`
+	RestoreProgress         *RestoreProgress `json:"restoreProgress,omitempty"`
 	MemberStateRollup       StateRollup      `json:"memberStateRollup"`
 	GenerationUID           string           `json:"generationUID"`
 	SpecGenerationToProcess *int64           `json:"specGenerationToProcess,omitempty"`

@@ -126,18 +126,19 @@ type FileInjections struct {
 // image, resource requirements, persistent storage definition, and (as
 // defined by the cluster's KubeDirectorApp) set of service endpoints.
 type Role struct {
-	Name           string                      `json:"id"`
-	PodLabels      map[string]string           `json:"podLabels,omitempty"`
-	ServiceLabels  map[string]string           `json:"serviceLabels,omitempty"`
-	Members        *int32                      `json:"members,omitempty"`
-	Resources      corev1.ResourceRequirements `json:"resources"`
-	Affinity       *corev1.Affinity            `json:"affinity,omitempty"`
-	Storage        *ClusterStorage             `json:"storage,omitempty"`
-	EnvVars        []corev1.EnvVar             `json:"env,omitempty"`
-	FileInjections []FileInjections            `json:"fileInjections,omitempty"`
-	Secret         *KDSecret                   `json:"secret,omitempty"`
-	BlockStorage   *BlockStorage               `json:"blockStorage,omitempty"`
-	SecretKeys     []SecretKey                 `json:"secretKeys,omitempty"`
+	Name               string                      `json:"id"`
+	PodLabels          map[string]string           `json:"podLabels,omitempty"`
+	ServiceLabels      map[string]string           `json:"serviceLabels,omitempty"`
+	Members            *int32                      `json:"members,omitempty"`
+	Resources          corev1.ResourceRequirements `json:"resources"`
+	Affinity           *corev1.Affinity            `json:"affinity,omitempty"`
+	Storage            *ClusterStorage             `json:"storage,omitempty"`
+	EnvVars            []corev1.EnvVar             `json:"env,omitempty"`
+	FileInjections     []FileInjections            `json:"fileInjections,omitempty"`
+	Secret             *KDSecret                   `json:"secret,omitempty"`
+	BlockStorage       *BlockStorage               `json:"blockStorage,omitempty"`
+	ServiceAccountName *string                     `json:"serviceAccountName"`
+	SecretKeys         []SecretKey                 `json:"secretKeys,omitempty"`
 }
 
 // SecretKey holds data which is supposed to be only available on configuration phase

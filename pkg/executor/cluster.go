@@ -19,6 +19,7 @@ import (
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
+	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -75,6 +76,37 @@ func UpdateClusterStatus(
 
 	// OK finally let's update the status subresource.
 	return shared.StatusUpdate(context.TODO(), cr)
+}
+
+// UpdateClusterStatusBackupOwner handles reconciliation only of the owner ref.
+func UpdateClusterStatusBackupOwner(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	statusBackup *kdv1.KubeDirectorStatusBackup,
+) error {
+
+	if statusBackup == nil {
+		return nil
+	}
+	if ownerReferencesPresent(cr, statusBackup.OwnerReferences) {
+		return nil
+	}
+	shared.LogInfof(
+		reqLogger,
+		cr,
+		shared.EventReasonNoEvent,
+		"repairing owner ref on statusbackup{%s}",
+		statusBackup.Name,
+	)
+	// We're just going to nuke any existing owner refs. (A bit more
+	// discussion of this in UpdateStatefulSetNonReplicas comments.)
+	patchedRes := *statusBackup
+	patchedRes.OwnerReferences = ownerReferences(cr)
+	return shared.Patch(
+		context.TODO(),
+		statusBackup,
+		&patchedRes,
+	)
 }
 
 // compact edits the input slice of role statuses so that any elements that

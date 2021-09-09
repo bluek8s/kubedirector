@@ -387,6 +387,7 @@ func handleRoleConfig(
 ) {
 
 	updateErr := executor.UpdateStatefulSetNonReplicas(
+		reqLogger,
 		cr,
 		role.roleSpec,
 		role.statefulSet)

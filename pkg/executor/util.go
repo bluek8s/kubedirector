@@ -45,6 +45,9 @@ func ownerReferences(
 	cr shared.KubeDirectorObject,
 ) []metav1.OwnerReference {
 
+	// IF THIS IS EVER CHANGED TO RETURN MORE THAN ONE REFERENCE for some
+	// reason, then ownerReferencesPresent below will also need to be
+	// changed.
 	return []metav1.OwnerReference{
 		*metav1.NewControllerRef(cr, schema.GroupVersionKind{
 			Group:   kdv1.SchemeGroupVersion.Group,
@@ -52,6 +55,30 @@ func ownerReferences(
 			Kind:    cr.GetObjectKind().GroupVersionKind().Kind,
 		}),
 	}
+}
+
+// ownerReferencesPresent determines whether the desired references (from
+// the ownerReferences func) are present in the CR.
+func ownerReferencesPresent(
+	cr shared.KubeDirectorObject,
+	currentRefs []metav1.OwnerReference,
+) bool {
+
+	// As mentioned above, for simplicity we leverage the fact that
+	// we only require one owner reference. Also we probably don't need/want
+	// to do an entire struct compare; only the fields we really care about.
+	desiredRef := &(ownerReferences(cr)[0])
+	for _, ref := range currentRefs {
+		if (ref.APIVersion == desiredRef.APIVersion) &&
+			(ref.Kind == desiredRef.Kind) &&
+			(ref.Name == desiredRef.Name) &&
+			(ref.UID == desiredRef.UID) &&
+			(ref.Controller != nil) &&
+			(*ref.Controller == true) {
+			return true
+		}
+	}
+	return false
 }
 
 // annotationsForCluster generates a set of resource labels appropriate for

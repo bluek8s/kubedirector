@@ -68,8 +68,27 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		cr.Annotations = annotations
 	}
 
+	// Define a func to (re)fetch the current status backup if any.
+	var statusBackup *kdv1.KubeDirectorStatusBackup
+	var statusBackupErr error
+	var statusBackupExists bool
+	var statusBackupShouldExist bool
+	fetchBackup := func() {
+		statusBackup, statusBackupErr = observer.GetStatusBackup(cr.Namespace, cr.Name)
+		statusBackupExists = (statusBackupErr == nil)
+		if !statusBackupExists {
+			statusBackup = nil
+		}
+		statusBackupShouldExist = shared.GetBackupClusterStatus()
+	}
+
 	// Set a defer func to write new status and/or finalizers if they change.
 	defer func() {
+		fetchBackup()
+		// Ignore any error returned by UpdateClusterStatusBackupOwner; if
+		// we fail to fix the owner ref there it's not worth bailing out of
+		// reconciliation.
+		executor.UpdateClusterStatusBackupOwner(reqLogger, cr, statusBackup)
 		syncMemberNotifies(reqLogger, cr)
 		updateStateRollup(cr)
 		nowHasFinalizer := shared.HasFinalizer(cr)
@@ -78,18 +97,12 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		statusChanged := false
 		if (cr.DeletionTimestamp == nil) || nowHasFinalizer {
 			statusChanged = !equality.Semantic.DeepEqual(cr.Status, oldStatus)
-		}
-		// Even if status content has not changed, we still need to go through
-		// the status-writing process if we need to create or delete a
-		// status-backup CR.
-		statusBackupShouldExist := shared.GetBackupClusterStatus()
-		statusBackup, statusBackupErr := observer.GetStatusBackup(cr.Namespace, cr.Name)
-		statusBackupExists := (statusBackupErr == nil)
-		if !statusBackupExists {
-			statusBackup = nil
-		}
-		if !statusChanged {
-			statusChanged = (statusBackupShouldExist != statusBackupExists)
+			// Even if status content has not changed, we still need to go
+			// through the status-writing process if we need to create or
+			// delete a status-backup CR.
+			if !statusChanged {
+				statusChanged = (statusBackupShouldExist != statusBackupExists)
+			}
 		}
 		finalizersChanged := (hadFinalizer != nowHasFinalizer)
 		if !(statusChanged || finalizersChanged) {
@@ -149,6 +162,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 				// form, restore our desired status/finalizers, and try again
 				// immediately.
 				if errors.IsConflict(updateErr) {
+					fetchBackup()
 					currentCluster.Status = cr.Status
 					currentHasFinalizer := shared.HasFinalizer(currentCluster)
 					if currentHasFinalizer {

@@ -82,16 +82,36 @@ func CreateHeadlessService(
 // UpdateHeadlessService examines the current cluster service in k8s and may
 // take steps to reconcile it to the desired spec.
 func UpdateHeadlessService(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	service *corev1.Service,
 ) error {
 
-	// TBD: We could compare the service against the expected service
-	// (generated from the CR) and if there is a deviance in properties that
-	// we need/expect to be under our control, correct them here. Not going
-	// to tackle that at first.
+	// We could compare the service against the expected service (generated
+	// from the CR) and if there is a deviance in properties that we
+	// need/expect to be under our control, other than the replicas count,
+	// correct them here.
 
-	return nil
+	// For now only checking the owner reference.
+	if ownerReferencesPresent(cr, service.OwnerReferences) {
+		return nil
+	}
+	shared.LogInfof(
+		reqLogger,
+		cr,
+		shared.EventReasonNoEvent,
+		"repairing owner ref on service{%s}",
+		service.Name,
+	)
+	// We're just going to nuke any existing owner refs. (A bit more
+	// discussion of this in UpdateStatefulSetNonReplicas comments.)
+	patchedRes := *service
+	patchedRes.OwnerReferences = ownerReferences(cr)
+	return shared.Patch(
+		context.TODO(),
+		service,
+		&patchedRes,
+	)
 }
 
 // CreatePodService creates in k8s a service that exposes the designated
@@ -153,11 +173,12 @@ func CreatePodService(
 
 // UpdatePodService examines a current per-member service in k8s and may take
 // steps to reconcile it to the desired spec.
-// TBD: Currently this function handles changes only for serviceType, and is
-// only called if the service is known to already exist. If port-changing is
-// supported in the future, either this function or its caller must take care
-// of possibly transitioning to and from the "no ports" state which will
-// involve deleting or creating the service object rather than just modifying.
+// TBD: Currently this function handles changes only for serviceType and
+// ownerReferences, and is only called if the service is known to already
+// exist. If port-changing is supported in the future, either this function or
+// its caller must take care of possibly transitioning to and from the "no
+// ports" state which will involve deleting or creating the service object
+// rather than just modifying.
 func UpdatePodService(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
@@ -166,6 +187,38 @@ func UpdatePodService(
 	service *corev1.Service,
 ) error {
 
+	// First check the owner reference.
+	if !ownerReferencesPresent(cr, service.OwnerReferences) {
+		shared.LogInfof(
+			reqLogger,
+			cr,
+			shared.EventReasonNoEvent,
+			"repairing owner ref on service{%s}",
+			service.Name,
+		)
+		// We're just going to nuke any existing owner refs. (A bit more
+		// discussion of this in UpdateStatefulSetNonReplicas comments.)
+		patchedRes := *service
+		patchedRes.OwnerReferences = ownerReferences(cr)
+		patchErr := shared.Patch(
+			context.TODO(),
+			service,
+			&patchedRes,
+		)
+		if patchErr != nil {
+			shared.LogErrorf(
+				reqLogger,
+				patchErr,
+				cr,
+				shared.EventReasonNoEvent,
+				"failed to update service{%s}",
+				service.Name,
+			)
+			return patchErr
+		}
+	}
+
+	// Now deal with service type.
 	reqServiceType := shared.ServiceType(*cr.Spec.ServiceType)
 
 	// Compare cluster CR's service type against created service
@@ -259,9 +312,9 @@ func UpdateService(
 			reqLogger,
 			err,
 			obj,
-			shared.EventReasonCluster,
-			"failed to update service {%v}",
-			service,
+			shared.EventReasonNoEvent,
+			"failed to update service{%s}",
+			service.Name,
 		)
 		return err
 	}
@@ -282,7 +335,7 @@ func UpdateService(
 			reqLogger,
 			err,
 			obj,
-			shared.EventReasonMember,
+			shared.EventReasonNoEvent,
 			"failed to retrieve service{%s}",
 			service.Name,
 		)
@@ -296,7 +349,7 @@ func UpdateService(
 			reqLogger,
 			err,
 			obj,
-			shared.EventReasonMember,
+			shared.EventReasonNoEvent,
 			"failed to update service{%s} with {%v}",
 			service.Name,
 			currentService,

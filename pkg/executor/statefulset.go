@@ -133,6 +133,7 @@ func UpdateStatefulSetReplicas(
 // steps to reconcile it to the desired spec, for properties other than the
 // replicas count.
 func UpdateStatefulSetNonReplicas(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
 	statefulSet *appsv1.StatefulSet,
@@ -143,12 +144,34 @@ func UpdateStatefulSetNonReplicas(
 		return nil
 	}
 
-	// TBD: We could compare the service against the expected service
-	// (generated from the CR) and if there is a deviance in properties that
-	// we need/expect to be under our control, other than the replicas
-	// count, correct them here.
+	// We could compare the statefulset against the expected statefulset
+	// (generated from the CR) and if there is a deviance in properties that we
+	// need/expect to be under our control, other than the replicas count,
+	// correct them here.
 
-	return nil
+	// For now only checking the owner reference.
+	if ownerReferencesPresent(cr, statefulSet.OwnerReferences) {
+		return nil
+	}
+	shared.LogInfof(
+		reqLogger,
+		cr,
+		shared.EventReasonNoEvent,
+		"repairing owner ref on statefulset{%s}",
+		statefulSet.Name,
+	)
+	// So, what to do. Do we add our owner ref to the existing ones? What if
+	// something else is claiming to be controller? Probably some stale ref
+	// left by a bad backup/restore process? We're just going to nuke any
+	// existing owner refs.
+	patchedRes := *statefulSet
+	patchedRes.OwnerReferences = ownerReferences(cr)
+	patchErr := shared.Patch(
+		context.TODO(),
+		statefulSet,
+		&patchedRes,
+	)
+	return patchErr
 }
 
 // DeleteStatefulSet deletes a statefulset from k8s.

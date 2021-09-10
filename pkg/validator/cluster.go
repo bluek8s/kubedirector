@@ -27,6 +27,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/controller/kubedirectorcluster"
 	"github.com/bluek8s/kubedirector/pkg/observer"
+	"github.com/bluek8s/kubedirector/pkg/secretkeys"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -59,6 +60,7 @@ type clusterPatchValue struct {
 	ValueStr           *string
 	ValueClusterStatus *kdv1.KubeDirectorClusterStatus
 	ValueKDSecret      *kdv1.KDSecret
+	ValueSecretKey     *kdv1.SecretKey
 	ValueDict          *dictValue
 }
 
@@ -72,6 +74,9 @@ func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
 	}
 	if obj.ValueClusterStatus != nil {
 		return json.Marshal(obj.ValueClusterStatus)
+	}
+	if obj.ValueSecretKey != nil {
+		return json.Marshal(obj.ValueSecretKey)
 	}
 	if obj.ValueDict != nil {
 		return json.Marshal(obj.ValueDict)
@@ -781,6 +786,58 @@ func validateSecrets(
 	return valErrors, patches
 }
 
+// encryptSecretKeys encrypts secret keys per each role and generates patches if needed
+func encryptSecretKeys(
+	cr *kdv1.KubeDirectorCluster,
+	prevCr *kdv1.KubeDirectorCluster,
+	valErrors []string,
+	patches []clusterPatchSpec,
+) ([]string, []clusterPatchSpec) {
+	for roleIndex, role := range cr.Spec.Roles {
+		prevEncryptedValues := map[string]string{}
+		for _, prevRole := range prevCr.Spec.Roles {
+			if prevRole.Name == role.Name {
+				for _, secretKey := range prevRole.SecretKeys {
+					prevEncryptedValues[secretKey.Name] = secretKey.EncryptedValue
+				}
+			}
+		}
+		for secretKeyIndex, secretKey := range role.SecretKeys {
+			if secretKey.Value == "" && secretKey.EncryptedValue != "" {
+				if secretKey.EncryptedValue != prevEncryptedValues[secretKey.Name] {
+					valErrors = append(valErrors,
+						fmt.Sprintf(forbiddenManualSecretKeyEncryptedValuePlacement, secretKey.Name),
+					)
+				}
+				continue
+			}
+			encryptedValue, err := secretkeys.Encrypt(secretKey.Value)
+			if err != nil {
+				validatorLog.Error(err, "cannot encrypt secret key",
+					"namespace", cr.Namespace, "kdcluster", cr.Name,
+					"role", role.Name,
+					"secret key", secretKeyIndex)
+				valErrors = append(valErrors,
+					fmt.Sprintf(failedSecretKeyEncryption, secretKey.Name),
+				)
+				continue
+			}
+			patches = append(patches, clusterPatchSpec{
+				Op:   "replace",
+				Path: "/spec/roles/" + strconv.Itoa(roleIndex) + "/secretKeys/" + strconv.Itoa(secretKeyIndex),
+				Value: clusterPatchValue{
+					ValueSecretKey: &kdv1.SecretKey{
+						Name:           secretKey.Name,
+						EncryptedValue: encryptedValue,
+					},
+				},
+			})
+		}
+	}
+
+	return valErrors, patches
+}
+
 // addServiceType function checks to see if serviceType is provided for a
 // cluster CR. If unspecified, check to see if there is a default serviceType
 // provided through kubedirector's config CR, otherwise use a global constant
@@ -1068,6 +1125,9 @@ func admitClusterCR(
 
 	// Validate secret and generate patches for default values (if any)
 	valErrors, patches = validateSecrets(&clusterCR, valErrors, patches)
+
+	// Generate patches to conceal raw secret keys' values
+	valErrors, patches = encryptSecretKeys(&clusterCR, &prevClusterCR, valErrors, patches)
 
 	// If cluster already exists, check for invalid property changes.
 	if ar.Request.Operation == v1beta1.Update {

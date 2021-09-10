@@ -75,6 +75,7 @@ type role struct {
 	FQDNs        []string           `json:"fqdns"`
 	FQDNMappings map[string]string  `json:"fqdn_mappings"`
 	Flavor       flavor             `json:"flavor"`
+	SecretKeys   map[string]string  `json:"secret_keys,omitempty"`
 }
 
 type service struct {

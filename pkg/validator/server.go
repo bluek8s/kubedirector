@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"strconv"
 
 	"github.com/bluek8s/kubedirector/pkg/observer"
@@ -36,6 +37,8 @@ var validationHandlers = map[string]admitFunc{
 	"KubeDirectorCluster": admitClusterCR,
 	"KubeDirectorConfig":  admitKDConfigCR,
 }
+
+var validatorLog = log.Log.WithName(validatorServiceName)
 
 // validation handles the http portion of a request prior to dispatching the
 // resource-type-specific validation handler.

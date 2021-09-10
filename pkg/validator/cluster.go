@@ -35,6 +35,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	appsvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	corevalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 )
 
 type secretValidateResult int
@@ -218,23 +219,40 @@ func validateCardinality(
 			break
 		}
 
-		// validate user-specified labels
+		// validate user-specified labels and annotations
 		rolePath := rolesPath.Index(i)
 		labelErrors := appsvalidation.ValidateLabels(
 			role.PodLabels,
 			rolePath.Child("podLabels"),
 		)
+		annotationErrors := corevalidation.ValidateAnnotations(
+			role.PodAnnotations,
+			rolePath.Child("podAnnotations"),
+		)
 		serviceLabelErrors := appsvalidation.ValidateLabels(
 			role.ServiceLabels,
 			rolePath.Child("serviceLabels"),
 		)
-		if (len(labelErrors) != 0) || (len(serviceLabelErrors) != 0) {
+		serviceAnnotationErrors := corevalidation.ValidateAnnotations(
+			role.ServiceAnnotations,
+			rolePath.Child("serviceAnnotations"),
+		)
+		if (len(labelErrors) != 0) ||
+			(len(annotationErrors) != 0) ||
+			(len(serviceLabelErrors) != 0) ||
+			(len(serviceAnnotationErrors) != 0) {
 			anyError = true
 			for _, labelErr := range labelErrors {
 				valErrors = append(valErrors, labelErr.Error())
 			}
+			for _, annotationErr := range annotationErrors {
+				valErrors = append(valErrors, annotationErr.Error())
+			}
 			for _, serviceLabelErr := range serviceLabelErrors {
 				valErrors = append(valErrors, serviceLabelErr.Error())
+			}
+			for _, serviceAnnotationErr := range serviceAnnotationErrors {
+				valErrors = append(valErrors, serviceAnnotationErr.Error())
 			}
 		}
 	}

@@ -199,6 +199,29 @@ func checkStatusRestored(
 		return
 	}
 
+	// If there's no status backup to wait for, set error message and bail.
+	// Note that we should never have gotten into this position if the
+	// status-backup notation was not set. It's possible though that the
+	// annotation was manually removed by someone after this process started.
+	// In that case, eh, we can just keep waiting for the status backup to
+	// appear.
+	if cr.Annotations != nil {
+		if annVal, ok := cr.Annotations[shared.StatusBackupAnnotation]; ok {
+			if annVal == "false" {
+				shared.LogInfo(
+					reqLogger,
+					cr,
+					shared.EventReasonCluster,
+					"being restored: kdstatusbackup was not ever created",
+				)
+				cr.Status.RestoreProgress.Error =
+					"KD status backups were not enabled at the time this kdcluster " +
+						"was snapshotted; it is not possible to do automatic status " +
+						"recovery and resume reconciliation."
+			}
+		}
+	}
+
 	statusBackup, err := observer.GetStatusBackup(
 		cr.Namespace,
 		cr.Name,

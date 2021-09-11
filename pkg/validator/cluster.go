@@ -1010,12 +1010,14 @@ func admitClusterCR(
 		return &admitResponse
 	}
 
-	// If this is a re-creation (as indicated by finalizer existing), set
+	// If this is a re-creation (as indicated by annotation existing), set
 	// the being-restored label and skip validation.
 	if ar.Request.Operation == v1beta1.Create {
-		if shared.HasFinalizer(&clusterCR) {
-			patches = addRestoreLabel(&clusterCR, patches)
-			return &admitResponse
+		if clusterCR.Annotations != nil {
+			if _, ok := clusterCR.Annotations[shared.StatusBackupAnnotation]; ok {
+				patches = addRestoreLabel(&clusterCR, patches)
+				return &admitResponse
+			}
 		}
 	}
 

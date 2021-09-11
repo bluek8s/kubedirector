@@ -116,7 +116,7 @@ func GetMasterEncryptionKey() (string, error) {
 }
 
 // GetBackupClusterStatus extracts the flag definition from the
-// globalConfig CR data if present, otherwise returns false
+// globalConfig CR data if present, otherwise returns false.
 func GetBackupClusterStatus() bool {
 
 	globalConfigLock.RLock()

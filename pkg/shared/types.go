@@ -33,6 +33,10 @@ const (
 	// it depends on are being restored from a backup.
 	RestoringLabel = KdDomainBase + "/restoring"
 
+	// StatusBackupAnnotation is the annotation placed on a kdcluster when
+	// writing status, to indicate whether or not a status backup exists.
+	StatusBackupAnnotation = KdDomainBase + "/status-backup-exists"
+
 	// DefaultServiceType - default service type if not specified in
 	// the configCR
 	DefaultServiceType = "LoadBalancer"

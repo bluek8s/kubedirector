@@ -340,7 +340,7 @@ func getStatefulset(
 						persistDirs,
 					),
 					Affinity:           role.Affinity,
-					ServiceAccountName: *role.ServiceAccountName,
+					ServiceAccountName: role.ServiceAccountName,
 					Containers: []v1.Container{
 						{
 							Name:            AppContainerName,

@@ -21,8 +21,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"strconv"
+
+	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"

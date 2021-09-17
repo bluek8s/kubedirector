@@ -7,6 +7,7 @@ spec:
   roles:
   - id: vanilla_centos
     members: 1
+    serviceAccountName: "kubedirector"
     resources:
       requests:
         memory: "4Gi"

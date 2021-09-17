@@ -252,7 +252,10 @@ func getStatefulset(
 		}
 	}
 
-	useServiceAccount := true
+	useServiceAccount := false
+	if role.ServiceAccountName != "" {
+		useServiceAccount = true
+	}
 	volumeMounts, volumes, volumesErr := generateVolumeMounts(
 		cr,
 		role,

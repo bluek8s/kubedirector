@@ -15,14 +15,16 @@
 package validator
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/bluek8s/kubedirector/pkg/secretkeys"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/bluek8s/kubedirector/pkg/secretkeys"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
@@ -30,6 +32,8 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
+	v1 "k8s.io/api/authentication/v1"
+	sar "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -254,15 +258,16 @@ func validateCardinality(
 func validateClusterRoles(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
+	userInfo v1.UserInfo,
 	valErrors []string,
 ) []string {
 
 	var configuredRoles []string
-
 	allRoles := catalog.GetAllRoleIDs(appCR)
 	roleSeen := make(map[string]bool)
 	uniqueRoles := true
 	for _, role := range cr.Spec.Roles {
+
 		if shared.StringInList(role.Name, allRoles) {
 			configuredRoles = append(configuredRoles, role.Name)
 		} else {
@@ -516,6 +521,53 @@ func validateRoleStorageClass(
 	}
 
 	return valErrors, patches
+}
+
+// validateRoleSA validates whether the SA exists and if it does
+// is the user allowed to access it or not
+func validateRoleServiceAccount(
+	cr *kdv1.KubeDirectorCluster,
+	valErrs []string,
+	userInfo v1.UserInfo,
+
+) []string {
+
+	numRoles := len(cr.Spec.Roles)
+	for i := 0; i < numRoles; i++ {
+		role := &(cr.Spec.Roles[i])
+		if role.ServiceAccountName == "" {
+			// No SA
+			continue
+		}
+		sar := &sar.SubjectAccessReview{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "SubjectAccessReview",
+				APIVersion: "authorization.k8s.io/v1",
+			},
+			Spec: sar.SubjectAccessReviewSpec{
+				ResourceAttributes: &sar.ResourceAttributes{
+					Namespace: cr.Namespace,
+					Verb:      "get",
+					Resource:  "ServiceAccount",
+					Name:      role.ServiceAccountName,
+				},
+				User:   userInfo.Username,
+				Groups: userInfo.Groups,
+				UID:    userInfo.UID,
+			},
+		}
+		err := shared.Create(context.TODO(), sar)
+		if err != nil {
+			valErrs = append(valErrs, err.Error())
+		} else {
+			if sar.Status.Denied {
+				valErrs = append(valErrs, sar.Status.Reason)
+			}
+		}
+	}
+	return valErrs
+	//fmt.Printf("DEBUG: Subject Review failed with err %s", err.Error())
+	//return false, ""
 }
 
 // validateApp function checks for valid app and if necessary creates a patch
@@ -999,10 +1051,13 @@ func admitClusterCR(
 	valErrors, patches = validateCardinality(&clusterCR, appCR, valErrors, patches)
 
 	// Validate that roles are known & sufficient.
-	valErrors = validateClusterRoles(&clusterCR, appCR, valErrors)
+	valErrors = validateClusterRoles(&clusterCR, appCR, ar.Request.UserInfo, valErrors)
 
 	// Validate minimum resources for all roles
 	valErrors = validateMinResources(&clusterCR, appCR, valErrors)
+
+	// Validate if the role's service account exists and if the user has permission to use
+	valErrors = validateRoleServiceAccount(&clusterCR, valErrors, ar.Request.UserInfo)
 
 	valErrors, patches = validateRoleStorageClass(&clusterCR, valErrors, patches)
 

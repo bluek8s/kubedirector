@@ -137,6 +137,22 @@ func GetPVC(
 	return result, err
 }
 
+// GetServiceAccount finds the k8s ServiceAccount with the given name in the given
+// namespace.
+func GetServiceAccount(
+	namespace string,
+	saName string,
+) (*corev1.ServiceAccount, error) {
+
+	result := &corev1.ServiceAccount{}
+	err := shared.Get(
+		context.TODO(),
+		types.NamespacedName{Namespace: namespace, Name: saName},
+		result,
+	)
+	return result, err
+}
+
 // GetApp fetches the k8s KubeDirectorApp resource with the given name in
 // the given namespace.
 func GetApp(

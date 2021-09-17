@@ -538,13 +538,16 @@ func validateRoleServiceAccount(
 			// No SA
 			continue
 		}
+		_, erro := observer.GetServiceAccount(cr.Namespace, role.ServiceAccountName)
+		if erro != nil {
+			valErrs = append(valErrs,
+				"service account "+role.ServiceAccountName+" requested by role "+role.Name+" does not exist")
+			continue
+		}
 		sar := &sar.SubjectAccessReview{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "SubjectAccessReview",
 				APIVersion: "authorization.k8s.io/v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: cr.Namespace,
 			},
 			Spec: sar.SubjectAccessReviewSpec{
 				ResourceAttributes: &sar.ResourceAttributes{

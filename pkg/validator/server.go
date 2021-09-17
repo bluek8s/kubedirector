@@ -23,13 +23,12 @@ import (
 	"net/http"
 	"strconv"
 
-	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
-
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // Add validation handlers for all CRs that we currently support

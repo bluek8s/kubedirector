@@ -258,7 +258,6 @@ func validateCardinality(
 func validateClusterRoles(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
-	userInfo v1.UserInfo,
 	valErrors []string,
 ) []string {
 
@@ -544,6 +543,9 @@ func validateRoleServiceAccount(
 				Kind:       "SubjectAccessReview",
 				APIVersion: "authorization.k8s.io/v1",
 			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: cr.Namespace,
+			},
 			Spec: sar.SubjectAccessReviewSpec{
 				ResourceAttributes: &sar.ResourceAttributes{
 					Namespace: cr.Namespace,
@@ -565,9 +567,8 @@ func validateRoleServiceAccount(
 			}
 		}
 	}
+
 	return valErrs
-	//fmt.Printf("DEBUG: Subject Review failed with err %s", err.Error())
-	//return false, ""
 }
 
 // validateApp function checks for valid app and if necessary creates a patch
@@ -1051,7 +1052,7 @@ func admitClusterCR(
 	valErrors, patches = validateCardinality(&clusterCR, appCR, valErrors, patches)
 
 	// Validate that roles are known & sufficient.
-	valErrors = validateClusterRoles(&clusterCR, appCR, ar.Request.UserInfo, valErrors)
+	valErrors = validateClusterRoles(&clusterCR, appCR, valErrors)
 
 	// Validate minimum resources for all roles
 	valErrors = validateMinResources(&clusterCR, appCR, valErrors)

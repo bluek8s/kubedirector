@@ -255,6 +255,9 @@ func getStatefulset(
 	}
 
 	useServiceAccount := false
+	if role.ServiceAccountName != "" {
+		useServiceAccount = true
+	}
 	volumeMounts, volumes, volumesErr := generateVolumeMounts(
 		cr,
 		role,
@@ -308,7 +311,6 @@ func getStatefulset(
 	}
 
 	vct := getVolumeClaimTemplate(cr, role, PvcNamePrefix)
-
 	return &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "StatefulSet",
@@ -342,7 +344,8 @@ func getStatefulset(
 						imageID,
 						persistDirs,
 					),
-					Affinity: role.Affinity,
+					Affinity:           role.Affinity,
+					ServiceAccountName: role.ServiceAccountName,
 					Containers: []v1.Container{
 						{
 							Name:            AppContainerName,

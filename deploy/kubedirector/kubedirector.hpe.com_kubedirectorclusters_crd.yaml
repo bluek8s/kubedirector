@@ -153,6 +153,9 @@ spec:
                           ephemeral-storage:
                             type: string
                             pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                  serviceAccountName:
+                        type: string
+                        minLength: 1
                   env:
                     type: array
                     items:

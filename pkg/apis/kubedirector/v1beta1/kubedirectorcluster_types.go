@@ -139,6 +139,7 @@ type Role struct {
 	FileInjections     []FileInjections            `json:"fileInjections,omitempty"`
 	Secret             *KDSecret                   `json:"secret,omitempty"`
 	BlockStorage       *BlockStorage               `json:"blockStorage,omitempty"`
+	ServiceAccountName string                      `json:"serviceAccountName,omitempty"`
 	SecretKeys         []SecretKey                 `json:"secretKeys,omitempty"`
 }
 

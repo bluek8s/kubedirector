@@ -15,6 +15,7 @@
 package validator
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -30,10 +31,11 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/secretkeys"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
+	v1 "k8s.io/api/authentication/v1"
+	sar "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	appsvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
@@ -223,25 +225,17 @@ func validateCardinality(
 			break
 		}
 
-		// validate user-specified labels
-		rolePath := rolesPath.Index(i)
-		labelErrors := appsvalidation.ValidateLabels(
+		// validate user-specified labels and annotations
+		var anyLabelAnnError bool
+		valErrors, anyLabelAnnError = validateLabelsAndAnnotations(
+			rolesPath.Index(i),
 			role.PodLabels,
-			rolePath.Child("podLabels"),
-		)
-		serviceLabelErrors := appsvalidation.ValidateLabels(
+			role.PodAnnotations,
 			role.ServiceLabels,
-			rolePath.Child("serviceLabels"),
+			role.ServiceAnnotations,
+			valErrors,
 		)
-		if (len(labelErrors) != 0) || (len(serviceLabelErrors) != 0) {
-			anyError = true
-			for _, labelErr := range labelErrors {
-				valErrors = append(valErrors, labelErr.Error())
-			}
-			for _, serviceLabelErr := range serviceLabelErrors {
-				valErrors = append(valErrors, serviceLabelErr.Error())
-			}
-		}
+		anyError = anyError || anyLabelAnnError
 	}
 
 	if anyError {
@@ -263,11 +257,11 @@ func validateClusterRoles(
 ) []string {
 
 	var configuredRoles []string
-
 	allRoles := catalog.GetAllRoleIDs(appCR)
 	roleSeen := make(map[string]bool)
 	uniqueRoles := true
 	for _, role := range cr.Spec.Roles {
+
 		if shared.StringInList(role.Name, allRoles) {
 			configuredRoles = append(configuredRoles, role.Name)
 		} else {
@@ -521,6 +515,58 @@ func validateRoleStorageClass(
 	}
 
 	return valErrors, patches
+}
+
+// validateRoleSA validates whether the SA exists and if it does
+// is the user allowed to access it or not
+func validateRoleServiceAccount(
+	cr *kdv1.KubeDirectorCluster,
+	valErrs []string,
+	userInfo v1.UserInfo,
+
+) []string {
+
+	numRoles := len(cr.Spec.Roles)
+	for i := 0; i < numRoles; i++ {
+		role := &(cr.Spec.Roles[i])
+		if role.ServiceAccountName == "" {
+			// No SA
+			continue
+		}
+		_, erro := observer.GetServiceAccount(cr.Namespace, role.ServiceAccountName)
+		if erro != nil {
+			valErrs = append(valErrs,
+				"service account "+role.ServiceAccountName+" requested by role "+role.Name+" does not exist")
+			continue
+		}
+		sar := &sar.SubjectAccessReview{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "SubjectAccessReview",
+				APIVersion: "authorization.k8s.io/v1",
+			},
+			Spec: sar.SubjectAccessReviewSpec{
+				ResourceAttributes: &sar.ResourceAttributes{
+					Namespace: cr.Namespace,
+					Verb:      "get",
+					Resource:  "ServiceAccount",
+					Name:      role.ServiceAccountName,
+				},
+				User:   userInfo.Username,
+				Groups: userInfo.Groups,
+				UID:    userInfo.UID,
+			},
+		}
+		err := shared.Create(context.TODO(), sar)
+		if err != nil {
+			valErrs = append(valErrs, err.Error())
+		} else {
+			if sar.Status.Denied {
+				valErrs = append(valErrs, sar.Status.Reason)
+			}
+		}
+	}
+
+	return valErrs
 }
 
 // validateApp function checks for valid app and if necessary creates a patch
@@ -1113,6 +1159,9 @@ func admitClusterCR(
 
 	// Validate minimum resources for all roles
 	valErrors = validateMinResources(&clusterCR, appCR, valErrors)
+
+	// Validate if the role's service account exists and if the user has permission to use
+	valErrors = validateRoleServiceAccount(&clusterCR, valErrors, ar.Request.UserInfo)
 
 	valErrors, patches = validateRoleStorageClass(&clusterCR, valErrors, patches)
 

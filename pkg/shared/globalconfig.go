@@ -115,6 +115,54 @@ func GetMasterEncryptionKey() (string, error) {
 	return "", errors.New("globalConfig is required to generate master encryption key")
 }
 
+// GetPodLabels returns the pod labels specified in the config, or nil if no
+// config.
+func GetPodLabels() map[string]string {
+
+	globalConfigLock.RLock()
+	defer globalConfigLock.RUnlock()
+	if globalConfig != nil {
+		return globalConfig.Spec.PodLabels
+	}
+	return nil
+}
+
+// GetPodAnnotations returns the pod annotations specified in the config, or
+// nil if no config.
+func GetPodAnnotations() map[string]string {
+
+	globalConfigLock.RLock()
+	defer globalConfigLock.RUnlock()
+	if globalConfig != nil {
+		return globalConfig.Spec.PodAnnotations
+	}
+	return nil
+}
+
+// GetServiceLabels returns the service labels specified in the config, or nil
+// if no config.
+func GetServiceLabels() map[string]string {
+
+	globalConfigLock.RLock()
+	defer globalConfigLock.RUnlock()
+	if globalConfig != nil {
+		return globalConfig.Spec.ServiceLabels
+	}
+	return nil
+}
+
+// GetServiceAnnotations returns the service annotations specified in the
+// config, or nil if no config.
+func GetServiceAnnotations() map[string]string {
+
+	globalConfigLock.RLock()
+	defer globalConfigLock.RUnlock()
+	if globalConfig != nil {
+		return globalConfig.Spec.ServiceAnnotations
+	}
+	return nil
+}
+
 // GetBackupClusterStatus extracts the flag definition from the
 // globalConfig CR data if present, otherwise returns false.
 func GetBackupClusterStatus() bool {

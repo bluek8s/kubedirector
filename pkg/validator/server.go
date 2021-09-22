@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"strconv"
 
 	"github.com/bluek8s/kubedirector/pkg/observer"
@@ -29,6 +28,7 @@ import (
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // Add validation handlers for all CRs that we currently support

@@ -47,7 +47,7 @@ func CreateHeadlessService(
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labelsForService(cr, nil),
-			Annotations:     annotationsForCluster(cr),
+			Annotations:     annotationsForService(cr, nil),
 		},
 		Spec: corev1.ServiceSpec{
 			ClusterIP: "None",
@@ -152,7 +152,7 @@ func CreatePodService(
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labelsForService(cr, role),
-			Annotations:     annotationsForCluster(cr),
+			Annotations:     annotationsForService(cr, role),
 		},
 		Spec: corev1.ServiceSpec{
 			Selector:                 map[string]string{statefulSetPodLabel: podName},

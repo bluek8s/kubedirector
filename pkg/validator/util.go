@@ -27,8 +27,11 @@ import (
 	"k8s.io/api/admissionregistration/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	corevalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	appsvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 // createWebhookService creates our webhook Service resource if it does not
@@ -223,4 +226,56 @@ func createCertsSecret(
 	result := shared.Create(context.TODO(), secret)
 
 	return secret, result
+}
+
+// validateLabelsAndAnnotations is a common subroutine for validating a set of
+// pod/service labels/annotations; used both for cluster and for config.
+// Return an indicator of whether there were any errors, along with the
+// updated errors list.
+func validateLabelsAndAnnotations(
+	path *field.Path,
+	podLabels map[string]string,
+	podAnnotations map[string]string,
+	serviceLabels map[string]string,
+	serviceAnnotations map[string]string,
+	valErrors []string,
+) ([]string, bool) {
+
+	anyError := false
+	labelErrors := appsvalidation.ValidateLabels(
+		podLabels,
+		path.Child("podLabels"),
+	)
+	annotationErrors := corevalidation.ValidateAnnotations(
+		podAnnotations,
+		path.Child("podAnnotations"),
+	)
+	serviceLabelErrors := appsvalidation.ValidateLabels(
+		serviceLabels,
+		path.Child("serviceLabels"),
+	)
+	serviceAnnotationErrors := corevalidation.ValidateAnnotations(
+		serviceAnnotations,
+		path.Child("serviceAnnotations"),
+	)
+	if (len(labelErrors) != 0) ||
+		(len(annotationErrors) != 0) ||
+		(len(serviceLabelErrors) != 0) ||
+		(len(serviceAnnotationErrors) != 0) {
+		anyError = true
+		for _, labelErr := range labelErrors {
+			valErrors = append(valErrors, labelErr.Error())
+		}
+		for _, annotationErr := range annotationErrors {
+			valErrors = append(valErrors, annotationErr.Error())
+		}
+		for _, serviceLabelErr := range serviceLabelErrors {
+			valErrors = append(valErrors, serviceLabelErr.Error())
+		}
+		for _, serviceAnnotationErr := range serviceAnnotationErrors {
+			valErrors = append(valErrors, serviceAnnotationErr.Error())
+		}
+	}
+
+	return valErrors, anyError
 }

@@ -51,6 +51,18 @@ spec:
               pattern: '^UID$|^CrNameRole$'
             masterEncryptionKey:
               type: string
+            podLabels:
+              type: object
+              nullable: true
+            podAnnotations:
+              type: object
+              nullable: true
+            serviceLabels:
+              type: object
+              nullable: true
+            serviceAnnotations:
+              type: object
+              nullable: true
             backupClusterStatus:
               type: boolean
         status:

@@ -28,6 +28,7 @@ import (
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 // configPatchSpec is used to create the PATCH operation for populating
@@ -265,6 +266,16 @@ func admitKDConfigCR(
 
 	// Populate master key if necessary.
 	patches, valErrors = validateOrPopulateMasterEncryptionKey(configCR, patches, valErrors)
+
+	// Check that all specified global labels/annotations have good syntax.
+	valErrors, _ = validateLabelsAndAnnotations(
+		field.NewPath("spec"),
+		configCR.Spec.PodLabels,
+		configCR.Spec.PodAnnotations,
+		configCR.Spec.ServiceLabels,
+		configCR.Spec.ServiceAnnotations,
+		valErrors,
+	)
 
 	// Populate backup-cluster-status flag if necessary.
 	if configCR.Spec.BackupClusterStatus == nil {

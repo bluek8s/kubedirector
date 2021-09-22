@@ -207,6 +207,8 @@ func getStatefulset(
 
 	labels := labelsForStatefulSet(cr, role)
 	podLabels := labelsForPod(cr, role)
+	annotations := annotationsForStatefulSet(cr, role)
+	podAnnotations := annotationsForPod(cr, role)
 	startupScript := getStartupScript(cr)
 
 	portInfoList, portsErr := catalog.PortsForRole(cr, role.Name)
@@ -285,6 +287,9 @@ func getStatefulset(
 	}
 
 	useServiceAccount := false
+	if role.ServiceAccountName != "" {
+		useServiceAccount = true
+	}
 	volumeMounts, volumes, volumesErr := generateVolumeMounts(
 		cr,
 		role,
@@ -339,7 +344,7 @@ func getStatefulset(
 			Namespace:       cr.Namespace,
 			OwnerReferences: ownerReferences(cr),
 			Labels:          labels,
-			Annotations:     annotationsForCluster(cr),
+			Annotations:     annotations,
 		},
 		Spec: appsv1.StatefulSetSpec{
 			PodManagementPolicy: appsv1.ParallelPodManagement,
@@ -351,7 +356,7 @@ func getStatefulset(
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      podLabels,
-					Annotations: annotationsForCluster(cr),
+					Annotations: podAnnotations,
 				},
 				Spec: v1.PodSpec{
 					AutomountServiceAccountToken: &useServiceAccount,
@@ -362,7 +367,8 @@ func getStatefulset(
 						imageID,
 						persistDirs,
 					),
-					Affinity: role.Affinity,
+					Affinity:           role.Affinity,
+					ServiceAccountName: role.ServiceAccountName,
 					Containers: []v1.Container{
 						{
 							Name:            AppContainerName,

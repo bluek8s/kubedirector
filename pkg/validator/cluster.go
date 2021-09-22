@@ -37,7 +37,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	appsvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
@@ -222,25 +221,17 @@ func validateCardinality(
 			break
 		}
 
-		// validate user-specified labels
-		rolePath := rolesPath.Index(i)
-		labelErrors := appsvalidation.ValidateLabels(
+		// validate user-specified labels and annotations
+		var anyLabelAnnError bool
+		valErrors, anyLabelAnnError = validateLabelsAndAnnotations(
+			rolesPath.Index(i),
 			role.PodLabels,
-			rolePath.Child("podLabels"),
-		)
-		serviceLabelErrors := appsvalidation.ValidateLabels(
+			role.PodAnnotations,
 			role.ServiceLabels,
-			rolePath.Child("serviceLabels"),
+			role.ServiceAnnotations,
+			valErrors,
 		)
-		if (len(labelErrors) != 0) || (len(serviceLabelErrors) != 0) {
-			anyError = true
-			for _, labelErr := range labelErrors {
-				valErrors = append(valErrors, labelErr.Error())
-			}
-			for _, serviceLabelErr := range serviceLabelErrors {
-				valErrors = append(valErrors, serviceLabelErr.Error())
-			}
-		}
+		anyError = anyError || anyLabelAnnError
 	}
 
 	if anyError {

@@ -54,7 +54,7 @@ func ownerReferences(
 	}
 }
 
-// annotationsForCluster generates a set of resource labels appropriate for
+// annotationsForCluster generates a set of annotations appropriate for
 // any component of this KDCluster.
 func annotationsForCluster(
 	cr *kdv1.KubeDirectorCluster,
@@ -68,6 +68,68 @@ func annotationsForCluster(
 		}
 	} else {
 		result = map[string]string{}
+	}
+	return result
+}
+
+// annotationsForRole generates a set of annotations appropriate for the
+// given role. These will be propagated to the statefulset, pods, and
+// services related to that role.
+func annotationsForRole(
+	cr *kdv1.KubeDirectorCluster,
+	role *kdv1.Role,
+) map[string]string {
+
+	return annotationsForCluster(cr)
+}
+
+// annotationsForStatefulSet generates a set of annotations appropriate for a
+// statefulset in the given role.
+func annotationsForStatefulSet(
+	cr *kdv1.KubeDirectorCluster,
+	role *kdv1.Role,
+) map[string]string {
+
+	return annotationsForRole(cr, role)
+}
+
+// annotationsForPod generates a set of annotations appropriate for a pod in
+// the given role. This includes any user-requested or global-config
+// annotations.
+func annotationsForPod(
+	cr *kdv1.KubeDirectorCluster,
+	role *kdv1.Role,
+) map[string]string {
+
+	result := annotationsForStatefulSet(cr, role)
+	for name, value := range role.PodAnnotations {
+		result[name] = value
+	}
+	for globalName, globalValue := range shared.GetPodAnnotations() {
+		result[globalName] = globalValue
+	}
+	return result
+}
+
+// annotationsForService generates a set of annotations appropriate for the
+// services created for a cluster. This includes any user-requested or
+// global-config annotations.vrole may be nil if this is the headless service.
+func annotationsForService(
+	cr *kdv1.KubeDirectorCluster,
+	role *kdv1.Role,
+) map[string]string {
+
+	var result map[string]string
+	if role == nil {
+		result = annotationsForCluster(cr)
+	} else {
+		result = annotationsForRole(cr, role)
+		for name, value := range role.ServiceAnnotations {
+			result[name] = value
+		}
+		for globalName, globalValue := range shared.GetServiceAnnotations() {
+			result[globalName] = globalValue
+		}
 	}
 	return result
 }
@@ -112,7 +174,7 @@ func labelsForStatefulSet(
 }
 
 // labelsForPod generates a set of resource labels appropriate for a pod in
-// the given role. This includes any user-requested labels.
+// the given role. This includes any user-requested or global-config labels.
 func labelsForPod(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
@@ -122,12 +184,15 @@ func labelsForPod(
 	for name, value := range role.PodLabels {
 		result[name] = value
 	}
+	for globalName, globalValue := range shared.GetPodLabels() {
+		result[globalName] = globalValue
+	}
 	return result
 }
 
 // labelsForService generates a set of resource labels appropriate for the
-// services created for a cluster. This includes any user-requested labels.
-// role may be nil if this is the headless service.
+// services created for a cluster. This includes any user-requested or
+// global-config labels. role may be nil if this is the headless service.
 func labelsForService(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
@@ -140,6 +205,9 @@ func labelsForService(
 		result = labelsForRole(cr, role)
 		for name, value := range role.ServiceLabels {
 			result[name] = value
+		}
+		for globalName, globalValue := range shared.GetServiceLabels() {
+			result[globalName] = globalValue
 		}
 	}
 	return result

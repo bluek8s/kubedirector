@@ -128,7 +128,9 @@ type FileInjections struct {
 type Role struct {
 	Name               string                      `json:"id"`
 	PodLabels          map[string]string           `json:"podLabels,omitempty"`
+	PodAnnotations     map[string]string           `json:"podAnnotations,omitempty"`
 	ServiceLabels      map[string]string           `json:"serviceLabels,omitempty"`
+	ServiceAnnotations map[string]string           `json:"serviceAnnotations,omitempty"`
 	Members            *int32                      `json:"members,omitempty"`
 	Resources          corev1.ResourceRequirements `json:"resources"`
 	Affinity           *corev1.Affinity            `json:"affinity,omitempty"`

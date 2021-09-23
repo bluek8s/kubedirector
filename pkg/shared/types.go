@@ -29,6 +29,10 @@ const (
 	// KdDomainBase is the prefix for label and annotation keys.
 	KdDomainBase = "kubedirector.hpe.com"
 
+	// ClusterLabel is a label placed on every created statefulset, pod, and
+	// service, with a value of the KubeDirectorCluster CR name.
+	ClusterLabel = KdDomainBase + "/kdcluster"
+
 	// RestoringLabel is the label placed on a kdcluster while it and objects
 	// it depends on are being restored from a backup.
 	RestoringLabel = KdDomainBase + "/restoring"

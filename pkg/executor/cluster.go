@@ -56,7 +56,7 @@ func UpdateClusterStatus(
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            cr.Name,
 					Namespace:       cr.Namespace,
-					OwnerReferences: ownerReferences(cr),
+					OwnerReferences: shared.OwnerReferences(cr),
 				},
 				Spec: kdv1.KubeDirectorStatusBackupSpec{
 					StatusBackup: cr.Status,
@@ -140,7 +140,7 @@ func UpdateClusterStatusBackupOwner(
 	if statusBackup == nil {
 		return nil
 	}
-	if ownerReferencesPresent(cr, statusBackup.OwnerReferences) {
+	if shared.OwnerReferencesPresent(cr, statusBackup.OwnerReferences) {
 		return nil
 	}
 	shared.LogInfof(
@@ -153,7 +153,7 @@ func UpdateClusterStatusBackupOwner(
 	// We're just going to nuke any existing owner refs. (A bit more
 	// discussion of this in UpdateStatefulSetNonReplicas comments.)
 	patchedRes := *statusBackup
-	patchedRes.OwnerReferences = ownerReferences(cr)
+	patchedRes.OwnerReferences = shared.OwnerReferences(cr)
 	return shared.Patch(
 		context.TODO(),
 		statusBackup,

@@ -21,9 +21,6 @@ import (
 )
 
 const (
-	// ClusterLabel is a label placed on every created statefulset, pod, and
-	// service, with a value of the KubeDirectorCluster CR name.
-	ClusterLabel = shared.KdDomainBase + "/kdcluster"
 	// ClusterAppLabel is a label placed on every created statefulset, pod,
 	// and service, with a value of the KubeDirectorApp CR name.
 	ClusterAppLabel = shared.KdDomainBase + "/kdapp"

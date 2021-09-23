@@ -150,7 +150,7 @@ func UpdateStatefulSetNonReplicas(
 	// correct them here.
 
 	// For now only checking the owner reference.
-	if ownerReferencesPresent(cr, statefulSet.OwnerReferences) {
+	if shared.OwnerReferencesPresent(cr, statefulSet.OwnerReferences) {
 		return nil
 	}
 	shared.LogInfof(
@@ -165,7 +165,7 @@ func UpdateStatefulSetNonReplicas(
 	// left by a bad backup/restore process? We're just going to nuke any
 	// existing owner refs.
 	patchedRes := *statefulSet
-	patchedRes.OwnerReferences = ownerReferences(cr)
+	patchedRes.OwnerReferences = shared.OwnerReferences(cr)
 	patchErr := shared.Patch(
 		context.TODO(),
 		statefulSet,
@@ -342,7 +342,7 @@ func getStatefulset(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:       cr.Namespace,
-			OwnerReferences: ownerReferences(cr),
+			OwnerReferences: shared.OwnerReferences(cr),
 			Labels:          labels,
 			Annotations:     annotations,
 		},
@@ -506,7 +506,6 @@ func getVolumeClaimTemplate(
 				Annotations: map[string]string{
 					storageClassName: *role.Storage.StorageClass,
 				},
-				OwnerReferences: ownerReferences(cr),
 			},
 			Spec: v1.PersistentVolumeClaimSpec{
 				AccessModes: []v1.PersistentVolumeAccessMode{
@@ -545,7 +544,6 @@ func getVolumeClaimTemplate(
 					Annotations: map[string]string{
 						storageClassName: *role.BlockStorage.StorageClass,
 					},
-					OwnerReferences: ownerReferences(cr),
 				},
 				Spec: v1.PersistentVolumeClaimSpec{
 					AccessModes: []v1.PersistentVolumeAccessMode{

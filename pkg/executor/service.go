@@ -45,7 +45,7 @@ func CreateHeadlessService(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:       cr.Namespace,
-			OwnerReferences: ownerReferences(cr),
+			OwnerReferences: shared.OwnerReferences(cr),
 			Labels:          labelsForService(cr, nil),
 			Annotations:     annotationsForService(cr, nil),
 		},
@@ -93,7 +93,7 @@ func UpdateHeadlessService(
 	// correct them here.
 
 	// For now only checking the owner reference.
-	if ownerReferencesPresent(cr, service.OwnerReferences) {
+	if shared.OwnerReferencesPresent(cr, service.OwnerReferences) {
 		return nil
 	}
 	shared.LogInfof(
@@ -106,7 +106,7 @@ func UpdateHeadlessService(
 	// We're just going to nuke any existing owner refs. (A bit more
 	// discussion of this in UpdateStatefulSetNonReplicas comments.)
 	patchedRes := *service
-	patchedRes.OwnerReferences = ownerReferences(cr)
+	patchedRes.OwnerReferences = shared.OwnerReferences(cr)
 	return shared.Patch(
 		context.TODO(),
 		service,
@@ -150,7 +150,7 @@ func CreatePodService(
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name,
 			Namespace:       cr.Namespace,
-			OwnerReferences: ownerReferences(cr),
+			OwnerReferences: shared.OwnerReferences(cr),
 			Labels:          labelsForService(cr, role),
 			Annotations:     annotationsForService(cr, role),
 		},
@@ -188,7 +188,7 @@ func UpdatePodService(
 ) error {
 
 	// First check the owner reference.
-	if !ownerReferencesPresent(cr, service.OwnerReferences) {
+	if !shared.OwnerReferencesPresent(cr, service.OwnerReferences) {
 		shared.LogInfof(
 			reqLogger,
 			cr,
@@ -199,7 +199,7 @@ func UpdatePodService(
 		// We're just going to nuke any existing owner refs. (A bit more
 		// discussion of this in UpdateStatefulSetNonReplicas comments.)
 		patchedRes := *service
-		patchedRes.OwnerReferences = ownerReferences(cr)
+		patchedRes.OwnerReferences = shared.OwnerReferences(cr)
 		patchErr := shared.Patch(
 			context.TODO(),
 			service,

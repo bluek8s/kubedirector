@@ -74,6 +74,8 @@ const (
 
 	failedToPatch = "Internal error: failed to populate default values for unspecified properties."
 
+	failedToPatchPVC = "Internal error: failed to apply ownerReference to PVC for kdcluster."
+
 	invalidStorageDef   = "Storage size for role (%s) is incorrectly defined."
 	invalidStorageSize  = "Storage size for role (%s) should be greater than zero."
 	invalidStorageClass = "Unable to fetch storageClass object with the provided name(%s)."

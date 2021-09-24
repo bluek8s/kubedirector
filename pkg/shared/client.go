@@ -199,6 +199,19 @@ func List(
 	return directClient.List(ctx, list, opts...)
 }
 
+// Patch uses the split client. Should write back directly to K8s, but we'll
+// use the split client in case it ever wants to use the knowledge that we
+// are changing the object.
+func Patch(
+	ctx context.Context,
+	originalObj runtime.Object,
+	modifiedObj runtime.Object,
+) error {
+
+	patch := k8sClient.MergeFrom(originalObj)
+	return client.Patch(ctx, modifiedObj, patch)
+}
+
 // Update uses the split client. Should write back directly to K8s, but we'll
 // use the split client in case it ever wants to use the knowledge that we
 // are changing the object.

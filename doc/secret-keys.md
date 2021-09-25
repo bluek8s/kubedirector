@@ -16,9 +16,13 @@ To use the secret keys feature, the kdconfig resource "kd-global-config" must ex
 
 The "masterEncryptionKey" property in this config is related to the secret keys feature. The value of this property is a key is used to encrypt all of the values passed into the containers. Normally you will not need to worry about this value and can leave the randomly-generated default value in place.
 
-The default value for this property is a hex-encoded 32-byte value (so therefore is 64 characters long). If you need or want to manually specify the value, it must be a hex-encoded 16-byte, 24-byte, or 32-byte value. Those key lengths respectively correspond to the use of AES-128-GCM, AES-192-GCM, or AES-256-GCM to encrypt the secret values.
+The default value for this property is a hex-encoded 32-byte value (so therefore is 64 characters long).
 
-**Note:** Changing the "masterEncryptionKey" value while existing kdclusters are using the secret keys feature can cause applications to lose access to their secret values. More about this in the final sections.
+If you need or want to manually specify the value, it must be a hex-encoded 16-byte, 24-byte, or 32-byte value. Those key lengths respectively correspond to the use of AES-128-GCM, AES-192-GCM, or AES-256-GCM to encrypt the secret values. You can also generate a new random 32-byte key value by deleting the existing "masterEncryptionKey" property in the config. However:
+
+**Note:** Changing the "masterEncryptionKey" value is not currently allowed while any kdclusters exist. See [issue 512](https://github.com/bluek8s/kubedirector/issues/512) for more discussion about the reasons, and any plans toward removing this restriction.
+
+If you are using the secret keys feature, you must keep the "masterEncryptionKey" value secure from non-administrative users. Generally you should not give any non-administrative users any privileges on the kdconfig resource type. (And often they will not even have access to the namespace where KubeDirector and the kdconfig reside.)
 
 #### KDCLUSTER SPEC
 
@@ -78,11 +82,7 @@ secretKeyName = "some-key-name"
 secretKeyValue = namespace.getWithTokens(["distros", distroID, ngID, "roles", roleID, "secret_keys", secretKeyName])
 ```
 
-#### CHANGING THE MASTER KEY
-
-The master key in kd-global-config can be changed by either deleting the "masterEncryptionKey" property (which will cause a new random 32-byte key to be generated) or by manually specifying a key value.
-
-However, if you have existing kdclusters that use the secret keys feature, this change can have undesirable effects. See [issue 512](https://github.com/bluek8s/kubedirector/issues/512).
+Once this value is retrieved, its use is then application-specific.
 
 #### FUTURE WORK
 

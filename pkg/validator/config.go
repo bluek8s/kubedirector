@@ -104,12 +104,25 @@ func validateConfigStorageClass(
 }
 
 // validateOrPopulateMasterEncryptionKey checks key length to be supported by AES (16,24,32)
-// or generates default 32 bytes encryption key for AES-256
+// or generates default 32 bytes encryption key for AES-256. Also, if there's
+// an existing non-nil value, we currently don't allow changing the value while
+// any kdclusters exist.
 func validateOrPopulateMasterEncryptionKey(
+	prevConfigCR kdv1.KubeDirectorConfig,
 	configCR kdv1.KubeDirectorConfig,
 	patches []configPatchSpec,
 	valErrors []string,
 ) ([]configPatchSpec, []string) {
+
+	if (prevConfigCR.Spec != nil) && (prevConfigCR.Spec.MasterEncryptionKey != nil) {
+		if shared.AnyClusters() {
+			if (configCR.Spec.MasterEncryptionKey == nil) ||
+				(*configCR.Spec.MasterEncryptionKey != *prevConfigCR.Spec.MasterEncryptionKey) {
+				valErrors = append(valErrors, masterEncryptionKeyChange)
+				return patches, valErrors
+			}
+		}
+	}
 	if configCR.Spec.MasterEncryptionKey == nil {
 		patches = append(patches,
 			newStrPatch("/spec/masterEncryptionKey", secretkeys.GenerateEncryptionKey()),
@@ -140,9 +153,16 @@ func admitKDConfigCR(
 		Allowed: false,
 	}
 
-	// If this is a delete, the admission handler has nothing to do.
+	// If this is a delete, the admission handler only needs to check that
+	// there are no existing kdclusters.
 	if ar.Request.Operation == v1beta1.Delete {
-		admitResponse.Allowed = true
+		if shared.AnyClusters() {
+			admitResponse.Result = &metav1.Status{
+				Message: "\n" + invalidConfigDelete,
+			}
+		} else {
+			admitResponse.Allowed = true
+		}
 		return &admitResponse
 	}
 
@@ -265,7 +285,12 @@ func admitKDConfigCR(
 	}
 
 	// Populate master key if necessary.
-	patches, valErrors = validateOrPopulateMasterEncryptionKey(configCR, patches, valErrors)
+	patches, valErrors = validateOrPopulateMasterEncryptionKey(
+		prevConfigCR,
+		configCR,
+		patches,
+		valErrors,
+	)
 
 	// Check that all specified global labels/annotations have good syntax.
 	valErrors, _ = validateLabelsAndAnnotations(

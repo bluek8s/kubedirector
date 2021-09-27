@@ -403,10 +403,11 @@ func secretKeys(
 	decryptedSecretKeys := map[string]string{}
 	for _, secretKey := range roleSpec.SecretKeys {
 		decryptedValue, err := secretkeys.Decrypt(secretKey.EncryptedValue)
-		if err != nil {
-			return nil, err
+		// Just drop this one if we can't decrypt it; don't error out the
+		// whole configmeta operation.
+		if err == nil {
+			decryptedSecretKeys[secretKey.Name] = decryptedValue
 		}
-		decryptedSecretKeys[secretKey.Name] = decryptedValue
 	}
 	return decryptedSecretKeys, nil
 }

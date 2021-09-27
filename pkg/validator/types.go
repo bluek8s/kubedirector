@@ -92,6 +92,9 @@ const (
 	failedSecretKeyEncryption                       = "cannot encrypt secret key %s"
 	forbiddenManualSecretKeyEncryptedValuePlacement = "manually setting secret key (%s) encrypted value is forbidden"
 	invalidMasterEncryptionKey                      = "masterEncryptionKey is invalid. error: %s."
+	masterEncryptionKeyChange                       = "masterEncryptionKey value cannot be changed while kdclusters exist"
+
+	invalidConfigDelete = "kd-global-config cannot be deleted while kdclusters exist"
 )
 
 type dictValue map[string]string

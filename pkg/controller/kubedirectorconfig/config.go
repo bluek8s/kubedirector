@@ -21,6 +21,7 @@ import (
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
+	"github.com/bluek8s/kubedirector/pkg/secretkeys"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
@@ -184,6 +185,26 @@ func (r *ReconcileKubeDirectorConfig) syncConfig(
 	return nil
 }
 
+// ensureMasterKey is used to populate the masterEncryptionKey field on
+// incoming config CRs where it is nil. In the normal course of things the
+// webhook populates this default value, but in upgrade cases it might be
+// nil when a KD instance first sees the config. Since there is no fixed
+// default value we will generate some default as a courtesy to the user.
+func ensureMasterKey(
+	cr *kdv1.KubeDirectorConfig,
+) {
+
+	if cr.Spec.MasterEncryptionKey == nil {
+		newKey := secretkeys.GenerateEncryptionKey()
+		patchedCR := *cr
+		patchedCR.Spec.MasterEncryptionKey = &newKey
+		shared.Patch(context.TODO(), cr, &patchedCR)
+		// If this patch fails for some reason, not much we can do about it.
+		// If someone tries to use the secret keys feature in a kdcluster,
+		// they'll be informed that the master key needs to be set.
+	}
+}
+
 // handleNewConfig looks in the cache for the last-known status generation
 // UID for this CR. If there is one, make sure the UID is what we expect, and
 // if so return true to keep processing the CR. If there is not any last-known
@@ -243,6 +264,7 @@ func (r *ReconcileKubeDirectorConfig) handleNewConfig(
 		"unknown with incoming gen uid %s",
 		incoming,
 	)
+	ensureMasterKey(cr)
 	StatusGens.WriteValidatedStatusGen(cr.UID, incoming)
 	return true, nil
 }

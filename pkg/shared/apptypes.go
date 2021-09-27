@@ -29,6 +29,14 @@ func init() {
 	clustersUsingApp = make(map[string][]string)
 }
 
+// AnyClusters returns true if any clusters have been registered.
+func AnyClusters() bool {
+
+	clustersUsingAppLock.RLock()
+	defer clustersUsingAppLock.RUnlock()
+	return (len(clustersUsingApp) != 0)
+}
+
 // ClustersUsingApp returns the list of clusters referencing the given app.
 func ClustersUsingApp(
 	appNamespace string,

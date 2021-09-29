@@ -70,7 +70,7 @@ When a kdcluster is in this "paused" state while being restored, its status stan
 
 The "awaitingApp" flag will switch to true if the relevant kdapp is restored. The "awaitingStatus" flag becomes true when the relevant kdstatusbackup is restored. Once status is restored, the "awaitingResources" flag can become true if all resources named in the status are restored. Once this happens, KubeDirector will automatically resume reconciliation for this kdcluster.
 
-If/when reconciliation resumes, the kdcluster will be validated, running through the same series of checks that would be normally be used when the kdcluster is initially created. If this validation fails then reconciliation cannot resume, and the "error" field of "restoreProgress" will describe the validation failure.
+If/when reconciliation resumes, the kdcluster will be validated, running through the same series of checks that would normally be used when the kdcluster is initially created. If this validation fails then reconciliation cannot resume, and the "error" field of "restoreProgress" will describe the validation failure.
 
 Note that until reconciliation resumes, any attempt to edit or delete the kdcluster spec will be rejected. If you absolutely need to delete it, see the next section below.
 

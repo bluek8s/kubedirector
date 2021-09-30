@@ -175,6 +175,18 @@ func GetBackupClusterStatus() bool {
 	return false
 }
 
+// GetAllowRestoreWithoutConnections extracts the flag definition from the
+// globalConfig CR data if present, otherwise returns false.
+func GetAllowRestoreWithoutConnections() bool {
+
+	globalConfigLock.RLock()
+	defer globalConfigLock.RUnlock()
+	if globalConfig != nil && globalConfig.Spec.AllowRestoreWithoutConnections != nil {
+		return *globalConfig.Spec.AllowRestoreWithoutConnections
+	}
+	return false
+}
+
 // RemoveGlobalConfig removes the current globalConfig
 func RemoveGlobalConfig() {
 

@@ -264,6 +264,9 @@ func checkResourcesRestored(
 
 	resourcesPresent := clusterServiceExists(reqLogger, cr)
 	resourcesPresent = resourcesPresent && roleResourcesExist(reqLogger, cr)
+	if !shared.GetAllowRestoreWithoutConnections() {
+		resourcesPresent = resourcesPresent && connectedResourcesExist(reqLogger, cr)
+	}
 
 	if resourcesPresent {
 		if cr.Status.RestoreProgress.AwaitingResources {
@@ -355,6 +358,64 @@ func roleResourcesExist(
 					return false
 				}
 			}
+		}
+	}
+	return true
+}
+
+// connectedResourcesExist looks to see if resources named in the connections
+// exist.
+func connectedResourcesExist(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+) bool {
+
+	for _, kdcName := range cr.Spec.Connections.Clusters {
+		_, kdcErr := observer.GetCluster(
+			cr.Namespace,
+			kdcName,
+		)
+		if kdcErr != nil {
+			shared.LogInfof(
+				reqLogger,
+				cr,
+				shared.EventReasonCluster,
+				"being restored: connected kdcluster %s does not exist",
+				kdcName,
+			)
+			return false
+		}
+	}
+	for _, cfgName := range cr.Spec.Connections.ConfigMaps {
+		_, cfgErr := observer.GetConfigMap(
+			cr.Namespace,
+			cfgName,
+		)
+		if cfgErr != nil {
+			shared.LogInfof(
+				reqLogger,
+				cr,
+				shared.EventReasonCluster,
+				"being restored: connected ConfigMap %s does not exist",
+				cfgName,
+			)
+			return false
+		}
+	}
+	for _, secretName := range cr.Spec.Connections.Secrets {
+		_, secretErr := observer.GetSecret(
+			cr.Namespace,
+			secretName,
+		)
+		if secretErr != nil {
+			shared.LogInfof(
+				reqLogger,
+				cr,
+				shared.EventReasonCluster,
+				"being restored: connected Secret %s does not exist",
+				secretName,
+			)
+			return false
 		}
 	}
 	return true

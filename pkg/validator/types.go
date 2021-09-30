@@ -25,15 +25,16 @@ type admitFunc func(*v1beta1.AdmissionReview) *v1beta1.AdmissionResponse
 type checkFunc func() error
 
 const (
-	validatorServiceName       = "kubedirector-validator"
-	validatorWebhook           = "kubedirector-webhook"
-	validatorSecret            = "kubedirector-validator-secret"
-	webhookHandlerName         = "validate-cr.kubedirector.hpe.com"
-	validationPort             = 8443
-	validationPath             = "/validate"
-	healthPath                 = "/healthz"
-	defaultNativeSystemd       = false
-	defaultBackupClusterStatus = false
+	validatorServiceName                  = "kubedirector-validator"
+	validatorWebhook                      = "kubedirector-webhook"
+	validatorSecret                       = "kubedirector-validator-secret"
+	webhookHandlerName                    = "validate-cr.kubedirector.hpe.com"
+	validationPort                        = 8443
+	validationPath                        = "/validate"
+	healthPath                            = "/healthz"
+	defaultNativeSystemd                  = false
+	defaultBackupClusterStatus            = false
+	defaultAllowRestoreWithoutConnections = false
 
 	appCrt  = "app.crt"
 	appKey  = "app.pem"

@@ -65,6 +65,8 @@ spec:
               nullable: true
             backupClusterStatus:
               type: boolean
+            allowRestoreWithoutConnections:
+              type: boolean
         status:
           type: object
           nullable: true

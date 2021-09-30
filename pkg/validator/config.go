@@ -302,10 +302,22 @@ func admitKDConfigCR(
 		valErrors,
 	)
 
-	// Populate backup-cluster-status flag if necessary.
+	// Populate backup-cluster-status and allow-restore-w/o-connections flags
+	// if necessary.
 	if configCR.Spec.BackupClusterStatus == nil {
 		patches = append(patches,
-			newBoolPatch("/spec/backupClusterStatus", defaultBackupClusterStatus),
+			newBoolPatch(
+				"/spec/backupClusterStatus",
+				defaultBackupClusterStatus,
+			),
+		)
+	}
+	if configCR.Spec.AllowRestoreWithoutConnections == nil {
+		patches = append(patches,
+			newBoolPatch(
+				"/spec/allowRestoreWithoutConnections",
+				defaultAllowRestoreWithoutConnections,
+			),
 		)
 	}
 

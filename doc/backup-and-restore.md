@@ -26,7 +26,7 @@ Finally: The fact that objects are actually re-created for a "restore" means tha
 
 #### BACKUP CONFIGURATION
 
-The main configuration necessary to support kdcluster backup-and-restore is to set the "backupClusterStatus" property to true in your kd-global-config resource.
+The main configuration necessary to support kdcluster backup-and-restore is to set the "backupClusterStatus" property to true in your kd-global-config resource. The default is false.
 ```yaml
     backupClusterStatus: true
 ```
@@ -42,6 +42,12 @@ You may also need some configuration to properly support your backup solution of
       backup.velero.io/backup-volumes-excludes: tmpfs-tmp,tmpfs-run,tmpfs-run-lock
 ```
 In general the "podAnnotations", "podLabels", "serviceAnnotations", and "serviceLabels" properties in kd-global-config will come in handy if there are labels or annotations that your backup solution requires you to place on any pods or services that are generated for kdcluster members.
+
+Finally, you should choose how to handle resources specified as "connections" for a kdcluster. As with any resource, they are not guaranteed to be in the backup; in the case of a connection resource it might not have even existed before the backup. And if they do get restored, they might be restored after the kdcluster. It is in the general case OK for a kdcluster to resume reconciliation before its connections reappear; when they reappear its members will get a "reconnect" notify on their startscripts. However, you may be using apps that were written to assume that connected resources always exist and that their properties-of-interest are immutable; in that case those apps may not implement a response to "reconnect". The "allowRestoreWithoutConnections" property in kd-global-config lets you decide how to deal with this situation:
+```yaml
+    allowRestoreWithoutConnections: false
+```
+If this is set to false (the default), then a kdcluster will *not* automatically resume reconciliation if some of its connected resources are not present -- unless reconciliation is manually forced to resume as described below. If set to true however, the presence of connections will not be a consideration in the decision to resume reconciliation.
 
 #### BACKUP PREPARATION
 
@@ -62,13 +68,13 @@ This addresses the second of the three goals mentioned above.
 When a kdcluster is in this "paused" state while being restored, its status stanza will include a "restoreProgress" property, an object that includes three boolean flags and an optional error message string. To begin with it will look like this:
 ```yaml
     restoreProgress:
-      awaitingApp: false
-      awaitingResources: false
-      awaitingStatus: false
+      awaitingApp: true
+      awaitingResources: true
+      awaitingStatus: true
       error: ""
 ```
 
-The "awaitingApp" flag will switch to true if the relevant kdapp is restored. The "awaitingStatus" flag becomes true when the relevant kdstatusbackup is restored. Once status is restored, the "awaitingResources" flag can become true if all resources named in the status are restored. Once this happens, KubeDirector will automatically resume reconciliation for this kdcluster.
+The "awaitingApp" flag will switch to false if the relevant kdapp is restored. The "awaitingStatus" flag becomes false when the relevant kdstatusbackup is restored. Once status is restored, the "awaitingResources" flag can become false if all resources named in the status are restored. (If "allowRestoreWithoutConnections" is false in the KD config, connected resources also affect this flag.) Once all of these flags are false, KubeDirector will automatically resume reconciliation for this kdcluster.
 
 If/when reconciliation resumes, the kdcluster will be validated, running through the same series of checks that would normally be used when the kdcluster is initially created. If this validation fails then reconciliation cannot resume, and the "error" field of "restoreProgress" will describe the validation failure.
 

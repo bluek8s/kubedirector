@@ -540,7 +540,7 @@ func validateRoleServiceAccount(
 			continue
 		}
 		// Convert k8s.io/api/authentication/v1".ExtraValue -> k8s.io/api/authorization/v1".ExtraValue
-		var xtra map[string]sar.ExtraValue
+		xtra := make(map[string]sar.ExtraValue)
 		for k, v := range userInfo.Extra {
 			xtra[k] = sar.ExtraValue(v)
 		}

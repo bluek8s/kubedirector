@@ -9,11 +9,12 @@ kubectl apply -f deployment-prebuilt.yaml
 
 **2) Update the CRDs.**
 
-Replace the CRDs for kubedirectorconfig, kubedirectorapp, and kubedirectorcluster with the current version. E.g., while in the deploy/kubedirector directory:
+Replace the CRDs for kubedirectorconfig, kubedirectorapp, kubedirectorcluster, and kubedirectorstatusbackup with the current version. E.g., while in the deploy/kubedirector directory:
 ```
 kubectl replace -f kubedirector.hpe.com_kubedirectorconfigs_crd.yaml
 kubectl replace -f kubedirector.hpe.com_kubedirectorapps_crd.yaml
 kubectl replace -f kubedirector.hpe.com_kubedirectorclusters_crd.yaml
+kubectl replace -f kubedirector.hpe.com_kubedirectorstatusbackups_crd.yaml
 ```
 
 

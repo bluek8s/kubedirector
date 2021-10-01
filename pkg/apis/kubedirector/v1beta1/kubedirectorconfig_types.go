@@ -20,17 +20,19 @@ import (
 
 // KubeDirectorConfigSpec defines the desired state of KubeDirectorConfig.
 type KubeDirectorConfigSpec struct {
-	StorageClass         *string           `json:"defaultStorageClassName,omitempty"`
-	ServiceType          *string           `json:"defaultServiceType,omitempty"`
-	NativeSystemdSupport *bool             `json:"nativeSystemdSupport,omitempty"`
-	RequiredSecretPrefix *string           `json:"requiredSecretPrefix,omitempty"`
-	ClusterSvcDomainBase *string           `json:"clusterSvcDomainBase,omitempty"`
-	DefaultNamingScheme  *string           `json:"defaultNamingScheme,omitempty"`
-	MasterEncryptionKey  *string           `json:"masterEncryptionKey,omitempty"`
-	PodLabels            map[string]string `json:"podLabels,omitempty"`
-	PodAnnotations       map[string]string `json:"podAnnotations,omitempty"`
-	ServiceLabels        map[string]string `json:"serviceLabels,omitempty"`
-	ServiceAnnotations   map[string]string `json:"serviceAnnotations,omitempty"`
+	StorageClass                   *string           `json:"defaultStorageClassName,omitempty"`
+	ServiceType                    *string           `json:"defaultServiceType,omitempty"`
+	NativeSystemdSupport           *bool             `json:"nativeSystemdSupport,omitempty"`
+	RequiredSecretPrefix           *string           `json:"requiredSecretPrefix,omitempty"`
+	ClusterSvcDomainBase           *string           `json:"clusterSvcDomainBase,omitempty"`
+	DefaultNamingScheme            *string           `json:"defaultNamingScheme,omitempty"`
+	MasterEncryptionKey            *string           `json:"masterEncryptionKey,omitempty"`
+	PodLabels                      map[string]string `json:"podLabels,omitempty"`
+	PodAnnotations                 map[string]string `json:"podAnnotations,omitempty"`
+	ServiceLabels                  map[string]string `json:"serviceLabels,omitempty"`
+	ServiceAnnotations             map[string]string `json:"serviceAnnotations,omitempty"`
+	BackupClusterStatus            *bool             `json:"backupClusterStatus,omitempty"`
+	AllowRestoreWithoutConnections *bool             `json:"allowRestoreWithoutConnections,omitempty"`
 }
 
 // KubeDirectorConfigStatus defines the observed state of KubeDirectorConfig.

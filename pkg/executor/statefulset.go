@@ -50,9 +50,17 @@ func CreateStatefulSet(
 	cr *kdv1.KubeDirectorCluster,
 	nativeSystemdSupport bool,
 	role *kdv1.Role,
+	roleStatus *kdv1.RoleStatus,
 ) (*appsv1.StatefulSet, error) {
 
-	statefulSet, err := getStatefulset(reqLogger, cr, nativeSystemdSupport, role, 0)
+	statefulSet, err := getStatefulset(
+		reqLogger,
+		cr,
+		nativeSystemdSupport,
+		role,
+		roleStatus,
+		0,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +133,7 @@ func UpdateStatefulSetReplicas(
 // steps to reconcile it to the desired spec, for properties other than the
 // replicas count.
 func UpdateStatefulSetNonReplicas(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
 	statefulSet *appsv1.StatefulSet,
@@ -135,12 +144,34 @@ func UpdateStatefulSetNonReplicas(
 		return nil
 	}
 
-	// TBD: We could compare the service against the expected service
-	// (generated from the CR) and if there is a deviance in properties that
-	// we need/expect to be under our control, other than the replicas
-	// count, correct them here.
+	// We could compare the statefulset against the expected statefulset
+	// (generated from the CR) and if there is a deviance in properties that we
+	// need/expect to be under our control, other than the replicas count,
+	// correct them here.
 
-	return nil
+	// For now only checking the owner reference.
+	if shared.OwnerReferencesPresent(cr, statefulSet.OwnerReferences) {
+		return nil
+	}
+	shared.LogInfof(
+		reqLogger,
+		cr,
+		shared.EventReasonNoEvent,
+		"repairing owner ref on statefulset{%s}",
+		statefulSet.Name,
+	)
+	// So, what to do. Do we add our owner ref to the existing ones? What if
+	// something else is claiming to be controller? Probably some stale ref
+	// left by a bad backup/restore process? We're just going to nuke any
+	// existing owner refs.
+	patchedRes := *statefulSet
+	patchedRes.OwnerReferences = shared.OwnerReferences(cr)
+	patchErr := shared.Patch(
+		context.TODO(),
+		statefulSet,
+		&patchedRes,
+	)
+	return patchErr
 }
 
 // DeleteStatefulSet deletes a statefulset from k8s.
@@ -170,6 +201,7 @@ func getStatefulset(
 	cr *kdv1.KubeDirectorCluster,
 	nativeSystemdSupport bool,
 	role *kdv1.Role,
+	roleStatus *kdv1.RoleStatus,
 	replicas int32,
 ) (*appsv1.StatefulSet, error) {
 
@@ -301,25 +333,16 @@ func getStatefulset(
 		return nil, securityErr
 	}
 
-	namingScheme := *cr.Spec.NamingScheme
-	var objectName string
-	if namingScheme == v1beta1.CrNameRole {
-		objectName = MungObjectName(cr.Name + "-" + role.Name)
-		objectName += "-"
-	} else if namingScheme == v1beta1.UID {
-		objectName = statefulSetNamePrefix
-	}
-
 	vct := getVolumeClaimTemplate(cr, role, PvcNamePrefix)
-	return &appsv1.StatefulSet{
+
+	sset := &appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "StatefulSet",
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName:    objectName,
 			Namespace:       cr.Namespace,
-			OwnerReferences: ownerReferences(cr),
+			OwnerReferences: shared.OwnerReferences(cr),
 			Labels:          labels,
 			Annotations:     annotations,
 		},
@@ -366,7 +389,21 @@ func getStatefulset(
 			},
 			VolumeClaimTemplates: vct,
 		},
-	}, nil
+	}
+
+	namingScheme := *cr.Spec.NamingScheme
+	if (roleStatus == nil) || (roleStatus.StatefulSet == "") {
+		if namingScheme == v1beta1.CrNameRole {
+			sset.ObjectMeta.GenerateName = MungObjectName(cr.Name + "-" + role.Name)
+			sset.ObjectMeta.GenerateName += "-"
+		} else if namingScheme == v1beta1.UID {
+			sset.ObjectMeta.GenerateName = statefulSetNamePrefix
+		}
+	} else {
+		sset.ObjectMeta.Name = roleStatus.StatefulSet
+	}
+
+	return sset, nil
 }
 
 // chkModifyEnvVars checks a role's resource requests. If an NVIDIA GPU resource has
@@ -469,7 +506,6 @@ func getVolumeClaimTemplate(
 				Annotations: map[string]string{
 					storageClassName: *role.Storage.StorageClass,
 				},
-				OwnerReferences: ownerReferences(cr),
 			},
 			Spec: v1.PersistentVolumeClaimSpec{
 				AccessModes: []v1.PersistentVolumeAccessMode{
@@ -508,7 +544,6 @@ func getVolumeClaimTemplate(
 					Annotations: map[string]string{
 						storageClassName: *role.BlockStorage.StorageClass,
 					},
-					OwnerReferences: ownerReferences(cr),
 				},
 				Spec: v1.PersistentVolumeClaimSpec{
 					AccessModes: []v1.PersistentVolumeAccessMode{

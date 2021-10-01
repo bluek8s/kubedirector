@@ -15,6 +15,7 @@
 package validator
 
 import (
+	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
 )
 
@@ -24,18 +25,22 @@ type admitFunc func(*v1beta1.AdmissionReview) *v1beta1.AdmissionResponse
 type checkFunc func() error
 
 const (
-	validatorServiceName = "kubedirector-validator"
-	validatorWebhook     = "kubedirector-webhook"
-	validatorSecret      = "kubedirector-validator-secret"
-	webhookHandlerName   = "validate-cr.kubedirector.hpe.com"
-	validationPort       = 8443
-	validationPath       = "/validate"
-	healthPath           = "/healthz"
-	defaultNativeSystemd = false
+	validatorServiceName                  = "kubedirector-validator"
+	validatorWebhook                      = "kubedirector-webhook"
+	validatorSecret                       = "kubedirector-validator-secret"
+	webhookHandlerName                    = "validate-cr.kubedirector.hpe.com"
+	validationPort                        = 8443
+	validationPath                        = "/validate"
+	healthPath                            = "/healthz"
+	defaultNativeSystemd                  = false
+	defaultBackupClusterStatus            = false
+	defaultAllowRestoreWithoutConnections = false
 
 	appCrt  = "app.crt"
 	appKey  = "app.pem"
 	rootCrt = "ca.crt"
+
+	allowDeleteLabel = shared.KdDomainBase + "/allow-delete-while-restoring"
 
 	multipleSpecChange = "Change to spec not allowed before previous spec change has been processed."
 	pendingNotifies    = "Change to spec not allowed because some members have not processed notifications of previous change."
@@ -70,6 +75,8 @@ const (
 
 	failedToPatch = "Internal error: failed to populate default values for unspecified properties."
 
+	failedToPatchPVC = "Internal error: failed to apply ownerReference to PVC for kdcluster."
+
 	invalidStorageDef   = "Storage size for role (%s) is incorrectly defined."
 	invalidStorageSize  = "Storage size for role (%s) should be greater than zero."
 	invalidStorageClass = "Unable to fetch storageClass object with the provided name(%s)."
@@ -90,3 +97,5 @@ const (
 
 	invalidConfigDelete = "kd-global-config cannot be deleted while kdclusters exist"
 )
+
+type dictValue map[string]string

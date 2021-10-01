@@ -20,8 +20,6 @@ import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // Service names size have a limitation of max 63 characters. The service
@@ -38,21 +36,6 @@ import (
 // the max of hash value digits and member size digits which is 10.
 // Prefix calculation is done as following = 63 - 10 - 5 - 2 ('-' characters) = 46.
 const nameLengthLimit = 46
-
-// ownerReferences creates an owner reference spec that identifies the
-// custom resource as the owner.
-func ownerReferences(
-	cr shared.KubeDirectorObject,
-) []metav1.OwnerReference {
-
-	return []metav1.OwnerReference{
-		*metav1.NewControllerRef(cr, schema.GroupVersionKind{
-			Group:   kdv1.SchemeGroupVersion.Group,
-			Version: kdv1.SchemeGroupVersion.Version,
-			Kind:    cr.GetObjectKind().GroupVersionKind().Kind,
-		}),
-	}
-}
 
 // annotationsForCluster generates a set of annotations appropriate for
 // any component of this KDCluster.
@@ -141,7 +124,7 @@ func labelsForCluster(
 ) map[string]string {
 
 	result := map[string]string{
-		ClusterLabel:           cr.Name,
+		shared.ClusterLabel:    cr.Name,
 		ClusterAppLabel:        cr.Spec.AppID,
 		ClusterAppCatalogLabel: *(cr.Spec.AppCatalog),
 	}

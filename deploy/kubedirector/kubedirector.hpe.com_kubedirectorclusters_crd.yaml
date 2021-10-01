@@ -501,6 +501,18 @@ spec:
           properties:
             state:
               type: string
+            restoreProgress:
+              type: object
+              nullable: true
+              properties:
+                awaitingApp:
+                  type: boolean
+                awaitingStatus:
+                  type: boolean
+                awaitingResources:
+                  type: boolean
+                error:
+                  type: string
             memberStateRollup:
               type: object
               properties:

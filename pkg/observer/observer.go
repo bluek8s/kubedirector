@@ -45,6 +45,22 @@ func GetCluster(
 	return result, err
 }
 
+// GetStatusBackup finds the k8s KubeDirectorStatusBackup with the given name
+// in the given namespace.
+func GetStatusBackup(
+	namespace string,
+	statusBackupName string,
+) (*kdv1.KubeDirectorStatusBackup, error) {
+
+	result := &kdv1.KubeDirectorStatusBackup{}
+	err := shared.Get(
+		context.TODO(),
+		types.NamespacedName{Namespace: namespace, Name: statusBackupName},
+		result,
+	)
+	return result, err
+}
+
 // GetStatefulSet finds the k8s StatefulSet with the given name in the given
 // namespace.
 func GetStatefulSet(

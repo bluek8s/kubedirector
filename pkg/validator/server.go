@@ -33,9 +33,10 @@ import (
 
 // Add validation handlers for all CRs that we currently support
 var validationHandlers = map[string]admitFunc{
-	"KubeDirectorApp":     admitAppCR,
-	"KubeDirectorCluster": admitClusterCR,
-	"KubeDirectorConfig":  admitKDConfigCR,
+	"KubeDirectorApp":       admitAppCR,
+	"KubeDirectorCluster":   admitClusterCR,
+	"KubeDirectorConfig":    admitKDConfigCR,
+	"PersistentVolumeClaim": admitPVC,
 }
 
 var validatorLog = log.Log.WithName(validatorServiceName)

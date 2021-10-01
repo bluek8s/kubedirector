@@ -24,12 +24,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bluek8s/kubedirector/pkg/secretkeys"
-
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/controller/kubedirectorcluster"
 	"github.com/bluek8s/kubedirector/pkg/observer"
+	"github.com/bluek8s/kubedirector/pkg/secretkeys"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
 	v1 "k8s.io/api/authentication/v1"
@@ -64,13 +63,15 @@ type clusterPatchValue struct {
 	ValueClusterStatus *kdv1.KubeDirectorClusterStatus
 	ValueKDSecret      *kdv1.KDSecret
 	ValueSecretKey     *kdv1.SecretKey
+	ValueDict          *dictValue
 }
 
 func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
 
 	if obj.ValueInt != nil {
 		return json.Marshal(obj.ValueInt)
-	} else if obj.ValueKDSecret != nil {
+	}
+	if obj.ValueKDSecret != nil {
 		return json.Marshal(obj.ValueKDSecret)
 	}
 	if obj.ValueClusterStatus != nil {
@@ -78,6 +79,9 @@ func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
 	}
 	if obj.ValueSecretKey != nil {
 		return json.Marshal(obj.ValueSecretKey)
+	}
+	if obj.ValueDict != nil {
+		return json.Marshal(obj.ValueDict)
 	}
 	return json.Marshal(obj.ValueStr)
 }
@@ -576,7 +580,7 @@ func validateApp(
 
 	if err != nil {
 		return nil, patches,
-			"\n" + fmt.Sprintf(invalidAppMessage, cr.Spec.AppID)
+			fmt.Sprintf(invalidAppMessage, cr.Spec.AppID)
 	}
 
 	// Note that we should NOT call shared.EnsureClusterAppReference here,
@@ -936,6 +940,46 @@ func validateNamingScheme(
 	return patches
 }
 
+// addRestoreLabel adds the kubedirector.hpe.com/restoring label (with no value)
+// to the CR's set of labels, if it's not already there.
+func addRestoreLabel(
+	cr *kdv1.KubeDirectorCluster,
+	patches []clusterPatchSpec,
+) []clusterPatchSpec {
+
+	if len(cr.Labels) == 0 {
+		labelKeyAndVal := make(dictValue)
+		labelKeyAndVal[shared.RestoringLabel] = ""
+		patches = append(
+			patches,
+			clusterPatchSpec{
+				Op:   "add",
+				Path: "/metadata/labels",
+				Value: clusterPatchValue{
+					ValueDict: &labelKeyAndVal,
+				},
+			},
+		)
+	} else {
+		if _, ok := cr.Labels[shared.RestoringLabel]; !ok {
+			labelVal := ""
+			patches = append(
+				patches,
+				clusterPatchSpec{
+					Op: "add",
+					Path: fmt.Sprintf("/metadata/labels/%s",
+						strings.ReplaceAll(shared.RestoringLabel, "/", "~1")),
+					Value: clusterPatchValue{
+						ValueStr: &labelVal,
+					},
+				},
+			)
+		}
+	}
+
+	return patches
+}
+
 // admitClusterCR is the top-level cluster validation function, which invokes
 // the top-specific validation subroutines and composes the admission
 // response.
@@ -949,53 +993,110 @@ func admitClusterCR(
 		Allowed: false,
 	}
 
-	// If this is a delete, the admission handler has nothing to do.
+	// Set a defer func to handle any patches and errors. Set the admission
+	// response to allowed=true if no errors.
+	defer func() {
+		if len(valErrors) == 0 {
+			if len(patches) != 0 {
+				patchResult, patchErr := json.Marshal(patches)
+				if patchErr == nil {
+					admitResponse.Patch = patchResult
+					patchType := v1beta1.PatchTypeJSONPatch
+					admitResponse.PatchType = &patchType
+				} else {
+					valErrors = append(valErrors, failedToPatch)
+				}
+			}
+		}
+		if len(valErrors) == 0 {
+			admitResponse.Allowed = true
+		} else {
+			admitResponse.Result = &metav1.Status{
+				Message: "\n" + strings.Join(valErrors, "\n"),
+			}
+		}
+	}()
+
+	// We'll need the existing object in update and delete cases.
+	prevClusterCR := kdv1.KubeDirectorCluster{}
+	if (ar.Request.Operation == v1beta1.Update) || (ar.Request.Operation == v1beta1.Delete) {
+		prevRaw := ar.Request.OldObject.Raw
+		if prevJSONErr := json.Unmarshal(prevRaw, &prevClusterCR); prevJSONErr != nil {
+			valErrors = append(valErrors, prevJSONErr.Error())
+			return &admitResponse
+		}
+	}
+
+	// Record whether we're in "restoring" state.
+	_, isRestoring := prevClusterCR.Labels[shared.RestoringLabel]
+
+	// If this is a delete and the being-restored label is set, reject the
+	// deletion unless allow-delete-while-restoring is also set. In all other
+	// cases allow the deletion.
 	if ar.Request.Operation == v1beta1.Delete {
-		admitResponse.Allowed = true
+		if !isRestoring {
+			return &admitResponse
+		}
+		if _, allowDelete := prevClusterCR.Labels[allowDeleteLabel]; allowDelete {
+			return &admitResponse
+		}
+		valErrors = append(
+			valErrors,
+			"delete not allowed while "+shared.RestoringLabel+" label exists, "+
+				"unless "+allowDeleteLabel+" label also exists",
+		)
 		return &admitResponse
 	}
 
-	// Deserialize the object.
+	// Deserialize the incoming object.
 	raw := ar.Request.Object.Raw
 	clusterCR := kdv1.KubeDirectorCluster{}
 	if jsonErr := json.Unmarshal(raw, &clusterCR); jsonErr != nil {
-		admitResponse.Result = &metav1.Status{
-			Message: "\n" + jsonErr.Error(),
-		}
+		valErrors = append(valErrors, jsonErr.Error())
 		return &admitResponse
 	}
 
-	// If this is an update, get the previous version of the object ready for
-	// use in some checks.
-	prevClusterCR := kdv1.KubeDirectorCluster{}
-	if ar.Request.Operation == v1beta1.Update {
-		prevRaw := ar.Request.OldObject.Raw
-		if prevJSONErr := json.Unmarshal(prevRaw, &prevClusterCR); prevJSONErr != nil {
-			admitResponse.Result = &metav1.Status{
-				Message: "\n" + prevJSONErr.Error(),
+	// If this is a re-creation (as indicated by annotation existing), set
+	// the being-restored label and skip validation.
+	if ar.Request.Operation == v1beta1.Create {
+		if clusterCR.Annotations != nil {
+			if _, ok := clusterCR.Annotations[shared.StatusBackupAnnotation]; ok {
+				patches = addRestoreLabel(&clusterCR, patches)
+				return &admitResponse
 			}
-			return &admitResponse
+		}
+	}
+
+	// If this is an update and the being-restored label is set, don't allow
+	// any spec change.
+	if ar.Request.Operation == v1beta1.Update {
+		if isRestoring {
+			if !equality.Semantic.DeepEqual(clusterCR.Spec, prevClusterCR.Spec) {
+				valErrors = append(
+					valErrors,
+					"spec changes not allowed while "+shared.RestoringLabel+" label exists",
+				)
+				return &admitResponse
+			}
 		}
 	}
 
 	// Don't allow Status to be updated except by KubeDirector. Do this by
 	// using one-time codes known by KubeDirector.
 	if clusterCR.Status != nil {
-		statusViolation := &metav1.Status{
-			Message: "\nKubeDirector-related status properties are read-only",
-		}
 		expectedStatusGen, ok := kubedirectorcluster.ClusterStatusGens.ReadStatusGen(clusterCR.UID)
 		// Reject this write if either of:
 		// - this status generation UID is not what we're expecting a write for
 		// - KubeDirector doesn't know about the CR & the status is changing
+		statusViolation := "KubeDirector-related status properties are read-only"
 		if ok {
 			if clusterCR.Status.GenerationUID != expectedStatusGen.UID {
-				admitResponse.Result = statusViolation
+				valErrors = append(valErrors, statusViolation)
 				return &admitResponse
 			}
 		} else {
 			if !equality.Semantic.DeepEqual(clusterCR.Status, prevClusterCR.Status) {
-				admitResponse.Result = statusViolation
+				valErrors = append(valErrors, statusViolation)
 				return &admitResponse
 			}
 		}
@@ -1004,7 +1105,7 @@ func admitClusterCR(
 		// (For example we'll see this when a PATCH happens.)
 		if expectedStatusGen.Validated {
 			if !equality.Semantic.DeepEqual(clusterCR.Status, prevClusterCR.Status) {
-				admitResponse.Result = statusViolation
+				valErrors = append(valErrors, statusViolation)
 				return &admitResponse
 			}
 		}
@@ -1017,10 +1118,20 @@ func admitClusterCR(
 	// referenced app is bad/gone. Note that we can't just check the
 	// metadata generation number here because that is incremented after this
 	// validator sees the request.
+	// We will NOT take this shortcut if we're trying to change from
+	// "restoring" to "reconciling". Need to validate in that case.
 	if ar.Request.Operation == v1beta1.Update {
-		if equality.Semantic.DeepEqual(clusterCR.Spec, prevClusterCR.Spec) {
-			admitResponse.Allowed = true
-			return &admitResponse
+		doShortcut := true
+		if isRestoring {
+			_, willStillBeRestoring := clusterCR.Labels[shared.RestoringLabel]
+			if !willStillBeRestoring {
+				doShortcut = false
+			}
+		}
+		if doShortcut {
+			if equality.Semantic.DeepEqual(clusterCR.Spec, prevClusterCR.Spec) {
+				return &admitResponse
+			}
 		}
 	}
 
@@ -1029,9 +1140,7 @@ func admitClusterCR(
 
 	// If app error, fail right away
 	if appCR == nil {
-		admitResponse.Result = &metav1.Status{
-			Message: errorMsg,
-		}
+		valErrors = append(valErrors, errorMsg)
 		return &admitResponse
 	}
 
@@ -1082,27 +1191,6 @@ func admitClusterCR(
 		// depend on the defaulting logic that happens in those other functions.)
 		if len(changeErrors) != 0 {
 			valErrors = changeErrors
-		}
-	}
-
-	if len(valErrors) == 0 {
-		if len(patches) != 0 {
-			patchResult, patchErr := json.Marshal(patches)
-			if patchErr == nil {
-				admitResponse.Patch = patchResult
-				patchType := v1beta1.PatchTypeJSONPatch
-				admitResponse.PatchType = &patchType
-			} else {
-				valErrors = append(valErrors, failedToPatch)
-			}
-		}
-	}
-
-	if len(valErrors) == 0 {
-		admitResponse.Allowed = true
-	} else {
-		admitResponse.Result = &metav1.Status{
-			Message: "\n" + strings.Join(valErrors, "\n"),
 		}
 	}
 

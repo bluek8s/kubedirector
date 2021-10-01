@@ -284,6 +284,7 @@ func admitKDConfigCR(
 		)
 	}
 
+	// Populate master key if necessary.
 	patches, valErrors = validateOrPopulateMasterEncryptionKey(
 		prevConfigCR,
 		configCR,
@@ -291,6 +292,7 @@ func admitKDConfigCR(
 		valErrors,
 	)
 
+	// Check that all specified global labels/annotations have good syntax.
 	valErrors, _ = validateLabelsAndAnnotations(
 		field.NewPath("spec"),
 		configCR.Spec.PodLabels,
@@ -299,6 +301,25 @@ func admitKDConfigCR(
 		configCR.Spec.ServiceAnnotations,
 		valErrors,
 	)
+
+	// Populate backup-cluster-status and allow-restore-w/o-connections flags
+	// if necessary.
+	if configCR.Spec.BackupClusterStatus == nil {
+		patches = append(patches,
+			newBoolPatch(
+				"/spec/backupClusterStatus",
+				defaultBackupClusterStatus,
+			),
+		)
+	}
+	if configCR.Spec.AllowRestoreWithoutConnections == nil {
+		patches = append(patches,
+			newBoolPatch(
+				"/spec/allowRestoreWithoutConnections",
+				defaultAllowRestoreWithoutConnections,
+			),
+		)
+	}
 
 	if len(valErrors) == 0 {
 		if len(patches) != 0 {

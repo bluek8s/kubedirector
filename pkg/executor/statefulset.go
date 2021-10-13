@@ -375,8 +375,10 @@ func chkModifyEnvVars(
 	rsrcmap := role.Resources.Requests
 	// return the role's environment variables unmodified, if an NVIDIA GPU is
 	// indeed a resource requested for this role
-	if quantity, found := rsrcmap[nvidiaGpuResourceName]; found == true && quantity.IsZero() != true {
-		return envVar
+	for name, quantity := range rsrcmap {
+		if strings.HasPrefix(string(name), nvidiaGpuResourcePrefix) && !quantity.IsZero() {
+			return envVar
+		}
 	}
 
 	// add an environment variable, as a work-around to ensure that an NVIDIA GPU is

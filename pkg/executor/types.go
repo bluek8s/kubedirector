@@ -60,13 +60,13 @@ const (
 	tmpFSVolSize          = "20Gi"
 	kubedirectorInit      = "/etc/kubedirector.init"
 
-	// nvidiaGpuResourceName is the name of a GPU resource, schedulable for a container -
+	// nvidiaGpuResourcePrefix is the name of a GPU resource, schedulable for a container -
 	// specifically, a GPU by the vendor, NVIDIA
-	nvidiaGpuResourceName = "nvidia.com/gpu"
+	nvidiaGpuResourcePrefix = "nvidia.com/"
 	// nvidiaGpuVisWorkaroundEnvVarName is the name of an environment variable, which is to be
 	// injected in a scheduled container), as an NVIDIA-suggested work-around that
 	// avoids an NVIDIA GPU resource surfacing in a container for which it was not requested
-	nvidiaGpuVisWorkaroundEnvVarName = "NVIDIA_VISIBLE_DEVICE"
+	nvidiaGpuVisWorkaroundEnvVarName = "NVIDIA_VISIBLE_DEVICES"
 	// nvidiaGpuVisWorkaroundEnvVarValue is the value to be set for the environment variable
 	// named nvidiaGpuVisWorkaroundEnvVarName, in the above work-around
 	nvidiaGpuVisWorkaroundEnvVarValue = "VOID"

@@ -88,7 +88,15 @@ func syncMembers(
 		}
 	}
 	if !allMembersUpdated {
-		// Not an error, we're just not done yet.
+		// Not an error, we're just not done yet. Make sure we check on any
+		// already-ongoing configurations though. We'll pass nil for
+		// configmetaGenerator to indicate/enforce that it can't be used yet
+		// to get the new configmeta.
+		for _, r := range roles {
+			if _, ok := r.membersByState[memberCreating]; ok {
+				handleCreatingMembers(reqLogger, cr, r, roles, nil)
+			}
+		}
 		shared.LogInfo(
 			reqLogger,
 			cr,
@@ -1180,6 +1188,19 @@ func appConfig(
 			cr,
 			shared.EventReasonMember,
 			"systemd not yet responsive in member{%s}",
+			podName,
+		)
+		return false, nil
+	}
+	// Also don't do anything if we're waiting on "ready" nodes to all
+	// fully adopt this version of configmeta. When this is the case we don't
+	// get a configmetaGenerator given to us.
+	if configmetaGenerator == nil {
+		shared.LogInfof(
+			reqLogger,
+			cr,
+			shared.EventReasonMember,
+			"member{%s} initial configuration waiting on update of ready-state members",
 			podName,
 		)
 		return false, nil

@@ -1,3 +1,11 @@
+# v0.7.0 - Oct 14, 2021
+
+The big Q2 release is here! Along with some general documentation-cleaning and a new [roadmap](ROADMAP.md), the following features and fixes are included:
+* [encrypted secrets](https://github.com/bluek8s/kubedirector/issues/385) also cf. [doc/secret-keys.md](doc/secret-keys.md)
+* [support setting up serviceAccounts for role](https://github.com/bluek8s/kubedirector/issues/475)
+* [kdcluster backup/restore enablement](https://github.com/bluek8s/kubedirector/issues/500) also cf. [doc/backup-and-restore.md](doc/backup-and-restore.md)
+* [race in change processing can cause deadlock](https://github.com/bluek8s/kubedirector/issues/518)
+
 # v0.6.2 - May 21, 2021
 
 Maintenance release to address the following bugs:

@@ -1,7 +1,7 @@
 language: go
 
 go:
-  - "1.13"
+  - "1.16"
 
 env:
   - OPERATOR_SDK_VERSION="v0.15.2" ORIG_HOME="$GOPATH/src/github.com/bluek8s"

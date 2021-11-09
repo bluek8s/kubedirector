@@ -42,11 +42,11 @@ cgo_enabled := 0
 .DEFAULT_GOAL := build
 
 version-check:
-	@if go version | grep -q 'go1\.1[3-9]'; then \
+	@if go version | grep -q 'go1\.1[6-9]'; then \
         true; \
     else \
         echo "Error:"; \
-        echo "go version 1.13 or later is required"; \
+        echo "go version 1.16 or later is required"; \
         exit 1; \
     fi
 	@if operator-sdk version | grep -q 'operator-sdk version: "v0.15.2'; then \

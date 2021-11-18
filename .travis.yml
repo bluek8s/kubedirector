@@ -16,6 +16,8 @@ install:
   - chmod +x $GOPATH/bin/operator-sdk
   # Get golint
   - go get -u golang.org/x/lint/golint
+  # Make sure Travis environment is happy
+  - go mod tidy
 
 script:
   - make compile

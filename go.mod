@@ -1,17 +1,25 @@
 module github.com/bluek8s/kubedirector
 
-go 1.13
+go 1.16
 
 require (
+	github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153 // indirect
 	github.com/go-logr/logr v0.1.0
+	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/google/uuid v1.1.1
+	github.com/json-iterator/go v1.1.8 // indirect
+	github.com/onsi/ginkgo v1.11.0 // indirect
 	github.com/operator-framework/operator-sdk v0.15.2
+	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/spf13/pflag v1.0.5
+	golang.org/x/crypto v0.0.0-20201216223049-8b5274cf687f // indirect
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v12.0.0+incompatible
-	k8s.io/kubernetes v1.16.2
+	k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6 // indirect
+	k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89 // indirect
 	sigs.k8s.io/controller-runtime v0.4.0
+	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 
 // Pinned to kubernetes-1.16.2

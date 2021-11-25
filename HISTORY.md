@@ -1,3 +1,13 @@
+# v0.7.1 - Nov 24, 2021
+
+This dot-release doesn't contain any new features or bugfixes within the KubeDirector code. It updates the base image of the KubeDirector deployment (from UBI7 to UBI8), raises the minimum allowed version of golang for compilation (from 1.13 to 1.16), and updates several of the module dependencies.
+
+If you build KD yourself, the only action required on your part is to make sure you are now using go 1.16 (or later) to compile. Otherwise this update should be transparent to everyone.
+
+As a result of this update, the Trivy report for vulnerabilities in the base image changes from "Total: 655 (LOW: 366, MEDIUM: 284, HIGH: 3, CRITICAL: 2)" to "Total: 96 (LOW: 44, MEDIUM: 48, HIGH: 1, CRITICAL: 3)". The increase in CRITICAL count there is the same CVE-2019-1010022 for glibc. In UBI7 that CVE gets counted against glibc and glibc-common; in UBI8 it's counted against glibc, glibc-common, and glibc-minimal-langpack.
+
+As for Trivy-reported vulnerabilities against the KD binary, those go from "MEDIUM: 3, HIGH: 4" to "MEDIUM: 2, HIGH: 2". Specifically, this update closes out CVE-2020-29652 and CVE-2020-9283 for golang.org/x/crypto, and CVE-2019-11254 for gopkg.in/yaml.v2.
+
 # v0.7.0 - Oct 14, 2021
 
 The big Q2 release is here! Along with some general documentation-cleaning and a new [roadmap](ROADMAP.md), the following features and fixes are included:

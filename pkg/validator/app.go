@@ -160,6 +160,7 @@ func validateRoles(
 	valErrors []string,
 ) ([]appPatchSpec, []string) {
 
+	validatorLog.Info(fmt.Sprint(">>> validateRoles begin"))
 	// Any global defaults will be removed from the CR. Remember their values
 	// though for use in populating the role definitions.
 	var globalImageRepoTag *string
@@ -463,6 +464,25 @@ func admitAppCR(
 			// to null. See the commit comments in the PR that closes issue
 			// #319 for more details.
 			prevAppCR.Spec.DefaultSetupPackage = appCR.Spec.DefaultSetupPackage
+
+			// EZML-862
+			// Before doing the comparison, we should ignore defferences
+			// between the images defined for different roles. The app configuration
+			// should be able to replace if the image is changed
+			// even when some KD cluster instance based on this spec is alive.
+			if appCR.Spec.DefaultImageRepoTag != nil {
+				*prevAppCR.Spec.DefaultImageRepoTag = *appCR.Spec.DefaultImageRepoTag
+			}
+
+			for _, nodeRole := range appCR.Spec.NodeRoles {
+				for _, prevNodeRole := range prevAppCR.Spec.NodeRoles {
+					if strings.Compare(nodeRole.ID, prevNodeRole.ID) == 0 {
+						*prevNodeRole.ImageRepoTag = *nodeRole.ImageRepoTag
+						break
+					}
+				}
+			}
+
 			if !equality.Semantic.DeepEqual(appCR.Spec, prevAppCR.Spec) {
 				referencesStr := strings.Join(references, ", ")
 				appInUseMsg := fmt.Sprintf(

@@ -160,7 +160,6 @@ func validateRoles(
 	valErrors []string,
 ) ([]appPatchSpec, []string) {
 
-	validatorLog.Info(fmt.Sprint(">>> validateRoles begin"))
 	// Any global defaults will be removed from the CR. Remember their values
 	// though for use in populating the role definitions.
 	var globalImageRepoTag *string

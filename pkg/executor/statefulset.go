@@ -608,7 +608,7 @@ func getStartupScript(
 					cr.Status.ClusterService +
 					".\\1 \\1/\" /etc/resolv.conf > /tmp/resolv.conf.new && " +
 					"cat /tmp/resolv.conf.new > /etc/resolv.conf;" +
-					"rm /tmp/resolv.conf.new;" +
+					"rm -f /tmp/resolv.conf.new;" +
 					"chmod 755 /run;" +
 					"exit 0",
 			},

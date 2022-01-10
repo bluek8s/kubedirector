@@ -22,6 +22,7 @@ import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -194,6 +195,13 @@ func ImageForRole(
 		role,
 		cr.Spec.AppID,
 	)
+}
+
+// ImageForStatefulSet returns the image is currently used at a given statefulSet
+func ImageForStatefulSet(
+	statefulSet *appsv1.StatefulSet,
+) string {
+	return statefulSet.Spec.Template.Spec.Containers[0].Image
 }
 
 // AppSetupPackageURL returns the app setup package url for a given role. The

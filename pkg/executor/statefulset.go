@@ -149,9 +149,11 @@ func UpdateStatefulSetNonReplicas(
 	// need/expect to be under our control, other than the replicas count,
 	// correct them here.
 
+	patchedRes := *statefulSet
+	needPatch := false
+
 	// Check the owner reference.
-	needPatch := !shared.OwnerReferencesPresent(cr, statefulSet.OwnerReferences)
-	if needPatch {
+	if !shared.OwnerReferencesPresent(cr, statefulSet.OwnerReferences) {
 		shared.LogInfof(
 			reqLogger,
 			cr,
@@ -159,6 +161,13 @@ func UpdateStatefulSetNonReplicas(
 			"repairing owner ref on statefulset{%s}",
 			statefulSet.Name,
 		)
+
+		// So, what to do. Do we add our owner ref to the existing ones? What if
+		// something else is claiming to be controller? Probably some stale ref
+		// left by a bad backup/restore process? We're just going to nuke any
+		// existing owner refs.
+		patchedRes.OwnerReferences = shared.OwnerReferences(cr)
+		needPatch = true
 	}
 
 	// EZML-862
@@ -172,23 +181,17 @@ func UpdateStatefulSetNonReplicas(
 	if err != nil {
 		return err
 	}
+
 	ssImage := catalog.ImageForStatefulSet(statefulSet)
 
-	needPatch = strings.Compare(appRoleImage, ssImage) != 0
+	if strings.Compare(appRoleImage, ssImage) != 0 {
+		patchedRes.Spec.Template.Spec.Containers[0].Image = appRoleImage
+		needPatch = true
+	}
+
 	if !needPatch {
 		return nil
 	}
-
-	patchedRes := *statefulSet
-
-	// So, what to do. Do we add our owner ref to the existing ones? What if
-	// something else is claiming to be controller? Probably some stale ref
-	// left by a bad backup/restore process? We're just going to nuke any
-	// existing owner refs.
-	patchedRes.OwnerReferences = shared.OwnerReferences(cr)
-
-	// Then, update the container image
-	patchedRes.Spec.Template.Spec.Containers[0].Image = appRoleImage
 
 	patchErr := shared.Update(
 		context.TODO(),

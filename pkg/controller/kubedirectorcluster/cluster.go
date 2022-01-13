@@ -61,6 +61,9 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		initSpecGen := int64(0)
 		cr.Status.SpecGenerationToProcess = &initSpecGen
 	}
+	if cr.Status.UpgradedRoles == nil {
+		cr.Status.UpgradedRoles = make(map[string]bool)
+	}
 
 	annotations := cr.Annotations
 	if annotations == nil {

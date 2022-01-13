@@ -49,6 +49,7 @@ const (
 	memberDeletePending             = "delete pending"
 	memberDeleting                  = "deleting"
 	memberConfigError               = "config error"
+	memberUpgrading                 = "updating"
 )
 
 var creatingMemberStates = []string{

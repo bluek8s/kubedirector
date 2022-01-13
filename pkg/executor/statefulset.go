@@ -186,6 +186,10 @@ func UpdateStatefulSetNonReplicas(
 
 	if strings.Compare(appRoleImage, ssImage) != 0 {
 		patchedRes.Spec.Template.Spec.Containers[0].Image = appRoleImage
+
+		// Add the current role to the list for upgrade
+		// It will be used at the syncMembers() step
+		cr.Status.UpgradedRoles[role.Name] = true
 		needPatch = true
 	}
 

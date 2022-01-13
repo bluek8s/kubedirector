@@ -118,6 +118,9 @@ func syncMembers(
 		if _, ok := r.membersByState[memberCreating]; ok {
 			handleCreatingMembers(reqLogger, cr, r, roles, configmetaGenerator)
 		}
+		if _, ok := r.membersByState[memberUpgrading]; ok {
+			handleUpgradingMembers(reqLogger, cr, r, roles)
+		}
 		if _, ok := r.membersByState[memberDeletePending]; ok {
 			handleDeletePendingMembers(reqLogger, cr, r, roles)
 		}
@@ -431,6 +434,11 @@ func handleCreatePendingMembers(
 	wgRunning.Wait()
 }
 
+func setNextState(m *kdv1.MemberStatus, state memberState, errorDetail *string) {
+	m.State = string(state)
+	m.StateDetail.ConfigErrorDetail = errorDetail
+}
+
 // handleCreatingMembers operates on all members in the role that are
 // currently in the creating state, handling configmeta and app setup and
 // initial configuration.  All ready members in the cluster are notified
@@ -444,7 +452,6 @@ func handleCreatingMembers(
 	allRoles []*roleInfo,
 	configmetaGenerator func(string) string,
 ) {
-
 	creating := role.membersByState[memberCreating]
 
 	// Fetch setup url package
@@ -469,10 +476,6 @@ func handleCreatingMembers(
 			defer wgSetup.Done()
 
 			containerID := m.StateDetail.ConfiguringContainer
-			setFinalState := func(state memberState, errorDetail *string) {
-				m.State = string(state)
-				m.StateDetail.ConfigErrorDetail = errorDetail
-			}
 
 			connectionVersion := getConnectionVersion(reqLogger, cr, role)
 
@@ -495,13 +498,13 @@ func handleCreatingMembers(
 						"failed requested file injections: %s",
 						injectErr.Error(),
 					)
-					setFinalState(memberConfigError, &statusErrMsg)
+					setNextState(m, memberConfigError, &statusErrMsg)
 					return
 				}
 			}
 
 			if setupURL == "" {
-				setFinalState(memberReady, nil)
+				setNextState(m, memberReady, nil)
 				shared.LogInfof(
 					reqLogger,
 					cr,
@@ -549,7 +552,7 @@ func handleCreatingMembers(
 					"execution of app config failed: %s",
 					configErr.Error(),
 				)
-				setFinalState(memberConfigError, &statusErrMsg)
+				setNextState(m, memberConfigError, &statusErrMsg)
 				return
 			}
 			shared.LogInfof(
@@ -560,7 +563,13 @@ func handleCreatingMembers(
 				m.Pod,
 				role.roleStatus.Name,
 			)
-			setFinalState(memberReady, nil)
+
+			roleUpgraded := cr.Status.UpgradedRoles[role.roleSpec.Name]
+			if roleUpgraded {
+				setNextState(m, memberUpgrading, nil)
+			} else {
+				setNextState(m, memberReady, nil)
+			}
 		}(member)
 	}
 	wgSetup.Wait()
@@ -581,6 +590,21 @@ func handleCreatingMembers(
 			member.StateDetail.LastConfiguredContainer = member.StateDetail.ConfiguringContainer
 			member.StateDetail.ConfiguringContainer = ""
 		}
+	}
+}
+
+func handleUpgradingMembers(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	role *roleInfo,
+	allRoles []*roleInfo,
+) {
+
+	upgrading := role.membersByState[memberUpgrading]
+
+	for _, member := range upgrading {
+		generateNotifies(reqLogger, cr, role, allRoles)
+		setNextState(member, memberReady, nil)
 	}
 }
 
@@ -724,6 +748,7 @@ func checkMemberCount(
 	// we'll ignore it if we're still working on a previous change.
 	replicas := int32(len(role.membersByState[memberCreatePending]) +
 		len(role.membersByState[memberCreating]) +
+		len(role.membersByState[memberUpgrading]) +
 		len(role.membersByState[memberReady]) +
 		len(role.membersByState[memberConfigError]))
 
@@ -971,6 +996,7 @@ func generateNotifies(
 
 	for _, otherRole := range allRoles {
 		if len(otherRole.membersByState[memberReady])+
+			len(otherRole.membersByState[memberUpgrading])+
 			len(otherRole.membersByState[memberCreatePending])+
 			len(otherRole.membersByState[memberCreating]) == 0 {
 			// This is not just an optimization; note also that in the case
@@ -1006,7 +1032,8 @@ func generateNotifies(
 				if member.StateDetail.LastSetupGeneration == nil {
 					continue
 				}
-				if *member.StateDetail.LastSetupGeneration == *cr.Status.SpecGenerationToProcess {
+				if *member.StateDetail.LastSetupGeneration == *cr.Status.SpecGenerationToProcess &&
+					member.State != memberUpgrading {
 					continue
 				}
 				queueNotify(
@@ -1027,6 +1054,9 @@ func generateNotifies(
 		}
 		if creating, creatingOk := otherRole.membersByState[memberCreating]; creatingOk {
 			processor(creating)
+		}
+		if upgrading, upgradingOk := otherRole.membersByState[memberUpgrading]; upgradingOk {
+			processor(upgrading)
 		}
 	}
 }
@@ -1283,13 +1313,21 @@ func queueNotify(
 	// FQDNs of the affected members.
 	op := ""
 	deltaFqdns := ""
-	if creatingOrCreated, ok := modifiedRole.membersByState[memberCreating]; ok {
-		// At the time this function is called, members in this list are
-		// marked as creating, ready, or config error. The fqdnsList function
-		// will appropriately skip the ones that are still creating, or the
-		// ones in other states that are just reboots.
-		op = "addnodes"
-		deltaFqdns = fqdnsList(cr, creatingOrCreated)
+
+	// At the time this function is called, members in this list are
+	// marked as creating, ready, upgrading or config error. The fqdnsList function
+	// will appropriately skip the ones that are still creating, or the
+	// ones in other states that are just reboots.
+
+	if upgrading, ok := modifiedRole.membersByState[memberUpgrading]; ok {
+		op = "upgrade"
+		deltaFqdns = fqdnsList(cr, upgrading)
+	}
+	if op == "" {
+		if creatingOrCreated, ok := modifiedRole.membersByState[memberCreating]; ok {
+			op = "addnodes"
+			deltaFqdns = fqdnsList(cr, creatingOrCreated)
+		}
 	}
 	if op == "" {
 		if deletePending, ok := modifiedRole.membersByState[memberDeletePending]; ok {
@@ -1299,7 +1337,7 @@ func queueNotify(
 	}
 
 	if deltaFqdns == "" {
-		// No nodes actually being created/deleted. One example of this
+		// No nodes actually being created/deleted/upgraded. One example of this
 		// is in the creating case where none have been successfully
 		// configured.
 		return
@@ -1335,6 +1373,7 @@ func queueNotify(
 		"--fqdns",
 		deltaFqdns,
 	}
+
 	notifyDesc := kdv1.NotificationDesc{
 		Arguments: arguments,
 	}
@@ -1370,7 +1409,12 @@ func fqdnsList(
 		// successfully configured. Also skip any member with
 		// lastConfiguredContainer already set since it is a reboot.
 		if (members[i].State != memberCreating) &&
-			(members[i].StateDetail.LastConfiguredContainer == "") {
+			members[i].StateDetail.LastConfiguredContainer == "" {
+			fqdns = append(fqdns, getMemberFqdn(members[i]))
+		}
+
+		// Grab any member in the memberUpgrading state.
+		if members[i].State == memberUpgrading {
 			fqdns = append(fqdns, getMemberFqdn(members[i]))
 		}
 	}

@@ -65,6 +65,7 @@ type KubeDirectorClusterStatus struct {
 	LastNodeID              int64            `json:"lastNodeID"`
 	Roles                   []RoleStatus     `json:"roles"`
 	LastConnectionHash      string           `json:"lastConnectionHash"`
+	UpgradedRoles           map[string]bool  `json:"upgradedroles,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

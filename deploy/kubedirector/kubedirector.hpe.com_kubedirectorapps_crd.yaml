@@ -136,7 +136,7 @@ spec:
                     type: array
                     items:
                       type: string
-                      pattern: '^configure$|^addnodes$|^delnodes$|^upgrade$'
+                      pattern: '^configure$|^addnodes$|^delnodes$'
                   containerSpec:
                     type: object
                     nullable: true

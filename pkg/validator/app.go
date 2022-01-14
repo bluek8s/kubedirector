@@ -306,42 +306,21 @@ func validateRoles(
 				},
 			)
 		}
-
-		// If the role spec doesn't contain individual persistent dirs
-		// copy them from global application spec
-		if role.PersistDirs == nil && globalPersistDirs != nil {
-			role.PersistDirs = globalPersistDirs
-		}
-
-		// EZML-865
-		// For each persistent dir defined for the role add
-		// corresponding old_<directory_name> persistent dir for backup data
-		// for upgrade
-		if role.PersistDirs != nil {
-			len := len(*role.PersistDirs)
-			extendedPersistDirs := make([]string, len*2)
-			copy(extendedPersistDirs, *(role.PersistDirs))
-			for i := 0; i < len; i++ {
-				// a.e.: /home -> /old_home, /opt/mapr -> /old_opt/mapr
-				extendedPersistDirs[len+i] = "/old_" + (*role.PersistDirs)[i][1:]
-			}
-
-			for _, pd := range extendedPersistDirs {
-				validatorLog.Info(fmt.Sprint(">>> Persistent dir: ", pd))
-			}
-
-			patches = append(
-				patches,
-				appPatchSpec{
-					Op:   "add",
-					Path: "/spec/roles/" + strconv.Itoa(index) + "/persistDirs",
-					Value: appPatchValue{
-						stringSliceValue: &extendedPersistDirs,
+		if role.PersistDirs == nil {
+			if globalPersistDirs != nil {
+				role.PersistDirs = globalPersistDirs
+				patches = append(
+					patches,
+					appPatchSpec{
+						Op:   "add",
+						Path: "/spec/roles/" + strconv.Itoa(index) + "/persistDirs",
+						Value: appPatchValue{
+							stringSliceValue: globalPersistDirs,
+						},
 					},
-				},
-			)
+				)
+			}
 		}
-
 		if role.EventList == nil {
 			if globalEventList != nil {
 				role.EventList = globalEventList

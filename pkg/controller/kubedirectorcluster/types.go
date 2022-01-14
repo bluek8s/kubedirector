@@ -49,7 +49,6 @@ const (
 	memberDeletePending             = "delete pending"
 	memberDeleting                  = "deleting"
 	memberConfigError               = "config error"
-	memberUpgrading                 = "updating"
 )
 
 var creatingMemberStates = []string{
@@ -97,6 +96,9 @@ const (
 	curl -L %s -o %s`
 	appPrepConfigReconnectCmd = `echo -n %s= > ` + appPrepConfigStatus + ` &&
 	nohup sh -c '` + appPrepStartscript + ` --reconnect 2>/opt/guestconfig/configure.stderr 1>/opt/guestconfig/configure.stdout;
+	echo -n $? >> ` + appPrepConfigStatus + `' &`
+	appPrepConfigUpgradeCmd = `echo -n %s= >` + appPrepConfigStatus + ` &&
+	nohup sh -c '` + appPrepStartscript + `--upgrade 2>/opt/guestconfig/configure.stderr 1>/opt/guestconfig/configure.stdout;
 	echo -n $? >> ` + appPrepConfigStatus + `' &`
 )
 

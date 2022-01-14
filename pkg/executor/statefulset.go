@@ -182,10 +182,14 @@ func UpdateStatefulSetNonReplicas(
 		return err
 	}
 
-	ssImage := catalog.ImageForStatefulSet(statefulSet)
+	containers := shared.StatefulSetContainers(statefulSet)
+	currentImage := containers[0].Image
 
-	if strings.Compare(appRoleImage, ssImage) != 0 {
-		patchedRes.Spec.Template.Spec.Containers[0].Image = appRoleImage
+	if strings.Compare(appRoleImage, currentImage) != 0 {
+		patchedRes.Spec.Template.Spec.Containers = make([]v1.Container, len(containers))
+		patchedContainers := shared.StatefulSetContainers(&patchedRes)
+		copy(patchedContainers, containers)
+		patchedContainers[0].Image = appRoleImage
 		needPatch = true
 	}
 
@@ -193,8 +197,9 @@ func UpdateStatefulSetNonReplicas(
 		return nil
 	}
 
-	patchErr := shared.Update(
+	patchErr := shared.Patch(
 		context.TODO(),
+		statefulSet,
 		&patchedRes,
 	)
 	return patchErr

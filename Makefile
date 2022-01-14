@@ -159,9 +159,6 @@ deploy:
         done
 	@echo
 	@echo
-	while ! kubectl get services | grep kubedirector-validator; do \
-	    sleep 3; \
-	done
 	@echo \* Creating example application types...
 	kubectl create -f deploy/example_catalog/
 	@echo

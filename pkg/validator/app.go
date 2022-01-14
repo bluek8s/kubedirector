@@ -490,10 +490,6 @@ func admitAppCR(
 			// between the images defined for different roles. The app configuration
 			// should be able to replace if the image is changed
 			// even when some KD cluster instance based on this spec is alive.
-			if appCR.Spec.DefaultImageRepoTag != nil {
-				*prevAppCR.Spec.DefaultImageRepoTag = *appCR.Spec.DefaultImageRepoTag
-			}
-
 			for _, nodeRole := range appCR.Spec.NodeRoles {
 				for _, prevNodeRole := range prevAppCR.Spec.NodeRoles {
 					if strings.Compare(nodeRole.ID, prevNodeRole.ID) == 0 {

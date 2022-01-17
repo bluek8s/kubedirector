@@ -194,11 +194,11 @@ type BlockStorage struct {
 
 // RoleStatus describes the component objects of a virtual cluster role.
 type RoleStatus struct {
-	Name                string            `json:"id"`
-	StatefulSet         string            `json:"statefulSet"`
-	Members             []MemberStatus    `json:"members"`
-	EncryptedSecretKeys map[string]string `json:"encryptedSecretKeys,omitempty"`
-	UpgradingMembersCnt int32             `json:"upgradingMembersCount,omitempty"`
+	Name                string             `json:"id"`
+	StatefulSet         string             `json:"statefulSet"`
+	Members             []MemberStatus     `json:"members"`
+	EncryptedSecretKeys map[string]string  `json:"encryptedSecretKeys,omitempty"`
+	UpgradingMembers    map[string]*string `json:"upgradingMembers,omitempty"`
 }
 
 // MemberStatus describes the component objects of a virtual cluster member.

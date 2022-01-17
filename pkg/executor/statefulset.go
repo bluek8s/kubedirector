@@ -199,7 +199,13 @@ func UpdateStatefulSetNonReplicas(
 			return err
 		}
 
-		(*rs).UpgradingMembersCnt = int32(len(rs.Members))
+		if (*rs).UpgradingMembers == nil {
+			(*rs).UpgradingMembers = make(map[string]*string)
+		}
+
+		for _, m := range (*rs).Members {
+			(*rs).UpgradingMembers[m.Pod] = &appRoleImage
+		}
 
 		needPatch = true
 	}

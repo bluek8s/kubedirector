@@ -1158,8 +1158,9 @@ func appConfig(
 					if err != nil {
 						return true, err
 					}
+					upgradingMembers := (*rs).UpgradingMembers
 
-					if (*rs).UpgradingMembersCnt > 0 {
+					if upgradingMembers != nil && upgradingMembers[podName] != nil {
 						cmd := fmt.Sprintf(appPrepConfigUpgradeCmd, expectedContainerID)
 						cmdErr := executor.RunScript(
 							reqLogger,
@@ -1172,9 +1173,18 @@ func appConfig(
 							strings.NewReader(cmd),
 						)
 						if cmdErr != nil {
+							shared.LogErrorf(
+								reqLogger,
+								cmdErr,
+								cr,
+								shared.EventReasonMember,
+								"failed to run startcsript with --upgrade in member{%s} in role{%s}",
+								podName,
+								roleName,
+							)
 							return true, cmdErr
 						}
-						(*rs).UpgradingMembersCnt--
+						(*rs).UpgradingMembers[podName] = nil
 					}
 
 					return true, nil
@@ -1320,7 +1330,7 @@ func queueNotify(
 	}
 
 	if deltaFqdns == "" {
-		// No nodes actually being created/deleted/upgraded. One example of this
+		// No nodes actually being created/deleted. One example of this
 		// is in the creating case where none have been successfully
 		// configured.
 		return

@@ -121,6 +121,9 @@ func StatefulSetContainers(
 	return statefulSet.Spec.Template.Spec.Containers
 }
 
+// GetRoleStatusByName looks for the RoleStatus
+// in KubeDirectorCluster.KubeDirectorClusterStatus.Roles[] array
+// by the passed role name and, if RoleStatus exists, returns its address or returns nil and error
 func GetRoleStatusByName(
 	cr *kdv1.KubeDirectorCluster,
 	roleName string,

@@ -98,7 +98,7 @@ const (
 	nohup sh -c '` + appPrepStartscript + ` --reconnect 2>/opt/guestconfig/configure.stderr 1>/opt/guestconfig/configure.stdout;
 	echo -n $? >> ` + appPrepConfigStatus + `' &`
 	appPrepConfigUpgradeCmd = `echo -n %s= >` + appPrepConfigStatus + ` &&
-	nohup sh -c '` + appPrepStartscript + `--upgrade 2>/opt/guestconfig/configure.stderr 1>/opt/guestconfig/configure.stdout;
+	nohup sh -c '` + appPrepStartscript + ` --upgrade 2>/opt/guestconfig/configure.stderr 1>/opt/guestconfig/configure.stdout;
 	echo -n $? >> ` + appPrepConfigStatus + `' &`
 )
 

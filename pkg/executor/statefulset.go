@@ -191,9 +191,15 @@ func UpdateStatefulSetNonReplicas(
 		copy(patchedContainers, containers)
 		patchedContainers[0].Image = appRoleImage
 
-		// Add the current role to the list for upgrade
+		// EZML-865
+		// Set current role members count should be upgraded
 		// It will be used at the syncMembers() step
-		cr.Status.UpgradedRoles[role.Name] = true
+		rs, err := shared.GetRoleStatusByName(cr, role.Name)
+		if err != nil {
+			return err
+		}
+
+		(*rs).UpgradingMembersCnt = int32(len(rs.Members))
 
 		needPatch = true
 	}

@@ -431,11 +431,6 @@ func handleCreatePendingMembers(
 	wgRunning.Wait()
 }
 
-func setNextState(m *kdv1.MemberStatus, state memberState, errorDetail *string) {
-	m.State = string(state)
-	m.StateDetail.ConfigErrorDetail = errorDetail
-}
-
 // handleCreatingMembers operates on all members in the role that are
 // currently in the creating state, handling configmeta and app setup and
 // initial configuration.  All ready members in the cluster are notified
@@ -473,7 +468,10 @@ func handleCreatingMembers(
 			defer wgSetup.Done()
 
 			containerID := m.StateDetail.ConfiguringContainer
-
+			setFinalState := func(state memberState, errorDetail *string) {
+				m.State = string(state)
+				m.StateDetail.ConfigErrorDetail = errorDetail
+			}
 			connectionVersion := getConnectionVersion(reqLogger, cr, role)
 
 			m.StateDetail.LastConnectionVersion = &connectionVersion
@@ -495,13 +493,13 @@ func handleCreatingMembers(
 						"failed requested file injections: %s",
 						injectErr.Error(),
 					)
-					setNextState(m, memberConfigError, &statusErrMsg)
+					setFinalState(memberConfigError, &statusErrMsg)
 					return
 				}
 			}
 
 			if setupURL == "" {
-				setNextState(m, memberReady, nil)
+				setFinalState(memberReady, nil)
 				shared.LogInfof(
 					reqLogger,
 					cr,
@@ -549,7 +547,7 @@ func handleCreatingMembers(
 					"execution of app config failed: %s",
 					configErr.Error(),
 				)
-				setNextState(m, memberConfigError, &statusErrMsg)
+				setFinalState(memberConfigError, &statusErrMsg)
 				return
 			}
 			shared.LogInfof(
@@ -561,7 +559,7 @@ func handleCreatingMembers(
 				role.roleStatus.Name,
 			)
 
-			setNextState(m, memberReady, nil)
+			setFinalState(memberReady, nil)
 		}(member)
 	}
 	wgSetup.Wait()
@@ -1156,7 +1154,12 @@ func appConfig(
 				}
 				status, convErr := strconv.Atoi(configStatus)
 				if convErr == nil && status == 0 {
-					if cr.Status.UpgradedRoles[roleName] {
+					rs, err := shared.GetRoleStatusByName(cr, roleName)
+					if err != nil {
+						return true, err
+					}
+
+					if (*rs).UpgradingMembersCnt > 0 {
 						cmd := fmt.Sprintf(appPrepConfigUpgradeCmd, expectedContainerID)
 						cmdErr := executor.RunScript(
 							reqLogger,
@@ -1171,6 +1174,7 @@ func appConfig(
 						if cmdErr != nil {
 							return true, cmdErr
 						}
+						(*rs).UpgradingMembersCnt--
 					}
 
 					return true, nil

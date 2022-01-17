@@ -120,3 +120,15 @@ func StatefulSetContainers(
 ) []v1.Container {
 	return statefulSet.Spec.Template.Spec.Containers
 }
+
+func GetRoleStatusByName(
+	cr *kdv1.KubeDirectorCluster,
+	roleName string,
+) (*kdv1.RoleStatus, error) {
+	for i, r := range cr.Status.Roles {
+		if r.Name == roleName {
+			return &cr.Status.Roles[i], nil
+		}
+	}
+	return nil, fmt.Errorf("RoleStatus for %s role name was not found", roleName)
+}

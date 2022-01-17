@@ -65,7 +65,6 @@ type KubeDirectorClusterStatus struct {
 	LastNodeID              int64            `json:"lastNodeID"`
 	Roles                   []RoleStatus     `json:"roles"`
 	LastConnectionHash      string           `json:"lastConnectionHash"`
-	UpgradedRoles           map[string]bool  `json:"upgradedroles,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -199,6 +198,7 @@ type RoleStatus struct {
 	StatefulSet         string            `json:"statefulSet"`
 	Members             []MemberStatus    `json:"members"`
 	EncryptedSecretKeys map[string]string `json:"encryptedSecretKeys,omitempty"`
+	UpgradingMembersCnt int32             `json:"upgradingMembersCount,omitempty"`
 }
 
 // MemberStatus describes the component objects of a virtual cluster member.

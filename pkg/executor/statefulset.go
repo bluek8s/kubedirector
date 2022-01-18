@@ -137,6 +137,7 @@ func UpdateStatefulSetNonReplicas(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
 	statefulSet *appsv1.StatefulSet,
+	clusterIsReady bool,
 ) error {
 
 	// If no spec, nothing to do.
@@ -177,20 +178,24 @@ func UpdateStatefulSetNonReplicas(
 	// upgrade the statefulset one.
 	// Make sure, that according this logic, there is no sence to edit a statefulset
 	// directly, as it will be reconciled back to the KDApp spec state.
-	appRoleImage, err := catalog.ImageForRole(cr, role.Name)
-	if err != nil {
-		return err
-	}
 
-	containers := shared.StatefulSetContainers(statefulSet)
-	currentImage := containers[0].Image
+	// First, check if KDCluster is in configured state
+	if clusterIsReady {
+		appRoleImage, err := catalog.ImageForRole(cr, role.Name)
+		if err != nil {
+			return err
+		}
 
-	if strings.Compare(appRoleImage, currentImage) != 0 {
-		patchedRes.Spec.Template.Spec.Containers = make([]v1.Container, len(containers))
-		patchedContainers := shared.StatefulSetContainers(&patchedRes)
-		copy(patchedContainers, containers)
-		patchedContainers[0].Image = appRoleImage
-		needPatch = true
+		containers := shared.StatefulSetContainers(statefulSet)
+		currentImage := containers[0].Image
+
+		if strings.Compare(appRoleImage, currentImage) != 0 {
+			patchedRes.Spec.Template.Spec.Containers = make([]v1.Container, len(containers))
+			patchedContainers := shared.StatefulSetContainers(&patchedRes)
+			copy(patchedContainers, containers)
+			patchedContainers[0].Image = appRoleImage
+			needPatch = true
+		}
 	}
 
 	if !needPatch {

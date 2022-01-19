@@ -81,11 +81,14 @@ const (
 	invalidStorageSize  = "Storage size for role (%s) should be greater than zero."
 	invalidStorageClass = "Unable to fetch storageClass object with the provided name(%s)."
 
+	invalidMinStorageDef = "Minimum storage size for role (%s) is incorrectly defined."
+
 	invalidRoleStorageClass = "Unable to fetch storageClassName(%s) for role(%s)."
 	noDefaultStorageClass   = "storageClassName is not specified for one or more roles, and no default storage class is available."
 	badDefaultStorageClass  = "storageClassName is not specified for one or more roles, and default storage class (%s) is not available on the system."
 
 	invalidResource = "Specified resource(\"%s\") value(\"%s\") for role(\"%s\") is invalid. Minimum value must be \"%s\"."
+	invalidStorage  = "Specified persistent storage size(\"%s\") for role(\"%s\") is invalid. Minimum size must be \"%s\"."
 	invalidSrcURL   = "Unable to access the specified URL(\"%s\") in file injection spec for the role (%s). error: %s."
 
 	maxMemberLimit = "Maximum number of total members per KD cluster supported is %d."

@@ -110,7 +110,14 @@ type NodeRole struct {
 	PersistDirs   *[]string            `json:"persistDirs,omitempty"`
 	EventList     *[]string            `json:"eventList,omitempty"`
 	MinResources  *corev1.ResourceList `json:"minResources,omitempty"`
+	MinStorage    *MinStorage          `json:"minStorage,omitempty"`
 	ContainerSpec *ContainerSpec       `json:"containerSpec,omitempty"`
+}
+
+// MinStorage describes the minimum persistent storage requirement, if any.
+type MinStorage struct {
+	Size                   string `json:"size"`
+	EphemeralModeSupported bool   `json:"ephemeralModeSupported"`
 }
 
 //ContainerSpec comments

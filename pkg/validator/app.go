@@ -25,6 +25,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -264,6 +265,18 @@ func validateRoles(
 							packageURLValue: &packageURL{URL: *globalSetupPackageURL},
 						},
 					},
+				)
+			}
+		}
+		if role.MinStorage != nil {
+			_, minErr := resource.ParseQuantity(role.MinStorage.Size)
+			if minErr != nil {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidMinStorageDef,
+						role.ID,
+					),
 				)
 			}
 		}

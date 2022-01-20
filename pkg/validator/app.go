@@ -36,19 +36,15 @@ type appPatchSpec struct {
 }
 
 type appPatchValue struct {
-	packageURLValue  *packageURL
+	packageInfoValue *kdv1.SetupPackageInfo
 	stringValue      *string
 	stringSliceValue *[]string
 }
 
-type packageURL struct {
-	URL string `json:"packageURL"`
-}
-
 func (obj appPatchValue) MarshalJSON() ([]byte, error) {
 
-	if obj.packageURLValue != nil {
-		return json.Marshal(obj.packageURLValue)
+	if obj.packageInfoValue != nil {
+		return json.Marshal(obj.packageInfoValue)
 	}
 	if obj.stringValue != nil {
 		return json.Marshal(obj.stringValue)
@@ -164,7 +160,7 @@ func validateRoles(
 	// Any global defaults will be removed from the CR. Remember their values
 	// though for use in populating the role definitions.
 	var globalImageRepoTag *string
-	var globalSetupPackageURL *string
+	var globalSetupPackageInfo *kdv1.SetupPackageInfo
 	var globalPersistDirs *[]string
 	var globalEventList *[]string
 
@@ -183,13 +179,13 @@ func validateRoles(
 		)
 	}
 	if !appCR.Spec.DefaultSetupPackage.IsSet {
-		globalSetupPackageURL = nil
+		globalSetupPackageInfo = nil
 	} else {
 		if appCR.Spec.DefaultSetupPackage.IsNull {
-			globalSetupPackageURL = nil
+			globalSetupPackageInfo = nil
 		} else {
-			urlCopy := appCR.Spec.DefaultSetupPackage.PackageURL.PackageURL
-			globalSetupPackageURL = &urlCopy
+			packageInfoCopy := appCR.Spec.DefaultSetupPackage.Info
+			globalSetupPackageInfo = &packageInfoCopy
 		}
 		appCR.Spec.DefaultSetupPackage = kdv1.SetupPackage{}
 		patches = append(
@@ -237,7 +233,7 @@ func validateRoles(
 		role := &(appCR.Spec.NodeRoles[index])
 		if role.SetupPackage.IsSet == false {
 			// Nothing specified so, inherit the global specification
-			if globalSetupPackageURL == nil {
+			if globalSetupPackageInfo == nil {
 				role.SetupPackage.IsSet = true
 				role.SetupPackage.IsNull = true
 				patches = append(
@@ -253,16 +249,14 @@ func validateRoles(
 			} else {
 				role.SetupPackage.IsSet = true
 				role.SetupPackage.IsNull = false
-				role.SetupPackage.PackageURL = kdv1.SetupPackageURL{
-					PackageURL: *globalSetupPackageURL,
-				}
+				role.SetupPackage.Info = *globalSetupPackageInfo
 				patches = append(
 					patches,
 					appPatchSpec{
 						Op:   "add",
 						Path: "/spec/roles/" + strconv.Itoa(index) + "/configPackage",
 						Value: appPatchValue{
-							packageURLValue: &packageURL{URL: *globalSetupPackageURL},
+							packageInfoValue: globalSetupPackageInfo,
 						},
 					},
 				)

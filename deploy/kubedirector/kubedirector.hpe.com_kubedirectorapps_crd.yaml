@@ -61,6 +61,8 @@ spec:
                 packageURL:
                   type: string
                   pattern: '^(file|https?)://.+\.tgz$'
+                useNewSetupLayout:
+                  type: boolean
             services:
               type: array
               items:
@@ -127,6 +129,8 @@ spec:
                       packageURL:
                         type: string
                         pattern: '^(file|https?)://.+\.tgz$'
+                      useNewSetupLayout:
+                        type: boolean
                   persistDirs:
                     type: array
                     items:

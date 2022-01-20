@@ -38,10 +38,27 @@ import (
 // that will always be placed on shared persistent storage (when available).
 var defaultMountFolders = []string{"/etc"}
 
-// appConfigDefaultMountFolders identifies set of member filesystems directories
-// that will always be placed on shared persistent storage, if app config is provided
-// for a role
-var appConfigDefaultMountFolders = []string{"/etc", "/opt", "/usr"}
+// appConfigDefaultMountFolders identifies set of member filesystems
+// directories that will always be placed on shared persistent storage, if app
+// config is provided for a role, and if that role's package has
+// useNewSetupLayout set true.
+var appConfigDefaultMountFolders = []string{
+	"/etc",
+	"/opt/guestconfig",
+	"/var/log/guestconfig",
+	"/usr/local/bin",
+	"/usr/local/lib",
+}
+
+// appConfigLegacyDefaultMountFolders identifies set of member filesystems
+// directories that will always be placed on shared persistent storage, if app
+// config is provided for a role, and if that role's package has
+// useNewSetupLayout set false.
+var appConfigLegacyDefaultMountFolders = []string{
+	"/etc",
+	"/opt",
+	"/usr",
+}
 
 // CreateStatefulSet creates in k8s a zero-replicas statefulset for
 // implementing the given role.
@@ -235,13 +252,17 @@ func getStatefulset(
 
 	// Check if there is an app config package for this role, If so we have
 	// to add additional defaults
-	setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, role.Name)
-	if setupURLErr != nil {
-		return nil, setupURLErr
+	setupInfo, setupInfoErr := catalog.AppSetupPackageInfo(cr, role.Name)
+	if setupInfoErr != nil {
+		return nil, setupInfoErr
 	}
 
-	if setupURL != "" {
-		defaultPersistDirs = &appConfigDefaultMountFolders
+	if setupInfo != nil {
+		if setupInfo.UseNewSetupLayout {
+			defaultPersistDirs = &appConfigDefaultMountFolders
+		} else {
+			defaultPersistDirs = &appConfigLegacyDefaultMountFolders
+		}
 	}
 
 	// Create a combined unique list of directories that have be persisted
@@ -379,7 +400,7 @@ func getStatefulset(
 							VolumeMounts:    volumeMounts,
 							VolumeDevices:   volumeDevices,
 							SecurityContext: securityContext,
-							Env:             chkModifyEnvVars(role),
+							Env:             chkModifyEnvVars(role, setupInfo),
 							TTY:             hasTTY(cr, role.Name),
 							Stdin:           hasSTDIN(cr, role.Name),
 						},
@@ -406,14 +427,30 @@ func getStatefulset(
 	return sset, nil
 }
 
-// chkModifyEnvVars checks a role's resource requests. If an NVIDIA GPU resource has
-// NOT been requested for the role, a work-around is added (as an environment variable), to
-// avoid a GPU being surfaced anyway in a container related to the role
+// chkModifyEnvVars checks a role's resource requests. If an NVIDIA GPU resource
+// has NOT been requested for the role, a work-around is added (as an environment
+// variable), to avoid a GPU being surfaced anyway in a container related to
+// the role. The PYTHONUSERBASE environment var will also be set to /usr/local
+// if the role's useNewSetupLayout flag is true.
 func chkModifyEnvVars(
 	role *kdv1.Role,
+	setupInfo *kdv1.SetupPackageInfo,
 ) (envVar []v1.EnvVar) {
 
 	envVar = role.EnvVars
+
+	// Handle PYTHONUSERBASE first.
+	if setupInfo != nil {
+		if setupInfo.UseNewSetupLayout {
+			pythonUserBase := v1.EnvVar{
+				Name:  "PYTHONUSERBASE",
+				Value: shared.ConfigCliLoc,
+				// ValueFrom not used
+			}
+			envVar = append(envVar, pythonUserBase)
+		}
+	}
+
 	rsrcmap := role.Resources.Requests
 	// return the role's environment variables unmodified, if an NVIDIA GPU is
 	// indeed a resource requested for this role

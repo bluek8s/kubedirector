@@ -137,6 +137,7 @@ func UpdateStatefulSetNonReplicas(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
 	statefulSet *appsv1.StatefulSet,
+	clusterIsReady bool,
 ) error {
 
 	// If no spec, nothing to do.
@@ -177,37 +178,41 @@ func UpdateStatefulSetNonReplicas(
 	// upgrade the statefulset one.
 	// Make sure, that according this logic, there is no sence to edit a statefulset
 	// directly, as it will be reconciled back to the KDApp spec state.
-	appRoleImage, err := catalog.ImageForRole(cr, role.Name)
-	if err != nil {
-		return err
-	}
 
-	containers := shared.StatefulSetContainers(statefulSet)
-	currentImage := containers[0].Image
-
-	if strings.Compare(appRoleImage, currentImage) != 0 {
-		patchedRes.Spec.Template.Spec.Containers = make([]v1.Container, len(containers))
-		patchedContainers := shared.StatefulSetContainers(&patchedRes)
-		copy(patchedContainers, containers)
-		patchedContainers[0].Image = appRoleImage
-
-		// EZML-865
-		// Set current role members count should be upgraded
-		// It will be used at the syncMembers() step
-		rs, err := shared.GetRoleStatusByName(cr, role.Name)
+	// First, check if KDCluster is in configured state
+	if clusterIsReady {
+		appRoleImage, err := catalog.ImageForRole(cr, role.Name)
 		if err != nil {
 			return err
 		}
 
-		if (*rs).UpgradingMembers == nil {
-			(*rs).UpgradingMembers = make(map[string]*string)
-		}
+		containers := shared.StatefulSetContainers(statefulSet)
+		currentImage := containers[0].Image
 
-		for _, m := range (*rs).Members {
-			(*rs).UpgradingMembers[m.Pod] = &appRoleImage
-		}
+		if strings.Compare(appRoleImage, currentImage) != 0 {
+			patchedRes.Spec.Template.Spec.Containers = make([]v1.Container, len(containers))
+			patchedContainers := shared.StatefulSetContainers(&patchedRes)
+			copy(patchedContainers, containers)
+			patchedContainers[0].Image = appRoleImage
 
-		needPatch = true
+			// EZML-865
+			// Set current role members count should be upgraded
+			// It will be used at the syncMembers() step
+			rs, err := shared.GetRoleStatusByName(cr, role.Name)
+			if err != nil {
+				return err
+			}
+
+			if (*rs).UpgradingMembers == nil {
+				(*rs).UpgradingMembers = make(map[string]*string)
+			}
+
+			for _, m := range (*rs).Members {
+				(*rs).UpgradingMembers[m.Pod] = &appRoleImage
+			}
+
+			needPatch = true
+		}
 	}
 
 	if !needPatch {

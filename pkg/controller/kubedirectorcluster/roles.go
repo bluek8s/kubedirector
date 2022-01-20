@@ -390,7 +390,9 @@ func handleRoleConfig(
 		reqLogger,
 		cr,
 		role.roleSpec,
-		role.statefulSet)
+		role.statefulSet,
+		cr.Status.State == string(clusterReady),
+	)
 	if updateErr != nil {
 		shared.LogErrorf(
 			reqLogger,

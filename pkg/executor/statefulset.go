@@ -137,6 +137,7 @@ func UpdateStatefulSetNonReplicas(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
 	statefulSet *appsv1.StatefulSet,
+	clusterIsReady bool,
 ) error {
 
 	// If no spec, nothing to do.
@@ -149,23 +150,58 @@ func UpdateStatefulSetNonReplicas(
 	// need/expect to be under our control, other than the replicas count,
 	// correct them here.
 
-	// For now only checking the owner reference.
-	if shared.OwnerReferencesPresent(cr, statefulSet.OwnerReferences) {
+	patchedRes := *statefulSet
+	needPatch := false
+
+	// Check the owner reference.
+	if !shared.OwnerReferencesPresent(cr, statefulSet.OwnerReferences) {
+		shared.LogInfof(
+			reqLogger,
+			cr,
+			shared.EventReasonNoEvent,
+			"repairing owner ref on statefulset{%s}",
+			statefulSet.Name,
+		)
+
+		// So, what to do. Do we add our owner ref to the existing ones? What if
+		// something else is claiming to be controller? Probably some stale ref
+		// left by a bad backup/restore process? We're just going to nuke any
+		// existing owner refs.
+		patchedRes.OwnerReferences = shared.OwnerReferences(cr)
+		needPatch = true
+	}
+
+	// EZML-862
+	// We should also compare the current statefulset container image against
+	// the image defined for the corresponding role in the KDApp spec. If images
+	// are not the same, KDApp spec image has a higher priority, so we shoud
+	// upgrade the statefulset one.
+	// Make sure, that according this logic, there is no sence to edit a statefulset
+	// directly, as it will be reconciled back to the KDApp spec state.
+
+	// First, check if KDCluster is in configured state
+	if clusterIsReady {
+		appRoleImage, err := catalog.ImageForRole(cr, role.Name)
+		if err != nil {
+			return err
+		}
+
+		containers := shared.StatefulSetContainers(statefulSet)
+		currentImage := containers[0].Image
+
+		if strings.Compare(appRoleImage, currentImage) != 0 {
+			patchedRes.Spec.Template.Spec.Containers = make([]v1.Container, len(containers))
+			patchedContainers := shared.StatefulSetContainers(&patchedRes)
+			copy(patchedContainers, containers)
+			patchedContainers[0].Image = appRoleImage
+			needPatch = true
+		}
+	}
+
+	if !needPatch {
 		return nil
 	}
-	shared.LogInfof(
-		reqLogger,
-		cr,
-		shared.EventReasonNoEvent,
-		"repairing owner ref on statefulset{%s}",
-		statefulSet.Name,
-	)
-	// So, what to do. Do we add our owner ref to the existing ones? What if
-	// something else is claiming to be controller? Probably some stale ref
-	// left by a bad backup/restore process? We're just going to nuke any
-	// existing owner refs.
-	patchedRes := *statefulSet
-	patchedRes.OwnerReferences = shared.OwnerReferences(cr)
+
 	patchErr := shared.Patch(
 		context.TODO(),
 		statefulSet,

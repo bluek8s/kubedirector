@@ -444,6 +444,7 @@ func handleCreatingMembers(
 	allRoles []*roleInfo,
 	configmetaGenerator func(string) string,
 ) {
+
 	creating := role.membersByState[memberCreating]
 
 	// Fetch setup url package
@@ -1005,6 +1006,9 @@ func generateNotifies(
 				if member.StateDetail.LastSetupGeneration == nil {
 					continue
 				}
+				if *member.StateDetail.LastSetupGeneration == *cr.Status.SpecGenerationToProcess {
+					continue
+				}
 				queueNotify(
 					reqLogger,
 					cr,
@@ -1184,7 +1188,7 @@ func appConfig(
 							)
 							return true, cmdErr
 						}
-						(*rs).UpgradingMembers[podName] = nil
+						delete((*rs).UpgradingMembers, podName)
 					}
 
 					return true, nil
@@ -1313,12 +1317,11 @@ func queueNotify(
 	op := ""
 	deltaFqdns := ""
 
-	// At the time this function is called, members in this list are
-	// marked as creating, ready, upgrading or config error. The fqdnsList function
-	// will appropriately skip the ones that are still creating, or the
-	// ones in other states that are just reboots.
-
 	if creatingOrCreated, ok := modifiedRole.membersByState[memberCreating]; ok {
+		// At the time this function is called, members in this list are
+		// marked as creating, ready, upgrading or config error. The fqdnsList function
+		// will appropriately skip the ones that are still creating, or the
+		// ones in other states that are just reboots.
 		op = "addnodes"
 		deltaFqdns = fqdnsList(cr, creatingOrCreated)
 	}

@@ -547,6 +547,9 @@ spec:
                     type: string
                   statefulSet:
                     type: string
+                  upgradingMembers:
+                    type: object
+                    nullable: true
                   members:
                     type: array
                     items:

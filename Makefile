@@ -20,7 +20,7 @@ bin_name := kubedirector
 
 home_dir := /home/kubedirector
 
-configcli_version := 0.7.2
+configcli_version := 0.8
 configcli_pkg := v$(configcli_version).tar.gz
 configcli_pkg_pattern := v*.tar.gz
 configcli_container_pkg := configcli.tgz

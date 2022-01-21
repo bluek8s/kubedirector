@@ -618,9 +618,8 @@ func validateApp(
 	return appCR, patches, ""
 }
 
-// validateMinResources function checks to see if minimum resource requirements
-// are specified for each role, by checking against associated app roles' minimum
-// requirement
+// validateMinResources function checks to see if all specified minimum
+// resource requirements for each role are being met
 func validateMinResources(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
@@ -645,7 +644,6 @@ func validateMinResources(
 		logError := func(
 			resName string,
 			resValue string,
-			roleName string,
 			expValue string,
 			valErrors []string) []string {
 
@@ -655,7 +653,7 @@ func validateMinResources(
 					invalidResource,
 					resName,
 					resValue,
-					roleName,
+					role.Name,
 					expValue,
 				),
 			)
@@ -668,11 +666,87 @@ func validateMinResources(
 
 			if limit, ok := role.Resources.Requests[resKey]; ok {
 				if limit.Value() < resVal.Value() {
-					valErrors = logError(resKey.String(), limit.String(), role.Name, resVal.String(), valErrors)
+					valErrors = logError(resKey.String(), limit.String(), resVal.String(), valErrors)
 				}
 			} else {
-				valErrors = logError(resKey.String(), "0", role.Name, resVal.String(), valErrors)
+				valErrors = logError(resKey.String(), "0", resVal.String(), valErrors)
 			}
+		}
+	}
+
+	return valErrors
+}
+
+// validateMinStorage function checks to see if all specified minimum
+// persistent storage requirements for each role are being met
+func validateMinStorage(
+	cr *kdv1.KubeDirectorCluster,
+	appCR *kdv1.KubeDirectorApp,
+	valErrors []string,
+) []string {
+
+	numRoles := len(cr.Spec.Roles)
+	for i := 0; i < numRoles; i++ {
+		role := &(cr.Spec.Roles[i])
+		appRole := catalog.GetRoleFromID(appCR, role.Name)
+		if appRole == nil {
+			// Do nothing; this error will be reported from validateRoles.
+			continue
+		}
+
+		minStorage := catalog.GetRoleMinStorage(appRole)
+		if minStorage == nil {
+			// No minimum requirements for this role.
+			continue
+		}
+
+		logError := func(
+			size string,
+			expSize string,
+			valErrors []string) []string {
+
+			return append(
+				valErrors,
+				fmt.Sprintf(
+					invalidStorage,
+					size,
+					role.Name,
+					expSize,
+				),
+			)
+		}
+
+		if role.Storage == nil {
+			if minStorage.EphemeralModeSupported {
+				// Even though there's a minimum, it's OK to omit the PV
+				// altogether.
+				continue
+			}
+			valErrors = logError("0", minStorage.Size, valErrors)
+			continue
+		}
+
+		// OK let's see if we meet the minimum.
+		size, sizeErr := resource.ParseQuantity(role.Storage.Size)
+		if sizeErr != nil {
+			// This error will be handled in validateRoleStorageClass.
+			continue
+		}
+		min, minErr := resource.ParseQuantity(minStorage.Size)
+		if minErr != nil {
+			// This should have been caught in app validation!
+			continue
+		}
+		if size.Value() < min.Value() {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					invalidStorage,
+					role.Storage.Size,
+					role.Name,
+					minStorage.Size,
+				),
+			)
 		}
 	}
 
@@ -1165,6 +1239,9 @@ func admitClusterCR(
 
 	// Validate minimum resources for all roles
 	valErrors = validateMinResources(&clusterCR, appCR, valErrors)
+
+	// Validate minimum persistent storage for all roles
+	valErrors = validateMinStorage(&clusterCR, appCR, valErrors)
 
 	// Validate if the role's service account exists and if the user has permission to use
 	valErrors = validateRoleServiceAccount(&clusterCR, valErrors, ar.Request.UserInfo)

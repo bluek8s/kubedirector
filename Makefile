@@ -187,7 +187,7 @@ redeploy:
 	@set -e; \
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
         kubectl exec $$podname -- mv -f ${home_dir}/${configcli_container_pkg} ${home_dir}/${configcli_container_pkg}.bak || true; \
-        kubectl cp build/${configcli_container_pkg} $$podname:${home_dir}/${configcli_container_pkg}; \
+        kubectl cp build/${configcli_pkg} $$podname:${home_dir}/${configcli_container_pkg}; \
         kubectl exec $$podname -- chgrp 0 ${home_dir}/${configcli_container_pkg}; \
         kubectl exec $$podname -- chmod ug=rw ${home_dir}/${configcli_container_pkg}
 	@echo

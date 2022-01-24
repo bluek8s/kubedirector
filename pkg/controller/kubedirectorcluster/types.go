@@ -101,6 +101,15 @@ const (
 	echo -n $? >> ` + appPrepConfigStatus + `' &`
 )
 
+// Support for old images/scripts that expect configcli to be in /usr/bin.
+const (
+	legacyLinksCmd = `ln -sf /usr/local/bin/configcli /usr/bin/bdvcli &&
+	ln -sf /usr/local/bin/configcli /usr/bin/bd_vcli &&
+	ln -sf /usr/local/bin/configcli /usr/bin/configcli &&
+	ln -sf /usr/local/bin/ccli /usr/bin/ccli &&
+	ln -sf /usr/local/bin/configmacro /usr/bin/configmacro`
+)
+
 const (
 	zeroPortsService = "n/a"
 )

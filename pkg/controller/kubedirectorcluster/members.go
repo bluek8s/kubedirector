@@ -332,7 +332,7 @@ func handleReadyMembers(
 					m.Pod,
 					m.StateDetail.LastConfiguredContainer,
 					executor.AppContainerName,
-					"app config",
+					"app reconnect",
 					strings.NewReader(cmd),
 				)
 				if cmdErr != nil {
@@ -868,6 +868,31 @@ func setupNodePrep(
 	)
 }
 
+// setupLegacyLinks creates links from /usr/bin to the configcli scripts
+// in /usr/local/bin, if using the new setup layout.
+func setupLegacyLinks(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	useNewSetupLayout bool,
+	podName string,
+	expectedContainerID string,
+) error {
+
+	if !useNewSetupLayout {
+		return nil
+	}
+	return executor.RunScript(
+		reqLogger,
+		cr,
+		cr.Namespace,
+		podName,
+		expectedContainerID,
+		executor.AppContainerName,
+		"legacy configcli links",
+		strings.NewReader(legacyLinksCmd),
+	)
+}
+
 // setupAppConfig injects the app setup package (if any) into the member's
 // container and installs it.
 func setupAppConfig(
@@ -1179,6 +1204,21 @@ func appConfig(
 				}
 				status, convErr := strconv.Atoi(configStatus)
 				if convErr == nil && status == 0 {
+					// Configure previously succeeded so basically we're done
+					// here. However, if this is a container restart, see if
+					// we need to re-establish configcli symlinks.
+					if configContainerID != expectedContainerID {
+						linkErr := setupLegacyLinks(
+							reqLogger,
+							cr,
+							setupInfo.UseNewSetupLayout,
+							podName,
+							expectedContainerID,
+						)
+						if linkErr != nil {
+							return true, linkErr
+						}
+					}
 					return true, nil
 				}
 				statusErr := fmt.Errorf(
@@ -1246,6 +1286,11 @@ func appConfig(
 	prepErr := setupNodePrep(reqLogger, cr, setupInfo.UseNewSetupLayout, podName, expectedContainerID)
 	if prepErr != nil {
 		return true, prepErr
+	}
+	// Link configcli into /usr/bin if necessary for legacy script support.
+	linkErr := setupLegacyLinks(reqLogger, cr, setupInfo.UseNewSetupLayout, podName, expectedContainerID)
+	if linkErr != nil {
+		return true, linkErr
 	}
 	// Make sure the necessary app-specific materials are in place.
 	setupErr := setupAppConfig(reqLogger, cr, setupInfo.PackageURL, podName, expectedContainerID, roleName)

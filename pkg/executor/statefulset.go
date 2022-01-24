@@ -180,7 +180,7 @@ func UpdateStatefulSetNonReplicas(
 	// directly, as it will be reconciled back to the KDApp spec state.
 
 	// First, check if KDCluster is in configured state
-	if clusterIsReady {
+	if clusterIsReady && !shared.RoleStatusIsUpgrading(cr, role.Name) {
 		appRoleImage, err := catalog.ImageForRole(cr, role.Name)
 		if err != nil {
 			return err

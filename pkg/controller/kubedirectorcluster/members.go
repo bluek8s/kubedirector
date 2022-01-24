@@ -520,7 +520,7 @@ func handleCreatingMembers(
 				m.Pod,
 				containerID,
 				&m.StateDetail,
-				role.roleStatus.Name,
+				role.roleStatus,
 				configmetaGenerator,
 			)
 			if !isFinal {
@@ -534,6 +534,12 @@ func handleCreatingMembers(
 				)
 				return
 			}
+
+			// If appConfig returned true as a final member state
+			// remove the member from upgrading list
+			rs := &role.roleStatus
+			delete((*rs).UpgradingMembers, m.Pod)
+
 			if configErr != nil {
 				shared.LogErrorf(
 					reqLogger,
@@ -1084,9 +1090,11 @@ func appConfig(
 	podName string,
 	expectedContainerID string,
 	stateDetail *kdv1.MemberStateDetail,
-	roleName string,
+	roleStatus *kdv1.RoleStatus,
 	configmetaGenerator func(string) string,
 ) (bool, error) {
+
+	roleName := roleStatus.Name
 
 	// If a config error detail already exists, this is a restart of a member
 	// that had been in config error state. In that case we won't try
@@ -1158,40 +1166,37 @@ func appConfig(
 				}
 				status, convErr := strconv.Atoi(configStatus)
 				if convErr == nil && status == 0 {
-					rs, err := shared.GetRoleStatusByName(cr, roleName)
-					if err != nil {
-						return true, err
-					}
-					upgradingMembers := (*rs).UpgradingMembers
 
-					if upgradingMembers != nil && upgradingMembers[podName] != nil {
-						cmd := fmt.Sprintf(appPrepConfigUpgradeCmd, expectedContainerID)
-						cmdErr := executor.RunScript(
-							reqLogger,
-							cr,
-							cr.Namespace,
-							podName,
-							expectedContainerID,
-							executor.AppContainerName,
-							"app config",
-							strings.NewReader(cmd),
-						)
-						if cmdErr != nil {
-							shared.LogErrorf(
+					upgradeCmdErr := func() error {
+
+						var cmdErr error = nil
+						if roleStatus.UpgradingMembers != nil && roleStatus.UpgradingMembers[podName] != nil {
+							cmd := fmt.Sprintf(appPrepConfigUpgradeCmd, expectedContainerID)
+							cmdErr = executor.RunScript(
 								reqLogger,
-								cmdErr,
 								cr,
-								shared.EventReasonMember,
-								"failed to run startcsript with --upgrade in member{%s} in role{%s}",
+								cr.Namespace,
 								podName,
-								roleName,
+								expectedContainerID,
+								executor.AppContainerName,
+								"app config",
+								strings.NewReader(cmd),
 							)
-							return true, cmdErr
+							if cmdErr != nil {
+								shared.LogErrorf(
+									reqLogger,
+									cmdErr,
+									cr,
+									shared.EventReasonMember,
+									"failed to run startcsript with --upgrade in member{%s} in role{%s}",
+									podName,
+									roleName,
+								)
+							}
 						}
-						delete((*rs).UpgradingMembers, podName)
-					}
-
-					return true, nil
+						return cmdErr
+					}()
+					return true, upgradeCmdErr
 				}
 				statusErr := fmt.Errorf(
 					"configure failed with exit status {%s}",

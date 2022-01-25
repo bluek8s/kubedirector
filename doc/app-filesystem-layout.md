@@ -4,6 +4,28 @@ In the container image used for a particular role of a kdapp, generally the file
 
 Most of these KubeDirector behaviors are affected by a boolean flag in the kdapp resource. This is the "useNewSetupLayout" flag supported by KubeDirector v0.8.0 and later releases, which can be found in the "configPackage" object for a role (or in the top-level "defaultConfigPackage"). This flag defaults to false for backward compatibility, but you should set it to true for any new kdapp development. It's also worth considering making an update to old kdapps so that they can set this flag to true as well. The effects of this flag are covered in detail in the sections below.
 
+#### APP DEVELOPMENT CHECKLIST
+
+Setting useNewSetupLayout=true for roles in your kdapp can make those role members launch (much) more quickly when using persistent storage. The sections below will get into the particulars of what useNewSetupLayout affects, but this section is a rundown of the bottom-line implications for kdapp developers.
+
+If you're not sure what version of KubeDirector will be used to run your app's kdclusters, you also want to consider the case where the app's request for useNewSetupLayout=true is ignored. In this case, the app will not get the benefit of faster PV setup, but it can still be made to work correctly.
+
+There are two important topics to consider to make sure your kdapp works in all situations.
+
+##### Persisted directories
+
+A "persistDirs" list in a kdapp (default or per-role) should always enumerate the directories that need to be persisted when using a PV, to satisfy the app's requirements. Don't make assumptions about what set of directories KubeDirector will choose to persist for its own purposes (except, as mentioned below, it is safe to assume that "/etc" will be persisted).
+
+E.g. if your app needs "/usr/local/lib" to be persisted on the PV, then do include "/usr/local/lib" in persistDirs... DON'T assume that you can omit it since it is already covered by the KubeDirector defaults.
+
+##### Configcli location
+
+The location of the configcli scripts and Python modules are different in the old and new layouts. However, it's relatively easy to keep these differences from affecting your app config scripts.
+
+To invoke the configcli scripts such as "ccli", "configcli", etc.: always use full "/usr/bin"-based paths, or make sure that "/usr/bin" is in the container user's PATH.
+
+Loading the Python modules -- either as a consequence of running one of the above scripts, or through an import in one of your config package's own Python scripts -- should always work without any additional considerations as long as it is being done in the process of a "startscript" invocation from KubeDirector, or some other process started by the container user. If you need some OTHER user account to be able to load these Python modules, more work will be required; see the "CONFIGCLI ARTIFACTS LOCATION" below for details about where the modules will be installed in the old vs new layouts.
+
 #### PERSISTED DIRECTORIES
 
 ##### Concepts

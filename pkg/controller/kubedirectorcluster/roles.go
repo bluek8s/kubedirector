@@ -527,6 +527,12 @@ func addMemberStatuses(
 		// role.roleStatus.Members was created with enough capacity to
 		// avoid realloc, so we can safely grow it w/o disturbing our
 		// pointers to its elements.
+		containers := role.statefulSet.Spec.Template.Spec.Containers
+		image := ""
+		if len(containers) > 0 {
+			image = containers[0].Image
+		}
+
 		role.roleStatus.Members = append(
 			role.roleStatus.Members,
 			kdv1.MemberStatus{
@@ -536,6 +542,7 @@ func addMemberStatuses(
 				NodeID:           atomic.AddInt64(lastNodeID, 1),
 				State:            string(memberCreatePending),
 				BlockDevicePaths: blockDevPaths,
+				ContainerImage:   image,
 			},
 		)
 		role.membersByState[memberCreatePending] = append(

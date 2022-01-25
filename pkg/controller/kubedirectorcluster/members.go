@@ -536,8 +536,12 @@ func handleCreatingMembers(
 			}
 
 			// If appConfig returned true as a final member state
-			// remove the member from upgrading list
+			// update the member's currently run ContainerImage
+			// and remove the member from upgrading list
 			rs := &role.roleStatus
+			if (*rs).UpgradingMembers != nil {
+				m.ContainerImage = *(*rs).UpgradingMembers[m.Pod]
+			}
 			delete((*rs).UpgradingMembers, m.Pod)
 
 			if configErr != nil {

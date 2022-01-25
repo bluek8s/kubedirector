@@ -211,6 +211,7 @@ type MemberStatus struct {
 	StateDetail      MemberStateDetail `json:"stateDetail,omitempty"`
 	NodeID           int64             `json:"nodeID"`
 	BlockDevicePaths []string          `json:"blockDevicePaths,omitempty"`
+	ContainerImage   string            `json:"containerImage,omitempty`
 }
 
 // MemberStateDetail digs into detail about the management of configmeta and

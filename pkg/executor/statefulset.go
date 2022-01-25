@@ -171,7 +171,7 @@ func UpdateStatefulSetNonReplicas(
 		needPatch = true
 	}
 
-	// EZML-862
+	// EZML-862, EZML-865
 	// We should also compare the current statefulset container image against
 	// the image defined for the corresponding role in the KDApp spec. If images
 	// are not the same, KDApp spec image has a higher priority, so we shoud
@@ -179,12 +179,43 @@ func UpdateStatefulSetNonReplicas(
 	// Make sure, that according this logic, there is no sence to edit a statefulset
 	// directly, as it will be reconciled back to the KDApp spec state.
 
-	// First, check if KDCluster is in configured state
-	if clusterIsReady && !shared.RoleStatusIsUpgrading(cr, role.Name) {
-		appRoleImage, err := catalog.ImageForRole(cr, role.Name)
+	appRoleImage, err := catalog.ImageForRole(cr, role.Name)
+	if err != nil {
+		return err
+	}
+	roleStatusIsUpgrading := shared.RoleStatusIsUpgrading(cr, role.Name)
+
+	// There may appear the situation when during image upgrade we set to the
+	// app spec an incorrect image tag or image cannot be pulled from a repo by some
+	// other reason. It may cause that a member of the role falls
+	// into an endless restart loop getting ErrImagePull or ImagePullBackOff errors.
+	// Than, the cluster falls into non-ready state and this role status will be always
+	// in upgrading state and reject any try to re-upgrade an image.
+	// For avoiding this situation we should have an ability to re-edit appspec
+	// and give a chance to the role status to restart again.
+	restartUpgrade := false
+
+	// Check, if cluster is not ready and current role status has upgrading members
+	if !clusterIsReady && roleStatusIsUpgrading {
+		rs, err := shared.GetRoleStatusByName(cr, role.Name)
 		if err != nil {
 			return err
 		}
+		for _, m := range rs.Members {
+			// Check, if appRoleImage (defined in app spec) is already fixed.
+			// If it is different that defined one for members upgrading, clean all UpgradingMembers list
+			// And set restartUpgrade flag to true
+			if *(*rs).UpgradingMembers[m.Pod] != appRoleImage {
+				(*rs).UpgradingMembers = nil
+				restartUpgrade = true
+				break
+			}
+		}
+	}
+
+	// Check if KDCluster is in configured state and if the roleStatus is currently not upgrading
+	// Or, check if we need to re-upgrade a statefulset image
+	if (clusterIsReady && !roleStatusIsUpgrading) || restartUpgrade {
 
 		containers := shared.StatefulSetContainers(statefulSet)
 		currentImage := containers[0].Image
@@ -208,7 +239,12 @@ func UpdateStatefulSetNonReplicas(
 			}
 
 			for _, m := range (*rs).Members {
-				(*rs).UpgradingMembers[m.Pod] = &appRoleImage
+				// This check added for restart case.
+				// If proposed appRoleImage is the same as already run in member container
+				// we shouldn't add this member to UpgradeMembers list.
+				if m.ContainerImage != appRoleImage {
+					(*rs).UpgradingMembers[m.Pod] = &appRoleImage
+				}
 			}
 
 			needPatch = true

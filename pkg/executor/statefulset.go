@@ -41,7 +41,8 @@ var defaultMountFolders = []string{"/etc"}
 // appConfigDefaultMountFolders identifies set of member filesystems
 // directories that will always be placed on shared persistent storage, if app
 // config is provided for a role, and if that role's package has
-// useNewSetupLayout set true.
+// useNewSetupLayout set true. Note that the code in getStatefulset assumes
+// this is a superset of the defaultMountFolders list.
 var appConfigDefaultMountFolders = []string{
 	"/etc",
 	"/opt/guestconfig",
@@ -248,7 +249,7 @@ func getStatefulset(
 		return nil, persistErr
 	}
 
-	defaultPersistDirs := &defaultMountFolders
+	defaultPersistDirs := defaultMountFolders
 
 	// Check if there is an app config package for this role, If so we have
 	// to add additional defaults
@@ -259,52 +260,100 @@ func getStatefulset(
 
 	if setupInfo != nil {
 		if setupInfo.UseNewSetupLayout {
-			defaultPersistDirs = &appConfigDefaultMountFolders
+			defaultPersistDirs = appConfigDefaultMountFolders
 		} else {
-			defaultPersistDirs = &appConfigLegacyDefaultMountFolders
+			defaultPersistDirs = appConfigLegacyDefaultMountFolders
 		}
 	}
 
 	// Create a combined unique list of directories that have be persisted
 	// Start with default mounts
-	var maxLen = len(*defaultPersistDirs)
+	var maxLen = len(defaultPersistDirs)
 	if appPersistDirs != nil {
 		maxLen += len(*appPersistDirs)
 	}
-	persistDirs := make([]string, len(*defaultPersistDirs), maxLen)
-	copy(persistDirs, *defaultPersistDirs)
+	persistDirs := make([]string, 0, maxLen)
 
-	// if the app directory is either same or a subdir of one of the default mount
-	// dirs, we can skip them. if not we should add them to the persistDirs list
-	// Also eliminate any duplicates or sub-dirs from appPersistDirs as well
-	if appPersistDirs != nil {
-		for _, appDir := range *appPersistDirs {
-			isSubDir := false
-			for _, defaultDir := range persistDirs {
-				// Get relative path of the app dir wrt defaultDir
-				rel, _ := filepath.Rel(defaultDir, appDir)
+	// Utility func here to add elements from sourceDirList to persistDirs. An
+	// element from sourceDirList will be skipped if it is a subdir of some
+	// other element from sourceDirList or otherDirList. If it is a dup of
+	// some element from sourceDirList, it will be skipped only if the
+	// discovered dup is earlier in the list. If it is a dup of some element
+	// from otherDirList, it will be skipped only if checkOtherDups is true.
+	addToDirs := func(
+		sourceDirList []string,
+		otherDirList *[]string,
+		checkOtherDups bool,
+		sourceDesc string,
+	) {
 
-				// If rel path doesn't start with "..", it is a subdir
-				if !strings.HasPrefix(rel, "..") {
-					shared.LogInfof(
-						reqLogger,
-						cr,
-						shared.EventReasonNoEvent,
-						"skipping {%s} from volume claim mounts. dir {%s} covers it",
-						appDir,
-						defaultDir,
-					)
-					isSubDir = true
-					break
+		for sourceIndex, sourceDir := range sourceDirList {
+			var coveringDir *string
+			absSource, _ := filepath.Abs(sourceDir)
+			for otherSourceIndex, otherSourceDir := range sourceDirList {
+				absOtherSource, _ := filepath.Abs(otherSourceDir)
+				relOther, _ := filepath.Rel(absOtherSource, absSource)
+				if !strings.HasPrefix(relOther, "..") {
+					if relOther != "." {
+						// subdir
+						coveringDir = &otherSourceDir
+						break
+					}
+					// dup... we only care if the matched index is earlier
+					if otherSourceIndex < sourceIndex {
+						coveringDir = &otherSourceDir
+						break
+					}
 				}
 			}
-			if !isSubDir {
-				// Get the absolute path for the app dir
-				abs, _ := filepath.Abs(appDir)
-
-				persistDirs = append(persistDirs, abs)
+			if (coveringDir == nil) && (otherDirList != nil) {
+				for _, otherDir := range *otherDirList {
+					absCheck, _ := filepath.Abs(otherDir)
+					relCheck, _ := filepath.Rel(absCheck, absSource)
+					if !strings.HasPrefix(relCheck, "..") {
+						if relCheck != "." {
+							// subdir
+							coveringDir = &otherDir
+							break
+						}
+						// dup... we only care if checkOtherDups is true
+						if checkOtherDups {
+							coveringDir = &otherDir
+							break
+						}
+					}
+				}
 			}
+			if coveringDir != nil {
+				shared.LogInfof(
+					reqLogger,
+					cr,
+					shared.EventReasonNoEvent,
+					"skipping {%s} from %s persistDirs; dir {%s} covers it",
+					sourceDir,
+					sourceDesc,
+					*coveringDir,
+				)
+				continue
+			}
+			// OK to add to the list.
+			persistDirs = append(persistDirs, absSource)
 		}
+	}
+
+	// Time to build the union of directory info to persist. This is not
+	// quite the most efficient way to do it, but it's reasonable (for a
+	// one-time-per-statefulset op and a small number of dirs) and not
+	// too confusing to reason about its correctness and memory safety.
+
+	// First let's take any of the default dirs that are not a subdirectory
+	// of any other default or app dir, or a dup of a default dir.
+	addToDirs(defaultPersistDirs, appPersistDirs, false, "default")
+
+	// Now add any of the app dirs that are not a subdirectory or dup of any
+	// other default or app dir.
+	if appPersistDirs != nil {
+		addToDirs(*appPersistDirs, &defaultPersistDirs, true, role.Name)
 	}
 
 	useServiceAccount := false

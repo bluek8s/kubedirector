@@ -79,8 +79,9 @@ func IsFileExists(
 	return true, nil
 }
 
-// CreateDir creates a directory (and any parent directors) in the filesystem
-// of the given pod.
+// CreateDir creates a directory (and any parent directories) as necessary in
+// the filesystem of the given pod. If the setPerms option is true, the
+// directory will have its permissions set to 700.
 func CreateDir(
 	reqLogger logr.Logger,
 	obj runtime.Object,
@@ -89,6 +90,7 @@ func CreateDir(
 	expectedContainerID string,
 	containerName string,
 	dirName string,
+	setPerms bool,
 ) error {
 
 	command := []string{"mkdir", "-p", dirName}
@@ -108,6 +110,27 @@ func CreateDir(
 	)
 	if err != nil {
 		err = fmt.Errorf("mkdir failed: %s\n%s",
+			stdErr.String(),
+			err.Error(),
+		)
+		return err
+	}
+	if !setPerms {
+		return nil
+	}
+	command = []string{"chmod", "700", dirName}
+	err = ExecCommand(
+		reqLogger,
+		obj,
+		namespace,
+		podName,
+		expectedContainerID,
+		containerName,
+		command,
+		ioStreams,
+	)
+	if err != nil {
+		err = fmt.Errorf("directory chmod failed: %s\n%s",
 			stdErr.String(),
 			err.Error(),
 		)
@@ -160,7 +183,9 @@ func RemoveDir(
 }
 
 // CreateFile takes the stream from the given reader, and writes it to the
-// indicated filepath in the filesystem of the given pod.
+// indicated filepath in the filesystem of the given pod. Parent directories
+// will be created as needed. If the setDirPerms option is true, the directory
+// containing the file will have its permissions set to 700.
 func CreateFile(
 	reqLogger logr.Logger,
 	obj runtime.Object,
@@ -170,6 +195,7 @@ func CreateFile(
 	containerName string,
 	filePath string,
 	reader io.Reader,
+	setDirPerms bool,
 ) error {
 
 	createDirErr := CreateDir(
@@ -180,6 +206,7 @@ func CreateFile(
 		expectedContainerID,
 		containerName,
 		filepath.Dir(filePath),
+		setDirPerms,
 	)
 	if createDirErr != nil {
 		return createDirErr

@@ -76,18 +76,20 @@ const (
 	configcliSrcFile       = "/home/kubedirector/configcli.tgz"
 	configcliDestFile      = "/tmp/configcli.tgz"
 	configcliInstallCmdFmt = `cd /tmp && tar xzf configcli.tgz &&
-	chmod +x /tmp/configcli-*/install && /tmp/configcli-*/install %[1]s &&
+	chmod u+x /tmp/configcli-*/install && /tmp/configcli-*/install %[1]s &&
 	rm -rf /tmp/configcli-* && rm -f /tmp/configcli.tgz &&
 	ln -sf %[2]s/bin/configcli %[2]s/bin/bdvcli &&
 	ln -sf %[2]s/bin/configcli %[2]s/bin/bd_vcli`
 	configcliTestFile       = shared.ConfigCliLoc + "/bin/configcli"
 	configcliLegacyTestFile = shared.ConfigCliLegacyLoc + "/bin/configcli"
 	appPrepStartscript      = "/opt/guestconfig/*/startscript"
-	appPrepInitCmdFmt       = `cd /opt/guestconfig/ &&
+	appPrepInitCmdFmt       = `mkdir -p /opt/guestconfig &&
+	chmod 700 /opt/guestconfig &&
+	cd /opt/guestconfig &&
 	rm -rf /opt/guestconfig/* &&
 	curl -L %s -o appconfig.tgz &&
 	tar xzf appconfig.tgz &&
-	chmod +x ` + appPrepStartscript + ` &&
+	chmod u+x ` + appPrepStartscript + ` &&
 	rm -rf /opt/guestconfig/appconfig.tgz`
 	appPrepConfigStatus = "/opt/guestconfig/configure.status"
 	appPrepConfigRunCmd = `rm -f /opt/guestconfig/configure.* &&

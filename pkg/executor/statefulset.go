@@ -739,8 +739,8 @@ func generateInitContainerLaunch(
 	return fullCmd
 }
 
-// generateSecretVolume generates VolumeMount and Volume
-// object for mounting a secret into a container
+// generateSecretVolume generates VolumeMount and Volume object for
+// mounting a secret into a container.
 func generateSecretVolume(
 	secret *kdv1.KDSecret,
 ) ([]v1.VolumeMount, []v1.Volume) {
@@ -766,8 +766,38 @@ func generateSecretVolume(
 				},
 			}
 	}
-	return []v1.VolumeMount{}, []v1.Volume{}
 
+	return []v1.VolumeMount{}, []v1.Volume{}
+}
+
+// generateShmemVolume generates VolumeMount and Volume object for mounting
+// a memory volume as a custom-sized /dev/shm.
+func generateShmemVolume(
+	shmemSize *string,
+) ([]v1.VolumeMount, []v1.Volume) {
+
+	if shmemSize != nil {
+		shmemSizeQuant, _ := resource.ParseQuantity(*shmemSize)
+		shmemVolName := "shmem"
+		return []v1.VolumeMount{
+				v1.VolumeMount{
+					Name:      shmemVolName,
+					MountPath: "/dev/shm",
+				},
+			}, []v1.Volume{
+				v1.Volume{
+					Name: shmemVolName,
+					VolumeSource: v1.VolumeSource{
+						EmptyDir: &v1.EmptyDirVolumeSource{
+							Medium:    "Memory",
+							SizeLimit: &shmemSizeQuant,
+						},
+					},
+				},
+			}
+	}
+
+	return []v1.VolumeMount{}, []v1.Volume{}
 }
 
 // generateVolumeProjectionMounts generates VolumeMount and Volume
@@ -801,8 +831,8 @@ func generateVolumeProjectionMounts(
 }
 
 // GenerateVolumeMounts generates all of an app container's volume and mount
-// specs for persistent storage, tmpfs and systemctl support that are
-// appropriate for members of the given role. For systemctl support,
+// specs for persistent storage, tmpfs, systemctl support, and custom shmem size
+// that are appropriate for members of the given role. For systemctl support,
 // nativeSystemdSupport flag is examined along with the app requirement.
 // Additionally generate volume mount spec if a role has
 // requested for volume projections.
@@ -813,6 +843,7 @@ func GenerateVolumeMounts(
 	nativeSystemdSupport bool,
 	persistDirs []string,
 ) ([]v1.VolumeMount, []v1.Volume, error) {
+
 	var volumeMounts []v1.VolumeMount
 	var volumes []v1.Volume
 
@@ -838,6 +869,11 @@ func GenerateVolumeMounts(
 		volumeMounts = append(volumeMounts, volProjectionMnts...)
 		volumes = append(volumes, volProjections...)
 	}
+
+	// Generate shmem volume (if needed)
+	shmemVolMnts, shmemVols := generateShmemVolume(role.SharedMemory)
+	volumeMounts = append(volumeMounts, shmemVolMnts...)
+	volumes = append(volumes, shmemVols...)
 
 	isSystemdReqd, err := catalog.SystemdRequired(cr)
 

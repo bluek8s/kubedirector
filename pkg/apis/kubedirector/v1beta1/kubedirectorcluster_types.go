@@ -145,6 +145,7 @@ type Role struct {
 	Affinity           *corev1.Affinity            `json:"affinity,omitempty"`
 	Storage            *ClusterStorage             `json:"storage,omitempty"`
 	EnvVars            []corev1.EnvVar             `json:"env,omitempty"`
+	SharedMemory       *string                     `json:"sharedMemory,omitempty"`
 	FileInjections     []FileInjections            `json:"fileInjections,omitempty"`
 	Secret             *KDSecret                   `json:"secret,omitempty"`
 	BlockStorage       *BlockStorage               `json:"blockStorage,omitempty"`

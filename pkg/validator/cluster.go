@@ -437,7 +437,7 @@ func validateRoleStorageClass(
 					role.Name,
 				),
 			)
-			break
+			continue
 		}
 		if storageSize.Sign() != 1 {
 			valErrors = append(
@@ -447,7 +447,7 @@ func validateRoleStorageClass(
 					role.Name,
 				),
 			)
-			break
+			continue
 		}
 		storageClass := role.Storage.StorageClass
 		if storageClass != nil {
@@ -515,6 +515,43 @@ func validateRoleStorageClass(
 	}
 
 	return valErrors, patches
+}
+
+// validateRoleSharedMemory checks for valid quantity syntax.
+func validateRoleSharedMemory(
+	cr *kdv1.KubeDirectorCluster,
+	valErrors []string,
+) []string {
+
+	numRoles := len(cr.Spec.Roles)
+	for i := 0; i < numRoles; i++ {
+		role := &(cr.Spec.Roles[i])
+		if role.SharedMemory == nil {
+			continue
+		}
+		shmemQuant, err := resource.ParseQuantity(*role.SharedMemory)
+		if err != nil {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					invalidShmemDef,
+					role.Name,
+				),
+			)
+		}
+		if shmemQuant.Sign() != 1 {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					invalidShmemSize,
+					role.Name,
+				),
+			)
+			continue
+		}
+	}
+
+	return valErrors
 }
 
 // validateRoleSA validates whether the SA exists and if it does
@@ -1384,7 +1421,11 @@ func admitClusterCR(
 	// Validate if the role's service account exists and if the user has permission to use
 	valErrors = validateRoleServiceAccount(&clusterCR, valErrors, ar.Request.UserInfo)
 
+	// Validate that any specified storage class exists, and handle defaulting.
 	valErrors, patches = validateRoleStorageClass(&clusterCR, valErrors, patches)
+
+	// Validate the syntax of any specified shared-memory value.
+	valErrors = validateRoleSharedMemory(&clusterCR, valErrors)
 
 	// Validate service type and generate patch in case no service type defined or change
 	valErrors, patches = addServiceType(&clusterCR, valErrors, patches)

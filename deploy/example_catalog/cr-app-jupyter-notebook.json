@@ -25,8 +25,7 @@
         },
         "label": {
             "name": "Jupyter Notebook with ML toolkits",
-            "description": "Toolkits: TensorFlow, Scikit-Learn, PyTorch, Keras, XGBoost, LightGBM, Hyperopt; Core: Numpy, Scipy, Pandas, StatsModels, Anaconda, R kernel, Flask, Jupyter Notebook, Git, Jenkins; Visualization: Matplotlib, Seaborn, Plotly, Bokeh",
-            "AIML_category": "Notebook"
+            "description": "Toolkits: TensorFlow, Scikit-Learn, PyTorch, Keras, XGBoost, LightGBM, Hyperopt; Core: Numpy, Scipy, Pandas, StatsModels, Anaconda, R kernel, Flask, Jupyter Notebook, Git, Jenkins; Visualization: Matplotlib, Seaborn, Plotly, Bokeh"
         },
         "distroID": "hpecp/jupyter-notebook",
         "version": "2.1",

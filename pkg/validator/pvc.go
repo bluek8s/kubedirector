@@ -7,7 +7,7 @@ import (
 
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"k8s.io/api/admission/v1beta1"
+	av1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -60,11 +60,11 @@ func mutateOwnerRefs(
 // the top-specific validation subroutines and composes the admission
 // response.
 func admitPVC(
-	ar *v1beta1.AdmissionReview,
-) *v1beta1.AdmissionResponse {
+	ar *av1beta1.AdmissionReview,
+) *av1beta1.AdmissionResponse {
 
 	var patches []pvcPatchSpec
-	var admitResponse = v1beta1.AdmissionResponse{
+	var admitResponse = av1beta1.AdmissionResponse{
 		Allowed: false,
 	}
 
@@ -88,7 +88,7 @@ func admitPVC(
 		patchResult, patchErr := json.Marshal(patches)
 		if patchErr == nil {
 			admitResponse.Patch = patchResult
-			patchType := v1beta1.PatchTypeJSONPatch
+			patchType := av1beta1.PatchTypeJSONPatch
 			admitResponse.PatchType = &patchType
 			admitResponse.Allowed = true
 		} else {

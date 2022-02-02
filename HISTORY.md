@@ -1,3 +1,15 @@
+# v0.8.0 - Feb 2, 2022
+
+The primary focus of this release is to add a new option for kdapp CRs that changes the processes and file layout around "app setup script" installation and use: the ["useNewSetupLayout" boolean in the default and per-role config package objects](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorApp-Definition#configpackage). This option can speed up the deployment of PVs in the kdclusters for those apps; it also makes certain directory contents readable only by the container user, for increased security in apps that support login by other user accounts. See the [doc/app-filesystem-layout.md](app-filesystem-layout.md) doc for more info about using this option in your kdapp definitions. Two of the example kdapps (cassandra and jupyter-notebook) have been updated to use this option.
+
+Another new kdapp feature is the ability to optionally specify a minimum valid persistent storage size for each role: the ["minStorage" attribute](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorApp-Definition#role). This helps to prevent cases where a kdcluster requesting a too-small PV cannot come up successfully.
+
+Other changes in this release:
+* remove CentOS 8 example kdapp due to EOL
+* [handle container images where "rm" is aliased to "rm -i"](https://github.com/bluek8s/kubedirector/issues/530)
+* [handle a race in "make deploy" where kdapp creation is attempted too soon](https://github.com/bluek8s/kubedirector/pull/544)
+
+
 # v0.7.1 - Nov 24, 2021
 
 This dot-release doesn't contain any new features or bugfixes within the KubeDirector code. It updates the base image of the KubeDirector deployment (from UBI7 to UBI8), raises the minimum allowed version of golang for compilation (from 1.13 to 1.16), and updates several of the module dependencies.

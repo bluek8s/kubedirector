@@ -69,14 +69,16 @@ type Label struct {
 // "explicitly set null". Therefore "operator-sdk generate crds" cannot be
 // used to generate a correct CRD in this case.
 type SetupPackage struct {
-	IsSet      bool
-	IsNull     bool
-	PackageURL SetupPackageURL
+	IsSet  bool
+	IsNull bool
+	Info   SetupPackageInfo
 }
 
-// SetupPackageURL is the URL of the setup package.
-type SetupPackageURL struct {
-	PackageURL string `json:"packageURL"`
+// SetupPackageInfo is the URL of the setup package, plus a flag on whether
+// the new setup layout (for configcli and persisted dirs) should be used.
+type SetupPackageInfo struct {
+	PackageURL        string `json:"packageURL"`
+	UseNewSetupLayout bool   `json:"useNewSetupLayout"`
 }
 
 // Service describes a network endpoint that should be exposed for external

@@ -56,7 +56,7 @@
         ],
         "defaultConfigPackage": {
             "packageURL": "file:///opt/configscript/appconfig.tgz",
-            "useNewSetupLayout", true
+            "useNewSetupLayout": true
         },
         "roles": [{
             "imageRepoTag": "bluedata/kd-notebook:2.0",

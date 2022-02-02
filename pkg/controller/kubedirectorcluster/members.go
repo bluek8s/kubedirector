@@ -251,6 +251,20 @@ func handleReadyMembers(
 
 	connectionsVersion := getConnectionVersion(reqLogger, cr, role)
 
+	// Fetch setup package info
+	setupInfo, setupInfoErr := catalog.AppSetupPackageInfo(cr, role.roleStatus.Name)
+	if setupInfoErr != nil {
+		shared.LogErrorf(
+			reqLogger,
+			setupInfoErr,
+			cr,
+			shared.EventReasonRole,
+			"failed to fetch setup info for role{%s}",
+			role.roleStatus.Name,
+		)
+		return
+	}
+
 	ready := role.membersByState[memberReady]
 	var wgReady sync.WaitGroup
 	wgReady.Add(len(ready))
@@ -278,6 +292,7 @@ func handleReadyMembers(
 				executor.AppContainerName,
 				configMetaFile,
 				strings.NewReader(configmeta),
+				setupInfo.UseNewSetupLayout,
 			)
 			if createFileErr != nil {
 				shared.LogErrorf(
@@ -447,7 +462,7 @@ func handleCreatingMembers(
 
 	creating := role.membersByState[memberCreating]
 
-	// Fetch setup url package
+	// Fetch setup package info
 	setupInfo, setupInfoErr := catalog.AppSetupPackageInfo(cr, role.roleStatus.Name)
 	if setupInfoErr != nil {
 		shared.LogErrorf(
@@ -455,7 +470,7 @@ func handleCreatingMembers(
 			setupInfoErr,
 			cr,
 			shared.EventReasonRole,
-			"failed to fetch setup url for role{%s}",
+			"failed to fetch setup info for role{%s}",
 			role.roleStatus.Name,
 		)
 		return
@@ -844,6 +859,7 @@ func setupNodePrep(
 		executor.AppContainerName,
 		configcliDestFile,
 		bufio.NewReader(nodePrepFile),
+		false,
 	)
 	if createErr != nil {
 		return createErr
@@ -1031,7 +1047,7 @@ func generateNotifies(
 				setupInfoErr,
 				cr,
 				shared.EventReasonRole,
-				"failed to fetch setup url for role{%s}",
+				"failed to fetch setup info for role{%s}",
 				otherRole.roleStatus.Name,
 			)
 			setupInfo = nil
@@ -1276,6 +1292,7 @@ func appConfig(
 		executor.AppContainerName,
 		configMetaFile,
 		strings.NewReader(configmetaGenerator(podName)),
+		setupInfo.UseNewSetupLayout,
 	)
 	if configmetaErr != nil {
 		return true, configmetaErr

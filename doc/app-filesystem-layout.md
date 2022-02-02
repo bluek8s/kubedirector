@@ -18,13 +18,17 @@ A "persistDirs" list in a kdapp (default or per-role) should always enumerate th
 
 E.g. if your app needs "/usr/local/lib" to be persisted on the PV, then do include "/usr/local/lib" in persistDirs... DON'T assume that you can omit it since it is already covered by the KubeDirector defaults.
 
-##### Configcli location
+##### Configcli
 
 The location of the configcli scripts and Python modules are different in the old and new layouts. However, it's relatively easy to keep these differences from affecting your app config scripts.
 
 To invoke the configcli scripts such as "ccli", "configcli", etc.: always use full "/usr/bin"-based paths, or make sure that "/usr/bin" is in the container user's PATH.
 
-Loading the Python modules -- either as a consequence of running one of the above scripts, or through an import in one of your config package's own Python scripts -- should always work without any additional considerations as long as it is being done in the process of a "startscript" invocation from KubeDirector, or some other process started by the container user. If you need some OTHER user account to be able to load these Python modules, more work will be required; see the "CONFIGCLI ARTIFACTS LOCATION" below for details about where the modules will be installed in the old vs new layouts.
+Loading the Python modules -- either as a consequence of running one of the above scripts, or through an import in one of your config package's own Python scripts -- should always work without any additional considerations as long as it is being done in the process of a "startscript" invocation from KubeDirector, or some other process started by the container user.
+
+Access permissons for "configmeta.json", the backing information managed through configcli, also differ between old and new layouts. In the new layout this information is accessible only by the container user.
+
+If you need some OTHER user account to be able to access information stored in the "configmeta.json" file, more work will be required. See the "CONFIGMETA FILE" section at the end of this doc for a bit more discussion.
 
 #### PERSISTED DIRECTORIES
 
@@ -65,11 +69,13 @@ If an application config package is defined for a role, then when a member of th
 Regardless of whether the package comes from a "file://" location on the container image or is fetched by http(s), at container startup it will be extracted into "/opt/guestconfig" by KubeDirector. The exact sequence of steps (executed as the "container user") are:
 
 ```bash
-cd /opt/guestconfig/
+mkdir -p /opt/guestconfig
+chmod 700 /opt/guestconfig
+cd /opt/guestconfig
 rm -rf /opt/guestconfig/*
 curl -L <config package URL> -o appconfig.tgz
 tar xzf appconfig.tgz
-chmod +x /opt/guestconfig/*/startscript
+chmod u+x /opt/guestconfig/*/startscript
 rm -rf /opt/guestconfig/appconfig.tgz
 ```
 
@@ -94,7 +100,7 @@ KubeDirector does the configcli installation by injecting the configcli archive 
 ```bash
 cd /tmp
 tar xzf configcli.tgz
-chmod +x /tmp/configcli-*/install
+chmod u+x /tmp/configcli-*/install
 # <the configcli install script is executed at this point; see below>
 rm -rf /tmp/configcli-*
 rm -f /tmp/configcli.tgz
@@ -108,7 +114,7 @@ Alternately, in the case where useNewSetupLayout is false:
 * configcli Python modules installed under "/usr/lib"
 * configcli scripts and alias links installed under "/usr/bin"
 
-If useNewSetupLayout is true, then KubeDirector will configure the container so that the "PYTHONUSERBASE" environment variable is set to "/usr/local" for the "container user". Therefore when KubeDirector invokes the startscript, and startscript uses configcli, these Python modules will be loaded without issue. If for some reason your app requires that some other user account inside the container be able to load these modules, then some additional Python directories configuration may be needed for that user.
+If useNewSetupLayout is true, then KubeDirector will configure the container so that the "PYTHONUSERBASE" environment variable is set to "/usr/local" for the "container user". Therefore when KubeDirector invokes the startscript, and startscript uses configcli, these Python modules will be loaded without issue.
 
 #### CONFIGCLI LEGACY SUPPORT
 
@@ -116,6 +122,12 @@ Application images and config packages from before KubeDirector v0.8.0 may not h
 
 To take this particular issue off the table, KubeDirector creates symlinks in the old "/usr/bin" locations when useNewSetupLayout is true. Since "/usr" is not (by default) persisted when useNewSetupLayout is true, KubeDirector will re-create those symlinks if the pod container is restarted.
 
-#### CONFIGMETA LOCATION
+#### CONFIGMETA FILE
 
 The "configmeta.json" file read by configcli is located in the "/etc/guestconfig" directory. If at all possible however it should not be directly parsed; access this information using the configcli scripts and Python modules.
+
+In the case where useNewSetupLayout is false, the permissions on "/etc/guestconfig" will be determined by the container user's umask. However if useNewSetupLayout is true, "/etc/guestconfig" will have 0700 permissions, i.e. it and its contents will only be accessible by the container user.
+
+This means that if useNewSetupLayout is true, only the container user can access the "configmeta.json" file either directly or by running configcli scripts. The same is true for any other file that your app setup chooses to put into "/etc/guestconfig". So when KubeDirector invokes the startscript, it will be able to access this information the same as before.
+
+However if for some reason your app requires that some other user account inside the container be able to access some this info, the startscript will need to explicitly make that information accessible by copying it into some other file that has the necessary permissions. Since the other user account likely only needs access to some few pieces of information, the best approach in that case would be to share only the necessary info in a simple properties-file format.

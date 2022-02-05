@@ -7,14 +7,23 @@ default_image := bluek8s/kubedirector:unstable
 image ?= ${default_image}
 
 cluster_resource_name := kubedirectorcluster
+cluster_resource_name_plural := kubedirectorclusters
 app_resource_name := kubedirectorapp
+app_resource_name_plural := kubedirectorapps
 config_resource_name := kubedirectorconfig
+config_resource_name_plural := kubedirectorconfigs
+status_resource_name := kubedirectorstatusbackup
+status_resource_name_plural := kubedirectorstatusbackups
 
 project_name := kubedirector
 bin_name := kubedirector
 
 home_dir := /home/kubedirector
-configcli_version := 0.7.2
+
+configcli_version := 0.8
+configcli_pkg := v$(configcli_version).tar.gz
+configcli_pkg_pattern := v*.tar.gz
+configcli_container_pkg := configcli.tgz
 
 local_deploy_yaml := deploy/kubedirector/deployment-localbuilt.yaml
 
@@ -30,18 +39,17 @@ sedignorecase =
 endif
 
 build_dir := build/_output
-configcli_dest := build/configcli.tgz
 goarch := amd64
 cgo_enabled := 0
 
 .DEFAULT_GOAL := build
 
 version-check:
-	@if go version | grep -q 'go1\.1[3-9]'; then \
+	@if go version | grep -q 'go1\.1[6-9]'; then \
         true; \
     else \
         echo "Error:"; \
-        echo "go version 1.13 or later is required"; \
+        echo "go version 1.16 or later is required"; \
         exit 1; \
     fi
 	@if operator-sdk version | grep -q 'operator-sdk version: "v0.15.2'; then \
@@ -62,14 +70,18 @@ build: configcli pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go version-
 	@echo
 
 configcli:
-	@if [ -e $(configcli_dest) ]; then exit 0; fi;                             \
+	@if [ -e build/$(configcli_container_pkg) ] && [ -e build/$(configcli_pkg) ]; then exit 0; fi;                             \
      echo "* Downloading configcli package ...";                               \
-     curl -L -o $(configcli_dest) https://github.com/bluek8s/configcli/archive/v$(configcli_version).tar.gz
+     rm -f build/$(configcli_container_pkg) build/$(configcli_pkg_pattern); \
+     cd build && \
+     curl -L -O https://github.com/bluek8s/configcli/archive/$(configcli_pkg) && \
+     ln -sf $(configcli_pkg) $(configcli_container_pkg)
 
 pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go:  \
-        pkg/apis/kubedirector/v1beta1/kubedirectorapp_types.go \
-        pkg/apis/kubedirector/v1beta1/kubedirectorcluster_types.go \
-        pkg/apis/kubedirector/v1beta1/kubedirectorconfig_types.go
+        pkg/apis/kubedirector/v1beta1/${app_resource_name}_types.go \
+        pkg/apis/kubedirector/v1beta1/${cluster_resource_name}_types.go \
+        pkg/apis/kubedirector/v1beta1/${config_resource_name}_types.go \
+        pkg/apis/kubedirector/v1beta1/${status_resource_name}_types.go
 	operator-sdk generate k8s
 
 push:
@@ -100,9 +112,10 @@ deploy:
 
 	@echo
 	@echo \* Creating custom resource definitions...
-	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_kubedirectorapps_crd.yaml
-	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_kubedirectorclusters_crd.yaml
-	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_kubedirectorconfigs_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_${app_resource_name_plural}_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_${cluster_resource_name_plural}_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_${config_resource_name_plural}_crd.yaml
+	kubectl create -f deploy/kubedirector/kubedirector.hpe.com_${status_resource_name_plural}_crd.yaml
 	@echo
 	@echo \* Creating role and service account...
 	kubectl create -f deploy/kubedirector/rbac.yaml
@@ -152,6 +165,9 @@ deploy:
         done
 	@echo
 	@echo
+	@while ! kubectl get service kubedirector-validator &> /dev/null; do \
+	    sleep 3; \
+	done
 	@echo \* Creating example application types...
 	kubectl create -f deploy/example_catalog/
 	@echo
@@ -170,10 +186,10 @@ redeploy:
 	@echo \* Injecting new configcli package...
 	@set -e; \
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
-        kubectl exec $$podname -- mv -f ${home_dir}/configcli.tgz ${home_dir}/configcli.tgz.bak || true; \
-        kubectl cp ${configcli_dest} $$podname:${home_dir}/configcli.tgz; \
-        kubectl exec $$podname -- chgrp 0 ${home_dir}/configcli.tgz; \
-        kubectl exec $$podname -- chmod ug=rw ${home_dir}/configcli.tgz
+        kubectl exec $$podname -- mv -f ${home_dir}/${configcli_container_pkg} ${home_dir}/${configcli_container_pkg}.bak || true; \
+        kubectl cp build/${configcli_pkg} $$podname:${home_dir}/${configcli_container_pkg}; \
+        kubectl exec $$podname -- chgrp 0 ${home_dir}/${configcli_container_pkg}; \
+        kubectl exec $$podname -- chmod ug=rw ${home_dir}/${configcli_container_pkg}
 	@echo
 	@echo \* Injecting and starting new KubeDirector binary...
 	@set -e; \
@@ -252,6 +268,7 @@ undeploy:
         }; \
         echo \* Deleting any managed virtual clusters...; \
         delete_all_things ${cluster_resource_name}; \
+        delete_all_things ${status_resource_name}; \
         echo; \
         echo \* Deleting any application types...; \
         delete_all_things ${app_resource_name}; \
@@ -268,9 +285,10 @@ undeploy:
         delete_namespaced_thing serviceaccount ${project_name}; \
         echo; \
         echo \* Deleting custom resource definitions...; \
-        delete_cluster_thing customresourcedefinition ${app_resource_name}s.kubedirector.hpe.com; \
-        delete_cluster_thing customresourcedefinition ${cluster_resource_name}s.kubedirector.hpe.com; \
-        delete_cluster_thing customresourcedefinition ${config_resource_name}s.kubedirector.hpe.com
+        delete_cluster_thing customresourcedefinition ${app_resource_name_plural}.kubedirector.hpe.com; \
+        delete_cluster_thing customresourcedefinition ${cluster_resource_name_plural}.kubedirector.hpe.com; \
+        delete_cluster_thing customresourcedefinition ${config_resource_name_plural}.kubedirector.hpe.com; \
+        delete_cluster_thing customresourcedefinition ${status_resource_name_plural}.kubedirector.hpe.com
 	@echo
 	@echo -n \* Waiting for all cluster resources to finish cleanup...
 	@set -e; \
@@ -327,7 +345,7 @@ clean:
 	-rm -f deploy/kubedirector/deployment-localbuilt.yaml
 	-rm -f pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go
 	-rm -rf ${build_dir}
-	-rm -f ${configcli_dest}
+	-rm -f build/$(configcli_container_pkg) build/$(configcli_pkg_pattern)
 
 modules:
 	go mod tidy

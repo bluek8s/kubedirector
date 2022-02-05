@@ -61,6 +61,8 @@ spec:
                 packageURL:
                   type: string
                   pattern: '^(file|https?)://.+\.tgz$'
+                useNewSetupLayout:
+                  type: boolean
             services:
               type: array
               items:
@@ -127,6 +129,8 @@ spec:
                       packageURL:
                         type: string
                         pattern: '^(file|https?)://.+\.tgz$'
+                      useNewSetupLayout:
+                        type: boolean
                   persistDirs:
                     type: array
                     items:
@@ -164,6 +168,16 @@ spec:
                       amd.com/gpu:
                         type: string
                         pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                  minStorage:
+                    type: object
+                    nullable: true
+                    required: [size]
+                    properties:
+                      size:
+                        type: string
+                        pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                      ephemeralModeSupported:
+                        type: boolean
             config:
               type: object
               required: [selectedRoles, roleServices]

@@ -1,13 +1,13 @@
-FROM registry.access.redhat.com/ubi7/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 
 ENV OPERATOR=/home/kubedirector/kubedirector \
     USER_UID=1001 \
     USER_NAME=kubedirector \
     USER_HOME=/home/kubedirector
 
-# Support ps and killall, for redeploy.
+# Support ps, killall, and tar for redeploy.
 RUN microdnf update -y && rm -rf /var/cache/yum
-RUN microdnf -y install --nodocs psmisc procps-ng \
+RUN microdnf -y install --nodocs psmisc procps-ng tar \
     && microdnf clean all
 
 COPY build/bin/entrypoint /usr/local/bin/entrypoint

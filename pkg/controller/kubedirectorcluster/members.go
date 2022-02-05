@@ -88,7 +88,15 @@ func syncMembers(
 		}
 	}
 	if !allMembersUpdated {
-		// Not an error, we're just not done yet.
+		// Not an error, we're just not done yet. Make sure we check on any
+		// already-ongoing configurations though. We'll pass nil for
+		// configmetaGenerator to indicate/enforce that it can't be used yet
+		// to get the new configmeta.
+		for _, r := range roles {
+			if _, ok := r.membersByState[memberCreating]; ok {
+				handleCreatingMembers(reqLogger, cr, r, roles, nil)
+			}
+		}
 		shared.LogInfo(
 			reqLogger,
 			cr,
@@ -243,6 +251,20 @@ func handleReadyMembers(
 
 	connectionsVersion := getConnectionVersion(reqLogger, cr, role)
 
+	// Fetch setup package info
+	setupInfo, setupInfoErr := catalog.AppSetupPackageInfo(cr, role.roleStatus.Name)
+	if setupInfoErr != nil {
+		shared.LogErrorf(
+			reqLogger,
+			setupInfoErr,
+			cr,
+			shared.EventReasonRole,
+			"failed to fetch setup info for role{%s}",
+			role.roleStatus.Name,
+		)
+		return
+	}
+
 	ready := role.membersByState[memberReady]
 	var wgReady sync.WaitGroup
 	wgReady.Add(len(ready))
@@ -270,6 +292,7 @@ func handleReadyMembers(
 				executor.AppContainerName,
 				configMetaFile,
 				strings.NewReader(configmeta),
+				setupInfo.UseNewSetupLayout,
 			)
 			if createFileErr != nil {
 				shared.LogErrorf(
@@ -324,7 +347,7 @@ func handleReadyMembers(
 					m.Pod,
 					m.StateDetail.LastConfiguredContainer,
 					executor.AppContainerName,
-					"app config",
+					"app reconnect",
 					strings.NewReader(cmd),
 				)
 				if cmdErr != nil {
@@ -439,15 +462,15 @@ func handleCreatingMembers(
 
 	creating := role.membersByState[memberCreating]
 
-	// Fetch setup url package
-	setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, role.roleStatus.Name)
-	if setupURLErr != nil {
+	// Fetch setup package info
+	setupInfo, setupInfoErr := catalog.AppSetupPackageInfo(cr, role.roleStatus.Name)
+	if setupInfoErr != nil {
 		shared.LogErrorf(
 			reqLogger,
-			setupURLErr,
+			setupInfoErr,
 			cr,
 			shared.EventReasonRole,
-			"failed to fetch setup url for role{%s}",
+			"failed to fetch setup info for role{%s}",
 			role.roleStatus.Name,
 		)
 		return
@@ -492,7 +515,7 @@ func handleCreatingMembers(
 				}
 			}
 
-			if setupURL == "" {
+			if setupInfo == nil {
 				setFinalState(memberReady, nil)
 				shared.LogInfof(
 					reqLogger,
@@ -509,7 +532,7 @@ func handleCreatingMembers(
 			isFinal, configErr := appConfig(
 				reqLogger,
 				cr,
-				setupURL,
+				setupInfo,
 				m.Pod,
 				containerID,
 				&m.StateDetail,
@@ -781,6 +804,7 @@ func replicasSynced(
 func setupNodePrep(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
+	useNewSetupLayout bool,
 	podName string,
 	expectedContainerID string,
 ) error {
@@ -795,6 +819,20 @@ func setupNodePrep(
 		expectedContainerID,
 		executor.AppContainerName,
 		configcliTestFile,
+	)
+	if fileError != nil {
+		return fileError
+	} else if fileExists {
+		return nil
+	}
+	fileExists, fileError = executor.IsFileExists(
+		reqLogger,
+		cr,
+		cr.Namespace,
+		podName,
+		expectedContainerID,
+		executor.AppContainerName,
+		configcliLegacyTestFile,
 	)
 	if fileError != nil {
 		return fileError
@@ -821,12 +859,19 @@ func setupNodePrep(
 		executor.AppContainerName,
 		configcliDestFile,
 		bufio.NewReader(nodePrepFile),
+		false,
 	)
 	if createErr != nil {
 		return createErr
 	}
 
 	// Install it.
+	var configcliInstallCmd string
+	if useNewSetupLayout {
+		configcliInstallCmd = fmt.Sprintf(configcliInstallCmdFmt, "--new", shared.ConfigCliLoc)
+	} else {
+		configcliInstallCmd = fmt.Sprintf(configcliInstallCmdFmt, "", shared.ConfigCliLegacyLoc)
+	}
 	return executor.RunScript(
 		reqLogger,
 		cr,
@@ -836,6 +881,31 @@ func setupNodePrep(
 		executor.AppContainerName,
 		"configcli setup",
 		strings.NewReader(configcliInstallCmd),
+	)
+}
+
+// setupLegacyLinks creates links from /usr/bin to the configcli scripts
+// in /usr/local/bin, if using the new setup layout.
+func setupLegacyLinks(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	useNewSetupLayout bool,
+	podName string,
+	expectedContainerID string,
+) error {
+
+	if !useNewSetupLayout {
+		return nil
+	}
+	return executor.RunScript(
+		reqLogger,
+		cr,
+		cr.Namespace,
+		podName,
+		expectedContainerID,
+		executor.AppContainerName,
+		"legacy configcli links",
+		strings.NewReader(legacyLinksCmd),
 	)
 }
 
@@ -868,7 +938,7 @@ func setupAppConfig(
 	}
 
 	// Fetch and install it.
-	cmd := strings.Replace(appPrepInitCmd, "{{APP_CONFIG_URL}}", setupURL, -1)
+	cmd := fmt.Sprintf(appPrepInitCmdFmt, setupURL)
 	return executor.RunScript(
 		reqLogger,
 		cr,
@@ -970,19 +1040,19 @@ func generateNotifies(
 			// referenced below will be nil. That case is covered here too.
 			continue
 		}
-		setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, otherRole.roleStatus.Name)
-		if setupURLErr != nil {
+		setupInfo, setupInfoErr := catalog.AppSetupPackageInfo(cr, otherRole.roleStatus.Name)
+		if setupInfoErr != nil {
 			shared.LogErrorf(
 				reqLogger,
-				setupURLErr,
+				setupInfoErr,
 				cr,
 				shared.EventReasonRole,
-				"failed to fetch setup url for role{%s}",
+				"failed to fetch setup info for role{%s}",
 				otherRole.roleStatus.Name,
 			)
-			setupURL = ""
+			setupInfo = nil
 		}
-		if setupURL == "" {
+		if setupInfo == nil {
 			// No notification necessary for any member in this role.
 			shared.LogInfof(
 				reqLogger,
@@ -1072,7 +1142,7 @@ func systemdOk(
 func appConfig(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	setupURL string,
+	setupInfo *kdv1.SetupPackageInfo,
 	podName string,
 	expectedContainerID string,
 	stateDetail *kdv1.MemberStateDetail,
@@ -1150,6 +1220,21 @@ func appConfig(
 				}
 				status, convErr := strconv.Atoi(configStatus)
 				if convErr == nil && status == 0 {
+					// Configure previously succeeded so basically we're done
+					// here. However, if this is a container restart, see if
+					// we need to re-establish configcli symlinks.
+					if configContainerID != expectedContainerID {
+						linkErr := setupLegacyLinks(
+							reqLogger,
+							cr,
+							setupInfo.UseNewSetupLayout,
+							podName,
+							expectedContainerID,
+						)
+						if linkErr != nil {
+							return true, linkErr
+						}
+					}
 					return true, nil
 				}
 				statusErr := fmt.Errorf(
@@ -1184,6 +1269,19 @@ func appConfig(
 		)
 		return false, nil
 	}
+	// Also don't do anything if we're waiting on "ready" nodes to all
+	// fully adopt this version of configmeta. When this is the case we don't
+	// get a configmetaGenerator given to us.
+	if configmetaGenerator == nil {
+		shared.LogInfof(
+			reqLogger,
+			cr,
+			shared.EventReasonMember,
+			"member{%s} initial configuration waiting on update of ready-state members",
+			podName,
+		)
+		return false, nil
+	}
 	// Now upload the configmeta file.
 	configmetaErr := executor.CreateFile(
 		reqLogger,
@@ -1194,6 +1292,7 @@ func appConfig(
 		executor.AppContainerName,
 		configMetaFile,
 		strings.NewReader(configmetaGenerator(podName)),
+		setupInfo.UseNewSetupLayout,
 	)
 	if configmetaErr != nil {
 		return true, configmetaErr
@@ -1201,12 +1300,17 @@ func appConfig(
 	// Successfully injected configmeta so record that.
 	stateDetail.LastConfigDataGeneration = cr.Status.SpecGenerationToProcess
 	// Set up configcli package for this member (if not set up already).
-	prepErr := setupNodePrep(reqLogger, cr, podName, expectedContainerID)
+	prepErr := setupNodePrep(reqLogger, cr, setupInfo.UseNewSetupLayout, podName, expectedContainerID)
 	if prepErr != nil {
 		return true, prepErr
 	}
+	// Link configcli into /usr/bin if necessary for legacy script support.
+	linkErr := setupLegacyLinks(reqLogger, cr, setupInfo.UseNewSetupLayout, podName, expectedContainerID)
+	if linkErr != nil {
+		return true, linkErr
+	}
 	// Make sure the necessary app-specific materials are in place.
-	setupErr := setupAppConfig(reqLogger, cr, setupURL, podName, expectedContainerID, roleName)
+	setupErr := setupAppConfig(reqLogger, cr, setupInfo.PackageURL, podName, expectedContainerID, roleName)
 	if setupErr != nil {
 		return true, setupErr
 	}

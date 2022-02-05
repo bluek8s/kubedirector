@@ -56,10 +56,10 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	if cr.Status == nil {
 		cr.Status = &kdv1.KubeDirectorClusterStatus{}
 		cr.Status.Roles = make([]kdv1.RoleStatus, 0)
-		if cr.Status.SpecGenerationToProcess == nil {
-			initSpecGen := int64(0)
-			cr.Status.SpecGenerationToProcess = &initSpecGen
-		}
+	}
+	if cr.Status.SpecGenerationToProcess == nil {
+		initSpecGen := int64(0)
+		cr.Status.SpecGenerationToProcess = &initSpecGen
 	}
 
 	annotations := cr.Annotations
@@ -68,35 +68,82 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		cr.Annotations = annotations
 	}
 
+	// Define a func to (re)fetch the current status backup if any.
+	var statusBackup *kdv1.KubeDirectorStatusBackup
+	var statusBackupErr error
+	var statusBackupExists bool
+	var statusBackupShouldExist bool
+	fetchBackup := func() {
+		statusBackup, statusBackupErr = observer.GetStatusBackup(cr.Namespace, cr.Name)
+		statusBackupExists = (statusBackupErr == nil)
+		if !statusBackupExists {
+			statusBackup = nil
+		}
+		statusBackupShouldExist = shared.GetBackupClusterStatus()
+	}
+
 	// Set a defer func to write new status and/or finalizers if they change.
 	defer func() {
+		fetchBackup()
+		// Ignore any error returned by UpdateClusterStatusBackupOwner; if
+		// we fail to fix the owner ref there it's not worth bailing out of
+		// reconciliation.
+		executor.UpdateClusterStatusBackupOwner(reqLogger, cr, statusBackup)
 		syncMemberNotifies(reqLogger, cr)
 		updateStateRollup(cr)
 		nowHasFinalizer := shared.HasFinalizer(cr)
-		// Bail out if nothing has changed. Note that if we are deleting we
-		// don't care if status has changed.
+		// Now see if anything has changed that we need to fix or update.
 		statusChanged := false
+		backupAnnotationNeedsReconcile := false
 		if (cr.DeletionTimestamp == nil) || nowHasFinalizer {
 			statusChanged = !equality.Semantic.DeepEqual(cr.Status, oldStatus)
+			// Even if status content has not changed, we still need to go
+			// through the status-writing process if we need to create or
+			// delete a status-backup CR.
+			if !statusChanged {
+				statusChanged = (statusBackupShouldExist != statusBackupExists)
+			}
+			// If the CR is "live" we may also need to set/change its backup
+			// status annotation.
+			backupAnnotationNeedsReconcile = executor.BackupAnnotationNeedsReconcile(
+				reqLogger,
+				cr,
+				statusBackupShouldExist,
+			)
 		}
 		finalizersChanged := (hadFinalizer != nowHasFinalizer)
-		if !(statusChanged || finalizersChanged) {
+		// If nothing to do, bail out.
+		if !(statusChanged || backupAnnotationNeedsReconcile || finalizersChanged) {
 			return
 		}
-		// Write back the status. Don't exit this reconciler until we
+		// Write back the status etc. Don't exit this reconciler until we
 		// succeed (will block other reconcilers for this resource).
 		wait := time.Second
 		maxWait := 4096 * time.Second
 		for {
-			// If status has changed, write it back.
 			var updateErr error
-			if statusChanged {
+			// Update status backup annotation if necessary.
+			if backupAnnotationNeedsReconcile {
+				updateErr = executor.SetBackupAnnotation(
+					reqLogger,
+					cr,
+					statusBackupShouldExist,
+				)
+				// If this succeeded, no need to do it again on next iteration.
+				if updateErr == nil {
+					backupAnnotationNeedsReconcile = false
+				}
+			}
+			// If status has changed, write it back.
+			if (updateErr == nil) && statusChanged {
 				cr.Status.GenerationUID = uuid.New().String()
 				ClusterStatusGens.WriteStatusGen(cr.UID, cr.Status.GenerationUID)
-				updateErr = executor.UpdateClusterStatus(cr)
-				// If this succeeded, no need to do it again on next iteration
-				// if we're just cycling because of a failure to update the
-				// finalizer.
+				updateErr = executor.UpdateClusterStatus(
+					cr,
+					statusBackupShouldExist,
+					statusBackup,
+				)
+				// If this succeeded, no need to do it again on next iteration.
 				if updateErr == nil {
 					statusChanged = false
 				}
@@ -128,11 +175,13 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			} else {
 				if currentCluster.DeletionTimestamp != nil {
 					statusChanged = false
+					backupAnnotationNeedsReconcile = false
 				}
 				// If we got a conflict error, update the CR with its current
 				// form, restore our desired status/finalizers, and try again
 				// immediately.
 				if errors.IsConflict(updateErr) {
+					fetchBackup()
 					currentCluster.Status = cr.Status
 					currentHasFinalizer := shared.HasFinalizer(currentCluster)
 					if currentHasFinalizer {
@@ -145,6 +194,13 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 						}
 					}
 					*cr = *currentCluster
+					if currentCluster.DeletionTimestamp != nil {
+						backupAnnotationNeedsReconcile = executor.BackupAnnotationNeedsReconcile(
+							reqLogger,
+							cr,
+							statusBackupShouldExist,
+						)
+					}
 					continue
 				}
 			}
@@ -162,6 +218,13 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 			time.Sleep(wait)
 		}
 	}()
+
+	// If we're in this reconciliation function, restoreProgress should not
+	// be set. This only matters if this is the first iteration right after
+	// the being-restored label is removed, but it's fine just to always
+	// clear it here.
+	cr.Status.RestoreProgress = nil
+
 	// Calculate md5check sum to generate unique hash for connection object
 	currentHash := calcConnectionsHash(&cr.Spec.Connections, cr.Namespace)
 

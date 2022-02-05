@@ -27,8 +27,11 @@ import (
 	"k8s.io/api/admissionregistration/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	corevalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	appsvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 // createWebhookService creates our webhook Service resource if it does not
@@ -40,7 +43,7 @@ func createWebhookService(
 ) error {
 
 	var createService = false
-	_, err := observer.GetService(namespace, serviceName)
+	currentService, err := observer.GetService(namespace, serviceName)
 	if err == nil {
 		// service already present, no need to do anything
 		createService = false
@@ -50,10 +53,6 @@ func createWebhookService(
 		} else {
 			return err
 		}
-	}
-
-	if !createService {
-		return nil
 	}
 
 	// create service resource that refers to KubeDirector pod
@@ -81,6 +80,11 @@ func createWebhookService(
 			},
 		},
 	}
+	// For a service, delete-and-recreate has slightly less messy semantics
+	// than update.
+	if !createService {
+		shared.Delete(context.TODO(), currentService)
+	}
 	return shared.Create(context.TODO(), service)
 }
 
@@ -95,7 +99,7 @@ func createAdmissionService(
 ) error {
 
 	var createValidator = false
-	_, err := observer.GetValidatorWebhook(validatorWebhook)
+	currentWebhook, err := observer.GetValidatorWebhook(validatorWebhook)
 	if err == nil {
 		// validator object already present, no need to do anything
 		createValidator = false
@@ -107,20 +111,18 @@ func createAdmissionService(
 		}
 	}
 
-	if !createValidator {
-		return nil
-	}
+	hardFailurePolicy := v1beta1.Fail
+	softFailurePolicy := v1beta1.Ignore
 
 	// Webhook handler with a "fail" failure policy; these operations
 	// will NOT be allowed even when the handler is down.
 	// Use the v1beta1 version until our K8s version support floor is 1.16 or
 	// better.
-	failurePolicy := v1beta1.Fail
 	// Also note that until we raise our K8s support floor to 1.15, we can't
 	// use any properties in v1beta1.MutatingWebhook that were not also
 	// present in the old v1beta1.Webhook.
-	webhookHandler := v1beta1.MutatingWebhook{
-		Name: webhookHandlerName,
+	hardWebhookHandler := v1beta1.MutatingWebhook{
+		Name: "hard-" + webhookHandlerName,
 		ClientConfig: v1beta1.WebhookClientConfig{
 			Service: &v1beta1.ServiceReference{
 				Namespace: namespace,
@@ -154,7 +156,39 @@ func createAdmissionService(
 				},
 			},
 		},
-		FailurePolicy: &failurePolicy,
+		FailurePolicy: &hardFailurePolicy,
+	}
+
+	// Webhook handler with an "ignore" failure policy; these operations
+	// WILL be allowed even when the handler is down.
+	// Use the v1beta1 version until our K8s version support floor is 1.16 or
+	// better.
+	// Also note that until we raise our K8s support floor to 1.15, we can't
+	// use any properties in v1beta1.MutatingWebhook that were not also
+	// present in the old v1beta1.Webhook.
+	softWebhookHandler := v1beta1.MutatingWebhook{
+		Name: "soft-" + webhookHandlerName,
+		ClientConfig: v1beta1.WebhookClientConfig{
+			Service: &v1beta1.ServiceReference{
+				Namespace: namespace,
+				Name:      serviceName,
+				Path:      shared.StrPtr(validationPath),
+			},
+			CABundle: signingCert,
+		},
+		Rules: []v1beta1.RuleWithOperations{
+			{
+				Operations: []v1beta1.OperationType{
+					v1beta1.Create,
+				},
+				Rule: v1beta1.Rule{
+					APIGroups:   []string{""},
+					APIVersions: []string{"v1"},
+					Resources:   []string{"persistentvolumeclaims"},
+				},
+			},
+		},
+		FailurePolicy: &softFailurePolicy,
 	}
 
 	validator := &v1beta1.MutatingWebhookConfiguration{
@@ -166,10 +200,16 @@ func createAdmissionService(
 			Name:            validatorWebhook,
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
 		},
-		Webhooks: []v1beta1.MutatingWebhook{webhookHandler},
+		Webhooks: []v1beta1.MutatingWebhook{hardWebhookHandler, softWebhookHandler},
 	}
 
-	return shared.Create(context.TODO(), validator)
+	if createValidator {
+		return shared.Create(context.TODO(), validator)
+	}
+	// Overwrite the existing webhook. We'll do an update just so we don't
+	// create a window where the webhook doesn't exist.
+	validator.ResourceVersion = currentWebhook.ResourceVersion
+	return shared.Update(context.TODO(), validator)
 }
 
 // createCertsSecret creates a self-signed certificate and stores it as a
@@ -223,4 +263,56 @@ func createCertsSecret(
 	result := shared.Create(context.TODO(), secret)
 
 	return secret, result
+}
+
+// validateLabelsAndAnnotations is a common subroutine for validating a set of
+// pod/service labels/annotations; used both for cluster and for config.
+// Return an indicator of whether there were any errors, along with the
+// updated errors list.
+func validateLabelsAndAnnotations(
+	path *field.Path,
+	podLabels map[string]string,
+	podAnnotations map[string]string,
+	serviceLabels map[string]string,
+	serviceAnnotations map[string]string,
+	valErrors []string,
+) ([]string, bool) {
+
+	anyError := false
+	labelErrors := appsvalidation.ValidateLabels(
+		podLabels,
+		path.Child("podLabels"),
+	)
+	annotationErrors := corevalidation.ValidateAnnotations(
+		podAnnotations,
+		path.Child("podAnnotations"),
+	)
+	serviceLabelErrors := appsvalidation.ValidateLabels(
+		serviceLabels,
+		path.Child("serviceLabels"),
+	)
+	serviceAnnotationErrors := corevalidation.ValidateAnnotations(
+		serviceAnnotations,
+		path.Child("serviceAnnotations"),
+	)
+	if (len(labelErrors) != 0) ||
+		(len(annotationErrors) != 0) ||
+		(len(serviceLabelErrors) != 0) ||
+		(len(serviceAnnotationErrors) != 0) {
+		anyError = true
+		for _, labelErr := range labelErrors {
+			valErrors = append(valErrors, labelErr.Error())
+		}
+		for _, annotationErr := range annotationErrors {
+			valErrors = append(valErrors, annotationErr.Error())
+		}
+		for _, serviceLabelErr := range serviceLabelErrors {
+			valErrors = append(valErrors, serviceLabelErr.Error())
+		}
+		for _, serviceAnnotationErr := range serviceAnnotationErrors {
+			valErrors = append(valErrors, serviceAnnotationErr.Error())
+		}
+	}
+
+	return valErrors, anyError
 }

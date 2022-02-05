@@ -16,6 +16,7 @@ package kubedirectorcluster
 
 import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
+	"github.com/bluek8s/kubedirector/pkg/shared"
 	appsv1 "k8s.io/api/apps/v1"
 )
 
@@ -71,21 +72,24 @@ const (
 )
 
 const (
-	configMetaFile      = "/etc/guestconfig/configmeta.json"
-	configcliSrcFile    = "/home/kubedirector/configcli.tgz"
-	configcliDestFile   = "/tmp/configcli.tgz"
-	configcliInstallCmd = `cd /tmp && tar xzf configcli.tgz &&
-	chmod +x /tmp/configcli-*/install && /tmp/configcli-*/install &&
+	configMetaFile         = "/etc/guestconfig/configmeta.json"
+	configcliSrcFile       = "/home/kubedirector/configcli.tgz"
+	configcliDestFile      = "/tmp/configcli.tgz"
+	configcliInstallCmdFmt = `cd /tmp && tar xzf configcli.tgz &&
+	chmod u+x /tmp/configcli-*/install && /tmp/configcli-*/install %[1]s &&
 	rm -rf /tmp/configcli-* && rm -f /tmp/configcli.tgz &&
-	ln -sf /usr/bin/configcli /usr/bin/bdvcli &&
-	ln -sf /usr/bin/configcli /usr/bin/bd_vcli`
-	configcliTestFile  = "/usr/bin/configcli"
-	appPrepStartscript = "/opt/guestconfig/*/startscript"
-	appPrepInitCmd     = `cd /opt/guestconfig/ &&
+	ln -sf %[2]s/bin/configcli %[2]s/bin/bdvcli &&
+	ln -sf %[2]s/bin/configcli %[2]s/bin/bd_vcli`
+	configcliTestFile       = shared.ConfigCliLoc + "/bin/configcli"
+	configcliLegacyTestFile = shared.ConfigCliLegacyLoc + "/bin/configcli"
+	appPrepStartscript      = "/opt/guestconfig/*/startscript"
+	appPrepInitCmdFmt       = `mkdir -p /opt/guestconfig &&
+	chmod 700 /opt/guestconfig &&
+	cd /opt/guestconfig &&
 	rm -rf /opt/guestconfig/* &&
-	curl -L {{APP_CONFIG_URL}} -o appconfig.tgz &&
+	curl -L %s -o appconfig.tgz &&
 	tar xzf appconfig.tgz &&
-	chmod +x ` + appPrepStartscript + ` &&
+	chmod u+x ` + appPrepStartscript + ` &&
 	rm -rf /opt/guestconfig/appconfig.tgz`
 	appPrepConfigStatus = "/opt/guestconfig/configure.status"
 	appPrepConfigRunCmd = `rm -f /opt/guestconfig/configure.* &&
@@ -97,6 +101,15 @@ const (
 	appPrepConfigReconnectCmd = `echo -n %s= > ` + appPrepConfigStatus + ` &&
 	nohup sh -c '` + appPrepStartscript + ` --reconnect 2>/opt/guestconfig/configure.stderr 1>/opt/guestconfig/configure.stdout;
 	echo -n $? >> ` + appPrepConfigStatus + `' &`
+)
+
+// Support for old images/scripts that expect configcli to be in /usr/bin.
+const (
+	legacyLinksCmd = `ln -sf /usr/local/bin/configcli /usr/bin/bdvcli &&
+	ln -sf /usr/local/bin/configcli /usr/bin/bd_vcli &&
+	ln -sf /usr/local/bin/configcli /usr/bin/configcli &&
+	ln -sf /usr/local/bin/ccli /usr/bin/ccli &&
+	ln -sf /usr/local/bin/configmacro /usr/bin/configmacro`
 )
 
 const (

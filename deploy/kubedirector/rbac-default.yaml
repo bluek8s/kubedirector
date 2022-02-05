@@ -4,6 +4,12 @@ metadata:
   name: kubedirector
 rules:
 - apiGroups:
+  - authorization.k8s.io
+  resources:
+  - 'subjectaccessreviews'
+  verbs:
+  - '*'  
+- apiGroups:
   - kubedirector.hpe.com
   resources:
   - "*"
@@ -21,6 +27,7 @@ rules:
   - ""
   resources:
   - pods
+  - serviceaccounts
   - services
   - services/finalizers
   - endpoints

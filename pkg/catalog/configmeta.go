@@ -19,6 +19,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/bluek8s/kubedirector/pkg/secretkeys"
 	"strconv"
 	"sync"
 	"time"
@@ -296,10 +297,14 @@ func genClusterConnections(
 			membersForRole[roleInfo.Name] = membersStatus
 		}
 
+		nodegroups, err := nodegroups(clusterToConnect, appForclusterToConnect, membersForRole, domain)
+		if err != nil {
+			return nil, err
+		}
 		toConnectMeta[clusterName] = configmeta{
 			Version:    strconv.Itoa(appForclusterToConnect.Spec.SchemaVersion),
 			Services:   getServices(appForclusterToConnect, membersForRole, clusterName),
-			Nodegroups: nodegroups(clusterToConnect, appForclusterToConnect, membersForRole, domain),
+			Nodegroups: nodegroups,
 			Distros: map[string]refkeysMap{
 				appForclusterToConnect.Spec.DistroID: refkeysMap{
 					"1": refkeys{
@@ -332,7 +337,7 @@ func nodegroups(
 	appCR *kdv1.KubeDirectorApp,
 	membersForRole map[string][]*kdv1.MemberStatus,
 	domain string,
-) map[string]nodegroup {
+) (map[string]nodegroup, error) {
 
 	roles := make(map[string]role)
 	for _, roleSpec := range cr.Spec.Roles {
@@ -367,6 +372,10 @@ func nodegroups(
 			Description: "n/a",
 			Cores:       strconv.FormatInt(coresQuant.Value(), 10), // rounds up
 		}
+		secretKeys, err := secretKeys(roleSpec)
+		if err != nil {
+			return nil, err
+		}
 		roles[roleName] = role{
 			Services:     servicesForRole(appCR, roleName, members, "", domain),
 			NodeIDs:      nodeIds,
@@ -374,6 +383,7 @@ func nodegroups(
 			FQDNs:        fqdns,
 			FQDNMappings: fqdnMappings,
 			Flavor:       roleFlavor,
+			SecretKeys:   secretKeys,
 		}
 	}
 	return map[string]nodegroup{
@@ -383,7 +393,23 @@ func nodegroups(
 			CatalogEntryVersion: appCR.Spec.Version,
 			ConfigMeta:          appCR.Spec.Config.ConfigMetadata,
 		},
+	}, nil
+}
+
+// secretKeys decrypts role secret keys into name-to-value map
+func secretKeys(
+	roleSpec kdv1.Role,
+) (map[string]string, error) {
+	decryptedSecretKeys := map[string]string{}
+	for _, secretKey := range roleSpec.SecretKeys {
+		decryptedValue, err := secretkeys.Decrypt(secretKey.EncryptedValue)
+		// Just drop this one if we can't decrypt it; don't error out the
+		// whole configmeta operation.
+		if err == nil {
+			decryptedSecretKeys[secretKey.Name] = decryptedValue
+		}
 	}
+	return decryptedSecretKeys, nil
 }
 
 // clusterBaseConfig generates the portion of the config metadata that does
@@ -409,10 +435,14 @@ func clusterBaseConfig(
 		return nil, secErr
 	}
 
+	nodegroups, err := nodegroups(cr, appCR, membersForRole, domain)
+	if err != nil {
+		return nil, err
+	}
 	return &configmeta{
 		Version:    strconv.Itoa(appCR.Spec.SchemaVersion),
 		Services:   getServices(appCR, membersForRole, ""),
-		Nodegroups: nodegroups(cr, appCR, membersForRole, domain),
+		Nodegroups: nodegroups,
 		Distros: map[string]refkeysMap{
 			appCR.Spec.DistroID: refkeysMap{
 				"1": refkeys{

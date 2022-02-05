@@ -115,6 +115,17 @@ func (r *ReconcileKubeDirectorCluster) Reconcile(
 		return reconcileResult,
 			fmt.Errorf("could not fetch KubeDirectorCluster instance: %s", err)
 	}
-	err = r.syncCluster(reqLogger, cr)
+	// If in being-restored state (and not being deleted), handle that but do
+	// no other reconcile.
+	isRestoring := false
+	if cr.DeletionTimestamp == nil {
+		_, isRestoring = cr.Labels[shared.RestoringLabel]
+	}
+	if !isRestoring {
+		err = r.syncCluster(reqLogger, cr)
+	} else {
+		err = r.handleRestore(reqLogger, cr)
+	}
+
 	return reconcileResult, err
 }

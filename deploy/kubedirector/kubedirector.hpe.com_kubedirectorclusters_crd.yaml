@@ -88,7 +88,13 @@ spec:
                   podLabels:
                     type: object
                     nullable: true
+                  podAnnotations:
+                    type: object
+                    nullable: true
                   serviceLabels:
+                    type: object
+                    nullable: true
+                  serviceAnnotations:
                     type: object
                     nullable: true
                   members:
@@ -147,6 +153,9 @@ spec:
                           ephemeral-storage:
                             type: string
                             pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                  serviceAccountName:
+                        type: string
+                        minLength: 1
                   env:
                     type: array
                     items:
@@ -210,6 +219,20 @@ spec:
                               type: string
                             fileGroup:
                               type: string
+                  secretKeys:
+                    type: array
+                    items:
+                      type: object
+                      required: [ name ]
+                      properties:
+                        name:
+                          type: string
+                          minLength: 1
+                        value:
+                          type: string
+                        encryptedValue:
+                          type: string
+                          minLength: 1
                   affinity:
                     properties:
                       nodeAffinity:
@@ -478,6 +501,18 @@ spec:
           properties:
             state:
               type: string
+            restoreProgress:
+              type: object
+              nullable: true
+              properties:
+                awaitingApp:
+                  type: boolean
+                awaitingStatus:
+                  type: boolean
+                awaitingResources:
+                  type: boolean
+                error:
+                  type: string
             memberStateRollup:
               type: object
               properties:

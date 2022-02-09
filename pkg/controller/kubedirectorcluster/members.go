@@ -18,6 +18,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -239,6 +240,48 @@ func syncMemberNotifies(
 	wgReady.Wait()
 }
 
+// EZML-960
+// extractStartScriptLog extracts the first ~300 symbols
+// from a passed file.
+// This method is used after startscript executions for
+// putting its result to corresponding MemberStateDetail fields
+func extractStartScriptLog(
+	readFileFn func(string, io.Writer) (bool, error),
+	filePath string,
+) *string {
+
+	maxLen := 300
+	var strB strings.Builder
+	fileExists, fileError := readFileFn(filePath, &strB)
+	if fileError != nil {
+		return nil
+	}
+	var msg string
+	if fileExists {
+		msg = shared.TruncateText(strB.String(), maxLen)
+	}
+	return &msg
+}
+
+// EZML-960
+// setStateDetailLogs set the extracted results
+// of startscript executions
+// to corresponding MemberStateDetail fields
+func setStateDetailLogs(
+	stateDetail *kdv1.MemberStateDetail,
+	stdout *string,
+	stderr *string,
+) {
+
+	if stdout != nil {
+		stateDetail.StartScriptOutMsg = *stdout
+	}
+
+	if stderr != nil {
+		stateDetail.StartScriptErrMsg = *stderr
+	}
+}
+
 // handleReadyMembers operates on all members in the role that are currently
 // in the ready state. It will update the configmeta inside each guest with
 // the latest content.
@@ -338,6 +381,22 @@ func handleReadyMembers(
 				)
 
 				containerID := m.StateDetail.LastConfiguredContainer
+
+				readFile := func(filepath string, writer io.Writer) (bool, error) {
+
+					fileExists, fileError := executor.ReadFile(
+						reqLogger,
+						cr,
+						cr.Namespace,
+						m.Pod,
+						containerID,
+						executor.AppContainerName,
+						filepath,
+						writer,
+					)
+					return fileExists, fileError
+				}
+
 				cmd := fmt.Sprintf(appPrepConfigReconnectCmd, containerID)
 
 				cmdErr := executor.RunScript(
@@ -345,11 +404,17 @@ func handleReadyMembers(
 					cr,
 					cr.Namespace,
 					m.Pod,
-					m.StateDetail.LastConfiguredContainer,
+					m.StateDetail.ConfiguringContainer,
 					executor.AppContainerName,
 					"app reconnect",
 					strings.NewReader(cmd),
 				)
+
+				// EZML-960
+				stdout := extractStartScriptLog(readFile, appPrepConfigStdout)
+				stderr := extractStartScriptLog(readFile, appPrepConfigStderr)
+				setStateDetailLogs(&m.StateDetail, stdout, stderr)
+
 				if cmdErr != nil {
 					shared.LogErrorf(
 						reqLogger,
@@ -1150,6 +1215,20 @@ func appConfig(
 	configmetaGenerator func(string) string,
 ) (bool, error) {
 
+	readFile := func(filepath string, writer io.Writer) (bool, error) {
+
+		return executor.ReadFile(
+			reqLogger,
+			cr,
+			cr.Namespace,
+			podName,
+			expectedContainerID,
+			executor.AppContainerName,
+			filepath,
+			writer,
+		)
+	}
+
 	// If a config error detail already exists, this is a restart of a member
 	// that had been in config error state. In that case we won't try
 	// checking the existing state within the guest.
@@ -1170,16 +1249,7 @@ func appConfig(
 		// will check back periodically. So let's have a look at the existing
 		// status if any.
 		var statusStrB strings.Builder
-		fileExists, fileError := executor.ReadFile(
-			reqLogger,
-			cr,
-			cr.Namespace,
-			podName,
-			expectedContainerID,
-			executor.AppContainerName,
-			appPrepConfigStatus,
-			&statusStrB,
-		)
+		fileExists, fileError := readFile(appPrepConfigStatus, &statusStrB)
 		if fileError != nil {
 			return true, fileError
 		}
@@ -1342,6 +1412,12 @@ func appConfig(
 		"app config",
 		strings.NewReader(cmd),
 	)
+
+	// EZML-960
+	stdout := extractStartScriptLog(readFile, appPrepConfigStdout)
+	stderr := extractStartScriptLog(readFile, appPrepConfigStderr)
+	setStateDetailLogs(stateDetail, stdout, stderr)
+
 	if cmdErr != nil {
 		return true, cmdErr
 	}

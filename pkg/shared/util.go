@@ -17,8 +17,11 @@ package shared
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -110,4 +113,26 @@ func OwnerReferencesPresent(
 		}
 	}
 	return false
+}
+
+// StatefulSetContainers returns the array of containers are run for a given statefulSet
+func StatefulSetContainers(
+	statefulSet *appsv1.StatefulSet,
+) []v1.Container {
+
+	return statefulSet.Spec.Template.Spec.Containers
+}
+
+// TruncateText cuts the input string by the last
+// punctuation mark in the limited range, to not cut
+// the last word in the middle
+func TruncateText(
+	s string,
+	limit int,
+) string {
+
+	if limit > len(s) {
+		return s
+	}
+	return s[:strings.LastIndexAny(s[:limit], " .,:;-!;")]
 }

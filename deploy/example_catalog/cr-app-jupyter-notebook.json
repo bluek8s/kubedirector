@@ -59,7 +59,7 @@
             "useNewSetupLayout": true
         },
         "roles": [{
-            "imageRepoTag": "bluedata/kd-notebook:2.0",
+            "imageRepoTag": "bluedata/kd-notebook:3.1",
             "cardinality": "1",
             "id": "controller",
             "persistDirs": [

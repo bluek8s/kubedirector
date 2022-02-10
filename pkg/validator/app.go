@@ -163,6 +163,7 @@ func validateRoles(
 	var globalSetupPackageInfo *kdv1.SetupPackageInfo
 	var globalPersistDirs *[]string
 	var globalEventList *[]string
+	var globalMaxLogLinesDump *string
 
 	if appCR.Spec.DefaultImageRepoTag == nil {
 		globalImageRepoTag = nil
@@ -223,6 +224,18 @@ func validateRoles(
 			appPatchSpec{
 				Op:   "remove",
 				Path: "/spec/defaultEventList",
+			},
+		)
+	}
+	if appCR.Spec.DefaultMaxLogLinesDump == nil {
+		globalMaxLogLinesDump = nil
+	} else {
+		globalMaxLogLinesDump = appCR.Spec.DefaultMaxLogLinesDump
+		patches = append(
+			patches,
+			appPatchSpec{
+				Op:   "remove",
+				Path: "/spec/defaultMaxLogLinesDump",
 			},
 		)
 	}
@@ -342,6 +355,19 @@ func validateRoles(
 					},
 				)
 			}
+		}
+		if role.MaxLogLinesDump == "" && globalMaxLogLinesDump != nil {
+			role.MaxLogLinesDump = *globalMaxLogLinesDump
+			patches = append(
+				patches,
+				appPatchSpec{
+					Op:   "add",
+					Path: "/spec/roles/" + strconv.Itoa(index) + "/maxLogLinesDump",
+					Value: appPatchValue{
+						stringValue: globalMaxLogLinesDump,
+					},
+				},
+			)
 		}
 	}
 

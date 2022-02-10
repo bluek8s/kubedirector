@@ -127,5 +127,5 @@ func GetLastNLines(
 	if len < n {
 		return src
 	}
-	return strings.Join(lines[len-n:], "\n")
+	return strings.Join(lines[len-(n+1):], "\n")
 }

@@ -240,8 +240,8 @@ func syncMemberNotifies(
 	wgReady.Wait()
 }
 
-// EZML-960
-// extractStartScriptLog extracts the first ~300 symbols
+// https://github.com/bluek8s/kubedirector/issues/547
+// extractStartScriptLog extracts the last 5 lines
 // from a passed file.
 // This method is used after startscript executions for
 // putting its result to corresponding MemberStateDetail fields
@@ -250,7 +250,7 @@ func extractStartScriptLog(
 	filePath string,
 ) *string {
 
-	maxLen := 300
+	maxLines := 5
 	var strB strings.Builder
 	fileExists, fileError := readFileFn(filePath, &strB)
 	if fileError != nil {
@@ -258,21 +258,21 @@ func extractStartScriptLog(
 	}
 	var msg string
 	if fileExists {
-		msg = shared.TruncateText(strB.String(), maxLen)
+		msg = shared.GetLastNLines(strB.String(), maxLines)
 	}
 	return &msg
 }
 
-// EZML-960
-// setStateDetailLogs set the extracted results
+// https://github.com/bluek8s/kubedirector/issues/547
+// setStateDetailLogs sets the extracted results
 // of startscript executions
 // to corresponding MemberStateDetail fields
 func setStateDetailLogs(
+	readFileFn func(string, io.Writer) (bool, error),
 	stateDetail *kdv1.MemberStateDetail,
-	stdout *string,
-	stderr *string,
 ) {
-
+	stdout := extractStartScriptLog(readFileFn, appPrepConfigStdout)
+	stderr := extractStartScriptLog(readFileFn, appPrepConfigStderr)
 	if stdout != nil {
 		stateDetail.StartScriptOutMsg = *stdout
 	}
@@ -410,10 +410,8 @@ func handleReadyMembers(
 					strings.NewReader(cmd),
 				)
 
-				// EZML-960
-				stdout := extractStartScriptLog(readFile, appPrepConfigStdout)
-				stderr := extractStartScriptLog(readFile, appPrepConfigStderr)
-				setStateDetailLogs(&m.StateDetail, stdout, stderr)
+				// https://github.com/bluek8s/kubedirector/issues/547
+				setStateDetailLogs(readFile, &m.StateDetail)
 
 				if cmdErr != nil {
 					shared.LogErrorf(
@@ -1413,10 +1411,8 @@ func appConfig(
 		strings.NewReader(cmd),
 	)
 
-	// EZML-960
-	stdout := extractStartScriptLog(readFile, appPrepConfigStdout)
-	stderr := extractStartScriptLog(readFile, appPrepConfigStderr)
-	setStateDetailLogs(stateDetail, stdout, stderr)
+	// https://github.com/bluek8s/kubedirector/issues/547
+	setStateDetailLogs(readFile, stateDetail)
 
 	if cmdErr != nil {
 		return true, cmdErr

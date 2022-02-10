@@ -20,8 +20,6 @@ import (
 	"strings"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
-	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -115,24 +113,19 @@ func OwnerReferencesPresent(
 	return false
 }
 
-// StatefulSetContainers returns the array of containers are run for a given statefulSet
-func StatefulSetContainers(
-	statefulSet *appsv1.StatefulSet,
-) []v1.Container {
-
-	return statefulSet.Spec.Template.Spec.Containers
-}
-
-// TruncateText cuts the input string by the last
-// punctuation mark in the limited range, to not cut
-// the last word in the middle
-func TruncateText(
-	s string,
-	limit int,
+// GetLastNLines splits the input src string
+// by \n characters, joins last n lines and
+// returns them as a result. If lines count is less
+// then n value it returns whole src string
+func GetLastNLines(
+	src string,
+	n int,
 ) string {
 
-	if limit > len(s) {
-		return s
+	lines := strings.Split(src, "\n")
+	len := len(lines)
+	if len < n {
+		return src
 	}
-	return s[:strings.LastIndexAny(s[:limit], " .,:;-!;")]
+	return strings.Join(lines[len-n:], "\n")
 }

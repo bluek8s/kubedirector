@@ -63,7 +63,7 @@ spec:
                   pattern: '^(file|https?)://.+\.tgz$'
                 useNewSetupLayout:
                   type: boolean
-            defaultMaxLogLinesDump:
+            defaultMaxLogSizeDump:
               type: string
             services:
               type: array
@@ -180,7 +180,7 @@ spec:
                         pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                       ephemeralModeSupported:
                         type: boolean
-                  maxLogLinesDump:
+                  maxLogSizeDump:
                     type: string
             config:
               type: object

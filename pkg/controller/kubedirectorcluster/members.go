@@ -247,10 +247,10 @@ func syncMemberNotifies(
 func setStateDetailLogs(
 	readFileFn func(string, io.Writer) (bool, error),
 	stateDetail *kdv1.MemberStateDetail,
-	roleMaxLogLines string,
+	roleMaxLogSize string,
 ) {
 
-	maxLines, _ := strconv.Atoi(roleMaxLogLines)
+	maxSize, _ := strconv.Atoi(roleMaxLogSize)
 
 	extractStartScriptLog := func(filePath string) *string {
 
@@ -261,12 +261,12 @@ func setStateDetailLogs(
 		}
 		var msg string
 		if fileExists {
-			msg = shared.GetLastNLines(strB.String(), maxLines)
+			msg = shared.GetLastLines(strB.String(), maxSize)
 		}
 		return &msg
 	}
 
-	if maxLines > 0 {
+	if maxSize > 0 {
 		stdout := extractStartScriptLog(appPrepConfigStdout)
 		stderr := extractStartScriptLog(appPrepConfigStderr)
 		if stdout != nil {
@@ -407,13 +407,13 @@ func handleReadyMembers(
 					strings.NewReader(cmd),
 				)
 
-				// https://github.com/bluek8s/kubedirector/issues/547
-				nodeRole := catalog.GetRoleFromID(cr.AppSpec, role.roleSpec.Name)
-				if nodeRole != nil {
-					setStateDetailLogs(readFile, &m.StateDetail, nodeRole.MaxLogLinesDump)
-				}
-
 				if cmdErr != nil {
+					// https://github.com/bluek8s/kubedirector/issues/547
+					nodeRole := catalog.GetRoleFromID(cr.AppSpec, role.roleSpec.Name)
+					if nodeRole != nil {
+						setStateDetailLogs(readFile, &m.StateDetail, nodeRole.MaxLogSizeDump)
+					}
+
 					shared.LogErrorf(
 						reqLogger,
 						cmdErr,
@@ -1411,13 +1411,12 @@ func appConfig(
 		strings.NewReader(cmd),
 	)
 
-	// https://github.com/bluek8s/kubedirector/issues/547
-	nodeRole := catalog.GetRoleFromID(cr.AppSpec, roleName)
-	if nodeRole != nil {
-		setStateDetailLogs(readFile, stateDetail, nodeRole.MaxLogLinesDump)
-	}
-
 	if cmdErr != nil {
+		// https://github.com/bluek8s/kubedirector/issues/547
+		nodeRole := catalog.GetRoleFromID(cr.AppSpec, roleName)
+		if nodeRole != nil {
+			setStateDetailLogs(readFile, stateDetail, nodeRole.MaxLogSizeDump)
+		}
 		return true, cmdErr
 	}
 	return false, nil

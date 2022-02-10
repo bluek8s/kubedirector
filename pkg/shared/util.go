@@ -17,7 +17,6 @@ package shared
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -113,19 +112,27 @@ func OwnerReferencesPresent(
 	return false
 }
 
-// GetLastNLines splits the input src string
-// by \n characters, joins last n lines and
-// returns them as a result. If lines count is less
-// then n value it returns whole src string
-func GetLastNLines(
+// GetLastLines returns few last whole lines of
+// the input src string that are included
+// into the last maxSize characters of src
+// If maxSize is greater than src length, it returns src
+func GetLastLines(
 	src string,
-	n int,
+	maxSize int,
 ) string {
 
-	lines := strings.Split(src, "\n")
-	len := len(lines)
-	if len < n {
+	size := len(src)
+	if size <= maxSize {
 		return src
 	}
-	return strings.Join(lines[len-(n+1):], "\n")
+
+	start := size - (maxSize + 1)
+
+	for i := start; i < size-1; i++ {
+		if src[i] == '\n' {
+			start = i + 1
+			break
+		}
+	}
+	return src[start:]
 }

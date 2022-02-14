@@ -589,9 +589,6 @@ func getVolumeClaimTemplate(
 		volClaim := v1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: pvcNamePrefix,
-				Annotations: map[string]string{
-					storageClassName: *role.Storage.StorageClass,
-				},
 			},
 			Spec: v1.PersistentVolumeClaimSpec{
 				AccessModes: []v1.PersistentVolumeAccessMode{
@@ -602,6 +599,7 @@ func getVolumeClaimTemplate(
 						v1.ResourceStorage: volSize,
 					},
 				},
+				StorageClassName: role.Storage.StorageClass,
 			},
 		}
 		volTemplate = append(volTemplate, volClaim)
@@ -627,9 +625,6 @@ func getVolumeClaimTemplate(
 			blockClaim := v1.PersistentVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: deviceName,
-					Annotations: map[string]string{
-						storageClassName: *role.BlockStorage.StorageClass,
-					},
 				},
 				Spec: v1.PersistentVolumeClaimSpec{
 					AccessModes: []v1.PersistentVolumeAccessMode{

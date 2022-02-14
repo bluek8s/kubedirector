@@ -93,7 +93,6 @@ func createWebhookService(
 // createAdmissionService creates our MutatingWebhookConfiguration resource
 // if it does not exist.
 func createAdmissionService(
-	ownerReference metav1.OwnerReference,
 	validatorWebhook string,
 	namespace string,
 	serviceName string,
@@ -200,7 +199,6 @@ func createAdmissionService(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            validatorWebhook,
-			OwnerReferences: []metav1.OwnerReference{ownerReference},
 		},
 		Webhooks: []v1beta1.MutatingWebhook{hardWebhookHandler, softWebhookHandler},
 	}

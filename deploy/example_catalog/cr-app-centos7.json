@@ -2,25 +2,44 @@
     "apiVersion": "kubedirector.hpe.com/v1beta1",
     "kind": "KubeDirectorApp",
     "metadata": {
-        "name" : "centos7x"
+        "name": "centos7x"
     },
-
-    "spec" : {
+    "spec": {
         "logoURL": "https://raw.githubusercontent.com/bluedatainc/solutions/master/MLOps/logos/centos8x-logo.png",
         "systemdRequired": true,
-        "defaultPersistDirs" : ["/home"],
-        "defaultEventList" : ["configure", "addnodes", "delnodes"],
+        "defaultPersistDirs": [
+            "/home"
+        ],
+        "defaultEventList": [
+            "configure",
+            "addnodes",
+            "delnodes"
+        ],
         "config": {
             "roleServices": [
                 {
                     "serviceIDs": [
                         "ssh"
                     ],
-                    "roleID": "vanilla_centos"
+                    "roleID": "vanilla_centos_role1"
+                },
+                {
+                    "serviceIDs": [
+                        "ssh"
+                    ],
+                    "roleID": "vanilla_centos_role2"
+                },
+                {
+                    "serviceIDs": [
+                        "ssh"
+                    ],
+                    "roleID": "vanilla_centos_role3"
                 }
             ],
             "selectedRoles": [
-                "vanilla_centos"
+                "vanilla_centos_role1",
+                "vanilla_centos_role2",
+                "vanilla_centos_role3"
             ]
         },
         "label": {
@@ -47,7 +66,15 @@
         "roles": [
             {
                 "cardinality": "1+",
-                "id": "vanilla_centos"
+                "id": "vanilla_centos_role1"
+            },
+            {
+                "cardinality": "1+",
+                "id": "vanilla_centos_role2"
+            },
+            {
+                "cardinality": "0+",
+                "id": "vanilla_centos_role3"
             }
         ]
     }

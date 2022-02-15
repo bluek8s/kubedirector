@@ -25,6 +25,8 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/triple"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"k8s.io/api/admissionregistration/v1beta1"
+	v1auth "k8s.io/api/authentication/v1"
+	sar "k8s.io/api/authorization/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	corevalidation "k8s.io/apimachinery/pkg/api/validation"
@@ -315,4 +317,51 @@ func validateLabelsAndAnnotations(
 	}
 
 	return valErrors, anyError
+}
+
+// createSubjectAccessReview is a utility function to validate if a user is allowed to access
+// a resource in a namespace. It constructs SubjectAccessReviewSpec using the information
+// provided by the caller and makes the SAR request to API Server. It returns an error string
+// to the caller.
+func createSubjectAccessReview(
+	userInfo v1auth.UserInfo,
+	resourceNamespace string,
+	resourceName string,
+	objectName string,
+	verb string,
+) (errStr string) {
+
+	// Convert k8s.io/api/authentication/v1".ExtraValue -> k8s.io/api/authorization/v1".ExtraValue
+	xtra := make(map[string]sar.ExtraValue)
+	for k, v := range userInfo.Extra {
+		xtra[k] = sar.ExtraValue(v)
+	}
+	sar := &sar.SubjectAccessReview{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "SubjectAccessReview",
+			APIVersion: "authorization.k8s.io/v1",
+		},
+		Spec: sar.SubjectAccessReviewSpec{
+			ResourceAttributes: &sar.ResourceAttributes{
+				Namespace: resourceNamespace,
+				Verb:      verb,
+				Resource:  resourceName,
+				Name:      objectName,
+			},
+			User:   userInfo.Username,
+			Groups: userInfo.Groups,
+			UID:    userInfo.UID,
+			Extra:  xtra,
+		},
+	}
+	err := shared.Create(context.TODO(), sar)
+	if err != nil {
+		errStr = err.Error()
+	} else {
+		if sar.Status.Denied {
+			errStr = sar.Status.Reason
+		}
+	}
+
+	return
 }

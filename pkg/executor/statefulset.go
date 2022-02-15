@@ -725,10 +725,42 @@ func generateSecretVolume(
 
 }
 
+// generateVolumeProjectionMounts generates VolumeMount and Volume
+// object for mounting volu
+func generateVolumeProjectionMounts(
+	volIndex int,
+	projectedVol *kdv1.VolumeProjections,
+) ([]v1.VolumeMount, []v1.Volume) {
+
+	volName := "projected-vol-" + strconv.Itoa(volIndex)
+	volSource := v1.PersistentVolumeClaimVolumeSource{
+		ClaimName: projectedVol.VolumeName,
+		ReadOnly:  projectedVol.ReadOnly,
+	}
+	return []v1.VolumeMount{
+			v1.VolumeMount{
+				Name:      volName,
+				MountPath: projectedVol.MountPath,
+				ReadOnly:  projectedVol.ReadOnly,
+			},
+		}, []v1.Volume{
+			v1.Volume{
+				Name: volName,
+				VolumeSource: v1.VolumeSource{
+					PersistentVolumeClaim: &volSource,
+				},
+			},
+		}
+	return []v1.VolumeMount{}, []v1.Volume{}
+
+}
+
 // generateVolumeMounts generates all of an app container's volume and mount
 // specs for persistent storage, tmpfs and systemctl support that are
 // appropriate for members of the given role. For systemctl support,
 // nativeSystemdSupport flag is examined along with the app requirement.
+// Additionally generate volume mount spec if a role has
+// requested for volume projections.
 func generateVolumeMounts(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
@@ -751,6 +783,16 @@ func generateVolumeMounts(
 	secretVolMnts, secretVols := generateSecretVolume(role.Secret)
 	volumeMounts = append(volumeMounts, secretVolMnts...)
 	volumes = append(volumes, secretVols...)
+
+	// Generate volume projections (if any)
+	numVolumes := len(role.VolumeProjections)
+	for i := 0; i < numVolumes; i++ {
+		projectedVol := role.VolumeProjections[i]
+		volProjectionMnts, volProjections := generateVolumeProjectionMounts(i, &projectedVol)
+
+		volumeMounts = append(volumeMounts, volProjectionMnts...)
+		volumes = append(volumes, volProjections...)
+	}
 
 	isSystemdReqd, err := catalog.SystemdRequired(cr)
 

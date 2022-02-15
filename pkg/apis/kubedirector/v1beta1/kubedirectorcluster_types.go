@@ -123,6 +123,14 @@ type FileInjections struct {
 	Permissions *FilePermissions `json:"permissions,omitempty"`
 }
 
+// VolumeProjections define an individual volume projection
+// spec
+type VolumeProjections struct {
+	VolumeName string `json:"volumeName"`
+	MountPath  string `json:"mountPath"`
+	ReadOnly   bool   `json:"readOnly"`
+}
+
 // Role describes a subset of the virtual cluster members that shares a common
 // image, resource requirements, persistent storage definition, and (as
 // defined by the cluster's KubeDirectorApp) set of service endpoints.
@@ -142,6 +150,7 @@ type Role struct {
 	BlockStorage       *BlockStorage               `json:"blockStorage,omitempty"`
 	ServiceAccountName string                      `json:"serviceAccountName,omitempty"`
 	SecretKeys         []SecretKey                 `json:"secretKeys,omitempty"`
+	VolumeProjections  []VolumeProjections         `json:"volumeProjections,omitempty"`
 }
 
 // SecretKey holds data which is supposed to be only available on configuration phase

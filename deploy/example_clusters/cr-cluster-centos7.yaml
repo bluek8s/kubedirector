@@ -5,53 +5,12 @@ metadata:
 spec:
   app: centos7x
   roles:
-    - id: vanilla_centos_role1
-      members: 2
-      resources:
-        requests:
-          memory: "1Gi"
-          cpu: "1"
-        limits:
-          memory: "1Gi"
-          cpu: "1"
-      volumeProjections:
-        - volumeName: pvc-1
-          mountPath: /mnt/pvc-1
-          readOnly: false
-        - volumeName: pvc-3
-          mountPath: /mnt/pvc-3
-          readOnly: true
-    - id: vanilla_centos_role2
-      members: 1
-      resources:
-        requests:
-          memory: "1Gi"
-          cpu: "1"
-        limits:
-          memory: "1Gi"
-          cpu: "1"
-      volumeProjections:
-        - volumeName: pvc-1
-          mountPath: /mnt/pvc-1
-          readOnly: false
-        - volumeName: pvc-2
-          mountPath: /mnt/pvc-2
-          readOnly: true
-    - id: vanilla_centos_role3
-      resources:
-        requests:
-          memory: "1Gi"
-          cpu: "1"
-        limits:
-          memory: "1Gi"
-          cpu: "1"
-      volumeProjections:
-        - volumeName: pvc-1
-          mountPath: /mnt/pvc-1
-          readOnly: false
-        - volumeName: pvc-3
-          mountPath: /mnt/pvc-3
-          readOnly: true
-        #- volumeName: pvc-1
-        #  mountPath: /mnt/vol
-        #  readOnly: true
+  - id: vanilla_centos
+    members: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "1"
+      limits:
+        memory: "4Gi"
+        cpu: "1"

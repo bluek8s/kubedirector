@@ -1043,6 +1043,7 @@ func addRestoreLabel(
 // If PVC is validated, following additional checks are made
 // - VolumeMode must be FileSystem
 // - Within a cluster if a pvc is reused, validate AccessModes to be ReadWriteMany
+// - Within a role, make sure mountPaths are unique
 func validateVolumeProjections(
 	cr *kdv1.KubeDirectorCluster,
 	userInfo v1.UserInfo,
@@ -1063,6 +1064,7 @@ func validateVolumeProjections(
 		for j := 0; j < numVolumes; j++ {
 			volume := role.VolumeProjections[j]
 
+			// Bump up mountPath map to check later
 			mountPaths[volume.MountPath]++
 
 			// Check to make sure pvc exists in the cluster namespace
@@ -1094,7 +1096,7 @@ func validateVolumeProjections(
 				)
 			}
 
-			// If a pvc is not ReadWriteMany add it to the exclusive map
+			// If a pvc is not ReadWriteMany add it to the exclusive list
 			var found = false
 			for _, accessMode := range pvc.Spec.AccessModes {
 				if accessMode == core.ReadWriteMany {

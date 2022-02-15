@@ -35,7 +35,7 @@ spec:
               minLength: 1
             appCatalog:
               type: string
-              pattern: '^local$|^system$'
+              pattern: "^local$|^system$"
             connections:
               type: object
               properties:
@@ -53,10 +53,10 @@ spec:
                     type: string
             namingScheme:
               type: string
-              pattern: '^UID$|^CrNameRole$'
+              pattern: "^UID$|^CrNameRole$"
             serviceType:
               type: string
-              pattern: '^ClusterIP$|^NodePort$|^LoadBalancer$'
+              pattern: "^ClusterIP$|^NodePort$|^LoadBalancer$"
             defaultSecret:
               type: object
               nullable: true
@@ -84,7 +84,7 @@ spec:
                     type: string
                     minLength: 1
                     maxLength: 63
-                    pattern: '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?'
+                    pattern: "(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?"
                   podLabels:
                     type: object
                     nullable: true
@@ -127,35 +127,35 @@ spec:
                         properties:
                           memory:
                             type: string
-                            pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                            pattern: "^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$"
                           cpu:
                             type: string
-                            pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                            pattern: "^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$"
                           nvidia.com/gpu:
                             type: string
-                            pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                            pattern: "^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$"
                           amd.com/gpu:
                             type: string
-                            pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                            pattern: "^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$"
                           ephemeral-storage:
                             type: string
-                            pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                            pattern: "^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$"
                       requests:
                         type: object
                         nullable: true
                         properties:
                           memory:
                             type: string
-                            pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                            pattern: "^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$"
                           cpu:
                             type: string
-                            pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                            pattern: "^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$"
                           ephemeral-storage:
                             type: string
-                            pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                            pattern: "^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$"
                   serviceAccountName:
-                        type: string
-                        minLength: 1
+                    type: string
+                    minLength: 1
                   env:
                     type: array
                     items:
@@ -174,7 +174,7 @@ spec:
                     properties:
                       size:
                         type: string
-                        pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                        pattern: "^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$"
                       storageClassName:
                         type: string
                         minLength: 1
@@ -189,13 +189,13 @@ spec:
                       pathPrefix:
                         type: string
                         minLength: 1
-                        pattern: '^/.*$'
+                        pattern: "^/.*$"
                       storageClassName:
                         type: string
                         minLength: 1
                       size:
                         type: string
-                        pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                        pattern: "^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$"
                   fileInjections:
                     type: array
                     items:
@@ -204,10 +204,10 @@ spec:
                       properties:
                         srcURL:
                           type: string
-                          pattern: '^https?://.+$'
+                          pattern: "^https?://.+$"
                         destDir:
                           type: string
-                          pattern: '^/.*$'
+                          pattern: "^/.*$"
                           minLength: 1
                         permissions:
                           type: object
@@ -223,7 +223,7 @@ spec:
                     type: array
                     items:
                       type: object
-                      required: [ name ]
+                      required: [name]
                       properties:
                         name:
                           type: string
@@ -502,9 +502,12 @@ spec:
                       required: [volumeName, mountPath]
                       properties:
                         volumeName:
+                          minLength: 1
                           type: string
                         mountPath:
                           type: string
+                          minLength: 2
+                          pattern: '^/[a-zA-Z0-9\/-_]*'
                         readOnly:
                           type: boolean
         status:

@@ -726,7 +726,7 @@ func generateSecretVolume(
 }
 
 // generateVolumeProjectionMounts generates VolumeMount and Volume
-// object for mounting volu
+// object for mounting volumeProjections
 func generateVolumeProjectionMounts(
 	volIndex int,
 	projectedVol *kdv1.VolumeProjections,

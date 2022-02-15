@@ -103,6 +103,7 @@ const (
 	invalidPVC        = "Unable to find persistentvolumeclaim(%s) in namespace(%s) as specified for role(%s)."
 	invalidVolumeMode = "Specified persistentvolumeclaim(%s) for role (%s) is invalid. VolumeMode(%s) for the underlying volume must be configured as Filesystem."
 	invalidAccessMode = "Specified persistentvolumeclaim(%s) is invalid. AccessModes for this volume must be configured as ReadWriteMany, since its consumed by more than 1 member of the cluster."
+	invalidMountPath  = "Specified mountPath(%s) for role(%s) is invalid. It must be unique within a role."
 )
 
 type dictValue map[string]string

@@ -1054,6 +1054,7 @@ func validateVolumeProjections(
 	exclusivePvcs := make(map[string]int32)
 
 	for i := 0; i < numRoles; i++ {
+		mountPaths := make(map[string]int32)
 		role := &(cr.Spec.Roles[i])
 		if len(role.VolumeProjections) == 0 {
 			continue
@@ -1061,6 +1062,8 @@ func validateVolumeProjections(
 		numVolumes := len(role.VolumeProjections)
 		for j := 0; j < numVolumes; j++ {
 			volume := role.VolumeProjections[j]
+
+			mountPaths[volume.MountPath]++
 
 			// Check to make sure pvc exists in the cluster namespace
 			pvc, pvcErr := observer.GetPVC(cr.Namespace, volume.VolumeName)
@@ -1116,15 +1119,28 @@ func validateVolumeProjections(
 				valErrors = append(valErrors, errStr)
 			}
 		}
+
+		for mountPath, mountNum := range mountPaths {
+			if mountNum > 1 {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidMountPath,
+						mountPath,
+						role.Name,
+					),
+				)
+			}
+		}
 	}
 
-	for name, num := range exclusivePvcs {
+	for volName, num := range exclusivePvcs {
 		if num > 1 {
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(
 					invalidAccessMode,
-					name,
+					volName,
 				),
 			)
 		}

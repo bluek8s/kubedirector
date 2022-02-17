@@ -173,27 +173,32 @@ func UpdateStatefulSetNonReplicas(
 
 	// https://github.com/bluek8s/kubedirector/issues/229
 	// We should also compare the current statefulset container image against
-	// the image defined for the corresponding role in the KDApp spec. If images
-	// are not the same, KDApp spec image has a higher priority, so we shoud
+	// the image defined for the corresponding role in the KDCluster spec. If images
+	// are not the same, KDCluster spec image has a higher priority, so we should
 	// upgrade the statefulset one.
 	// Make sure, that according this logic, there is no sence to edit a statefulset
-	// directly, as it will be reconciled back to the KDApp spec state.
+	// directly, as it will be reconciled back to the KDCluster spec state.
 
-	appRoleImage, err := catalog.ImageForRole(cr, role.Name)
-	if err != nil {
-		return err
+	containers := shared.StatefulSetContainers(statefulSet)
+	currentImage := containers[0].Image
+	var clusterRoleImage string
+
+	if role.ImageRepoTag != nil {
+		clusterRoleImage = *role.ImageRepoTag
+	} else {
+		clusterRoleImage = currentImage
 	}
 	roleStatusIsUpgrading := shared.RoleStatusIsUpgrading(cr, role.Name)
 
 	// There may appear the situation when during image upgrade we set to the
-	// app spec an incorrect image tag or image cannot be pulled from a repo by some
+	// cluster spec an incorrect image tag or image cannot be pulled from a repo by some
 	// other reason. It may cause that a member of the role falls
 	// into an endless restart loop getting ErrImagePull or ImagePullBackOff errors.
 	// Than, the cluster falls into non-ready state and this role status will be always
 	// in upgrading state and reject any try to re-upgrade an image.
-	// For avoiding this situation we should have an ability to re-edit appspec
+	// For avoiding this situation we should have an ability to re-edit cluster spec
 	// and give a chance to the role status to restart again.
-	// A rollback process will start when an appSpec image will be equal to a
+	// A rollback process will start when an cluster spec role image will be equal to a
 	// last image which was sucessfully performed on the role pods
 	rollback := false
 
@@ -205,11 +210,11 @@ func UpdateStatefulSetNonReplicas(
 			return err
 		}
 		for _, m := range rs.Members {
-			// Check, is appRoleImage equal to previous (last working image)
+			// Check, is clusterRoleImage equal to previous (last working image)
 			// If so, clean all UpgradingMembers map and set rollback flag to true
 			lastWorkingImage := m.ContainerImage
 
-			if lastWorkingImage == appRoleImage {
+			if lastWorkingImage == clusterRoleImage {
 				(*rs).UpgradingMembers = nil
 				rollback = true
 				break
@@ -217,19 +222,18 @@ func UpdateStatefulSetNonReplicas(
 		}
 	}
 
-	// Check if KDCluster is in configured state and if the roleStatus is currently not upgrading
-	// Or, check if we need to rollback a statefulset image
+	// Check is KDCluster in configured state and
+	// is EnableUpgrade cluster flag set to true and
+	// is the roleStatus currently not upgrading
 	readyToUpgrade := clusterIsReady && !roleStatusIsUpgrading
+
+	// Or, check do we need to rollback a statefulset image
 	if readyToUpgrade || rollback {
-
-		containers := shared.StatefulSetContainers(statefulSet)
-		currentImage := containers[0].Image
-
-		if strings.Compare(appRoleImage, currentImage) != 0 {
+		if clusterRoleImage != currentImage {
 			patchedRes.Spec.Template.Spec.Containers = make([]v1.Container, len(containers))
 			patchedContainers := shared.StatefulSetContainers(&patchedRes)
 			copy(patchedContainers, containers)
-			patchedContainers[0].Image = appRoleImage
+			patchedContainers[0].Image = clusterRoleImage
 
 			// Set current role members count should be upgraded
 			// It will be used at the syncMembers() step
@@ -244,10 +248,10 @@ func UpdateStatefulSetNonReplicas(
 
 			for _, m := range (*rs).Members {
 				// This check added for restart case.
-				// If proposed appRoleImage is the same as already run in member container
+				// If proposed clusterRoleImage is the same as already run in member container
 				// we shouldn't add this member to UpgradeMembers list.
-				if m.ContainerImage != appRoleImage {
-					(*rs).UpgradingMembers[m.Pod] = &appRoleImage
+				if m.ContainerImage != clusterRoleImage {
+					(*rs).UpgradingMembers[m.Pod] = &clusterRoleImage
 				}
 			}
 

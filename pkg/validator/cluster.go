@@ -394,6 +394,7 @@ func validateRoleChanges(
 		// the new spec if anything other than the members count is different.
 		compareRole := *role
 		compareRole.Members = prevRole.Members
+		prevRole.ImageRepoTag = compareRole.ImageRepoTag
 		if !equality.Semantic.DeepEqual(&compareRole, prevRole) {
 			roleModifiedMsg := fmt.Sprintf(
 				modifiedRole,

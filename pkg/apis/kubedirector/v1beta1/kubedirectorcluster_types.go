@@ -142,6 +142,7 @@ type Role struct {
 	BlockStorage       *BlockStorage               `json:"blockStorage,omitempty"`
 	ServiceAccountName string                      `json:"serviceAccountName,omitempty"`
 	SecretKeys         []SecretKey                 `json:"secretKeys,omitempty"`
+	ImageRepoTag       *string                     `json:"imageRepoTag,omitempty"`
 }
 
 // SecretKey holds data which is supposed to be only available on configuration phase

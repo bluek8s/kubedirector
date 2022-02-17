@@ -171,7 +171,7 @@ func UpdateStatefulSetNonReplicas(
 		needPatch = true
 	}
 
-	// EZML-862, EZML-865
+	// https://github.com/bluek8s/kubedirector/issues/229
 	// We should also compare the current statefulset container image against
 	// the image defined for the corresponding role in the KDApp spec. If images
 	// are not the same, KDApp spec image has a higher priority, so we shoud
@@ -193,29 +193,34 @@ func UpdateStatefulSetNonReplicas(
 	// in upgrading state and reject any try to re-upgrade an image.
 	// For avoiding this situation we should have an ability to re-edit appspec
 	// and give a chance to the role status to restart again.
-	restartUpgrade := false
+	// A rollback process will start when an appSpec image will be equal to a
+	// last image which was sucessfully performed on the role pods
+	rollback := false
 
 	// Check, if cluster is not ready and current role status has upgrading members
+	rs, err := shared.GetRoleStatusByName(cr, role.Name)
+
 	if !clusterIsReady && roleStatusIsUpgrading {
-		rs, err := shared.GetRoleStatusByName(cr, role.Name)
 		if err != nil {
 			return err
 		}
 		for _, m := range rs.Members {
-			// Check, if appRoleImage (defined in app spec) is already fixed.
-			// If it is different that defined one for members upgrading, clean all UpgradingMembers list
-			// And set restartUpgrade flag to true
-			if *(*rs).UpgradingMembers[m.Pod] != appRoleImage {
+			// Check, is appRoleImage equal to previous (last working image)
+			// If so, clean all UpgradingMembers map and set rollback flag to true
+			lastWorkingImage := m.ContainerImage
+
+			if lastWorkingImage == appRoleImage {
 				(*rs).UpgradingMembers = nil
-				restartUpgrade = true
+				rollback = true
 				break
 			}
 		}
 	}
 
 	// Check if KDCluster is in configured state and if the roleStatus is currently not upgrading
-	// Or, check if we need to re-upgrade a statefulset image
-	if (clusterIsReady && !roleStatusIsUpgrading) || restartUpgrade {
+	// Or, check if we need to rollback a statefulset image
+	readyToUpgrade := clusterIsReady && !roleStatusIsUpgrading
+	if readyToUpgrade || rollback {
 
 		containers := shared.StatefulSetContainers(statefulSet)
 		currentImage := containers[0].Image
@@ -226,7 +231,6 @@ func UpdateStatefulSetNonReplicas(
 			copy(patchedContainers, containers)
 			patchedContainers[0].Image = appRoleImage
 
-			// EZML-865
 			// Set current role members count should be upgraded
 			// It will be used at the syncMembers() step
 			rs, err := shared.GetRoleStatusByName(cr, role.Name)

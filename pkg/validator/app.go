@@ -464,7 +464,7 @@ func admitAppCR(
 			// #319 for more details.
 			prevAppCR.Spec.DefaultSetupPackage = appCR.Spec.DefaultSetupPackage
 
-			// EZML-862
+			// // https://github.com/bluek8s/kubedirector/issues/229
 			// Before doing the comparison, we should ignore differences
 			// between the images defined for different roles. The app configuration
 			// should be able to replace if the image is changed

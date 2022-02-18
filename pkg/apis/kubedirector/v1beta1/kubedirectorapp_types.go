@@ -35,7 +35,7 @@ type KubeDirectorAppSpec struct {
 	Capabilities          []corev1.Capability `json:"capabilities,omitempty"`
 	SystemdRequired       bool                `json:"systemdRequired,omitempty"`
 	LogoURL               string              `json:"logoURL,omitempty"`
-	DefaultMaxLogSizeDump *string             `json:"defaultMaxLogSizeDump,omitempty"`
+	DefaultMaxLogSizeDump *int                `json:"defaultMaxLogSizeDump,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -115,7 +115,7 @@ type NodeRole struct {
 	MinResources   *corev1.ResourceList `json:"minResources,omitempty"`
 	MinStorage     *MinStorage          `json:"minStorage,omitempty"`
 	ContainerSpec  *ContainerSpec       `json:"containerSpec,omitempty"`
-	MaxLogSizeDump string               `json:"maxLogSizeDump,omitempty"`
+	MaxLogSizeDump *int                 `json:"maxLogSizeDump,omitempty"`
 }
 
 // MinStorage describes the minimum persistent storage requirement, if any.

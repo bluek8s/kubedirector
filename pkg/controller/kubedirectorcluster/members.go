@@ -247,34 +247,34 @@ func syncMemberNotifies(
 func setStateDetailLogs(
 	readFileFn func(string, io.Writer) (bool, error),
 	stateDetail *kdv1.MemberStateDetail,
-	roleMaxLogSize *int,
+	roleMaxLogSize string,
 ) {
 
-	if roleMaxLogSize != nil {
-		extractStartScriptLog := func(filePath string) *string {
+	maxSize, _ := strconv.Atoi(roleMaxLogSize)
 
-			var strB strings.Builder
-			fileExists, fileError := readFileFn(filePath, &strB)
-			if fileError != nil {
-				return nil
-			}
-			var msg string
-			if fileExists {
-				msg = shared.GetLastLines(strB.String(), *roleMaxLogSize)
-			}
-			return &msg
+	extractStartScriptLog := func(filePath string) *string {
+
+		var strB strings.Builder
+		fileExists, fileError := readFileFn(filePath, &strB)
+		if fileError != nil {
+			return nil
+		}
+		var msg string
+		if fileExists {
+			msg = shared.GetLastLines(strB.String(), maxSize)
+		}
+		return &msg
+	}
+
+	if maxSize > 0 {
+		stdout := extractStartScriptLog(appPrepConfigStdout)
+		stderr := extractStartScriptLog(appPrepConfigStderr)
+		if stdout != nil {
+			stateDetail.StartScriptOutMsg = *stdout
 		}
 
-		if *roleMaxLogSize > 0 {
-			stdout := extractStartScriptLog(appPrepConfigStdout)
-			stderr := extractStartScriptLog(appPrepConfigStderr)
-			if stdout != nil {
-				stateDetail.StartScriptOutMsg = *stdout
-			}
-
-			if stderr != nil {
-				stateDetail.StartScriptErrMsg = *stderr
-			}
+		if stderr != nil {
+			stateDetail.StartScriptErrMsg = *stderr
 		}
 	}
 }
@@ -613,28 +613,7 @@ func handleCreatingMembers(
 				)
 				return
 			}
-
-			readFile := func(filepath string, writer io.Writer) (bool, error) {
-
-				fileExists, fileError := executor.ReadFile(
-					reqLogger,
-					cr,
-					cr.Namespace,
-					m.Pod,
-					containerID,
-					executor.AppContainerName,
-					filepath,
-					writer,
-				)
-				return fileExists, fileError
-			}
-
 			if configErr != nil {
-				nodeRole := catalog.GetRoleFromID(cr.AppSpec, role.roleSpec.Name)
-				if nodeRole != nil {
-					setStateDetailLogs(readFile, &m.StateDetail, nodeRole.MaxLogSizeDump)
-				}
-
 				shared.LogErrorf(
 					reqLogger,
 					configErr,

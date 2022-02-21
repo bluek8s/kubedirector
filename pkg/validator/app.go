@@ -163,7 +163,7 @@ func validateRoles(
 	var globalSetupPackageInfo *kdv1.SetupPackageInfo
 	var globalPersistDirs *[]string
 	var globalEventList *[]string
-	var globalMaxLogSizeDump *int
+	var globalMaxLogSizeDump *string
 
 	if appCR.Spec.DefaultImageRepoTag == nil {
 		globalImageRepoTag = nil
@@ -356,16 +356,15 @@ func validateRoles(
 				)
 			}
 		}
-		if role.MaxLogSizeDump == nil && globalMaxLogSizeDump != nil {
-			role.MaxLogSizeDump = globalMaxLogSizeDump
-			val := strconv.Itoa(*role.MaxLogSizeDump)
+		if role.MaxLogSizeDump == "" && globalMaxLogSizeDump != nil {
+			role.MaxLogSizeDump = *globalMaxLogSizeDump
 			patches = append(
 				patches,
 				appPatchSpec{
 					Op:   "add",
 					Path: "/spec/roles/" + strconv.Itoa(index) + "/maxLogSizeDump",
 					Value: appPatchValue{
-						stringValue: &val,
+						stringValue: globalMaxLogSizeDump,
 					},
 				},
 			)

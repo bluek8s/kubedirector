@@ -250,7 +250,13 @@ func setStateDetailLogs(
 	roleMaxLogSize string,
 ) {
 
+	// The dumped log size must be not greater than 256 characters
+	const limitSize = 256
 	maxSize, _ := strconv.Atoi(roleMaxLogSize)
+
+	if maxSize > limitSize {
+		maxSize = limitSize
+	}
 
 	extractStartScriptLog := func(filePath string) *string {
 
@@ -613,7 +619,28 @@ func handleCreatingMembers(
 				)
 				return
 			}
+
+			readFile := func(filepath string, writer io.Writer) (bool, error) {
+
+				fileExists, fileError := executor.ReadFile(
+					reqLogger,
+					cr,
+					cr.Namespace,
+					m.Pod,
+					containerID,
+					executor.AppContainerName,
+					filepath,
+					writer,
+				)
+				return fileExists, fileError
+			}
+
 			if configErr != nil {
+				nodeRole := catalog.GetRoleFromID(cr.AppSpec, role.roleSpec.Name)
+				if nodeRole != nil {
+					setStateDetailLogs(readFile, &m.StateDetail, nodeRole.MaxLogSizeDump)
+				}
+
 				shared.LogErrorf(
 					reqLogger,
 					configErr,

@@ -499,9 +499,9 @@ spec:
                     type: array
                     items:
                       type: object
-                      required: [volumeName, mountPath]
+                      required: [pvcName, mountPath]
                       properties:
-                        volumeName:
+                        pvcName:
                           minLength: 1
                           type: string
                         mountPath:

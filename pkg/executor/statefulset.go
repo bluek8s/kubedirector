@@ -734,7 +734,7 @@ func generateVolumeProjectionMounts(
 
 	volName := "projected-vol-" + strconv.Itoa(volIndex)
 	volSource := v1.PersistentVolumeClaimVolumeSource{
-		ClaimName: projectedVol.VolumeName,
+		ClaimName: projectedVol.PvcName,
 		ReadOnly:  projectedVol.ReadOnly,
 	}
 	return []v1.VolumeMount{

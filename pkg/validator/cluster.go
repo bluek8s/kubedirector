@@ -1068,13 +1068,13 @@ func validateVolumeProjections(
 			mountPaths[volume.MountPath]++
 
 			// Check to make sure pvc exists in the cluster namespace
-			pvc, pvcErr := observer.GetPVC(cr.Namespace, volume.VolumeName)
+			pvc, pvcErr := observer.GetPVC(cr.Namespace, volume.PvcName)
 			if pvcErr != nil {
 				valErrors = append(
 					valErrors,
 					fmt.Sprintf(
 						invalidPVC,
-						volume.VolumeName,
+						volume.PvcName,
 						cr.Namespace,
 						role.Name,
 					),
@@ -1089,7 +1089,7 @@ func validateVolumeProjections(
 					valErrors,
 					fmt.Sprintf(
 						invalidVolumeMode,
-						volume.VolumeName,
+						volume.PvcName,
 						role.Name,
 						*(pvc.Spec.VolumeMode),
 					),
@@ -1107,7 +1107,7 @@ func validateVolumeProjections(
 
 			if !found {
 				// PVC without ReadWriteMany, add the
-				exclusivePvcs[volume.VolumeName] = exclusivePvcs[volume.VolumeName] + *(role.Members)
+				exclusivePvcs[volume.PvcName] = exclusivePvcs[volume.PvcName] + *(role.Members)
 			}
 
 			errStr := createSubjectAccessReview(

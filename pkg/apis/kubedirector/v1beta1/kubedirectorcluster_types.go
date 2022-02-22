@@ -126,9 +126,9 @@ type FileInjections struct {
 // VolumeProjections describes an individual volume projection
 // spec for mounting user created volumes to
 type VolumeProjections struct {
-	VolumeName string `json:"volumeName"`
-	MountPath  string `json:"mountPath"`
-	ReadOnly   bool   `json:"readOnly,omitempty"`
+	PvcName   string `json:"pvcName"`
+	MountPath string `json:"mountPath"`
+	ReadOnly  bool   `json:"readOnly,omitempty"`
 }
 
 // Role describes a subset of the virtual cluster members that shares a common

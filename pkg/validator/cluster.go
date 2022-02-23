@@ -1042,7 +1042,7 @@ func addRestoreLabel(
 // and accessible by the user.
 // If PVC is validated, following additional checks are made
 // - VolumeMode must be FileSystem
-// - Within a cluster if a pvc is reused, validate AccessModes to be ReadWriteMany
+// - Within a cluster if a pvc is reused, validate AccessModes to contain either ReadWriteMany or ReadOnlyMany
 // - Within a role, make sure mountPaths are unique
 func validateVolumeProjections(
 	cr *kdv1.KubeDirectorCluster,
@@ -1096,17 +1096,17 @@ func validateVolumeProjections(
 				)
 			}
 
-			// If a pvc is not ReadWriteMany add it to the exclusive list
+			// Iterate through AccessModes of the pvc to see if "shared" mode is present
 			var found = false
 			for _, accessMode := range pvc.Spec.AccessModes {
-				if accessMode == core.ReadWriteMany {
+				if accessMode == core.ReadWriteMany || accessMode == core.ReadOnlyMany {
 					found = true
 					break
 				}
 			}
 
 			if !found {
-				// PVC without ReadWriteMany, add the
+				// PVC without "shared" access mode, add to exclusive list
 				exclusivePvcs[volume.PvcName] = exclusivePvcs[volume.PvcName] + *(role.Members)
 			}
 

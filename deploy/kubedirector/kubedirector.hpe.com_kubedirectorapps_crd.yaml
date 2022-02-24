@@ -156,6 +156,7 @@ spec:
                           tty:
                             type: boolean
                       minResources:
+                        x-kubernetes-preserve-unknown-fields: true
                         type: object
                         nullable: true
                         properties:

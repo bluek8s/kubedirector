@@ -125,6 +125,7 @@ spec:
                         required: [limits]
                         properties:
                           limits:
+                            x-kubernetes-preserve-unknown-fields: true
                             type: object
                             required: [memory, cpu]
                             properties:
@@ -144,6 +145,7 @@ spec:
                                 type: string
                                 pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                           requests:
+                            x-kubernetes-preserve-unknown-fields: true
                             type: object
                             nullable: true
                             properties:

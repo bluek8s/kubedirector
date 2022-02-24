@@ -18,6 +18,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -239,6 +240,52 @@ func syncMemberNotifies(
 	wgReady.Wait()
 }
 
+// https://github.com/bluek8s/kubedirector/issues/547
+// setStateDetailLogs sets the extracted results
+// of startscript executions
+// to corresponding MemberStateDetail fields
+func setStateDetailLogs(
+	readFileFn func(string, io.Writer) (bool, error),
+	stateDetail *kdv1.MemberStateDetail,
+	roleMaxLogSize *int32,
+) {
+
+	// It's possible for roleMaxLogSize to be nil for kdapps created prior to
+	// the KD version that introduced the field. In that case fall back to
+	// the default.
+	maxSize := shared.DefaultMaxLogSizeDump
+	if roleMaxLogSize != nil {
+		maxSize = *roleMaxLogSize
+	}
+
+	if maxSize == 0 {
+		return
+	}
+
+	extractStartScriptLog := func(filePath string) *string {
+		var strB strings.Builder
+		fileExists, fileError := readFileFn(filePath, &strB)
+		if fileError != nil {
+			return nil
+		}
+		var msg string
+		if fileExists {
+			msg = shared.GetLastLines(strB.String(), maxSize)
+		}
+		return &msg
+	}
+
+	stdout := extractStartScriptLog(appPrepConfigStdout)
+	stderr := extractStartScriptLog(appPrepConfigStderr)
+	if stdout != nil {
+		stateDetail.StartScriptOutMsg = *stdout
+	}
+
+	if stderr != nil {
+		stateDetail.StartScriptErrMsg = *stderr
+	}
+}
+
 // handleReadyMembers operates on all members in the role that are currently
 // in the ready state. It will update the configmeta inside each guest with
 // the latest content.
@@ -324,6 +371,22 @@ func handleReadyMembers(
 				)
 
 				containerID := m.StateDetail.LastConfiguredContainer
+
+				readFile := func(filepath string, writer io.Writer) (bool, error) {
+
+					fileExists, fileError := executor.ReadFile(
+						reqLogger,
+						cr,
+						cr.Namespace,
+						m.Pod,
+						containerID,
+						executor.AppContainerName,
+						filepath,
+						writer,
+					)
+					return fileExists, fileError
+				}
+
 				cmd := fmt.Sprintf(appPrepConfigReconnectCmd, containerID)
 
 				cmdErr := executor.RunScript(
@@ -336,7 +399,14 @@ func handleReadyMembers(
 					"app reconnect",
 					strings.NewReader(cmd),
 				)
+
 				if cmdErr != nil {
+					// https://github.com/bluek8s/kubedirector/issues/547
+					nodeRole := catalog.GetRoleFromID(cr.AppSpec, role.roleSpec.Name)
+					if nodeRole != nil {
+						setStateDetailLogs(readFile, &m.StateDetail, nodeRole.MaxLogSizeDump)
+					}
+
 					shared.LogErrorf(
 						reqLogger,
 						cmdErr,
@@ -536,7 +606,28 @@ func handleCreatingMembers(
 				)
 				return
 			}
+
+			readFile := func(filepath string, writer io.Writer) (bool, error) {
+
+				fileExists, fileError := executor.ReadFile(
+					reqLogger,
+					cr,
+					cr.Namespace,
+					m.Pod,
+					containerID,
+					executor.AppContainerName,
+					filepath,
+					writer,
+				)
+				return fileExists, fileError
+			}
+
 			if configErr != nil {
+				nodeRole := catalog.GetRoleFromID(cr.AppSpec, role.roleSpec.Name)
+				if nodeRole != nil {
+					setStateDetailLogs(readFile, &m.StateDetail, nodeRole.MaxLogSizeDump)
+				}
+
 				shared.LogErrorf(
 					reqLogger,
 					configErr,
@@ -1136,6 +1227,20 @@ func appConfig(
 	configmetaGenerator func(string) string,
 ) (bool, error) {
 
+	readFile := func(filepath string, writer io.Writer) (bool, error) {
+
+		return executor.ReadFile(
+			reqLogger,
+			cr,
+			cr.Namespace,
+			podName,
+			expectedContainerID,
+			executor.AppContainerName,
+			filepath,
+			writer,
+		)
+	}
+
 	// If a config error detail already exists, this is a restart of a member
 	// that had been in config error state. In that case we won't try
 	// checking the existing state within the guest.
@@ -1156,16 +1261,7 @@ func appConfig(
 		// will check back periodically. So let's have a look at the existing
 		// status if any.
 		var statusStrB strings.Builder
-		fileExists, fileError := executor.ReadFile(
-			reqLogger,
-			cr,
-			cr.Namespace,
-			podName,
-			expectedContainerID,
-			executor.AppContainerName,
-			appPrepConfigStatus,
-			&statusStrB,
-		)
+		fileExists, fileError := readFile(appPrepConfigStatus, &statusStrB)
 		if fileError != nil {
 			return true, fileError
 		}
@@ -1328,7 +1424,13 @@ func appConfig(
 		"app config",
 		strings.NewReader(cmd),
 	)
+
 	if cmdErr != nil {
+		// https://github.com/bluek8s/kubedirector/issues/547
+		nodeRole := catalog.GetRoleFromID(cr.AppSpec, roleName)
+		if nodeRole != nil {
+			setStateDetailLogs(readFile, stateDetail, nodeRole.MaxLogSizeDump)
+		}
 		return true, cmdErr
 	}
 	return false, nil

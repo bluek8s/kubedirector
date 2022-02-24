@@ -598,6 +598,10 @@ spec:
                               type: string
                             lastConnectionVersion:
                               type: integer
+                            startScriptStdoutMessage:
+                              type: string
+                            startScriptStderrMessage:
+                              type: string
                             pendingNotifyCmds:
                               type: array
                               items:

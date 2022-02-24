@@ -38,6 +38,7 @@ type appPatchSpec struct {
 type appPatchValue struct {
 	packageInfoValue *kdv1.SetupPackageInfo
 	stringValue      *string
+	intValue         *int32
 	stringSliceValue *[]string
 }
 
@@ -48,6 +49,9 @@ func (obj appPatchValue) MarshalJSON() ([]byte, error) {
 	}
 	if obj.stringValue != nil {
 		return json.Marshal(obj.stringValue)
+	}
+	if obj.intValue != nil {
+		return json.Marshal(obj.intValue)
 	}
 	return json.Marshal(obj.stringSliceValue)
 }
@@ -163,6 +167,10 @@ func validateRoles(
 	var globalSetupPackageInfo *kdv1.SetupPackageInfo
 	var globalPersistDirs *[]string
 	var globalEventList *[]string
+	var globalMaxLogSizeDump *int32
+
+	var globalMaxLogSizeDumpDefault = shared.DefaultMaxLogSizeDump
+	globalMaxLogSizeDump = &globalMaxLogSizeDumpDefault
 
 	if appCR.Spec.DefaultImageRepoTag == nil {
 		globalImageRepoTag = nil
@@ -223,6 +231,16 @@ func validateRoles(
 			appPatchSpec{
 				Op:   "remove",
 				Path: "/spec/defaultEventList",
+			},
+		)
+	}
+	if appCR.Spec.DefaultMaxLogSizeDump != nil {
+		globalMaxLogSizeDump = appCR.Spec.DefaultMaxLogSizeDump
+		patches = append(
+			patches,
+			appPatchSpec{
+				Op:   "remove",
+				Path: "/spec/defaultMaxLogSizeDump",
 			},
 		)
 	}
@@ -342,6 +360,19 @@ func validateRoles(
 					},
 				)
 			}
+		}
+		if role.MaxLogSizeDump == nil {
+			role.MaxLogSizeDump = globalMaxLogSizeDump
+			patches = append(
+				patches,
+				appPatchSpec{
+					Op:   "add",
+					Path: "/spec/roles/" + strconv.Itoa(index) + "/maxLogSizeDump",
+					Value: appPatchValue{
+						intValue: globalMaxLogSizeDump,
+					},
+				},
+			)
 		}
 	}
 

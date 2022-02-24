@@ -298,20 +298,6 @@ func handleReadyMembers(
 
 	connectionsVersion := getConnectionVersion(reqLogger, cr, role)
 
-	// Fetch setup package info
-	setupInfo, setupInfoErr := catalog.AppSetupPackageInfo(cr, role.roleStatus.Name)
-	if setupInfoErr != nil {
-		shared.LogErrorf(
-			reqLogger,
-			setupInfoErr,
-			cr,
-			shared.EventReasonRole,
-			"failed to fetch setup info for role{%s}",
-			role.roleStatus.Name,
-		)
-		return
-	}
-
 	ready := role.membersByState[memberReady]
 	var wgReady sync.WaitGroup
 	wgReady.Add(len(ready))
@@ -339,7 +325,7 @@ func handleReadyMembers(
 				executor.AppContainerName,
 				configMetaFile,
 				strings.NewReader(configmeta),
-				setupInfo.UseNewSetupLayout,
+				false,
 			)
 			if createFileErr != nil {
 				shared.LogErrorf(

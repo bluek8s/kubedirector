@@ -28,7 +28,7 @@ Loading the Python modules -- either as a consequence of running one of the abov
 
 Access permissons for "configmeta.json", the backing information managed through configcli, also differ between old and new layouts. In the new layout this information is accessible only by the container user.
 
-If you need some OTHER user account to be able to access information stored in the "configmeta.json" file, more work will be required. See the "CONFIGMETA FILE" section at the end of this doc for a bit more discussion.
+If you need some OTHER user account to be able to access information stored in the "configmeta.json" file, more work will be required. See the ends of the "CONFIGCLI ARTIFACTS LOCATION" and "CONFIGMETA FILE" sections below for a bit more discussion.
 
 #### PERSISTED DIRECTORIES
 
@@ -116,6 +116,8 @@ Alternately, in the case where useNewSetupLayout is false:
 
 If useNewSetupLayout is true, then KubeDirector will configure the container so that the "PYTHONUSERBASE" environment variable is set to "/usr/local" for the "container user". Therefore when KubeDirector invokes the startscript, and startscript uses configcli, these Python modules will be loaded without issue.
 
+If some OTHER user account needs to run configcli, their Python search path needs to be appropriately configured (through setting the "PYTHONUSERBASE" env var or other means) to be able to locate these modules. However, configcli will in turn need access to the "configmeta.json" file; see the "CONFIGMETA FILE" section below.
+
 #### CONFIGCLI LEGACY SUPPORT
 
 Application images and config packages from before KubeDirector v0.8.0 may not have "/usr/local/bin" on the PATH used when the startscript runs, and/or the scripts in the config package may have hardcoded paths to the previous "/usr/bin" locations of the configcli scripts. This has the potential to cause extra work for app developers that want to change an existing kdapp to make it work with useNewSetupLayout=true.
@@ -130,4 +132,6 @@ In the case where useNewSetupLayout is false, the permissions on "/etc/guestconf
 
 This means that if useNewSetupLayout is true, only the container user can access the "configmeta.json" file either directly or by running configcli scripts. The same is true for any other file that your app setup chooses to put into "/etc/guestconfig". So when KubeDirector invokes the startscript, it will be able to access this information the same as before.
 
-However if for some reason your app requires that some other user account inside the container be able to access some this info, the startscript will need to explicitly make that information accessible by copying it into some other file that has the necessary permissions. Since the other user account likely only needs access to some few pieces of information, the best approach in that case would be to share only the necessary info in a simple properties-file format.
+However if for some reason your app requires that some OTHER user account inside the container be able to access info in "configmeta.json", the startscript will need to explicitly make that information accessible. There are two broad approaches for doing this:
+* By changing the directory permissions on "/etc/guestconfig", to open it back up for other account access. I.e. have the startscript do a chmod on that directory. This approach allows an app to take on board the new-layout changes involving persistent directories, while still keeping the old open permissions on "/etc/guestconfig". This should only be a stopgap measure since the "configmeta.json" file can contain sensitive information that should not generally be accessible by other user accounts.
+* By copying the relevant information into some other file that is readable by the necessary user account(s). Since the other user account likely only needs access to some few pieces of information, the best approach in that case would be to share only the necessary info in a simple properties-file format.

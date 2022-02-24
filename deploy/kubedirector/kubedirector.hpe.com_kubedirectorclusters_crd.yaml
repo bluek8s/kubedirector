@@ -495,6 +495,21 @@ spec:
                             type: array
                         type: object
                     type: object
+                  volumeProjections:
+                    type: array
+                    items:
+                      type: object
+                      required: [pvcName, mountPath]
+                      properties:
+                        pvcName:
+                          minLength: 1
+                          type: string
+                        mountPath:
+                          type: string
+                          minLength: 2
+                          pattern: '^/[a-zA-Z0-9\/-_]*'
+                        readOnly:
+                          type: boolean
         status:
           type: object
           nullable: true

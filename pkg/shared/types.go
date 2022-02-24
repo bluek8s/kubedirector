@@ -58,6 +58,10 @@ const (
 	// and python modules within the member container, if the role uses the
 	// old setup layout.
 	ConfigCliLegacyLoc = "/usr"
+
+	// DefaultMaxLogSizeDump is the max size for stderr/stdout log dump fields
+	// that is used when a kdapp does not explicitly specify a max.
+	DefaultMaxLogSizeDump int32 = 256
 )
 
 // Event reason constants for recording events

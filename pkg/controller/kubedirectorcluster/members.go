@@ -247,19 +247,22 @@ func syncMemberNotifies(
 func setStateDetailLogs(
 	readFileFn func(string, io.Writer) (bool, error),
 	stateDetail *kdv1.MemberStateDetail,
-	roleMaxLogSize string,
+	roleMaxLogSize *int32,
 ) {
 
-	// The dumped log size must be not greater than 256 characters
-	const limitSize = 256
-	maxSize, _ := strconv.Atoi(roleMaxLogSize)
+	// It's possible for roleMaxLogSize to be nil for kdapps created prior to
+	// the KD version that introduced the field. In that case fall back to
+	// the default.
+	maxSize := shared.DefaultMaxLogSizeDump
+	if roleMaxLogSize != nil {
+		maxSize = *roleMaxLogSize
+	}
 
-	if maxSize > limitSize {
-		maxSize = limitSize
+	if maxSize == 0 {
+		return
 	}
 
 	extractStartScriptLog := func(filePath string) *string {
-
 		var strB strings.Builder
 		fileExists, fileError := readFileFn(filePath, &strB)
 		if fileError != nil {
@@ -272,16 +275,14 @@ func setStateDetailLogs(
 		return &msg
 	}
 
-	if maxSize > 0 {
-		stdout := extractStartScriptLog(appPrepConfigStdout)
-		stderr := extractStartScriptLog(appPrepConfigStderr)
-		if stdout != nil {
-			stateDetail.StartScriptOutMsg = *stdout
-		}
+	stdout := extractStartScriptLog(appPrepConfigStdout)
+	stderr := extractStartScriptLog(appPrepConfigStderr)
+	if stdout != nil {
+		stateDetail.StartScriptOutMsg = *stdout
+	}
 
-		if stderr != nil {
-			stateDetail.StartScriptErrMsg = *stderr
-		}
+	if stderr != nil {
+		stateDetail.StartScriptErrMsg = *stderr
 	}
 }
 

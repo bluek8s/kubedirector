@@ -64,7 +64,8 @@ spec:
                 useNewSetupLayout:
                   type: boolean
             defaultMaxLogSizeDump:
-              type: string
+              type: integer
+              minimum: 0
             services:
               type: array
               items:
@@ -181,7 +182,8 @@ spec:
                       ephemeralModeSupported:
                         type: boolean
                   maxLogSizeDump:
-                    type: string
+                    type: integer
+                    minimum: 0
             config:
               type: object
               required: [selectedRoles, roleServices]

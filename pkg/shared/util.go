@@ -118,15 +118,15 @@ func OwnerReferencesPresent(
 // If maxSize is greater than src length, it returns src
 func GetLastLines(
 	src string,
-	maxSize int,
+	maxSize int32,
 ) string {
 
 	size := len(src)
-	if size <= maxSize {
+	if size <= int(maxSize) {
 		return src
 	}
 
-	start := size - (maxSize + 1)
+	start := size - (int(maxSize) + 1)
 
 	for i := start; i < size-1; i++ {
 		if src[i] == '\n' {

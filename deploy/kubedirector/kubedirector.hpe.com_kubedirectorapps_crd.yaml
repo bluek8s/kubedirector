@@ -61,6 +61,8 @@ spec:
                 packageURL:
                   type: string
                   pattern: '^(file|https?)://.+\.tgz$'
+            upgradable:
+              type: boolean
             services:
               type: array
               items:

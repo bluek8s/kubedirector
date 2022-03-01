@@ -312,13 +312,32 @@ func validateGeneralClusterChanges(
 	valErrors []string,
 ) []string {
 
-	if cr.Spec.AppID != prevCr.Spec.AppID {
+	if cr.AppSpec.Spec.DistroID != prevCr.AppSpec.Spec.DistroID {
 		appModifiedMsg := fmt.Sprintf(
 			modifiedProperty,
-			"app",
+			"distroId",
 		)
 		valErrors = append(valErrors, appModifiedMsg)
 	}
+
+	if cr.AppSpec.Spec.Version == prevCr.AppSpec.Spec.Version {
+		appModifiedMsg := fmt.Sprintf(
+			versionIsNotModified,
+			cr.AppSpec.Spec.DistroID,
+			cr.AppSpec.Spec.Version,
+		)
+		valErrors = append(valErrors, appModifiedMsg)
+	}
+
+	if !cr.AppSpec.Spec.Upgradable {
+		appModifiedMsg := fmt.Sprintf(
+			appNotUpgradable,
+			cr.AppSpec.Spec.DistroID,
+			cr.AppSpec.Spec.Version,
+		)
+		valErrors = append(valErrors, appModifiedMsg)
+	}
+
 	// appCatalog should not be nil at this point in the flow if everything
 	// has worked as expected, but it doesn't hurt to be robust against that.
 	appCatalogMatch := true

@@ -200,6 +200,7 @@ type RoleStatus struct {
 	Members             []MemberStatus     `json:"members"`
 	EncryptedSecretKeys map[string]string  `json:"encryptedSecretKeys,omitempty"`
 	UpgradingMembers    map[string]*string `json:"upgradingMembers,omitempty"`
+	UpgradeStatus       string             `json:"upgradeStatus, omitempty"`
 }
 
 // MemberStatus describes the component objects of a virtual cluster member.

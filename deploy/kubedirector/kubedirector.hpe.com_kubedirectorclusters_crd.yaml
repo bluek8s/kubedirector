@@ -553,6 +553,8 @@ spec:
                   upgradingMembers:
                     type: object
                     nullable: true
+                  upgradeStatus:
+                    type: string
                   members:
                     type: array
                     items:

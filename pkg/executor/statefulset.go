@@ -664,23 +664,23 @@ func getStartupScript(
 	}
 }
 
-// Checks if the rsync command is available.
-// If rsync is installed the RSYNC_CHECK_STATUS variable will be 0.
+// genrateRsyncInstalledCmd checks if the rsync command is available.
+// If rsync is installed and all the options are available
+// the RSYNC_CHECK_STATUS variable will be 0.
 func genrateRsyncInstalledCmd() string {
 
 	// Here we check two things:
 	// 1) rsync is installed and available
-	// 2) The options --log-file and --info=progress2 are available.
-	// These options were not present in the erly versions of rsync
-	// The other options that are used belove -x, -a and --relative
-	// are available in all the versions of rsync.
-	// The rsync-check-status-dummy.log file (dummy log file) is not needed.
-	// It is used only in order to check that option --log-file is available
-	cmd := "rsync --log-file=./rsync-check-status-dummy.log --info=progress2 --version; RSYNC_CHECK_STATUS=$?;"
+	// 2) The options --log-file, --info=progress2 --relative -a -x are available.
+	// Some of these options are not available in the first
+	// versions of rsync.
+	// The rsync-check-status-dummy.log file (dummy log file) is not used.
+	// It is needed only to check that option --log-file is available
+	cmd := "rsync --log-file=./rsync-check-status-dummy.log --info=progress2 --relative -ax --version; RSYNC_CHECK_STATUS=$?;"
 	return cmd
 }
 
-// Generates command that will do copying with rsync
+// generateRsyncCmd generates command that will do copying with rsync
 // The progress will be stored in a file.
 func generateRsyncCmd(
 	persistDirs []string,
@@ -699,7 +699,7 @@ func generateRsyncCmd(
 	return rsyncCmd
 }
 
-// Generates command that will do copying with cp
+// generateCpCmd generates command that will do copying with cp
 // No way to display progress
 func generateCpCmd(
 	persistDirs []string,

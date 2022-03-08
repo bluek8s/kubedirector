@@ -16,6 +16,7 @@ package executor
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -180,14 +181,19 @@ func UpdateStatefulSetNonReplicas(
 	// directly, as it will be reconciled back to the KDCluster spec state.
 
 	containers := shared.StatefulSetContainers(statefulSet)
-	currentImage := containers[0].Image
-	var clusterRoleImage string
+	currentRoleImage := containers[0].Image
 
-	if role.ImageRepoTag != nil {
-		clusterRoleImage = *role.ImageRepoTag
-	} else {
-		clusterRoleImage = currentImage
+	reqLogger.Info(fmt.Sprint(" > role: ", role.Name))
+	if cr.AppSpec == nil {
+		reqLogger.Info("cr.AppSpec is nil")
 	}
+
+	appRoleImage, err := catalog.ImageForRole(cr, role.Name)
+	if err != nil {
+		return err
+	}
+	reqLogger.Info(fmt.Sprint("appRoleImage: ", appRoleImage))
+
 	roleStatusIsUpgrading := shared.RoleStatusIsUpgrading(cr, role.Name)
 
 	// There may appear the situation when during image upgrade we set to the
@@ -210,11 +216,11 @@ func UpdateStatefulSetNonReplicas(
 			return err
 		}
 		for _, m := range rs.Members {
-			// Check, is clusterRoleImage equal to previous (last working image)
+			// Check, is appRoleImage equal to previous (last working image)
 			// If so, clean all UpgradingMembers map and set rollback flag to true
 			lastWorkingImage := m.ContainerImage
 
-			if lastWorkingImage == clusterRoleImage {
+			if lastWorkingImage == appRoleImage {
 				(*rs).UpgradingMembers = nil
 				rollback = true
 				break
@@ -229,11 +235,11 @@ func UpdateStatefulSetNonReplicas(
 
 	// Or, check do we need to rollback a statefulset image
 	if readyToUpgrade || rollback {
-		if clusterRoleImage != currentImage {
+		if appRoleImage != currentRoleImage {
 			patchedRes.Spec.Template.Spec.Containers = make([]v1.Container, len(containers))
 			patchedContainers := shared.StatefulSetContainers(&patchedRes)
 			copy(patchedContainers, containers)
-			patchedContainers[0].Image = clusterRoleImage
+			patchedContainers[0].Image = appRoleImage
 
 			// Set current role members count should be upgraded
 			// It will be used at the syncMembers() step
@@ -250,8 +256,8 @@ func UpdateStatefulSetNonReplicas(
 				// This check added for restart case.
 				// If proposed clusterRoleImage is the same as already run in member container
 				// we shouldn't add this member to UpgradeMembers list.
-				if m.ContainerImage != clusterRoleImage {
-					(*rs).UpgradingMembers[m.Pod] = &clusterRoleImage
+				if m.ContainerImage != appRoleImage {
+					(*rs).UpgradingMembers[m.Pod] = &appRoleImage
 				}
 			}
 

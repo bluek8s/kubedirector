@@ -36,6 +36,12 @@ spec:
             appCatalog:
               type: string
               pattern: '^local$|^system$'
+            distroId:
+              type: string
+              minLength: 1
+            appVersion:
+              type: string
+              minLength: 1
             connections:
               type: object
               properties:

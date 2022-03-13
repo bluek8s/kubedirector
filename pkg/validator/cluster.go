@@ -312,45 +312,48 @@ func validateGeneralClusterChanges(
 	valErrors []string,
 ) []string {
 
-	// if cr.Spec.AppID != prevCr.Spec.AppID {
-	// 	appModifiedMsg := fmt.Sprintf(
-	// 		modifiedProperty,
-	// 		"app",
-	// 	)
-	// 	valErrors = append(valErrors, appModifiedMsg)
-	// }
-
-	if cr.Spec.DistroID != prevCr.Spec.DistroID {
-		appModifiedMsg := fmt.Sprintf(
-			modifiedProperty,
-			"distroId",
-		)
-		valErrors = append(valErrors, appModifiedMsg)
+	crApp, err := catalog.GetApp(cr)
+	if err != nil {
+		valErrors = append(valErrors, err.Error())
 	}
 
-	// if cr.AppSpec.Spec.Version == prevCr.AppSpec.Spec.Version {
-	// 	appModifiedMsg := fmt.Sprintf(
-	// 		versionIsNotModified,
-	// 		cr.AppSpec.Spec.DistroID,
-	// 		cr.AppSpec.Spec.Version,
-	// 	)
-	// 	valErrors = append(valErrors, appModifiedMsg)
-	// }
+	prevCrApp, err := catalog.GetApp(prevCr)
+	if err != nil {
+		valErrors = append(valErrors, err.Error())
+	}
 
-	// if !cr.AppSpec.Spec.Upgradable {
-	// 	appModifiedMsg := fmt.Sprintf(
-	// 		appNotUpgradable,
-	// 		cr.AppSpec.Spec.DistroID,
-	// 		cr.AppSpec.Spec.Version,
-	// 	)
-	// 	valErrors = append(valErrors, appModifiedMsg)
-	// }
+	if crApp != nil && prevCrApp != nil {
+
+		if prevCrApp.Spec.DistroID != crApp.Spec.DistroID {
+			appModifiedMsg := fmt.Sprintf(
+				invalidDistroId,
+				crApp.Spec.DistroID,
+				prevCrApp.Spec.DistroID,
+			)
+			valErrors = append(valErrors, appModifiedMsg)
+		}
+
+		if prevCrApp.Spec.Version == crApp.Spec.Version {
+			appModifiedMsg := fmt.Sprintf(
+				versionIsNotModified,
+				crApp.Spec.DistroID,
+				crApp.Spec.Version,
+			)
+			valErrors = append(valErrors, appModifiedMsg)
+		}
+
+		if !prevCrApp.Spec.Upgradable {
+			appModifiedMsg := fmt.Sprintf(
+				appNotUpgradable,
+				prevCrApp.Spec.DistroID,
+				prevCrApp.Spec.Version,
+			)
+			valErrors = append(valErrors, appModifiedMsg)
+		}
+	}
 
 	// appCatalog should not be nil at this point in the flow if everything
 	// has worked as expected, but it doesn't hurt to be robust against that.
-	validatorLog.Info(fmt.Sprint("appCatalog: ", cr.Spec.AppCatalog))
-	validatorLog.Info(fmt.Sprint("prev appCatalog: ", *prevCr.Spec.AppCatalog))
-
 	appCatalogMatch := true
 	if cr.Spec.AppCatalog != nil {
 		if prevCr.Spec.AppCatalog != nil {

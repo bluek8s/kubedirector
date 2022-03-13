@@ -37,12 +37,12 @@
                 "worker"
             ]
         },
-        "defaultImageRepoTag": "16.0.14.127:8888/bluedata/cassandra:4.0",
+        "defaultImageRepoTag": "docker.io/bluedata/cassandra:4.0",
         "label": {
             "name": "Cassandra 3.11",
             "description": "Cassandra 3.11 on centos 7.x"
         },
-        "distroID": "bluedata/cassandra",
+        "distroID": "bluedata/cassandra311",
         "version": "3.1",
         "configSchemaVersion": 7,
         "services": [

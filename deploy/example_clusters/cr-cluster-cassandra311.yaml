@@ -3,8 +3,7 @@ kind: "KubeDirectorCluster"
 metadata:
   name: "cassandra-instance"
 spec:
-  app: cassandra401
-  distroId: bluedata/cassandra
+  app: cassandra311
   roles:
   - id: seed
     members: 2

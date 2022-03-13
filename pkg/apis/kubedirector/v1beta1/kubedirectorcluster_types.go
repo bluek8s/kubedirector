@@ -37,8 +37,6 @@ const (
 type KubeDirectorClusterSpec struct {
 	AppID         string      `json:"app"`
 	AppCatalog    *string     `json:"appCatalog,omitempty"`
-	DistroID      string      `json:"distroId,omitempty"`
-	AppVersion    string      `json:"appVersion,omitempty"`
 	ServiceType   *string     `json:"serviceType,omitempty"`
 	Roles         []Role      `json:"roles"`
 	DefaultSecret *KDSecret   `json:"defaultSecret,omitempty"`

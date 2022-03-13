@@ -16,7 +16,6 @@ package executor
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -183,16 +182,10 @@ func UpdateStatefulSetNonReplicas(
 	containers := shared.StatefulSetContainers(statefulSet)
 	currentRoleImage := containers[0].Image
 
-	reqLogger.Info(fmt.Sprint(" > role: ", role.Name))
-	if cr.AppSpec == nil {
-		reqLogger.Info("cr.AppSpec is nil")
-	}
-
 	appRoleImage, err := catalog.ImageForRole(cr, role.Name)
 	if err != nil {
 		return err
 	}
-	reqLogger.Info(fmt.Sprint("appRoleImage: ", appRoleImage))
 
 	roleStatusIsUpgrading := shared.RoleStatusIsUpgrading(cr, role.Name)
 

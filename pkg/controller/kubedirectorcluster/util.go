@@ -24,6 +24,7 @@ func updateSchedulingErrorMessage(
 	pod *corev1.Pod,
 	memberStatus *kdv1.MemberStatus,
 ) {
+
 	if memberStatus.StateDetail.LastKnownContainerState == containerMissing {
 		for _, condition := range pod.Status.Conditions {
 			if condition.Type == corev1.PodScheduled {

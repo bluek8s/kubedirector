@@ -199,7 +199,13 @@ type RoleStatus struct {
 	Members             []MemberStatus     `json:"members"`
 	EncryptedSecretKeys map[string]string  `json:"encryptedSecretKeys,omitempty"`
 	UpgradingMembers    map[string]*string `json:"upgradingMembers,omitempty"`
-	UpgradeStatus       string             `json:"upgradeStatus, omitempty"`
+}
+
+// RollbackInfo describes the last working application spec for each RoleStatus.
+type RollbackInfo struct {
+	AppID    string `json:"appId"`
+	DistroID string `json:"distroId"`
+	Version  string `json:"appVersion"`
 }
 
 // MemberStatus describes the component objects of a virtual cluster member.
@@ -212,7 +218,6 @@ type MemberStatus struct {
 	StateDetail      MemberStateDetail `json:"stateDetail,omitempty"`
 	NodeID           int64             `json:"nodeID"`
 	BlockDevicePaths []string          `json:"blockDevicePaths,omitempty"`
-	ContainerImage   string            `json:"containerImage,omitempty`
 }
 
 // MemberStateDetail digs into detail about the management of configmeta and

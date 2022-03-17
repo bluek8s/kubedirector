@@ -187,8 +187,6 @@ func UpdateStatefulSetNonReplicas(
 		return err
 	}
 
-	roleStatusIsUpgrading := shared.RoleStatusIsUpgrading(cr, role.Name)
-
 	// There may appear the situation when during image upgrade we set to the
 	// cluster spec an incorrect image tag or image cannot be pulled from a repo by some
 	// other reason. It may cause that a member of the role falls
@@ -202,32 +200,47 @@ func UpdateStatefulSetNonReplicas(
 	rollback := false
 
 	// Check, if cluster is not ready and current role status has upgrading members
-	rs, err := shared.GetRoleStatusByName(cr, role.Name)
+	roleStatusIsUpgrading := shared.RoleStatusIsUpgrading(cr, role.Name)
 
 	if !clusterIsReady && roleStatusIsUpgrading {
 		if err != nil {
 			return err
 		}
-		for _, m := range rs.Members {
-			// Check, is appRoleImage equal to previous (last working image)
-			// If so, clean all UpgradingMembers map and set rollback flag to true
-			lastWorkingImage := m.ContainerImage
+		rbKey := cr.Name + cr.Namespace
+		rbInfo := shared.ClusterRollbackInfoMap[rbKey]
 
-			if lastWorkingImage == appRoleImage {
-				(*rs).UpgradingMembers = nil
-				rollback = true
-				break
+		if cr.AppSpec == nil {
+			_, err := catalog.GetApp(cr)
+			if err != nil {
+				return err
 			}
+		}
+
+		// Check if rollback info for this cluster (the last worked app descriptor)
+		// matches with the current app spec. If so, permit rollback
+		if rbInfo != nil && cr.AppSpec != nil {
+			rollback = rbInfo.AppID == cr.Spec.AppID &&
+				rbInfo.DistroID == cr.AppSpec.Spec.DistroID &&
+				rbInfo.Version == cr.AppSpec.Spec.Version
+
+			if rollback {
+				rs, err := shared.GetRoleStatusByName(cr, role.Name)
+				if err != nil {
+					return err
+				}
+				(*rs).UpgradingMembers = nil
+			}
+
 		}
 	}
 
 	// Check is KDCluster in configured state and
-	// is EnableUpgrade cluster flag set to true and
 	// is the roleStatus currently not upgrading
 	readyToUpgrade := clusterIsReady && !roleStatusIsUpgrading
 
 	// Or, check do we need to rollback a statefulset image
 	if readyToUpgrade || rollback {
+
 		if appRoleImage != currentRoleImage {
 			patchedRes.Spec.Template.Spec.Containers = make([]v1.Container, len(containers))
 			patchedContainers := shared.StatefulSetContainers(&patchedRes)

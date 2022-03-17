@@ -324,6 +324,9 @@ func validateGeneralClusterChanges(
 
 	if crApp != nil && prevCrApp != nil {
 
+		rbKey := cr.Name + cr.Namespace
+		rbInfo := shared.ClusterRollbackInfoMap[rbKey]
+
 		if prevCrApp.Spec.DistroID != crApp.Spec.DistroID {
 			appModifiedMsg := fmt.Sprintf(
 				invalidDistroId,
@@ -349,6 +352,18 @@ func validateGeneralClusterChanges(
 				prevCrApp.Spec.Version,
 			)
 			valErrors = append(valErrors, appModifiedMsg)
+		}
+
+		// Check, was the previous cluster configured succesfully
+		// If so, write its app identifiers as rollback info for the current one
+		if shared.ClusterIsReady(prevCr) {
+			rbInfo = &kdv1.RollbackInfo{
+				AppID:    prevCr.Spec.AppID,
+				DistroID: prevCrApp.Spec.DistroID,
+				Version:  prevCrApp.Spec.Version,
+			}
+
+			shared.ClusterRollbackInfoMap[rbKey] = rbInfo
 		}
 	}
 

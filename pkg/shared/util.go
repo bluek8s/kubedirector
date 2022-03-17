@@ -154,3 +154,12 @@ func RoleStatusIsUpgrading(
 
 	return len(rs.UpgradingMembers) > 0
 }
+
+// ClusterIsReady checks, is cluster state equals to "configured" literal
+func ClusterIsReady(
+	cr *kdv1.KubeDirectorCluster,
+) bool {
+	return cr.Status.State == "configured"
+}
+
+var ClusterRollbackInfoMap = make(map[string]*kdv1.RollbackInfo)

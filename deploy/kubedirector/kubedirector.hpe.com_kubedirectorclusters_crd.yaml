@@ -571,8 +571,6 @@ spec:
                           type: string  
                         state:
                           type: string
-                        containerImage:
-                          type: string
                         stateDetail:
                           type: object
                           properties:

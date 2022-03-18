@@ -323,7 +323,7 @@ func handleReadyMembers(
 				)
 
 				containerID := m.StateDetail.LastConfiguredContainer
-				cmd := fmt.Sprintf(appPrepConfigReconnectCmd, containerID)
+				cmd := GetAppConfigCmd(containerID, Reconnect)
 
 				cmdErr := executor.RunScript(
 					reqLogger,
@@ -1171,7 +1171,7 @@ func appConfig(
 
 						var cmdErr error = nil
 						if roleStatus.UpgradingMembers != nil && roleStatus.UpgradingMembers[podName] != nil {
-							cmd := fmt.Sprintf(appPrepConfigUpgradeCmd, expectedContainerID)
+							cmd := GetAppConfigCmd(expectedContainerID, Upgraded)
 							cmdErr = executor.RunScript(
 								reqLogger,
 								cr,
@@ -1286,7 +1286,7 @@ func appConfig(
 		return true, nil
 	}
 	// Now kick off the initial config.
-	cmd := fmt.Sprintf(appPrepConfigRunCmd, expectedContainerID)
+	cmd := GetAppConfigCmd(expectedContainerID, Run)
 	cmdErr := executor.RunScript(
 		reqLogger,
 		cr,

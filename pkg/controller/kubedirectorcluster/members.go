@@ -539,6 +539,21 @@ func handleCreatingMembers(
 			// remove the member from upgrading list
 			rs := &role.roleStatus
 			delete((*rs).UpgradingMembers, m.Pod)
+			// When there no role members left, change the role upgrade status that upgrade process is complete
+			leftUpgradingMembersCnt := len((*rs).UpgradingMembers)
+			// Change the current member upgrade status depends on role upgrade status
+			switch (*rs).UpgradeStatus {
+			case kdv1.RoleUpgrading:
+				(*m).UpgradeStatus = kdv1.MemberUpgraded
+				if leftUpgradingMembersCnt == 0 {
+					(*rs).UpgradeStatus = kdv1.RoleUpgraded
+				}
+			case kdv1.RoleRollingBack:
+				(*m).UpgradeStatus = kdv1.MemberRolledBack
+				if leftUpgradingMembersCnt == 0 {
+					(*rs).UpgradeStatus = kdv1.RoleRolledBack
+				}
+			}
 
 			if configErr != nil {
 				shared.LogErrorf(
@@ -1095,6 +1110,36 @@ func appConfig(
 ) (bool, error) {
 
 	roleName := roleStatus.Name
+	runConfigScript := func(
+		configArg ConfigArg,
+		loggingErr bool,
+	) error {
+		var cmdErr error = nil
+		cmd := GetAppConfigCmd(expectedContainerID, configArg)
+		cmdErr = executor.RunScript(
+			reqLogger,
+			cr,
+			cr.Namespace,
+			podName,
+			expectedContainerID,
+			executor.AppContainerName,
+			"app config",
+			strings.NewReader(cmd),
+		)
+		if loggingErr && cmdErr != nil {
+			shared.LogErrorf(
+				reqLogger,
+				cmdErr,
+				cr,
+				shared.EventReasonMember,
+				"failed to run startcsript with --{%s} in member{%s} in role{%s}",
+				string(configArg),
+				podName,
+				roleName,
+			)
+		}
+		return cmdErr
+	}
 
 	// If a config error detail already exists, this is a restart of a member
 	// that had been in config error state. In that case we won't try
@@ -1167,35 +1212,12 @@ func appConfig(
 				status, convErr := strconv.Atoi(configStatus)
 				if convErr == nil && status == 0 {
 
-					upgradeCmdErr := func() error {
-
-						var cmdErr error = nil
-						if roleStatus.UpgradingMembers != nil && roleStatus.UpgradingMembers[podName] != nil {
-							cmd := GetAppConfigCmd(expectedContainerID, Upgraded)
-							cmdErr = executor.RunScript(
-								reqLogger,
-								cr,
-								cr.Namespace,
-								podName,
-								expectedContainerID,
-								executor.AppContainerName,
-								"app config",
-								strings.NewReader(cmd),
-							)
-							if cmdErr != nil {
-								shared.LogErrorf(
-									reqLogger,
-									cmdErr,
-									cr,
-									shared.EventReasonMember,
-									"failed to run startcsript with --upgrade in member{%s} in role{%s}",
-									podName,
-									roleName,
-								)
-							}
-						}
-						return cmdErr
-					}()
+					var upgradeCmdErr error = nil
+					if roleStatus.UpgradeStatus == kdv1.RoleUpgrading {
+						upgradeCmdErr = runConfigScript(PodUpgraded, true)
+					} else if roleStatus.UpgradeStatus == kdv1.RoleRollingBack {
+						upgradeCmdErr = runConfigScript(PodReverted, true)
+					}
 					return true, upgradeCmdErr
 				}
 				statusErr := fmt.Errorf(
@@ -1286,17 +1308,7 @@ func appConfig(
 		return true, nil
 	}
 	// Now kick off the initial config.
-	cmd := GetAppConfigCmd(expectedContainerID, Run)
-	cmdErr := executor.RunScript(
-		reqLogger,
-		cr,
-		cr.Namespace,
-		podName,
-		expectedContainerID,
-		executor.AppContainerName,
-		"app config",
-		strings.NewReader(cmd),
-	)
+	cmdErr := runConfigScript(Configure, false)
 	if cmdErr != nil {
 		return true, cmdErr
 	}

@@ -229,8 +229,8 @@ func UpdateStatefulSetNonReplicas(
 					return err
 				}
 				(*rs).UpgradingMembers = nil
+				(*rs).UpgradeStatus = kdv1.RoleRollingBack
 			}
-
 		}
 	}
 
@@ -258,11 +258,12 @@ func UpdateStatefulSetNonReplicas(
 				(*rs).UpgradingMembers = make(map[string]*string)
 			}
 
-			for _, m := range (*rs).Members {
-				// This check added for restart case.
-				// If proposed clusterRoleImage is the same as already run in member container
-				// we shouldn't add this member to UpgradeMembers list.
-				if !rollback {
+			if !rollback {
+				(*rs).UpgradeStatus = kdv1.RoleUpgrading
+				for _, m := range (*rs).Members {
+					// This check added for restart case.
+					// If proposed clusterRoleImage is the same as already run in member container
+					// we shouldn't add this member to UpgradeMembers list.
 					(*rs).UpgradingMembers[m.Pod] = &appRoleImage
 				}
 			}

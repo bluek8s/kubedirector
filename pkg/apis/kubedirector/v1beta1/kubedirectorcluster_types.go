@@ -192,6 +192,19 @@ type BlockStorage struct {
 	NumDevices   *int32  `json:"numDevices,omitempty"`
 }
 
+type RoleUpgradeStatus string
+
+const (
+	// Upgrade process is finished
+	RoleUpgraded RoleUpgradeStatus = "upgraded"
+	// Rollback process is finished
+	RoleRolledBack RoleUpgradeStatus = "rolledBack"
+	// In the middle of upgrade process
+	RoleUpgrading RoleUpgradeStatus = "upgrading"
+	// In the middle of rollback process
+	RoleRollingBack RoleUpgradeStatus = "rollingBack"
+)
+
 // RoleStatus describes the component objects of a virtual cluster role.
 type RoleStatus struct {
 	Name                string             `json:"id"`
@@ -199,6 +212,7 @@ type RoleStatus struct {
 	Members             []MemberStatus     `json:"members"`
 	EncryptedSecretKeys map[string]string  `json:"encryptedSecretKeys,omitempty"`
 	UpgradingMembers    map[string]*string `json:"upgradingMembers,omitempty"`
+	UpgradeStatus       RoleUpgradeStatus  `json:"upgradeStatus,omitempty"`
 }
 
 // RollbackInfo describes the last working application spec for each RoleStatus.
@@ -208,16 +222,24 @@ type RollbackInfo struct {
 	Version  string `json:"appVersion"`
 }
 
+type MemberUpgradeStatus string
+
+const (
+	MemberUpgraded   MemberUpgradeStatus = "upgraded"
+	MemberRolledBack MemberUpgradeStatus = "rolledBack"
+)
+
 // MemberStatus describes the component objects of a virtual cluster member.
 type MemberStatus struct {
-	Pod              string            `json:"pod"`
-	Service          string            `json:"service"`
-	AuthToken        string            `json:"authToken,omitempty"`
-	PVC              string            `json:"pvc,omitempty"`
-	State            string            `json:"state"`
-	StateDetail      MemberStateDetail `json:"stateDetail,omitempty"`
-	NodeID           int64             `json:"nodeID"`
-	BlockDevicePaths []string          `json:"blockDevicePaths,omitempty"`
+	Pod              string              `json:"pod"`
+	Service          string              `json:"service"`
+	AuthToken        string              `json:"authToken,omitempty"`
+	PVC              string              `json:"pvc,omitempty"`
+	State            string              `json:"state"`
+	StateDetail      MemberStateDetail   `json:"stateDetail,omitempty"`
+	NodeID           int64               `json:"nodeID"`
+	BlockDevicePaths []string            `json:"blockDevicePaths,omitempty"`
+	UpgradeStatus    MemberUpgradeStatus `json:"upgradeStatus,omitempty"`
 }
 
 // MemberStateDetail digs into detail about the management of configmeta and

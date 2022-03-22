@@ -324,6 +324,7 @@ func validateGeneralClusterChanges(
 
 	if crApp != nil && prevCrApp != nil {
 
+		// Get unique cluster rollback info, if exists
 		rbKey := cr.Name + cr.Namespace
 		rbInfo := shared.ClusterRollbackInfoMap[rbKey]
 

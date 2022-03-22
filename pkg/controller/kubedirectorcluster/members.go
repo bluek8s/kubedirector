@@ -580,7 +580,6 @@ func handleCreatingMembers(
 				m.Pod,
 				role.roleStatus.Name,
 			)
-
 			setFinalState(memberReady, nil)
 		}(member)
 	}
@@ -1333,10 +1332,9 @@ func queueNotify(
 	// FQDNs of the affected members.
 	op := ""
 	deltaFqdns := ""
-
 	if creatingOrCreated, ok := modifiedRole.membersByState[memberCreating]; ok {
 		// At the time this function is called, members in this list are
-		// marked as creating, ready, upgrading or config error. The fqdnsList function
+		// marked as creating, ready, or config error. The fqdnsList function
 		// will appropriately skip the ones that are still creating, or the
 		// ones in other states that are just reboots.
 		op = "addnodes"
@@ -1386,7 +1384,6 @@ func queueNotify(
 		"--fqdns",
 		deltaFqdns,
 	}
-
 	notifyDesc := kdv1.NotificationDesc{
 		Arguments: arguments,
 	}
@@ -1422,7 +1419,7 @@ func fqdnsList(
 		// successfully configured. Also skip any member with
 		// lastConfiguredContainer already set since it is a reboot.
 		if (members[i].State != memberCreating) &&
-			members[i].StateDetail.LastConfiguredContainer == "" {
+			(members[i].StateDetail.LastConfiguredContainer == "") {
 			fqdns = append(fqdns, getMemberFqdn(members[i]))
 		}
 	}

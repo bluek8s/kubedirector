@@ -174,8 +174,8 @@ func UpdateStatefulSetNonReplicas(
 	// https://github.com/bluek8s/kubedirector/issues/229
 	// We should also compare the current statefulset container image against
 	// the image defined for the corresponding role in the KDCluster spec. If images
-	// are not the same, KDCluster spec image has a higher priority, so we should
-	// upgrade the statefulset one.
+	// are not the same, the actual application spec image has a higher priority,
+	// so we should upgrade the statefulsets one.
 	// Make sure, that according this logic, there is no sence to edit a statefulset
 	// directly, as it will be reconciled back to the KDCluster spec state.
 
@@ -188,24 +188,23 @@ func UpdateStatefulSetNonReplicas(
 	}
 
 	// There may appear the situation when during image upgrade we set to the
-	// cluster spec an incorrect image tag or image cannot be pulled from a repo by some
-	// other reason. It may cause that a member of the role falls
-	// into an endless restart loop getting ErrImagePull or ImagePullBackOff errors.
+	// cluster spec the application with incorrect image tag ot than image
+	// cannot be pulled from a repo by some other reason.
+	// It may cause that a member of the role falls into an endless restart loop
+	// getting ErrImagePull or ImagePullBackOff errors.
 	// Than, the cluster falls into non-ready state and this role status will be always
 	// in upgrading state and reject any try to re-upgrade an image.
 	// For avoiding this situation we should have an ability to re-edit cluster spec
 	// and give a chance to the role status to restart again.
 	// A rollback process will start when a cluster app spec field is equal to the
-	// correcponding RollbackInfo fields, stored for this cluster
+	// corresponding RollbackInfo fields, stored for this cluster
 	rollback := false
 
 	// Check, if cluster is not ready and current role status has upgrading members
 	roleStatusIsUpgrading := shared.RoleStatusIsUpgrading(cr, role.Name)
 
 	if !clusterIsReady && roleStatusIsUpgrading {
-		if err != nil {
-			return err
-		}
+
 		rbKey := cr.Name + cr.Namespace
 		rbInfo := shared.ClusterRollbackInfoMap[rbKey]
 

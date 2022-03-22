@@ -600,6 +600,7 @@ func updateStateRollup(
 	cr.Status.MemberStateRollup.MembersWaiting = false
 	cr.Status.MemberStateRollup.MembersRestarting = false
 	cr.Status.MemberStateRollup.ConfigErrors = false
+	cr.Status.MemberStateRollup.MembersNotScheduled = false
 
 	checkMemberDown := func(memberStatus kdv1.MemberStatus) {
 		if (memberStatus.StateDetail.LastKnownContainerState == containerTerminated) ||

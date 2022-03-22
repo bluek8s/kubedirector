@@ -114,6 +114,7 @@ func createAdmissionService(
 
 	hardFailurePolicy := v1beta1.Fail
 	softFailurePolicy := v1beta1.Ignore
+	sideEffectsNone := v1beta1.SideEffectClassNone
 
 	// Webhook handler with a "fail" failure policy; these operations
 	// will NOT be allowed even when the handler is down.
@@ -158,6 +159,7 @@ func createAdmissionService(
 			},
 		},
 		FailurePolicy: &hardFailurePolicy,
+		SideEffects:   &sideEffectsNone,
 	}
 
 	// Webhook handler with an "ignore" failure policy; these operations
@@ -190,6 +192,7 @@ func createAdmissionService(
 			},
 		},
 		FailurePolicy: &softFailurePolicy,
+		SideEffects:   &sideEffectsNone,
 	}
 
 	validator := &v1beta1.MutatingWebhookConfiguration{

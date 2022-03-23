@@ -8,7 +8,7 @@ FYI most of the developers working on KubeDirector use macOS, so there may be un
 
 Currently, we use the following tools and versions:
 
-* go version 1.13 or later
+* go version 1.16 or later
 * version 0.15.2 of the [Operator SDK](https://github.com/operator-framework/operator-sdk)
 * Docker (any recent version should do)
 

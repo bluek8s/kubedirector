@@ -19,6 +19,8 @@ import (
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
+	"github.com/go-logr/logr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // UpdateClusterStatus propagates status changes back to k8s. Roles or members
@@ -26,13 +28,137 @@ import (
 // set to emptystring) will be removed before the writeback.
 func UpdateClusterStatus(
 	cr *kdv1.KubeDirectorCluster,
+	statusBackupShouldExist bool,
+	statusBackup *kdv1.KubeDirectorStatusBackup,
 ) error {
 
 	// Before writing back, remove any RoleStatus where StatefulSet is
 	// emptystring, and remove any MemberStatus where Pod is emptystring.
 	compact(&(cr.Status.Roles))
 
+	// First sync the backup status CR. This includes deleting it if it is
+	// not supposed to exist.
+	if statusBackupShouldExist {
+		if statusBackup != nil {
+			// Overwrite
+			statusBackup.Spec.StatusBackup = cr.Status
+			updateErr := shared.Update(context.TODO(), statusBackup)
+			if updateErr != nil {
+				return updateErr
+			}
+		} else {
+			// Create
+			statusBackup := &kdv1.KubeDirectorStatusBackup{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeDirectorStatusBackup",
+					APIVersion: "v1beta1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            cr.Name,
+					Namespace:       cr.Namespace,
+					OwnerReferences: shared.OwnerReferences(cr),
+				},
+				Spec: kdv1.KubeDirectorStatusBackupSpec{
+					StatusBackup: cr.Status,
+				},
+			}
+			createErr := shared.Create(context.TODO(), statusBackup)
+			if createErr != nil {
+				return createErr
+			}
+		}
+	} else {
+		if statusBackup != nil {
+			// Best-effort delete.
+			shared.Delete(context.TODO(), statusBackup)
+		}
+	}
+
+	// OK finally let's update the status subresource.
 	return shared.StatusUpdate(context.TODO(), cr)
+}
+
+// BackupAnnotationNeedsReconcile checks that the annotation exists and
+// has the correct value in the in-memory CR.
+func BackupAnnotationNeedsReconcile(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	statusBackupShouldExist bool,
+) bool {
+
+	desiredValue := "true"
+	if !statusBackupShouldExist {
+		desiredValue = "false"
+	}
+	if cr.Annotations != nil {
+		if annValue, ok := cr.Annotations[shared.StatusBackupAnnotation]; ok {
+			if annValue == desiredValue {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// SetBackupAnnotation sets the annotation to the desired value. If the
+// CR in K8s is successfully updated, the annotations of the in-memory CR
+// (passed to this function) will also be updated to match.
+func SetBackupAnnotation(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	statusBackupShouldExist bool,
+) error {
+
+	desiredValue := "true"
+	if !statusBackupShouldExist {
+		desiredValue = "false"
+	}
+	patchedCR := *cr
+	patchedCR.Annotations = make(map[string]string)
+	for key, value := range cr.Annotations {
+		patchedCR.Annotations[key] = value
+	}
+	patchedCR.Annotations[shared.StatusBackupAnnotation] = desiredValue
+	patchErr := shared.Patch(
+		context.TODO(),
+		cr,
+		&patchedCR,
+	)
+	if patchErr == nil {
+		cr.Annotations = patchedCR.Annotations
+	}
+	return patchErr
+}
+
+// UpdateClusterStatusBackupOwner handles reconciliation only of the owner ref.
+func UpdateClusterStatusBackupOwner(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	statusBackup *kdv1.KubeDirectorStatusBackup,
+) error {
+
+	if statusBackup == nil {
+		return nil
+	}
+	if shared.OwnerReferencesPresent(cr, statusBackup.OwnerReferences) {
+		return nil
+	}
+	shared.LogInfof(
+		reqLogger,
+		cr,
+		shared.EventReasonNoEvent,
+		"repairing owner ref on statusbackup{%s}",
+		statusBackup.Name,
+	)
+	// We're just going to nuke any existing owner refs. (A bit more
+	// discussion of this in UpdateStatefulSetNonReplicas comments.)
+	patchedRes := *statusBackup
+	patchedRes.OwnerReferences = shared.OwnerReferences(cr)
+	return shared.Patch(
+		context.TODO(),
+		statusBackup,
+		&patchedRes,
+	)
 }
 
 // compact edits the input slice of role statuses so that any elements that

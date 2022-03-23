@@ -7,7 +7,7 @@ If you're starting from scratch with GKE, the first few sections of [Google's GK
 With gcloud configured to use the appropriate project, you can then launch a GKE cluster.
 
 Two important notes to be aware of when creating a GKE cluster:
-* Be sure to specify Kubernetes version 1.14 or later.
+* Be sure to specify a Kubernetes version that is in the range of KubeDirector-supported versions.
 * Choose a [machine type](https://cloud.google.com/compute/docs/machine-types) with enough resources to host at least one virtual cluster member.
 
 For a list of available GKE Kubernetes versions you can run the following query. For simplest cluster launching syntax, you would want to find a version that is in both the validMasterVersions list and the validNodeVersions list.
@@ -15,9 +15,9 @@ For a list of available GKE Kubernetes versions you can run the following query.
     gcloud container get-server-config
 ```
 
-So for example, at the time this doc was written, the following gcloud command would create a 3-node GKE cluster named "my-gke" using Kubernetes version 1.16.13 and the n1-highmem-4 machine type:
+So for example, at the time this doc was written, the following gcloud command would create a 3-node GKE cluster named "my-gke" using Kubernetes version 1.20.12 and the n1-highmem-4 machine type:
 ```bash
-    gcloud container clusters create my-gke --cluster-version=1.16.13-gke.1 --machine-type=n1-highmem-4
+    gcloud container clusters create my-gke --cluster-version=1.20.12-gke.1500 --machine-type=n1-highmem-4
 ```
 At the current time when you're reading this, you may need or want to use some different value for cluster-version.
 

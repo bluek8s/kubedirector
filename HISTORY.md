@@ -1,3 +1,37 @@
+# v0.8.1 - Feb 14, 2022
+
+Happy Valentine's Day! This dot-release is for showing some love to kdapp developers who want to transition to the "new layout" introduced in the prior release, but who will need more time to transition to the more restrictive permissions on /etc/guestconfig. The [app-filesystem-layout.md](doc/app-filesystem-layout.md) doc has been updated with tips. [PR 557](https://github.com/bluek8s/kubedirector/pull/557) describes the corresponding functional change in KubeDirector.
+
+# v0.8.0 - Feb 2, 2022
+
+The primary focus of this release is to add a new option for kdapp CRs that changes the processes and file layout around "app setup script" installation and use: the ["useNewSetupLayout" boolean in the default and per-role config package objects](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorApp-Definition#configpackage). This option can speed up the deployment of PVs in the kdclusters for those apps; it also makes certain directory contents readable only by the container user, for increased security in apps that support login by other user accounts. See the [app-filesystem-layout.md](doc/app-filesystem-layout.md) doc for more info about using this option in your kdapp definitions. Two of the example kdapps (cassandra and jupyter-notebook) have been updated to use this option.
+
+Another new kdapp feature is the ability to optionally specify a minimum valid persistent storage size for each role: the ["minStorage" attribute](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorApp-Definition#role). This helps to prevent cases where a kdcluster requesting a too-small PV cannot come up successfully.
+
+Other changes in this release:
+* remove CentOS 8 example kdapp due to EOL
+* [handle container images where "rm" is aliased to "rm -i"](https://github.com/bluek8s/kubedirector/issues/530)
+* [handle a race in "make deploy" where kdapp creation is attempted too soon](https://github.com/bluek8s/kubedirector/pull/544)
+
+
+# v0.7.1 - Nov 24, 2021
+
+This dot-release doesn't contain any new features or bugfixes within the KubeDirector code. It updates the base image of the KubeDirector deployment (from UBI7 to UBI8), raises the minimum allowed version of golang for compilation (from 1.13 to 1.16), and updates several of the module dependencies.
+
+If you build KD yourself, the only action required on your part is to make sure you are now using go 1.16 (or later) to compile. Otherwise this update should be transparent to everyone.
+
+As a result of this update, the Trivy report for vulnerabilities in the base image changes from "Total: 655 (LOW: 366, MEDIUM: 284, HIGH: 3, CRITICAL: 2)" to "Total: 96 (LOW: 44, MEDIUM: 48, HIGH: 1, CRITICAL: 3)". The increase in CRITICAL count there is the same CVE-2019-1010022 for glibc. In UBI7 that CVE gets counted against glibc and glibc-common; in UBI8 it's counted against glibc, glibc-common, and glibc-minimal-langpack.
+
+As for Trivy-reported vulnerabilities against the KD binary, those go from "MEDIUM: 3, HIGH: 4" to "MEDIUM: 2, HIGH: 2". Specifically, this update closes out CVE-2020-29652 and CVE-2020-9283 for golang.org/x/crypto, and CVE-2019-11254 for gopkg.in/yaml.v2.
+
+# v0.7.0 - Oct 14, 2021
+
+The big Q2 release is here! Along with some general documentation-cleaning and a new [roadmap](ROADMAP.md), the following features and fixes are included:
+* [encrypted secrets](https://github.com/bluek8s/kubedirector/issues/385) also cf. [doc/secret-keys.md](doc/secret-keys.md)
+* [support setting up serviceAccounts for role](https://github.com/bluek8s/kubedirector/issues/475)
+* [kdcluster backup/restore enablement](https://github.com/bluek8s/kubedirector/issues/500) also cf. [doc/backup-and-restore.md](doc/backup-and-restore.md)
+* [race in change processing can cause deadlock](https://github.com/bluek8s/kubedirector/issues/518)
+
 # v0.6.2 - May 21, 2021
 
 Maintenance release to address the following bugs:

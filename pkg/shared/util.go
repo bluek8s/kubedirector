@@ -17,6 +17,10 @@ package shared
 import (
 	"fmt"
 	"os"
+
+	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // StrPtr convert a string to a pointer
@@ -64,4 +68,71 @@ func GetKubeDirectorNamespace() (string, error) {
 		return "", fmt.Errorf("%s must be set", KubeDirectorNamespaceEnvVar)
 	}
 	return ns, nil
+}
+
+// OwnerReferences creates an owner reference spec that identifies the
+// custom resource as the owner.
+func OwnerReferences(
+	cr KubeDirectorObject,
+) []metav1.OwnerReference {
+
+	// IF THIS IS EVER CHANGED TO RETURN MORE THAN ONE REFERENCE for some
+	// reason, then ownerReferencesPresent below will also need to be
+	// changed.
+	return []metav1.OwnerReference{
+		*metav1.NewControllerRef(cr, schema.GroupVersionKind{
+			Group:   kdv1.SchemeGroupVersion.Group,
+			Version: kdv1.SchemeGroupVersion.Version,
+			Kind:    cr.GetObjectKind().GroupVersionKind().Kind,
+		}),
+	}
+}
+
+// OwnerReferencesPresent determines whether the desired references (from
+// the ownerReferences func) are present in the CR.
+func OwnerReferencesPresent(
+	cr KubeDirectorObject,
+	currentRefs []metav1.OwnerReference,
+) bool {
+
+	// As mentioned above, for simplicity we leverage the fact that
+	// we only require one owner reference. Also we probably don't need/want
+	// to do an entire struct compare; only the fields we really care about.
+	desiredRef := &(OwnerReferences(cr)[0])
+	for _, ref := range currentRefs {
+		if (ref.APIVersion == desiredRef.APIVersion) &&
+			(ref.Kind == desiredRef.Kind) &&
+			(ref.Name == desiredRef.Name) &&
+			(ref.UID == desiredRef.UID) &&
+			(ref.Controller != nil) &&
+			(*ref.Controller == true) {
+			return true
+		}
+	}
+	return false
+}
+
+// GetLastLines returns few last whole lines of
+// the input src string that are included
+// into the last maxSize characters of src
+// If maxSize is greater than src length, it returns src
+func GetLastLines(
+	src string,
+	maxSize int32,
+) string {
+
+	size := len(src)
+	if size <= int(maxSize) {
+		return src
+	}
+
+	start := size - (int(maxSize) + 1)
+
+	for i := start; i < size-1; i++ {
+		if src[i] == '\n' {
+			start = i + 1
+			break
+		}
+	}
+	return src[start:]
 }

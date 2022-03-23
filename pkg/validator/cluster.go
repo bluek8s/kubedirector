@@ -27,12 +27,14 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/controller/kubedirectorcluster"
 	"github.com/bluek8s/kubedirector/pkg/observer"
+	"github.com/bluek8s/kubedirector/pkg/secretkeys"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"k8s.io/api/admission/v1beta1"
+	v1 "k8s.io/api/authentication/v1"
+	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	appsvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
@@ -59,17 +61,26 @@ type clusterPatchValue struct {
 	ValueStr           *string
 	ValueClusterStatus *kdv1.KubeDirectorClusterStatus
 	ValueKDSecret      *kdv1.KDSecret
+	ValueSecretKey     *kdv1.SecretKey
+	ValueDict          *dictValue
 }
 
 func (obj clusterPatchValue) MarshalJSON() ([]byte, error) {
 
 	if obj.ValueInt != nil {
 		return json.Marshal(obj.ValueInt)
-	} else if obj.ValueKDSecret != nil {
+	}
+	if obj.ValueKDSecret != nil {
 		return json.Marshal(obj.ValueKDSecret)
 	}
 	if obj.ValueClusterStatus != nil {
 		return json.Marshal(obj.ValueClusterStatus)
+	}
+	if obj.ValueSecretKey != nil {
+		return json.Marshal(obj.ValueSecretKey)
+	}
+	if obj.ValueDict != nil {
+		return json.Marshal(obj.ValueDict)
 	}
 	return json.Marshal(obj.ValueStr)
 }
@@ -213,25 +224,17 @@ func validateCardinality(
 			break
 		}
 
-		// validate user-specified labels
-		rolePath := rolesPath.Index(i)
-		labelErrors := appsvalidation.ValidateLabels(
+		// validate user-specified labels and annotations
+		var anyLabelAnnError bool
+		valErrors, anyLabelAnnError = validateLabelsAndAnnotations(
+			rolesPath.Index(i),
 			role.PodLabels,
-			rolePath.Child("podLabels"),
-		)
-		serviceLabelErrors := appsvalidation.ValidateLabels(
+			role.PodAnnotations,
 			role.ServiceLabels,
-			rolePath.Child("serviceLabels"),
+			role.ServiceAnnotations,
+			valErrors,
 		)
-		if (len(labelErrors) != 0) || (len(serviceLabelErrors) != 0) {
-			anyError = true
-			for _, labelErr := range labelErrors {
-				valErrors = append(valErrors, labelErr.Error())
-			}
-			for _, serviceLabelErr := range serviceLabelErrors {
-				valErrors = append(valErrors, serviceLabelErr.Error())
-			}
-		}
+		anyError = anyError || anyLabelAnnError
 	}
 
 	if anyError {
@@ -253,11 +256,11 @@ func validateClusterRoles(
 ) []string {
 
 	var configuredRoles []string
-
 	allRoles := catalog.GetAllRoleIDs(appCR)
 	roleSeen := make(map[string]bool)
 	uniqueRoles := true
 	for _, role := range cr.Spec.Roles {
+
 		if shared.StringInList(role.Name, allRoles) {
 			configuredRoles = append(configuredRoles, role.Name)
 		} else {
@@ -513,6 +516,43 @@ func validateRoleStorageClass(
 	return valErrors, patches
 }
 
+// validateRoleSA validates whether the SA exists and if it does
+// is the user allowed to access it or not
+func validateRoleServiceAccount(
+	cr *kdv1.KubeDirectorCluster,
+	valErrs []string,
+	userInfo v1.UserInfo,
+) []string {
+
+	numRoles := len(cr.Spec.Roles)
+	for i := 0; i < numRoles; i++ {
+		role := &(cr.Spec.Roles[i])
+		if role.ServiceAccountName == "" {
+			// No SA
+			continue
+		}
+		_, erro := observer.GetServiceAccount(cr.Namespace, role.ServiceAccountName)
+		if erro != nil {
+			valErrs = append(valErrs,
+				"service account "+role.ServiceAccountName+" requested by role "+role.Name+" does not exist")
+			continue
+		}
+
+		errStr := createSubjectAccessReview(
+			userInfo,
+			cr.Namespace,
+			"ServiceAccount",
+			role.ServiceAccountName,
+			"get",
+		)
+		if errStr != "" {
+			valErrs = append(valErrs, errStr)
+		}
+	}
+
+	return valErrs
+}
+
 // validateApp function checks for valid app and if necessary creates a patch
 // to populate appCatalog in the spec.
 func validateApp(
@@ -524,7 +564,7 @@ func validateApp(
 
 	if err != nil {
 		return nil, patches,
-			"\n" + fmt.Sprintf(invalidAppMessage, cr.Spec.AppID)
+			fmt.Sprintf(invalidAppMessage, cr.Spec.AppID)
 	}
 
 	// Note that we should NOT call shared.EnsureClusterAppReference here,
@@ -556,9 +596,8 @@ func validateApp(
 	return appCR, patches, ""
 }
 
-// validateMinResources function checks to see if minimum resource requirements
-// are specified for each role, by checking against associated app roles' minimum
-// requirement
+// validateMinResources function checks to see if all specified minimum
+// resource requirements for each role are being met
 func validateMinResources(
 	cr *kdv1.KubeDirectorCluster,
 	appCR *kdv1.KubeDirectorApp,
@@ -583,7 +622,6 @@ func validateMinResources(
 		logError := func(
 			resName string,
 			resValue string,
-			roleName string,
 			expValue string,
 			valErrors []string) []string {
 
@@ -593,7 +631,7 @@ func validateMinResources(
 					invalidResource,
 					resName,
 					resValue,
-					roleName,
+					role.Name,
 					expValue,
 				),
 			)
@@ -606,11 +644,87 @@ func validateMinResources(
 
 			if limit, ok := role.Resources.Requests[resKey]; ok {
 				if limit.Value() < resVal.Value() {
-					valErrors = logError(resKey.String(), limit.String(), role.Name, resVal.String(), valErrors)
+					valErrors = logError(resKey.String(), limit.String(), resVal.String(), valErrors)
 				}
 			} else {
-				valErrors = logError(resKey.String(), "0", role.Name, resVal.String(), valErrors)
+				valErrors = logError(resKey.String(), "0", resVal.String(), valErrors)
 			}
+		}
+	}
+
+	return valErrors
+}
+
+// validateMinStorage function checks to see if all specified minimum
+// persistent storage requirements for each role are being met
+func validateMinStorage(
+	cr *kdv1.KubeDirectorCluster,
+	appCR *kdv1.KubeDirectorApp,
+	valErrors []string,
+) []string {
+
+	numRoles := len(cr.Spec.Roles)
+	for i := 0; i < numRoles; i++ {
+		role := &(cr.Spec.Roles[i])
+		appRole := catalog.GetRoleFromID(appCR, role.Name)
+		if appRole == nil {
+			// Do nothing; this error will be reported from validateRoles.
+			continue
+		}
+
+		minStorage := catalog.GetRoleMinStorage(appRole)
+		if minStorage == nil {
+			// No minimum requirements for this role.
+			continue
+		}
+
+		logError := func(
+			size string,
+			expSize string,
+			valErrors []string) []string {
+
+			return append(
+				valErrors,
+				fmt.Sprintf(
+					invalidStorage,
+					size,
+					role.Name,
+					expSize,
+				),
+			)
+		}
+
+		if role.Storage == nil {
+			if minStorage.EphemeralModeSupported {
+				// Even though there's a minimum, it's OK to omit the PV
+				// altogether.
+				continue
+			}
+			valErrors = logError("0", minStorage.Size, valErrors)
+			continue
+		}
+
+		// OK let's see if we meet the minimum.
+		size, sizeErr := resource.ParseQuantity(role.Storage.Size)
+		if sizeErr != nil {
+			// This error will be handled in validateRoleStorageClass.
+			continue
+		}
+		min, minErr := resource.ParseQuantity(minStorage.Size)
+		if minErr != nil {
+			// This should have been caught in app validation!
+			continue
+		}
+		if size.Value() < min.Value() {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					invalidStorage,
+					role.Storage.Size,
+					role.Name,
+					minStorage.Size,
+				),
+			)
 		}
 	}
 
@@ -776,6 +890,58 @@ func validateSecrets(
 	return valErrors, patches
 }
 
+// encryptSecretKeys encrypts secret keys per each role and generates patches if needed
+func encryptSecretKeys(
+	cr *kdv1.KubeDirectorCluster,
+	prevCr *kdv1.KubeDirectorCluster,
+	valErrors []string,
+	patches []clusterPatchSpec,
+) ([]string, []clusterPatchSpec) {
+	for roleIndex, role := range cr.Spec.Roles {
+		prevEncryptedValues := map[string]string{}
+		for _, prevRole := range prevCr.Spec.Roles {
+			if prevRole.Name == role.Name {
+				for _, secretKey := range prevRole.SecretKeys {
+					prevEncryptedValues[secretKey.Name] = secretKey.EncryptedValue
+				}
+			}
+		}
+		for secretKeyIndex, secretKey := range role.SecretKeys {
+			if secretKey.Value == "" && secretKey.EncryptedValue != "" {
+				if secretKey.EncryptedValue != prevEncryptedValues[secretKey.Name] {
+					valErrors = append(valErrors,
+						fmt.Sprintf(forbiddenManualSecretKeyEncryptedValuePlacement, secretKey.Name),
+					)
+				}
+				continue
+			}
+			encryptedValue, err := secretkeys.Encrypt(secretKey.Value)
+			if err != nil {
+				validatorLog.Error(err, "cannot encrypt secret key",
+					"namespace", cr.Namespace, "kdcluster", cr.Name,
+					"role", role.Name,
+					"secret key", secretKeyIndex)
+				valErrors = append(valErrors,
+					fmt.Sprintf(failedSecretKeyEncryption, secretKey.Name),
+				)
+				continue
+			}
+			patches = append(patches, clusterPatchSpec{
+				Op:   "replace",
+				Path: "/spec/roles/" + strconv.Itoa(roleIndex) + "/secretKeys/" + strconv.Itoa(secretKeyIndex),
+				Value: clusterPatchValue{
+					ValueSecretKey: &kdv1.SecretKey{
+						Name:           secretKey.Name,
+						EncryptedValue: encryptedValue,
+					},
+				},
+			})
+		}
+	}
+
+	return valErrors, patches
+}
+
 // addServiceType function checks to see if serviceType is provided for a
 // cluster CR. If unspecified, check to see if there is a default serviceType
 // provided through kubedirector's config CR, otherwise use a global constant
@@ -832,6 +998,159 @@ func validateNamingScheme(
 	return patches
 }
 
+// addRestoreLabel adds the kubedirector.hpe.com/restoring label (with no value)
+// to the CR's set of labels, if it's not already there.
+func addRestoreLabel(
+	cr *kdv1.KubeDirectorCluster,
+	patches []clusterPatchSpec,
+) []clusterPatchSpec {
+
+	if len(cr.Labels) == 0 {
+		labelKeyAndVal := make(dictValue)
+		labelKeyAndVal[shared.RestoringLabel] = ""
+		patches = append(
+			patches,
+			clusterPatchSpec{
+				Op:   "add",
+				Path: "/metadata/labels",
+				Value: clusterPatchValue{
+					ValueDict: &labelKeyAndVal,
+				},
+			},
+		)
+	} else {
+		if _, ok := cr.Labels[shared.RestoringLabel]; !ok {
+			labelVal := ""
+			patches = append(
+				patches,
+				clusterPatchSpec{
+					Op: "add",
+					Path: fmt.Sprintf("/metadata/labels/%s",
+						strings.ReplaceAll(shared.RestoringLabel, "/", "~1")),
+					Value: clusterPatchValue{
+						ValueStr: &labelVal,
+					},
+				},
+			)
+		}
+	}
+
+	return patches
+}
+
+// validateVolumeProjections checks to make sure specified pvc is present in the namespace
+// and accessible by the user.
+// If PVC is validated, following additional checks are made
+// - VolumeMode must be FileSystem
+// - Within a cluster if a pvc is reused, validate AccessModes to contain either ReadWriteMany or ReadOnlyMany
+// - Within a role, make sure mountPaths are unique
+func validateVolumeProjections(
+	cr *kdv1.KubeDirectorCluster,
+	userInfo v1.UserInfo,
+	valErrors []string,
+	patches []clusterPatchSpec,
+) ([]string, []clusterPatchSpec) {
+
+	numRoles := len(cr.Spec.Roles)
+	exclusivePvcs := make(map[string]int32)
+
+	for i := 0; i < numRoles; i++ {
+		mountPaths := make(map[string]int32)
+		role := &(cr.Spec.Roles[i])
+		if len(role.VolumeProjections) == 0 {
+			continue
+		}
+		numVolumes := len(role.VolumeProjections)
+		for j := 0; j < numVolumes; j++ {
+			volume := role.VolumeProjections[j]
+
+			// Bump up mountPath map to check later
+			mountPaths[volume.MountPath]++
+
+			// Check to make sure pvc exists in the cluster namespace
+			pvc, pvcErr := observer.GetPVC(cr.Namespace, volume.PvcName)
+			if pvcErr != nil {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidPVC,
+						volume.PvcName,
+						cr.Namespace,
+						role.Name,
+					),
+				)
+				continue
+			}
+
+			// Check if PVC is FileSystem Volume mode
+			if pvc.Spec.VolumeMode != nil &&
+				*(pvc.Spec.VolumeMode) != core.PersistentVolumeFilesystem {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidVolumeMode,
+						volume.PvcName,
+						role.Name,
+						*(pvc.Spec.VolumeMode),
+					),
+				)
+			}
+
+			// Iterate through AccessModes of the pvc to see if "shared" mode is present
+			var found = false
+			for _, accessMode := range pvc.Spec.AccessModes {
+				if accessMode == core.ReadWriteMany || accessMode == core.ReadOnlyMany {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				// PVC without "shared" access mode, add to exclusive list
+				exclusivePvcs[volume.PvcName] = exclusivePvcs[volume.PvcName] + *(role.Members)
+			}
+
+			errStr := createSubjectAccessReview(
+				userInfo,
+				cr.Namespace,
+				"PersistentVolumeClaim",
+				role.ServiceAccountName,
+				"get",
+			)
+			if errStr != "" {
+				valErrors = append(valErrors, errStr)
+			}
+		}
+
+		for mountPath, mountNum := range mountPaths {
+			if mountNum > 1 {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidMountPath,
+						mountPath,
+						role.Name,
+					),
+				)
+			}
+		}
+	}
+
+	for volName, num := range exclusivePvcs {
+		if num > 1 {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					invalidAccessMode,
+					volName,
+				),
+			)
+		}
+	}
+
+	return valErrors, patches
+}
+
 // admitClusterCR is the top-level cluster validation function, which invokes
 // the top-specific validation subroutines and composes the admission
 // response.
@@ -845,53 +1164,110 @@ func admitClusterCR(
 		Allowed: false,
 	}
 
-	// If this is a delete, the admission handler has nothing to do.
+	// Set a defer func to handle any patches and errors. Set the admission
+	// response to allowed=true if no errors.
+	defer func() {
+		if len(valErrors) == 0 {
+			if len(patches) != 0 {
+				patchResult, patchErr := json.Marshal(patches)
+				if patchErr == nil {
+					admitResponse.Patch = patchResult
+					patchType := v1beta1.PatchTypeJSONPatch
+					admitResponse.PatchType = &patchType
+				} else {
+					valErrors = append(valErrors, failedToPatch)
+				}
+			}
+		}
+		if len(valErrors) == 0 {
+			admitResponse.Allowed = true
+		} else {
+			admitResponse.Result = &metav1.Status{
+				Message: "\n" + strings.Join(valErrors, "\n"),
+			}
+		}
+	}()
+
+	// We'll need the existing object in update and delete cases.
+	prevClusterCR := kdv1.KubeDirectorCluster{}
+	if (ar.Request.Operation == v1beta1.Update) || (ar.Request.Operation == v1beta1.Delete) {
+		prevRaw := ar.Request.OldObject.Raw
+		if prevJSONErr := json.Unmarshal(prevRaw, &prevClusterCR); prevJSONErr != nil {
+			valErrors = append(valErrors, prevJSONErr.Error())
+			return &admitResponse
+		}
+	}
+
+	// Record whether we're in "restoring" state.
+	_, isRestoring := prevClusterCR.Labels[shared.RestoringLabel]
+
+	// If this is a delete and the being-restored label is set, reject the
+	// deletion unless allow-delete-while-restoring is also set. In all other
+	// cases allow the deletion.
 	if ar.Request.Operation == v1beta1.Delete {
-		admitResponse.Allowed = true
+		if !isRestoring {
+			return &admitResponse
+		}
+		if _, allowDelete := prevClusterCR.Labels[allowDeleteLabel]; allowDelete {
+			return &admitResponse
+		}
+		valErrors = append(
+			valErrors,
+			"delete not allowed while "+shared.RestoringLabel+" label exists, "+
+				"unless "+allowDeleteLabel+" label also exists",
+		)
 		return &admitResponse
 	}
 
-	// Deserialize the object.
+	// Deserialize the incoming object.
 	raw := ar.Request.Object.Raw
 	clusterCR := kdv1.KubeDirectorCluster{}
 	if jsonErr := json.Unmarshal(raw, &clusterCR); jsonErr != nil {
-		admitResponse.Result = &metav1.Status{
-			Message: "\n" + jsonErr.Error(),
-		}
+		valErrors = append(valErrors, jsonErr.Error())
 		return &admitResponse
 	}
 
-	// If this is an update, get the previous version of the object ready for
-	// use in some checks.
-	prevClusterCR := kdv1.KubeDirectorCluster{}
-	if ar.Request.Operation == v1beta1.Update {
-		prevRaw := ar.Request.OldObject.Raw
-		if prevJSONErr := json.Unmarshal(prevRaw, &prevClusterCR); prevJSONErr != nil {
-			admitResponse.Result = &metav1.Status{
-				Message: "\n" + prevJSONErr.Error(),
+	// If this is a re-creation (as indicated by annotation existing), set
+	// the being-restored label and skip validation.
+	if ar.Request.Operation == v1beta1.Create {
+		if clusterCR.Annotations != nil {
+			if _, ok := clusterCR.Annotations[shared.StatusBackupAnnotation]; ok {
+				patches = addRestoreLabel(&clusterCR, patches)
+				return &admitResponse
 			}
-			return &admitResponse
+		}
+	}
+
+	// If this is an update and the being-restored label is set, don't allow
+	// any spec change.
+	if ar.Request.Operation == v1beta1.Update {
+		if isRestoring {
+			if !equality.Semantic.DeepEqual(clusterCR.Spec, prevClusterCR.Spec) {
+				valErrors = append(
+					valErrors,
+					"spec changes not allowed while "+shared.RestoringLabel+" label exists",
+				)
+				return &admitResponse
+			}
 		}
 	}
 
 	// Don't allow Status to be updated except by KubeDirector. Do this by
 	// using one-time codes known by KubeDirector.
 	if clusterCR.Status != nil {
-		statusViolation := &metav1.Status{
-			Message: "\nKubeDirector-related status properties are read-only",
-		}
 		expectedStatusGen, ok := kubedirectorcluster.ClusterStatusGens.ReadStatusGen(clusterCR.UID)
 		// Reject this write if either of:
 		// - this status generation UID is not what we're expecting a write for
 		// - KubeDirector doesn't know about the CR & the status is changing
+		statusViolation := "KubeDirector-related status properties are read-only"
 		if ok {
 			if clusterCR.Status.GenerationUID != expectedStatusGen.UID {
-				admitResponse.Result = statusViolation
+				valErrors = append(valErrors, statusViolation)
 				return &admitResponse
 			}
 		} else {
 			if !equality.Semantic.DeepEqual(clusterCR.Status, prevClusterCR.Status) {
-				admitResponse.Result = statusViolation
+				valErrors = append(valErrors, statusViolation)
 				return &admitResponse
 			}
 		}
@@ -900,7 +1276,7 @@ func admitClusterCR(
 		// (For example we'll see this when a PATCH happens.)
 		if expectedStatusGen.Validated {
 			if !equality.Semantic.DeepEqual(clusterCR.Status, prevClusterCR.Status) {
-				admitResponse.Result = statusViolation
+				valErrors = append(valErrors, statusViolation)
 				return &admitResponse
 			}
 		}
@@ -913,10 +1289,20 @@ func admitClusterCR(
 	// referenced app is bad/gone. Note that we can't just check the
 	// metadata generation number here because that is incremented after this
 	// validator sees the request.
+	// We will NOT take this shortcut if we're trying to change from
+	// "restoring" to "reconciling". Need to validate in that case.
 	if ar.Request.Operation == v1beta1.Update {
-		if equality.Semantic.DeepEqual(clusterCR.Spec, prevClusterCR.Spec) {
-			admitResponse.Allowed = true
-			return &admitResponse
+		doShortcut := true
+		if isRestoring {
+			_, willStillBeRestoring := clusterCR.Labels[shared.RestoringLabel]
+			if !willStillBeRestoring {
+				doShortcut = false
+			}
+		}
+		if doShortcut {
+			if equality.Semantic.DeepEqual(clusterCR.Spec, prevClusterCR.Spec) {
+				return &admitResponse
+			}
 		}
 	}
 
@@ -925,9 +1311,7 @@ func admitClusterCR(
 
 	// If app error, fail right away
 	if appCR == nil {
-		admitResponse.Result = &metav1.Status{
-			Message: errorMsg,
-		}
+		valErrors = append(valErrors, errorMsg)
 		return &admitResponse
 	}
 
@@ -947,6 +1331,12 @@ func admitClusterCR(
 	// Validate minimum resources for all roles
 	valErrors = validateMinResources(&clusterCR, appCR, valErrors)
 
+	// Validate minimum persistent storage for all roles
+	valErrors = validateMinStorage(&clusterCR, appCR, valErrors)
+
+	// Validate if the role's service account exists and if the user has permission to use
+	valErrors = validateRoleServiceAccount(&clusterCR, valErrors, ar.Request.UserInfo)
+
 	valErrors, patches = validateRoleStorageClass(&clusterCR, valErrors, patches)
 
 	// Validate service type and generate patch in case no service type defined or change
@@ -961,6 +1351,12 @@ func admitClusterCR(
 	// Validate secret and generate patches for default values (if any)
 	valErrors, patches = validateSecrets(&clusterCR, valErrors, patches)
 
+	// Generate patches to conceal raw secret keys' values
+	valErrors, patches = encryptSecretKeys(&clusterCR, &prevClusterCR, valErrors, patches)
+
+	// Validate volume projections
+	valErrors, patches = validateVolumeProjections(&clusterCR, ar.Request.UserInfo, valErrors, patches)
+
 	// If cluster already exists, check for invalid property changes.
 	if ar.Request.Operation == v1beta1.Update {
 		var changeErrors []string
@@ -972,27 +1368,6 @@ func admitClusterCR(
 		// depend on the defaulting logic that happens in those other functions.)
 		if len(changeErrors) != 0 {
 			valErrors = changeErrors
-		}
-	}
-
-	if len(valErrors) == 0 {
-		if len(patches) != 0 {
-			patchResult, patchErr := json.Marshal(patches)
-			if patchErr == nil {
-				admitResponse.Patch = patchResult
-				patchType := v1beta1.PatchTypeJSONPatch
-				admitResponse.PatchType = &patchType
-			} else {
-				valErrors = append(valErrors, failedToPatch)
-			}
-		}
-	}
-
-	if len(valErrors) == 0 {
-		admitResponse.Allowed = true
-	} else {
-		admitResponse.Result = &metav1.Status{
-			Message: "\n" + strings.Join(valErrors, "\n"),
 		}
 	}
 

@@ -88,7 +88,13 @@ spec:
                   podLabels:
                     type: object
                     nullable: true
+                  podAnnotations:
+                    type: object
+                    nullable: true
                   serviceLabels:
+                    type: object
+                    nullable: true
+                  serviceAnnotations:
                     type: object
                     nullable: true
                   members:
@@ -147,6 +153,9 @@ spec:
                           ephemeral-storage:
                             type: string
                             pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
+                  serviceAccountName:
+                        type: string
+                        minLength: 1
                   env:
                     type: array
                     items:
@@ -210,6 +219,20 @@ spec:
                               type: string
                             fileGroup:
                               type: string
+                  secretKeys:
+                    type: array
+                    items:
+                      type: object
+                      required: [ name ]
+                      properties:
+                        name:
+                          type: string
+                          minLength: 1
+                        value:
+                          type: string
+                        encryptedValue:
+                          type: string
+                          minLength: 1
                   affinity:
                     properties:
                       nodeAffinity:
@@ -472,12 +495,39 @@ spec:
                             type: array
                         type: object
                     type: object
+                  volumeProjections:
+                    type: array
+                    items:
+                      type: object
+                      required: [pvcName, mountPath]
+                      properties:
+                        pvcName:
+                          minLength: 1
+                          type: string
+                        mountPath:
+                          type: string
+                          minLength: 2
+                          pattern: '^/[a-zA-Z0-9\/-_]*'
+                        readOnly:
+                          type: boolean
         status:
           type: object
           nullable: true
           properties:
             state:
               type: string
+            restoreProgress:
+              type: object
+              nullable: true
+              properties:
+                awaitingApp:
+                  type: boolean
+                awaitingStatus:
+                  type: boolean
+                awaitingResources:
+                  type: boolean
+                error:
+                  type: string
             memberStateRollup:
               type: object
               properties:
@@ -492,6 +542,8 @@ spec:
                 membersRestarting:
                   type: boolean
                 configErrors:
+                  type: boolean
+                membersNotScheduled:
                   type: boolean
             generationUID:
               type: string
@@ -548,6 +600,12 @@ spec:
                               type: string
                             lastConnectionVersion:
                               type: integer
+                            startScriptStdoutMessage:
+                              type: string
+                            startScriptStderrMessage:
+                              type: string
+                            schedulingErrorMessage:
+                              type: string
                             pendingNotifyCmds:
                               type: array
                               items:

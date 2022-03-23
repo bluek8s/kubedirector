@@ -143,7 +143,7 @@ func handleClusterServiceConfig(
 	clusterService *corev1.Service,
 ) {
 
-	updateErr := executor.UpdateHeadlessService(cr, clusterService)
+	updateErr := executor.UpdateHeadlessService(reqLogger, cr, clusterService)
 	if updateErr != nil {
 		shared.LogErrorf(
 			reqLogger,

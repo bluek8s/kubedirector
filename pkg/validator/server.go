@@ -28,14 +28,18 @@ import (
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // Add validation handlers for all CRs that we currently support
 var validationHandlers = map[string]admitFunc{
-	"KubeDirectorApp":     admitAppCR,
-	"KubeDirectorCluster": admitClusterCR,
-	"KubeDirectorConfig":  admitKDConfigCR,
+	"KubeDirectorApp":       admitAppCR,
+	"KubeDirectorCluster":   admitClusterCR,
+	"KubeDirectorConfig":    admitKDConfigCR,
+	"PersistentVolumeClaim": admitPVC,
 }
+
+var validatorLog = log.Log.WithName(validatorServiceName)
 
 // validation handles the http portion of a request prior to dispatching the
 // resource-type-specific validation handler.

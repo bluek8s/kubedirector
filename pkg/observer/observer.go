@@ -45,6 +45,22 @@ func GetCluster(
 	return result, err
 }
 
+// GetStatusBackup finds the k8s KubeDirectorStatusBackup with the given name
+// in the given namespace.
+func GetStatusBackup(
+	namespace string,
+	statusBackupName string,
+) (*kdv1.KubeDirectorStatusBackup, error) {
+
+	result := &kdv1.KubeDirectorStatusBackup{}
+	err := shared.Get(
+		context.TODO(),
+		types.NamespacedName{Namespace: namespace, Name: statusBackupName},
+		result,
+	)
+	return result, err
+}
+
 // GetStatefulSet finds the k8s StatefulSet with the given name in the given
 // namespace.
 func GetStatefulSet(
@@ -132,6 +148,22 @@ func GetPVC(
 	err := shared.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: namespace, Name: pvcName},
+		result,
+	)
+	return result, err
+}
+
+// GetServiceAccount finds the k8s ServiceAccount with the given name in the given
+// namespace.
+func GetServiceAccount(
+	namespace string,
+	saName string,
+) (*corev1.ServiceAccount, error) {
+
+	result := &corev1.ServiceAccount{}
+	err := shared.Get(
+		context.TODO(),
+		types.NamespacedName{Namespace: namespace, Name: saName},
 		result,
 	)
 	return result, err

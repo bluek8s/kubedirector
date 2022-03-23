@@ -201,7 +201,7 @@ func createAdmissionService(
 			APIVersion: "admissionregistration.k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            validatorWebhook,
+			Name: validatorWebhook,
 		},
 		Webhooks: []v1beta1.MutatingWebhook{hardWebhookHandler, softWebhookHandler},
 	}

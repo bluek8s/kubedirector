@@ -279,6 +279,9 @@ undeploy:
         echo \* Deleting KubeDirector deployment...; \
         delete_namespaced_thing deployment ${project_name}; \
         echo; \
+        echo \* Deleting KubeDirector API webhook...; \
+        delete_cluster_thing MutatingWebhookConfiguration ${project_name}-webhook; \
+        echo; \
         echo \* Deleting role and service account...; \
         delete_cluster_thing clusterrolebinding ${project_name}; \
         delete_cluster_thing clusterrole ${project_name}; \

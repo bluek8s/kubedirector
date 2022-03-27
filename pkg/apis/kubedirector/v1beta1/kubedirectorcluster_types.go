@@ -183,6 +183,7 @@ type StateRollup struct {
 	MembersWaiting      bool `json:"membersWaiting"`
 	MembersRestarting   bool `json:"membersRestarting"`
 	ConfigErrors        bool `json:"configErrors"`
+	MembersNotScheduled bool `json:"membersNotScheduled"`
 }
 
 // ClusterStorage defines the persistent storage size/type, if any, to be used
@@ -234,6 +235,7 @@ type MemberStateDetail struct {
 	LastConnectionVersion    *int64              `json:"lastConnectionVersion,omitempty"`
 	StartScriptOutMsg        string              `json:"startScriptStdoutMessage,omitempty"`
 	StartScriptErrMsg        string              `json:"startScriptStderrMessage,omitempty"`
+	SchedulingErrorMessage   *string             `json:"schedulingErrorMessage,omitempty"`
 }
 
 // NotificationDesc contains the info necessary to perform a notify command.

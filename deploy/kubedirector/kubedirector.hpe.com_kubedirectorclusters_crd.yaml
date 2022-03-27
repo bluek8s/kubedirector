@@ -543,6 +543,8 @@ spec:
                   type: boolean
                 configErrors:
                   type: boolean
+                membersNotScheduled:
+                  type: boolean
             generationUID:
               type: string
             lastConnectionHash:
@@ -601,6 +603,8 @@ spec:
                             startScriptStdoutMessage:
                               type: string
                             startScriptStderrMessage:
+                              type: string
+                            schedulingErrorMessage:
                               type: string
                             pendingNotifyCmds:
                               type: array

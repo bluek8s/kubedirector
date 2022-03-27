@@ -542,8 +542,6 @@ func getInitContainer(
 	}
 
 	initVolumeMounts := generateInitVolumeMounts(pvcNamePrefix)
-	cpus, _ := resource.ParseQuantity("1")
-	mem, _ := resource.ParseQuantity("512Mi")
 	initContainer = []v1.Container{
 		{
 			Args: []string{
@@ -553,18 +551,9 @@ func getInitContainer(
 			Command: []string{
 				"/bin/bash",
 			},
-			Image: imageID,
-			Name:  initContainerName,
-			Resources: v1.ResourceRequirements{
-				Limits: v1.ResourceList{
-					"cpu":    cpus,
-					"memory": mem,
-				},
-				Requests: v1.ResourceList{
-					"cpu":    cpus,
-					"memory": mem,
-				},
-			},
+			Image:     imageID,
+			Name:      initContainerName,
+			Resources: role.Resources,
 			SecurityContext: &v1.SecurityContext{
 				RunAsUser: &rootUID,
 			},
@@ -590,9 +579,6 @@ func getVolumeClaimTemplate(
 		volClaim := v1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: pvcNamePrefix,
-				Annotations: map[string]string{
-					storageClassName: *role.Storage.StorageClass,
-				},
 			},
 			Spec: v1.PersistentVolumeClaimSpec{
 				AccessModes: []v1.PersistentVolumeAccessMode{
@@ -603,6 +589,7 @@ func getVolumeClaimTemplate(
 						v1.ResourceStorage: volSize,
 					},
 				},
+				StorageClassName: role.Storage.StorageClass,
 			},
 		}
 		volTemplate = append(volTemplate, volClaim)
@@ -628,9 +615,6 @@ func getVolumeClaimTemplate(
 			blockClaim := v1.PersistentVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: deviceName,
-					Annotations: map[string]string{
-						storageClassName: *role.BlockStorage.StorageClass,
-					},
 				},
 				Spec: v1.PersistentVolumeClaimSpec{
 					AccessModes: []v1.PersistentVolumeAccessMode{

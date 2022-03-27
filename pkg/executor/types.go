@@ -40,7 +40,6 @@ const (
 	ClusterAppAnnotation = shared.KdDomainBase + "/kdapp-prettyName"
 
 	statefulSetPodLabel = "statefulset.kubernetes.io/pod-name"
-	storageClassName    = "volume.beta.kubernetes.io/storage-class"
 	// AppContainerName is the name of KubeDirector app containers.
 	AppContainerName = "app"
 	// PvcNamePrefix (along with a hyphen) is prepended to the name of each
@@ -56,6 +55,11 @@ const (
 	systemdFSVolume       = "/sys/fs/cgroup/systemd"
 	tmpFSVolSize          = "20Gi"
 	kubedirectorInit      = "/etc/kubedirector.init"
+	// The file that contains full logs of copying persistent dirs
+	kubedirectorInitLogs = "/etc/kubedirector-init.log"
+	// The file that contains just a progress bar of copying persisten dirs
+	// It contains a single line that is updated dynamically
+	kubedirectorInitProgressBar = "/etc/kubedirector-init-progress-bar.log"
 
 	// nvidiaGpuResourcePrefix is the name of a GPU resource, schedulable for a container -
 	// specifically, a GPU by the vendor, NVIDIA

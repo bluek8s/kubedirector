@@ -93,7 +93,6 @@ func createWebhookService(
 // createAdmissionService creates our MutatingWebhookConfiguration resource
 // if it does not exist.
 func createAdmissionService(
-	ownerReference metav1.OwnerReference,
 	validatorWebhook string,
 	namespace string,
 	serviceName string,
@@ -115,6 +114,7 @@ func createAdmissionService(
 
 	hardFailurePolicy := v1beta1.Fail
 	softFailurePolicy := v1beta1.Ignore
+	sideEffectsNone := v1beta1.SideEffectClassNone
 
 	// Webhook handler with a "fail" failure policy; these operations
 	// will NOT be allowed even when the handler is down.
@@ -159,6 +159,7 @@ func createAdmissionService(
 			},
 		},
 		FailurePolicy: &hardFailurePolicy,
+		SideEffects:   &sideEffectsNone,
 	}
 
 	// Webhook handler with an "ignore" failure policy; these operations
@@ -191,6 +192,7 @@ func createAdmissionService(
 			},
 		},
 		FailurePolicy: &softFailurePolicy,
+		SideEffects:   &sideEffectsNone,
 	}
 
 	validator := &v1beta1.MutatingWebhookConfiguration{
@@ -199,8 +201,7 @@ func createAdmissionService(
 			APIVersion: "admissionregistration.k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            validatorWebhook,
-			OwnerReferences: []metav1.OwnerReference{ownerReference},
+			Name: validatorWebhook,
 		},
 		Webhooks: []v1beta1.MutatingWebhook{hardWebhookHandler, softWebhookHandler},
 	}

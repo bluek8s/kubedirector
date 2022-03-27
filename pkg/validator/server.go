@@ -273,7 +273,6 @@ func InitValidationServer(
 	}
 
 	validatorErr := createAdmissionService(
-		ownerReference,
 		validatorWebhook,
 		kdNamespace,
 		validatorServiceName,

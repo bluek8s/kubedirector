@@ -16,6 +16,7 @@ package executor
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -543,8 +544,6 @@ func getInitContainer(
 	}
 
 	initVolumeMounts := generateInitVolumeMounts(pvcNamePrefix)
-	cpus, _ := resource.ParseQuantity("1")
-	mem, _ := resource.ParseQuantity("512Mi")
 	initContainer = []v1.Container{
 		{
 			Args: []string{
@@ -554,18 +553,9 @@ func getInitContainer(
 			Command: []string{
 				"/bin/bash",
 			},
-			Image: imageID,
-			Name:  initContainerName,
-			Resources: v1.ResourceRequirements{
-				Limits: v1.ResourceList{
-					"cpu":    cpus,
-					"memory": mem,
-				},
-				Requests: v1.ResourceList{
-					"cpu":    cpus,
-					"memory": mem,
-				},
-			},
+			Image:     imageID,
+			Name:      initContainerName,
+			Resources: role.Resources,
 			SecurityContext: &v1.SecurityContext{
 				RunAsUser: &rootUID,
 			},
@@ -591,9 +581,6 @@ func getVolumeClaimTemplate(
 		volClaim := v1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: pvcNamePrefix,
-				Annotations: map[string]string{
-					storageClassName: *role.Storage.StorageClass,
-				},
 			},
 			Spec: v1.PersistentVolumeClaimSpec{
 				AccessModes: []v1.PersistentVolumeAccessMode{
@@ -604,6 +591,7 @@ func getVolumeClaimTemplate(
 						v1.ResourceStorage: volSize,
 					},
 				},
+				StorageClassName: role.Storage.StorageClass,
 			},
 		}
 		volTemplate = append(volTemplate, volClaim)
@@ -629,9 +617,6 @@ func getVolumeClaimTemplate(
 			blockClaim := v1.PersistentVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: deviceName,
-					Annotations: map[string]string{
-						storageClassName: *role.BlockStorage.StorageClass,
-					},
 				},
 				Spec: v1.PersistentVolumeClaimSpec{
 					AccessModes: []v1.PersistentVolumeAccessMode{
@@ -681,19 +666,77 @@ func getStartupScript(
 	}
 }
 
+// Checks if the rsync command is available.
+// If rsync is installed the RSYNC_CHECK_STATUS variable will be 0.
+func genrateRsyncInstalledCmd() string {
+
+	// Here we check two things:
+	// 1) rsync is installed and available
+	// 2) The options --log-file and --info=progress2 are available.
+	// These options were not present in the erly versions of rsync
+	// The other options that are used belove -x, -a and --relative
+	// are available in all the versions of rsync.
+	// The rsync-check-status-dummy.log file (dummy log file) is not needed.
+	// It is used only in order to check that option --log-file is available
+	cmd := "rsync --log-file=./rsync-check-status-dummy.log --info=progress2 --version; RSYNC_CHECK_STATUS=$?;"
+	return cmd
+}
+
+// Generates command that will do copying with rsync
+// The progress will be stored in a file.
+func generateRsyncCmd(
+	persistDirs []string,
+) string {
+
+	// The directory should be created in /mnt in advance,
+	// otherwise the rsync log file will not be created
+	createRsyncLogFileBaseDir := fmt.Sprintf("mkdir -p /mnt%s", filepath.Dir(kubedirectorInitLogs))
+
+	rsyncCmd := fmt.Sprintf("%s; rsync --log-file=/mnt%s --info=progress2 --relative -ax %s /mnt > /mnt%s;",
+		createRsyncLogFileBaseDir,
+		kubedirectorInitLogs,
+		strings.Join(persistDirs, " "),
+		kubedirectorInitProgressBar)
+
+	return rsyncCmd
+}
+
+// Generates command that will do copying with cp
+// No way to display progress
+func generateCpCmd(
+	persistDirs []string,
+) string {
+
+	cpCmd := fmt.Sprintf("cp --parent -ax %s /mnt", strings.Join(persistDirs, " "))
+	return cpCmd
+}
+
 // generateInitContainerLaunch generates the container entrypoint command for
 // init containers. This command will populate the initial contents of the
 // directories-to-be-persisted under the "/mnt" directory on the init
 // container filesystem, then terminate the container.
-func generateInitContainerLaunch(persistDirs []string) string {
+func generateInitContainerLaunch(
+	persistDirs []string,
+) string {
 
 	// To be safe in the case that this container is restarted by someone,
 	// don't do this copy if the kubedirector.init file already exists in /etc.
-	launchCmd := "! [ -f /mnt" + kubedirectorInit + " ]" + " && " +
-		"cp --parent -ax " + strings.Join(persistDirs, " ") +
-		" /mnt; touch /mnt" + kubedirectorInit
+	copyCondition := fmt.Sprintf("! [ -f /mnt%s ]", kubedirectorInit)
 
-	return launchCmd
+	// In order to perform copying rsync will be used.
+	// It allows to report the progress that will be saved in a file.
+	// Here we check if the rsync command is installed.
+	rsyncInstalled := genrateRsyncInstalledCmd()
+
+	// If the rsync command is not available the cp command will be used.
+	fullCmd := fmt.Sprintf("%s %s && ( [ ${RSYNC_CHECK_STATUS} != 0 ] && (%s) || (%s)); touch /mnt%s;",
+		rsyncInstalled,
+		copyCondition,
+		generateCpCmd(persistDirs),
+		generateRsyncCmd(persistDirs),
+		kubedirectorInit)
+
+	return fullCmd
 }
 
 // generateSecretVolume generates VolumeMount and Volume

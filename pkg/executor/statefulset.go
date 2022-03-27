@@ -541,8 +541,6 @@ func getInitContainer(
 	}
 
 	initVolumeMounts := generateInitVolumeMounts(pvcNamePrefix)
-	cpus, _ := resource.ParseQuantity("1")
-	mem, _ := resource.ParseQuantity("512Mi")
 	initContainer = []v1.Container{
 		{
 			Args: []string{
@@ -552,18 +550,9 @@ func getInitContainer(
 			Command: []string{
 				"/bin/bash",
 			},
-			Image: imageID,
-			Name:  initContainerName,
-			Resources: v1.ResourceRequirements{
-				Limits: v1.ResourceList{
-					"cpu":    cpus,
-					"memory": mem,
-				},
-				Requests: v1.ResourceList{
-					"cpu":    cpus,
-					"memory": mem,
-				},
-			},
+			Image:     imageID,
+			Name:      initContainerName,
+			Resources: role.Resources,
 			SecurityContext: &v1.SecurityContext{
 				RunAsUser: &rootUID,
 			},

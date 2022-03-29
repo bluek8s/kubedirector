@@ -58,7 +58,7 @@ const (
 	// The file that contains full logs of copying persistent dirs
 	kubedirectorInitLogs = "/etc/kubedirector-init.log"
 	// The file that contains just a progress bar of copying persisten dirs
-	// It contains a single line that is updated dynamically
+	// The file is updated dynamically
 	kubedirectorInitProgressBar = "/etc/kubedirector-init-progress-bar.log"
 
 	// nvidiaGpuResourcePrefix is the name of a GPU resource, schedulable for a container -

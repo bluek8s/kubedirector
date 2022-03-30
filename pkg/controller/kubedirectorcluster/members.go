@@ -446,6 +446,7 @@ func handleCreatingMembers(
 ) {
 
 	creating := role.membersByState[memberCreating]
+	rs := &role.roleStatus
 
 	// Fetch setup url package
 	setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, role.roleStatus.Name)
@@ -476,6 +477,13 @@ func handleCreatingMembers(
 			connectionVersion := getConnectionVersion(reqLogger, cr, role)
 
 			m.StateDetail.LastConnectionVersion = &connectionVersion
+
+			if (*rs).RoleUpgradeStatus == kdv1.RoleUpgrading {
+				(*m).PodUpgradeStatus = kdv1.PodUpgrading
+			}
+			if (*rs).RoleUpgradeStatus == kdv1.RoleRollingBack {
+				(*m).PodUpgradeStatus = kdv1.PodRollingBack
+			}
 
 			// Check to see if we have to inject one or more files for this member
 			if len(role.roleSpec.FileInjections) != 0 {
@@ -537,21 +545,21 @@ func handleCreatingMembers(
 
 			// If appConfig returns true as a final member state
 			// remove the member from upgrading list
-			rs := &role.roleStatus
 			delete((*rs).UpgradingMembers, m.Pod)
+
 			// When there no role members left, change the role upgrade status that upgrade process is complete
 			leftUpgradingMembersCnt := len((*rs).UpgradingMembers)
 			// Change the current member upgrade status depends on role upgrade status
-			switch (*rs).UpgradeStatus {
+			switch (*rs).RoleUpgradeStatus {
 			case kdv1.RoleUpgrading:
-				(*m).UpgradeStatus = kdv1.MemberUpgraded
+				(*m).PodUpgradeStatus = kdv1.PodUpgraded
 				if leftUpgradingMembersCnt == 0 {
-					(*rs).UpgradeStatus = kdv1.RoleUpgraded
+					(*rs).RoleUpgradeStatus = kdv1.RoleUpgraded
 				}
 			case kdv1.RoleRollingBack:
-				(*m).UpgradeStatus = kdv1.MemberRolledBack
+				(*m).PodUpgradeStatus = kdv1.PodRolledBack
 				if leftUpgradingMembersCnt == 0 {
-					(*rs).UpgradeStatus = kdv1.RoleRolledBack
+					(*rs).RoleUpgradeStatus = kdv1.RoleRolledBack
 				}
 			}
 
@@ -1212,9 +1220,9 @@ func appConfig(
 				if convErr == nil && status == 0 {
 
 					var upgradeCmdErr error = nil
-					if roleStatus.UpgradeStatus == kdv1.RoleUpgrading {
+					if roleStatus.RoleUpgradeStatus == kdv1.RoleUpgrading {
 						upgradeCmdErr = runConfigScript(PodUpgraded, true)
-					} else if roleStatus.UpgradeStatus == kdv1.RoleRollingBack {
+					} else if roleStatus.RoleUpgradeStatus == kdv1.RoleRollingBack {
 						upgradeCmdErr = runConfigScript(PodReverted, true)
 					}
 					return true, upgradeCmdErr

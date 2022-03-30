@@ -197,55 +197,45 @@ func UpdateStatefulSetNonReplicas(
 	// For avoiding this situation we should have an ability to re-edit cluster spec
 	// and give a chance to the role status to restart again.
 	// A rollback process will start when a cluster app spec field is equal to the
-	// corresponding RollbackInfo fields, stored for this cluster
+	// corresponding UpgradeInfo.PrevApp field, stored for this cluster
 
-	clusterUpgradeInfo := cr.Status.UpgradeInfo
-	rollback := clusterUpgradeInfo != nil && clusterUpgradeInfo.IsRollingBack
+	upgradeInfo := cr.Status.UpgradeInfo
+	needUpgrade := upgradeInfo != nil
+	needRollback := needUpgrade && upgradeInfo.IsRollingBack
 
-	if rollback {
-		if cr.AppSpec == nil {
-			_, err := catalog.GetApp(cr)
-			if err != nil {
-				return err
-			}
-		}
-
-		rs, err := shared.GetRoleStatusByName(cr, role.Name)
-		if err != nil {
-			return err
-		}
-		(*rs).UpgradingMembers = nil
-		(*rs).UpgradeStatus = kdv1.RoleRollingBack
+	rs, err := shared.GetRoleStatusByName(cr, role.Name)
+	if err != nil {
+		return err
 	}
 
-	// Or, check do we need to rollback a statefulset image
-	if clusterUpgradeInfo != nil {
-		if appRoleImage != currentRoleImage {
-			patchedRes.Spec.Template.Spec.Containers = make([]v1.Container, len(containers))
-			patchedContainers := shared.StatefulSetContainers(&patchedRes)
-			copy(patchedContainers, containers)
-			patchedContainers[0].Image = appRoleImage
+	// Check is upgrade for the current role is required
+	if needUpgrade && appRoleImage != currentRoleImage {
 
-			// Set current role members should be upgraded
-			// It will be used at the syncMembers() step
-			rs, err := shared.GetRoleStatusByName(cr, role.Name)
-			if err != nil {
-				return err
-			}
+		patchedRes.Spec.Template.Spec.Containers = make([]v1.Container, len(containers))
+		patchedContainers := shared.StatefulSetContainers(&patchedRes)
+		copy(patchedContainers, containers)
+		patchedContainers[0].Image = appRoleImage
 
+		// In the case of rollback we should clear UpgradingMembers map
+		// and set role UpgradeStatus field to RoleRollingBack state
+		if needRollback {
+			rs.UpgradingMembers = nil
+			rs.RoleUpgradeStatus = kdv1.RoleRollingBack
+		} else {
 			if (*rs).UpgradingMembers == nil {
 				(*rs).UpgradingMembers = make(map[string]*string)
 			}
 
-			if !rollback {
-				(*rs).UpgradeStatus = kdv1.RoleUpgrading
-				for _, m := range (*rs).Members {
-					(*rs).UpgradingMembers[m.Pod] = &appRoleImage
-				}
+			// Fill UpgradingMembers map by current role members should be upgraded
+			// It will be used at the syncMembers() step
+			for _, m := range (*rs).Members {
+				(*rs).UpgradingMembers[m.Pod] = &appRoleImage
 			}
-
-			needPatch = true
+			// Set role UpgradeStatus field to RoleUpgrading state
+			(*rs).RoleUpgradeStatus = kdv1.RoleUpgrading
 		}
+
+		needPatch = true
 	}
 
 	if !needPatch {

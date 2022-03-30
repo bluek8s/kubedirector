@@ -197,13 +197,11 @@ type BlockStorage struct {
 type RoleUpgradeStatus string
 
 const (
-	// Upgrade process is finished
-	RoleUpgraded RoleUpgradeStatus = "upgraded"
-	// Rollback process is finished
+	// Upgrade/Rollback process is finished
+	RoleUpgraded   RoleUpgradeStatus = "upgraded"
 	RoleRolledBack RoleUpgradeStatus = "rolledBack"
-	// In the middle of upgrade process
-	RoleUpgrading RoleUpgradeStatus = "upgrading"
-	// In the middle of rollback process
+	// In the middle of upgrade/rollback process
+	RoleUpgrading   RoleUpgradeStatus = "upgrading"
 	RoleRollingBack RoleUpgradeStatus = "rollingBack"
 )
 
@@ -214,7 +212,7 @@ type RoleStatus struct {
 	Members             []MemberStatus     `json:"members"`
 	EncryptedSecretKeys map[string]string  `json:"encryptedSecretKeys,omitempty"`
 	UpgradingMembers    map[string]*string `json:"upgradingMembers,omitempty"`
-	UpgradeStatus       RoleUpgradeStatus  `json:"upgradeStatus,omitempty"`
+	RoleUpgradeStatus   RoleUpgradeStatus  `json:"roleUpgradeStatus,omitempty"`
 }
 
 type UpgradeInfo struct {
@@ -232,8 +230,10 @@ type RollbackInfo struct {
 type MemberUpgradeStatus string
 
 const (
-	MemberUpgraded   MemberUpgradeStatus = "upgraded"
-	MemberRolledBack MemberUpgradeStatus = "rolledBack"
+	PodUpgraded    MemberUpgradeStatus = "upgraded"
+	PodRolledBack  MemberUpgradeStatus = "rolledBack"
+	PodUpgrading   MemberUpgradeStatus = "upgrading"
+	PodRollingBack MemberUpgradeStatus = "rollingBack"
 )
 
 // MemberStatus describes the component objects of a virtual cluster member.
@@ -246,7 +246,7 @@ type MemberStatus struct {
 	StateDetail      MemberStateDetail   `json:"stateDetail,omitempty"`
 	NodeID           int64               `json:"nodeID"`
 	BlockDevicePaths []string            `json:"blockDevicePaths,omitempty"`
-	UpgradeStatus    MemberUpgradeStatus `json:"upgradeStatus,omitempty"`
+	PodUpgradeStatus MemberUpgradeStatus `json:"podUpgradeStatus,omitempty"`
 }
 
 // MemberStateDetail digs into detail about the management of configmeta and

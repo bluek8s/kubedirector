@@ -59,46 +59,44 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	}
 
 	// Check, if some statefulset is in the middle of upgrade/rollback process.
-	// If so, the current cluster status still can be in `configured` state, change it to `updating`
+	// If so, the current cluster state still can be in `configured` state, change it to `updating`
 	upgradeIsActive := false
 	for _, rs := range cr.Status.Roles {
-		if rs.UpgradeStatus == kdv1.RoleRollingBack || rs.UpgradeStatus == kdv1.RoleUpgrading {
+		if rs.RoleUpgradeStatus == kdv1.RoleRollingBack || rs.RoleUpgradeStatus == kdv1.RoleUpgrading {
 			upgradeIsActive = true
 			cr.Status.State = string(clusterUpdating)
 			break
 		}
 	}
 
-	clusterIsReady := shared.ClusterIsReady(cr)
-
 	// If all statefulsets completed their upgrade/rollback processes
 	// erase the cluster upgradeInfo object
 	if cr.Status.UpgradeInfo != nil && !upgradeIsActive {
-		(*cr).Status.UpgradeInfo = nil
+		cr.Status.UpgradeInfo = nil
 	}
 
 	upgradeInfo := (*cr).Status.UpgradeInfo
 
 	// KD cluter is created recently, init the Status.AppID field
 	if cr.Status.AppID == nil {
-		(*cr).Status.AppID = &cr.Spec.AppID
+		cr.Status.AppID = &cr.Spec.AppID
 	} else
 	// Spec.AppID was changed, create the upgradeInfo object and store there the current AppID
+	// Also, change cluster state to `updating`
 	if cr.Spec.AppID != *cr.Status.AppID && upgradeInfo == nil {
-		(*cr).Status.UpgradeInfo = &kdv1.UpgradeInfo{
+		cr.Status.UpgradeInfo = &kdv1.UpgradeInfo{
 			IsRollingBack: false,
 			PrevApp:       *cr.Status.AppID,
 		}
-		(*cr).Status.AppID = &cr.Spec.AppID
+		cr.Status.AppID = &cr.Spec.AppID
+		(*cr).Status.State = string(clusterUpdating)
 	} else
-	// KD cluster upgradeInfo object exists
-	if upgradeInfo != nil {
-		if clusterIsReady {
-			(*cr).Status.UpgradeInfo = nil
-		} else if !upgradeInfo.IsRollingBack && cr.Spec.AppID == upgradeInfo.PrevApp {
-			(*upgradeInfo).IsRollingBack = true
-			(*cr).Status.AppID = &upgradeInfo.PrevApp
-		}
+	// If KD cluster upgradeInfo object exists and is not in RollingBack status,
+	// but the current cluster AppID is the same as in the upgradeInfo
+	// it means that rollback is required
+	if upgradeInfo != nil && !upgradeInfo.IsRollingBack && cr.Spec.AppID == upgradeInfo.PrevApp {
+		upgradeInfo.IsRollingBack = true
+		cr.Status.AppID = &upgradeInfo.PrevApp
 	}
 
 	if cr.Status.SpecGenerationToProcess == nil {

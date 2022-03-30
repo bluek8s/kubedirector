@@ -558,7 +558,7 @@ spec:
                   upgradingMembers:
                     type: object
                     nullable: true
-                  upgradeStatus:
+                  roleUpgradeStatus:
                     type: string
                   members:
                     type: array
@@ -579,7 +579,7 @@ spec:
                           type: string  
                         state:
                           type: string
-                        upgradeStatus:
+                        podUpgradeStatus:
                           type: string
                         stateDetail:
                           type: object

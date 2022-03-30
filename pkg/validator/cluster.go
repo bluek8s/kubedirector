@@ -314,10 +314,9 @@ func validateGeneralClusterChanges(
 
 	readyToUpgrade := shared.ClusterIsReady(prevCr)
 	upgradeInfo := prevCr.Status.UpgradeInfo
-
 	// If changed cluster has actual upgradeInfo (was in Updating state)
 	// we may permit the changes for rollback case only
-	// It means, the current proposed AppId should be the same as the stored in upgradeInfo object
+	// It means, the current proposed AppId should be the same as the stored in the upgradeInfo object
 	if upgradeInfo != nil && !upgradeInfo.IsRollingBack {
 		readyToUpgrade = cr.Spec.AppID == upgradeInfo.PrevApp
 	}

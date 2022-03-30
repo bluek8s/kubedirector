@@ -198,16 +198,11 @@ func UpdateStatefulSetNonReplicas(
 	// and give a chance to the role status to restart again.
 	// A rollback process will start when a cluster app spec field is equal to the
 	// corresponding RollbackInfo fields, stored for this cluster
-	rollback := false
 
-	// Check, if cluster is not ready and current role status has upgrading members
-	roleStatusIsUpgrading := shared.RoleStatusIsUpgrading(cr, role.Name)
+	clusterUpgradeInfo := cr.Status.UpgradeInfo
+	rollback := clusterUpgradeInfo != nil && clusterUpgradeInfo.IsRollingBack
 
-	if !clusterIsReady && roleStatusIsUpgrading {
-
-		rbKey := cr.Name + cr.Namespace
-		rbInfo := shared.ClusterRollbackInfoMap[rbKey]
-
+	if rollback {
 		if cr.AppSpec == nil {
 			_, err := catalog.GetApp(cr)
 			if err != nil {
@@ -215,38 +210,23 @@ func UpdateStatefulSetNonReplicas(
 			}
 		}
 
-		// Check if rollback info for this cluster (the last worked app descriptor)
-		// matches with the current app spec. If so, permit rollback
-		if rbInfo != nil && cr.AppSpec != nil {
-			rollback = rbInfo.AppID == cr.Spec.AppID &&
-				rbInfo.DistroID == cr.AppSpec.Spec.DistroID &&
-				rbInfo.Version == cr.AppSpec.Spec.Version
-
-			if rollback {
-				rs, err := shared.GetRoleStatusByName(cr, role.Name)
-				if err != nil {
-					return err
-				}
-				(*rs).UpgradingMembers = nil
-				(*rs).UpgradeStatus = kdv1.RoleRollingBack
-			}
+		rs, err := shared.GetRoleStatusByName(cr, role.Name)
+		if err != nil {
+			return err
 		}
+		(*rs).UpgradingMembers = nil
+		(*rs).UpgradeStatus = kdv1.RoleRollingBack
 	}
 
-	// Check is KDCluster in configured state and
-	// is the roleStatus currently not upgrading
-	readyToUpgrade := clusterIsReady && !roleStatusIsUpgrading
-
 	// Or, check do we need to rollback a statefulset image
-	if readyToUpgrade || rollback {
-
+	if clusterUpgradeInfo != nil {
 		if appRoleImage != currentRoleImage {
 			patchedRes.Spec.Template.Spec.Containers = make([]v1.Container, len(containers))
 			patchedContainers := shared.StatefulSetContainers(&patchedRes)
 			copy(patchedContainers, containers)
 			patchedContainers[0].Image = appRoleImage
 
-			// Set current role members count should be upgraded
+			// Set current role members should be upgraded
 			// It will be used at the syncMembers() step
 			rs, err := shared.GetRoleStatusByName(cr, role.Name)
 			if err != nil {
@@ -260,9 +240,6 @@ func UpdateStatefulSetNonReplicas(
 			if !rollback {
 				(*rs).UpgradeStatus = kdv1.RoleUpgrading
 				for _, m := range (*rs).Members {
-					// This check added for restart case.
-					// If proposed clusterRoleImage is the same as already run in member container
-					// we shouldn't add this member to UpgradeMembers list.
 					(*rs).UpgradingMembers[m.Pod] = &appRoleImage
 				}
 			}

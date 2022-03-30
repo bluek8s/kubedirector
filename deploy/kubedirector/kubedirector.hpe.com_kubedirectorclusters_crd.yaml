@@ -501,6 +501,14 @@ spec:
           properties:
             state:
               type: string
+            upgradeInfo:
+              type: object
+              nullable: true
+              properties:
+                isRollingBack:
+                  type: boolean
+                prevApp:
+                  type: string
             restoreProgress:
               type: object
               nullable: true

@@ -54,6 +54,7 @@ const (
 	modifiedProperty = "The %s property is read-only."
 	modifiedRole     = "Role(%s) properties other than the members count cannot be modified while role members exist."
 
+	clusterNotReady      = "The %s cluster cannot be upgraded, as currently it is in %s state."
 	versionIsNotModified = "The application %s of version %s is already running at the current cluster. Change the version for upgrade."
 	appNotUpgradable     = "The application %s of version %s doesn't support live upgrade. "
 

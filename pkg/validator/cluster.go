@@ -311,68 +311,65 @@ func validateGeneralClusterChanges(
 	prevCr *kdv1.KubeDirectorCluster,
 	valErrors []string,
 ) []string {
-	if shared.ClusterIsReady(prevCr) {
 
-		crApp, err := catalog.GetApp(cr)
-		if err != nil {
-			valErrors = append(valErrors, err.Error())
-		}
+	readyToUpgrade := shared.ClusterIsReady(prevCr)
+	upgradeInfo := prevCr.Status.UpgradeInfo
 
-		prevCrApp, err := catalog.GetApp(prevCr)
-		if err != nil {
-			valErrors = append(valErrors, err.Error())
-		}
+	// If changed cluster has actual upgradeInfo (was in Updating state)
+	// we may permit the changes for rollback case only
+	// It means, the current proposed AppId should be the same as the stored in upgradeInfo object
+	if upgradeInfo != nil && !upgradeInfo.IsRollingBack {
+		readyToUpgrade = cr.Spec.AppID == upgradeInfo.PrevApp
+	}
 
-		if crApp != nil && prevCrApp != nil {
-
-			// Get unique cluster rollback info, if exists
-			rbKey := cr.Name + cr.Namespace
-			rbInfo := shared.ClusterRollbackInfoMap[rbKey]
-
-			if prevCrApp.Spec.DistroID != crApp.Spec.DistroID {
-				appModifiedMsg := fmt.Sprintf(
-					invalidDistroId,
-					crApp.Spec.DistroID,
-					prevCrApp.Spec.DistroID,
-				)
-				valErrors = append(valErrors, appModifiedMsg)
-			}
-
-			if prevCrApp.Spec.Version == crApp.Spec.Version {
-				appModifiedMsg := fmt.Sprintf(
-					versionIsNotModified,
-					crApp.Spec.DistroID,
-					crApp.Spec.Version,
-				)
-				valErrors = append(valErrors, appModifiedMsg)
-			}
-
-			if !prevCrApp.Spec.Upgradable {
-				appModifiedMsg := fmt.Sprintf(
-					appNotUpgradable,
-					prevCrApp.Spec.DistroID,
-					prevCrApp.Spec.Version,
-				)
-				valErrors = append(valErrors, appModifiedMsg)
-			}
-
-			// Check, was the previous cluster configured succesfully
-			// If so, write its app identifiers as rollback info for the current one
-			rbInfo = &kdv1.RollbackInfo{
-				AppID:    prevCr.Spec.AppID,
-				DistroID: prevCrApp.Spec.DistroID,
-				Version:  prevCrApp.Spec.Version,
-			}
-
-			shared.ClusterRollbackInfoMap[rbKey] = rbInfo
-		}
-	} else {
+	if !readyToUpgrade {
 		clusterNotReadyMsg := fmt.Sprintf(
-			clusterIsNotReady,
-			cr.ClusterName,
-			cr.Status.State,
+			clusterNotReady,
+			prevCr.Name,
+			prevCr.Status.State,
 		)
 		valErrors = append(valErrors, clusterNotReadyMsg)
+		return valErrors
+	}
+
+	crApp, err := catalog.GetApp(cr)
+	if err != nil {
+		valErrors = append(valErrors, err.Error())
+	}
+
+	prevCrApp, err := catalog.GetApp(prevCr)
+	if err != nil {
+		valErrors = append(valErrors, err.Error())
+	}
+
+	if crApp != nil && prevCrApp != nil {
+
+		if prevCrApp.Spec.DistroID != crApp.Spec.DistroID {
+			appModifiedMsg := fmt.Sprintf(
+				invalidDistroId,
+				crApp.Spec.DistroID,
+				prevCrApp.Spec.DistroID,
+			)
+			valErrors = append(valErrors, appModifiedMsg)
+		}
+
+		if prevCrApp.Spec.Version == crApp.Spec.Version {
+			appModifiedMsg := fmt.Sprintf(
+				versionIsNotModified,
+				crApp.Spec.DistroID,
+				crApp.Spec.Version,
+			)
+			valErrors = append(valErrors, appModifiedMsg)
+		}
+
+		if !prevCrApp.Spec.Upgradable {
+			appModifiedMsg := fmt.Sprintf(
+				appNotUpgradable,
+				prevCrApp.Spec.DistroID,
+				prevCrApp.Spec.Version,
+			)
+			valErrors = append(valErrors, appModifiedMsg)
+		}
 	}
 
 	// appCatalog should not be nil at this point in the flow if everything

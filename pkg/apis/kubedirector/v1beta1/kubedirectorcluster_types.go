@@ -65,6 +65,8 @@ type KubeDirectorClusterStatus struct {
 	LastNodeID              int64            `json:"lastNodeID"`
 	Roles                   []RoleStatus     `json:"roles"`
 	LastConnectionHash      string           `json:"lastConnectionHash"`
+	AppID                   *string          `json:"app"`
+	UpgradeInfo             *UpgradeInfo     `json:"upgradeInfo,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -213,6 +215,11 @@ type RoleStatus struct {
 	EncryptedSecretKeys map[string]string  `json:"encryptedSecretKeys,omitempty"`
 	UpgradingMembers    map[string]*string `json:"upgradingMembers,omitempty"`
 	UpgradeStatus       RoleUpgradeStatus  `json:"upgradeStatus,omitempty"`
+}
+
+type UpgradeInfo struct {
+	IsRollingBack bool   `json:"isRollingBack"`
+	PrevApp       string `json:"prevApp,omitempty"`
 }
 
 // RollbackInfo describes the last working application spec for each RoleStatus.

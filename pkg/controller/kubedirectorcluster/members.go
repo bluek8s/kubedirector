@@ -535,7 +535,7 @@ func handleCreatingMembers(
 				return
 			}
 
-			// If appConfig returned true as a final member state
+			// If appConfig returns true as a final member state
 			// remove the member from upgrading list
 			rs := &role.roleStatus
 			delete((*rs).UpgradingMembers, m.Pod)

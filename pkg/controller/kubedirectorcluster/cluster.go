@@ -57,6 +57,50 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		cr.Status = &kdv1.KubeDirectorClusterStatus{}
 		cr.Status.Roles = make([]kdv1.RoleStatus, 0)
 	}
+
+	// Check, if some statefulset is in the middle of upgrade/rollback process.
+	// If so, the current cluster status still can be in `configured` state, change it to `updating`
+	upgradeIsActive := false
+	for _, rs := range cr.Status.Roles {
+		if rs.UpgradeStatus == kdv1.RoleRollingBack || rs.UpgradeStatus == kdv1.RoleUpgrading {
+			upgradeIsActive = true
+			cr.Status.State = string(clusterUpdating)
+			break
+		}
+	}
+
+	clusterIsReady := shared.ClusterIsReady(cr)
+
+	// If all statefulsets completed their upgrade/rollback processes
+	// erase the cluster upgradeInfo object
+	if cr.Status.UpgradeInfo != nil && !upgradeIsActive {
+		(*cr).Status.UpgradeInfo = nil
+	}
+
+	upgradeInfo := (*cr).Status.UpgradeInfo
+
+	// KD cluter is created recently, init the Status.AppID field
+	if cr.Status.AppID == nil {
+		(*cr).Status.AppID = &cr.Spec.AppID
+	} else
+	// Spec.AppID was changed, create the upgradeInfo object and store there the current AppID
+	if cr.Spec.AppID != *cr.Status.AppID && upgradeInfo == nil {
+		(*cr).Status.UpgradeInfo = &kdv1.UpgradeInfo{
+			IsRollingBack: false,
+			PrevApp:       *cr.Status.AppID,
+		}
+		(*cr).Status.AppID = &cr.Spec.AppID
+	} else
+	// KD cluster upgradeInfo object exists
+	if upgradeInfo != nil {
+		if clusterIsReady {
+			(*cr).Status.UpgradeInfo = nil
+		} else if !upgradeInfo.IsRollingBack && cr.Spec.AppID == upgradeInfo.PrevApp {
+			(*upgradeInfo).IsRollingBack = true
+			(*cr).Status.AppID = &upgradeInfo.PrevApp
+		}
+	}
+
 	if cr.Status.SpecGenerationToProcess == nil {
 		initSpecGen := int64(0)
 		cr.Status.SpecGenerationToProcess = &initSpecGen

@@ -159,7 +159,5 @@ func RoleStatusIsUpgrading(
 func ClusterIsReady(
 	cr *kdv1.KubeDirectorCluster,
 ) bool {
-	return cr.Status.State == "configured"
+	return (*cr).Status.State == "configured"
 }
-
-var ClusterRollbackInfoMap = make(map[string]*kdv1.RollbackInfo)

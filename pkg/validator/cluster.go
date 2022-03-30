@@ -341,7 +341,7 @@ func validateGeneralClusterChanges(
 		valErrors = append(valErrors, err.Error())
 	}
 
-	if crApp != nil && prevCrApp != nil {
+	if crApp != prevCrApp {
 
 		if prevCrApp.Spec.DistroID != crApp.Spec.DistroID {
 			appModifiedMsg := fmt.Sprintf(

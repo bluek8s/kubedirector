@@ -1139,7 +1139,7 @@ func appConfig(
 				cmdErr,
 				cr,
 				shared.EventReasonMember,
-				"failed to run startcsript with --{%s} in member{%s} in role{%s}",
+				"failed to run startscript with --{%s} in member{%s} in role{%s}",
 				string(configArg),
 				podName,
 				roleName,

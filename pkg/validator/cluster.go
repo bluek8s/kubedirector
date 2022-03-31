@@ -341,8 +341,20 @@ func validateGeneralClusterChanges(
 		valErrors = append(valErrors, err.Error())
 	}
 
-	if crApp != prevCrApp {
+	appModified := cr.Spec.AppID != prevCr.Spec.AppID
 
+	if appModified {
+		// Spec change not allowed if a user tries to update spec.app with other spec fields in the same time.
+		prevAppId := prevCr.Spec.AppID
+		prevCr.Spec.AppID = cr.Spec.AppID
+
+		if !equality.Semantic.DeepEqual(cr.Spec, prevCr.Spec) {
+			valErrors = append(valErrors, notOnlyAppModified)
+			return valErrors
+		}
+		prevCr.Spec.AppID = prevAppId
+
+		// DistroID should stay the same
 		if prevCrApp.Spec.DistroID != crApp.Spec.DistroID {
 			appModifiedMsg := fmt.Sprintf(
 				invalidDistroId,
@@ -352,6 +364,7 @@ func validateGeneralClusterChanges(
 			valErrors = append(valErrors, appModifiedMsg)
 		}
 
+		// App version should be different from previous one
 		if prevCrApp.Spec.Version == crApp.Spec.Version {
 			appModifiedMsg := fmt.Sprintf(
 				versionIsNotModified,
@@ -361,6 +374,7 @@ func validateGeneralClusterChanges(
 			valErrors = append(valErrors, appModifiedMsg)
 		}
 
+		// Also, the current app should support upgrade
 		if !prevCrApp.Spec.Upgradable {
 			appModifiedMsg := fmt.Sprintf(
 				appNotUpgradable,

@@ -1,3 +1,15 @@
+# v0.9.0 - Mar 31, 2022
+
+A collection of kdcluster features and bugfixes here. In order of issue number:
+* [allow requesting PV storage for kdcluster role members](https://github.com/bluek8s/kubedirector/issues/411); cf. the 0.9.0 additions to the [role spec](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorCluster-Definition#rolespec)
+* [don't put owner ref on MutatingWebhookConfiguration](https://github.com/bluek8s/kubedirector/issues/505) since K8s no longer honors this; the kubedirector-webhook needs to be explicitly remove if uninstalling KD ([which "make teardown" now does](https://github.com/bluek8s/kubedirector/issues/570))
+* [make configscript error info available in member status](https://github.com/bluek8s/kubedirector/issues/547); cf. the 0.9.0 additions to the [memberStateDetail](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorCluster-Definition#memberstatedetail) in per-member status and to the [kdapp spec](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorApp-Definition#kubedirectorappspec)
+* [fix application of the NVIDIA_VISIBLE_DEVICES environment var](https://github.com/bluek8s/kubedirector/issues/507) to properly set this to "void" when no NVidia GPU resources are requested
+* [stop using a deprecated method of setting PVC storage class](https://github.com/bluek8s/kubedirector/issues/556); this also fixes some PV backup issues when using Velero
+* [make the pod-unschedulable reason available in member status](https://github.com/bluek8s/kubedirector/issues/562); cf. the 0.9.0 additions to the [memberStateDetail](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorCluster-Definition#memberstatedetail) in per-member status
+* [give init containers the same resources as app containers](https://github.com/bluek8s/kubedirector/issues/565) to avoid locking down excess resources
+* [mark that the KD webhooks support "dry run"](https://github.com/bluek8s/kubedirector/issues/568)
+
 # v0.8.1 - Feb 14, 2022
 
 Happy Valentine's Day! This dot-release is for showing some love to kdapp developers who want to transition to the "new layout" introduced in the prior release, but who will need more time to transition to the more restrictive permissions on /etc/guestconfig. The [app-filesystem-layout.md](doc/app-filesystem-layout.md) doc has been updated with tips. [PR 557](https://github.com/bluek8s/kubedirector/pull/557) describes the corresponding functional change in KubeDirector.

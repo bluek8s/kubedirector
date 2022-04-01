@@ -72,6 +72,23 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	// If all statefulsets completed their upgrade/rollback processes
 	// erase the cluster upgradeInfo object
 	if cr.Status.UpgradeInfo != nil && !upgradeIsActive {
+		// If there wasn't rollback
+		if cr.Spec.AppID != cr.Status.UpgradeInfo.PrevApp {
+			// Remove the cluster bind with the previous app
+			shared.RemoveClusterAppReference(
+				cr.Namespace,
+				cr.Name,
+				*cr.Spec.AppCatalog,
+				cr.Status.UpgradeInfo.PrevApp,
+			)
+			// And bind the cluster with the new app
+			shared.EnsureClusterAppReference(
+				cr.Namespace,
+				cr.Name,
+				*cr.Spec.AppCatalog,
+				cr.Spec.AppID,
+			)
+		}
 		cr.Status.UpgradeInfo = nil
 	}
 

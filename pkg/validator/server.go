@@ -25,7 +25,7 @@ import (
 
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"k8s.io/api/admission/v1beta1"
+	av1beta1 "k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -48,7 +48,7 @@ func validation(
 	r *http.Request,
 ) {
 
-	var admissionResponse *v1beta1.AdmissionResponse
+	var admissionResponse *av1beta1.AdmissionResponse
 
 	var body []byte
 	if r.Body != nil {
@@ -73,9 +73,9 @@ func validation(
 		return
 	}
 
-	ar := v1beta1.AdmissionReview{}
+	ar := av1beta1.AdmissionReview{}
 	if err := json.Unmarshal(body, &ar); err != nil {
-		admissionResponse = &v1beta1.AdmissionResponse{
+		admissionResponse = &av1beta1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
 			},
@@ -87,13 +87,13 @@ func validation(
 			admissionResponse = handler(&ar)
 		} else {
 			// No validation handler for this CR. Allow to go through.
-			admissionResponse = &v1beta1.AdmissionResponse{
+			admissionResponse = &av1beta1.AdmissionResponse{
 				Allowed: true,
 			}
 		}
 	}
 
-	admissionReview := v1beta1.AdmissionReview{}
+	admissionReview := av1beta1.AdmissionReview{}
 	if admissionResponse != nil {
 		admissionReview.Response = admissionResponse
 		if ar.Request != nil {

@@ -29,7 +29,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/secretkeys"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"k8s.io/api/admission/v1beta1"
+	av1beta1 "k8s.io/api/admission/v1beta1"
 	v1 "k8s.io/api/authentication/v1"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -1155,12 +1155,12 @@ func validateVolumeProjections(
 // the top-specific validation subroutines and composes the admission
 // response.
 func admitClusterCR(
-	ar *v1beta1.AdmissionReview,
-) *v1beta1.AdmissionResponse {
+	ar *av1beta1.AdmissionReview,
+) *av1beta1.AdmissionResponse {
 
 	var valErrors []string
 	var patches []clusterPatchSpec
-	var admitResponse = v1beta1.AdmissionResponse{
+	var admitResponse = av1beta1.AdmissionResponse{
 		Allowed: false,
 	}
 
@@ -1172,7 +1172,7 @@ func admitClusterCR(
 				patchResult, patchErr := json.Marshal(patches)
 				if patchErr == nil {
 					admitResponse.Patch = patchResult
-					patchType := v1beta1.PatchTypeJSONPatch
+					patchType := av1beta1.PatchTypeJSONPatch
 					admitResponse.PatchType = &patchType
 				} else {
 					valErrors = append(valErrors, failedToPatch)
@@ -1190,7 +1190,7 @@ func admitClusterCR(
 
 	// We'll need the existing object in update and delete cases.
 	prevClusterCR := kdv1.KubeDirectorCluster{}
-	if (ar.Request.Operation == v1beta1.Update) || (ar.Request.Operation == v1beta1.Delete) {
+	if (ar.Request.Operation == av1beta1.Update) || (ar.Request.Operation == av1beta1.Delete) {
 		prevRaw := ar.Request.OldObject.Raw
 		if prevJSONErr := json.Unmarshal(prevRaw, &prevClusterCR); prevJSONErr != nil {
 			valErrors = append(valErrors, prevJSONErr.Error())
@@ -1204,7 +1204,7 @@ func admitClusterCR(
 	// If this is a delete and the being-restored label is set, reject the
 	// deletion unless allow-delete-while-restoring is also set. In all other
 	// cases allow the deletion.
-	if ar.Request.Operation == v1beta1.Delete {
+	if ar.Request.Operation == av1beta1.Delete {
 		if !isRestoring {
 			return &admitResponse
 		}
@@ -1229,7 +1229,7 @@ func admitClusterCR(
 
 	// If this is a re-creation (as indicated by annotation existing), set
 	// the being-restored label and skip validation.
-	if ar.Request.Operation == v1beta1.Create {
+	if ar.Request.Operation == av1beta1.Create {
 		if clusterCR.Annotations != nil {
 			if _, ok := clusterCR.Annotations[shared.StatusBackupAnnotation]; ok {
 				patches = addRestoreLabel(&clusterCR, patches)
@@ -1240,7 +1240,7 @@ func admitClusterCR(
 
 	// If this is an update and the being-restored label is set, don't allow
 	// any spec change.
-	if ar.Request.Operation == v1beta1.Update {
+	if ar.Request.Operation == av1beta1.Update {
 		if isRestoring {
 			if !equality.Semantic.DeepEqual(clusterCR.Spec, prevClusterCR.Spec) {
 				valErrors = append(
@@ -1291,7 +1291,7 @@ func admitClusterCR(
 	// validator sees the request.
 	// We will NOT take this shortcut if we're trying to change from
 	// "restoring" to "reconciling". Need to validate in that case.
-	if ar.Request.Operation == v1beta1.Update {
+	if ar.Request.Operation == av1beta1.Update {
 		doShortcut := true
 		if isRestoring {
 			_, willStillBeRestoring := clusterCR.Labels[shared.RestoringLabel]
@@ -1318,7 +1318,7 @@ func admitClusterCR(
 	// Validate that it's OK to change the spec. Note that this check assumes
 	// that the above "shortcut" is in place, i.e. we are only calling this
 	// if the spec is changing.
-	if ar.Request.Operation == v1beta1.Update {
+	if ar.Request.Operation == av1beta1.Update {
 		valErrors, patches = validateSpecChange(&clusterCR, &prevClusterCR, valErrors, patches)
 	}
 
@@ -1358,7 +1358,7 @@ func admitClusterCR(
 	valErrors, patches = validateVolumeProjections(&clusterCR, ar.Request.UserInfo, valErrors, patches)
 
 	// If cluster already exists, check for invalid property changes.
-	if ar.Request.Operation == v1beta1.Update {
+	if ar.Request.Operation == av1beta1.Update {
 		var changeErrors []string
 		changeErrors = validateGeneralClusterChanges(&clusterCR, &prevClusterCR, changeErrors)
 		changeErrors = validateRoleChanges(&clusterCR, &prevClusterCR, changeErrors)

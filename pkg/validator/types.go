@@ -16,11 +16,11 @@ package validator
 
 import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"k8s.io/api/admission/v1beta1"
+	av1beta1 "k8s.io/api/admission/v1beta1"
 )
 
 // admitFunc is used as the type for all the callback validators
-type admitFunc func(*v1beta1.AdmissionReview) *v1beta1.AdmissionResponse
+type admitFunc func(*av1beta1.AdmissionReview) *av1beta1.AdmissionResponse
 
 type checkFunc func() error
 

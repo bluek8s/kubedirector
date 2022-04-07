@@ -16,6 +16,19 @@ spec:
     - name: v1beta1
       served: true
       storage: true
+      additionalPrinterColumns:
+      - name: App Name
+        type: string
+        description: Human-readable app name
+        jsonPath: .spec.label.name
+      - name: Distro ID
+        type: string
+        description: Unique identifier of a series of kdapp versions
+        jsonPath: .spec.distroID
+      - name: Version
+        type: string
+        description: A specific release of a kdapp distro ID
+        jsonPath: .spec.version
       schema:
         openAPIV3Schema:
           type: object

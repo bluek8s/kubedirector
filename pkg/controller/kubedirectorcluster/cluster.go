@@ -453,33 +453,25 @@ func handleClusterUpgrade(
 		}
 	}
 
-	// If all statefulsets completed their upgrade/rollback processes
-	// erase the cluster upgradeInfo object
-	if cr.Status.UpgradeInfo != nil && !upgradeIsActive {
-		// If there wasn't rollback
-		if cr.Spec.AppID != cr.Status.UpgradeInfo.PrevApp {
-			// Remove the cluster bind with the previous app
-			shared.RemoveClusterAppReference(
-				cr.Namespace,
-				cr.Name,
-				*cr.Spec.AppCatalog,
-				cr.Status.UpgradeInfo.PrevApp,
-			)
-			// And bind the cluster with the new app
-			shared.EnsureClusterAppReference(
-				cr.Namespace,
-				cr.Name,
-				*cr.Spec.AppCatalog,
-				cr.Spec.AppID,
-			)
-		}
-		cr.Status.UpgradeInfo = nil
-
-	}
-
 	upgradeInfo := (*cr).Status.UpgradeInfo
 
-	// KD cluter is created recently, init the Status.AppID field
+	// If all statefulsets completed their upgrade/rollback processes
+	// erase the cluster upgradeInfo object
+	if upgradeInfo != nil && !upgradeIsActive {
+
+		// Remove the cluster bind with the previous app
+		shared.RemoveClusterAppReference(
+			cr.Namespace,
+			cr.Name,
+			*cr.Spec.AppCatalog,
+			upgradeInfo.PrevApp,
+		)
+
+		cr.Status.UpgradeInfo = nil
+		upgradeInfo = nil
+	}
+
+	// KD cluster is created recently, init the Status.AppID field
 	if cr.Status.AppID == nil {
 		cr.Status.AppID = &cr.Spec.AppID
 	} else
@@ -490,6 +482,13 @@ func handleClusterUpgrade(
 			IsRollingBack: false,
 			PrevApp:       *cr.Status.AppID,
 		}
+		// Bind the cluster with the new app
+		shared.EnsureClusterAppReference(
+			cr.Namespace,
+			cr.Name,
+			*cr.Spec.AppCatalog,
+			cr.Spec.AppID,
+		)
 		cr.Status.AppID = &cr.Spec.AppID
 	} else
 	// If KD cluster upgradeInfo object exists and is not in RollingBack status,

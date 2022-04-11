@@ -312,24 +312,12 @@ func validateGeneralClusterChanges(
 	valErrors []string,
 ) []string {
 
-	readyToUpgrade := shared.ClusterIsReady(prevCr)
-	upgradeInfo := prevCr.Status.UpgradeInfo
-	// If changed cluster has actual upgradeInfo (was in Updating state)
-	// we may permit the changes for rollback case only
-	// It means, the current proposed AppId should be the same as the stored in the upgradeInfo object
-	if upgradeInfo != nil && !upgradeInfo.IsRollingBack {
-		readyToUpgrade = cr.Spec.AppID == upgradeInfo.PrevApp
-	}
+	// Check if cluster is ready. If so, permit the changes
+	configured := (*prevCr).Status.State == "configured"
+	appModified := cr.Spec.AppID != prevCr.Spec.AppID
+	rollbackRequested := false
 
-	if !readyToUpgrade {
-		clusterNotReadyMsg := fmt.Sprintf(
-			clusterNotReady,
-			prevCr.Name,
-			prevCr.Status.State,
-		)
-		valErrors = append(valErrors, clusterNotReadyMsg)
-		return valErrors
-	}
+	upgradeInfo := prevCr.Status.UpgradeInfo
 
 	crApp, err := catalog.GetApp(cr)
 	if err != nil {
@@ -341,18 +329,45 @@ func validateGeneralClusterChanges(
 		valErrors = append(valErrors, err.Error())
 	}
 
-	appModified := cr.Spec.AppID != prevCr.Spec.AppID
+	// If changed cluster has actual upgradeInfo (was in Updating state)
+	// we may permit the changes for rollback case only
+	// It means, the current proposed AppId should be the same as the stored in the upgradeInfo object
+	if appModified && upgradeInfo != nil && !upgradeInfo.IsRollingBack {
+		rollbackRequested = cr.Spec.AppID == upgradeInfo.PrevApp
+	}
 
-	if appModified {
-		// Spec change not allowed if a user tries to update spec.app with other spec fields in the same time.
-		prevAppId := prevCr.Spec.AppID
-		prevCr.Spec.AppID = cr.Spec.AppID
+	// Check if any fields other than spec.app were changed
+	prevAppId := prevCr.Spec.AppID
+	prevCr.Spec.AppID = cr.Spec.AppID
+	fieldsModified := !equality.Semantic.DeepEqual(cr.Spec, prevCr.Spec)
+	prevCr.Spec.AppID = prevAppId
 
-		if !equality.Semantic.DeepEqual(cr.Spec, prevCr.Spec) {
-			valErrors = append(valErrors, notOnlyAppModified)
+	// If cluster is not configured and no rollback requested, reject any changes (app-related and other)
+	if !configured {
+		if fieldsModified {
+			errorMsg := fmt.Sprintf(clusterNotReady, prevCr.Name)
+			valErrors = append(valErrors, errorMsg)
+		}
+		if !rollbackRequested && appModified {
+			errorMsg := fmt.Sprintf(clusterAppIsUpgrading, prevCr.Name)
+			valErrors = append(valErrors, errorMsg)
+		}
+
+		// In case when rollbackRequested==true && fieldModified==true
+		// valErrors will be returned by the cobdition below (appModified && fieldsModified)
+		// as rollbackRequested==true means also appModified==true
+		if !rollbackRequested {
 			return valErrors
 		}
-		prevCr.Spec.AppID = prevAppId
+	}
+
+	// Can't change the spec.app and other spec fields in the same time
+	if appModified && fieldsModified {
+		valErrors = append(valErrors, notOnlyAppModified)
+		return valErrors
+	}
+
+	if appModified {
 
 		// DistroID should stay the same
 		if prevCrApp.Spec.DistroID != crApp.Spec.DistroID {

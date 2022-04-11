@@ -55,9 +55,10 @@ const (
 	modifiedProperty = "The %s property is read-only."
 	modifiedRole     = "Role(%s) properties other than the members count cannot be modified while role members exist."
 
-	clusterNotReady      = "The %s cluster cannot be upgraded, as currently it is in %s state."
-	versionIsNotModified = "The application %s of version %s is already running at the current cluster. Change the version for upgrade."
-	appNotUpgradable     = "The application %s of version %s doesn't support live upgrade. "
+	clusterNotReady       = "The %s cluster spec cannot be changed, as currently it is busy with other changes."
+	clusterAppIsUpgrading = "The %s cluster already is upgrading, but it can be rolled back to the previous app"
+	versionIsNotModified  = "The application %s of version %s is already running at the current cluster. Change the version for upgrade."
+	appNotUpgradable      = "The application %s of version %s doesn't support live upgrade. "
 
 	invalidDistroId       = "Invalid application with distroId: %s. Expected application with distroId: %s"
 	invalidNodeRoleID     = "Invalid roleID(%s) in roleServices array in config section. Valid roles: \"%s\""

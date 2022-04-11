@@ -137,7 +137,6 @@ func UpdateStatefulSetNonReplicas(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
 	statefulSet *appsv1.StatefulSet,
-	clusterIsReady bool,
 ) error {
 
 	// If no spec, nothing to do.

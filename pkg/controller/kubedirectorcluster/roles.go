@@ -391,7 +391,6 @@ func handleRoleConfig(
 		cr,
 		role.roleSpec,
 		role.statefulSet,
-		cr.Status.State == string(clusterReady),
 	)
 	if updateErr != nil {
 		shared.LogErrorf(

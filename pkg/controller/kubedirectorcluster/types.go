@@ -118,21 +118,18 @@ func GetAppConfigCmd(
 	arg ConfigArg,
 ) string {
 
-	cachedConfigCmdTemplate := func() string {
-		result := cmdCache[arg]
-		if result == nil {
-			cmd := fmt.Sprintf(appPrepConfigTemplateCmd, "%s", arg)
-			// Clean all outputs before executing command with --run argument
-			if arg == Configure {
-				cmd = `rm -f /opt/guestconfig/configure.* && ` + cmd
-			}
-			result = &cmd
-			cmdCache[arg] = result
+	cmdTemplate := cmdCache[arg]
+	if cmdTemplate == nil {
+		cmd := fmt.Sprintf(appPrepConfigTemplateCmd, "%s", arg)
+		// Clean all outputs before executing command with --run argument
+		if arg == Configure {
+			cmd = `rm -f /opt/guestconfig/configure.* && ` + cmd
 		}
-		return *result
+		cmdCache[arg] = &cmd
+		return GetAppConfigCmd(containerId, arg)
 	}
 
-	return fmt.Sprintf(cachedConfigCmdTemplate(), containerId)
+	return fmt.Sprintf(*cmdTemplate, containerId)
 }
 
 const (

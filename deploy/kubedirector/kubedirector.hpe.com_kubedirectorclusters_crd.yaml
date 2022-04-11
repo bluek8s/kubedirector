@@ -18,6 +18,23 @@ spec:
       storage: true
       subresources:
         status: {}
+      additionalPrinterColumns:
+      - name: KDApp
+        type: string
+        description: Resource name of the instantiated kdapp
+        jsonPath: .spec.app
+      - name: State
+        type: string
+        description: Overall state of kdcluster configuration
+        jsonPath: .status.state
+      - name: Any Down
+        type: string
+        description: Whether any member containers are down
+        jsonPath: .status.memberStateRollup.membersDown
+      - name: Any ConfigError
+        type: string
+        description: Whether any member configuration returned error status
+        jsonPath: .status.memberStateRollup.configErrors
       schema:
         openAPIV3Schema:
           type: object

@@ -28,7 +28,7 @@
             "description": "Toolkits: TensorFlow, Scikit-Learn, PyTorch, Keras, XGBoost, LightGBM, Hyperopt; Core: Numpy, Scipy, Pandas, StatsModels, Anaconda, R kernel, Flask, Jupyter Notebook, Git, Jenkins; Visualization: Matplotlib, Seaborn, Plotly, Bokeh"
         },
         "distroID": "hpecp/jupyter-notebook",
-        "version": "2.1",
+        "version": "3.2",
         "configSchemaVersion": 7,
         "services": [{
                 "endpoint": {
@@ -58,11 +58,22 @@
             "useNewSetupLayout": true
         },
         "roles": [{
-            "imageRepoTag": "bluedata/kd-notebook:3.1",
+            "imageRepoTag": "bluedata/kd-notebook:3.2",
             "cardinality": "1",
             "id": "controller",
             "persistDirs": [
-              "/home"
+              "/home",
+              "/opt/bluedata/hadoop-2.8.5/etc/hadoop",
+              "/opt/bluedata/hadoop-2.8.5/share/hadoop/hdfs",
+              "/opt/miniconda/share/jupyterhub/templates",
+              "/opt/miniconda/share/jupyter/kernels/ir",
+              "/opt/miniconda/share/jupyter/kernels/python3",
+              "/opt/miniconda/envs/python-3.6-adpated/lib/python3.6/site-packages/IPython/extensions",
+              "/opt/miniconda/envs/python-3.6-adpated/etc/ipython",
+              "/opt/miniconda/etc",
+              "/opt/miniconda/lib/python3.8/site-packages/ecpssoauth",
+              "/var/log/bluedata",
+              "/opt/miniconda/lib/python3.8/site-packages/IPython/extensions"
             ]
         }]
     }

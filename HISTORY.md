@@ -1,3 +1,18 @@
+# v0.10.0-beta.1 - Apr 11, 2022
+
+Note that this is a BETA release. It is being made available so that it can be more easily/widely tested.
+
+The main focus of this release is to remove the usage of some deprecated K8s APIs. As a result of this change, KubeDirector can now be deployed on K8s version 1.22 and later. Also, KubeDirector is dropping support for deploying on K8s versions before 1.16.
+
+We're also starting to qualify KubeDirector for deployment on OpenShift, so you can start experimenting with that environment as of this release.
+
+The final non-beta v0.10.0 release (expected before end-of-month) will therefore move the supported-K8s-version window as described above. It will also contain any changes for the initial experimental support of KubeDirector on OpenShift, but it will not yet make OpenShift a recommended environment for deploying KubeDirector.
+
+The specific changes included in this beta:
+* [specify additionalPrinterColumns for kdcluster/kdapp](https://github.com/bluek8s/kubedirector/issues/288)
+* [stop using deprecated APIs in apiextensions.k8s.io and admissionregistration.k8s.io](https://github.com/bluek8s/kubedirector/issues/504)
+* [cooperate with the OwnerReferencesPermissionEnforcement admission controller](https://github.com/bluek8s/kubedirector/issues/583)
+
 # v0.9.0 - Mar 31, 2022
 
 A collection of kdcluster features and bugfixes here. In order of issue number:

@@ -2,7 +2,7 @@
 
 From KubeDirector v0.4.0 up through v0.8.1, the minimum supported K8s version was 1.14 and the maximum was 1.21.
 
-Starting with KD v0.9.0, the minimum supported K8s version is 1.16 and there is no maximum supported K8s version (yet).
+Starting with KD v0.10.0, the minimum supported K8s version is 1.16 and there is no maximum supported K8s version (yet).
 
 Select your desired KubeDirector version accordingly, and possibly also coordinate with any desired K8s upgrades.
 

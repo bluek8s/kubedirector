@@ -238,11 +238,14 @@ func GetKubeDirectorReference() (*metav1.OwnerReference, error) {
 		return nil, err
 	}
 
-	return metav1.NewControllerRef(kd, schema.GroupVersionKind{
+	ref := metav1.NewControllerRef(kd, schema.GroupVersionKind{
 		Group:   appsv1.SchemeGroupVersion.Group,
 		Version: appsv1.SchemeGroupVersion.Version,
 		Kind:    "Deployment",
-	}), nil
+	})
+	blockOwnerDeletion := false
+	ref.BlockOwnerDeletion = &blockOwnerDeletion
+	return ref, nil
 }
 
 // GetKDConfig fetches kubedirector config CR in KubeDirector's namespace.

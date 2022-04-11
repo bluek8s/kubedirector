@@ -79,13 +79,14 @@ func OwnerReferences(
 	// IF THIS IS EVER CHANGED TO RETURN MORE THAN ONE REFERENCE for some
 	// reason, then ownerReferencesPresent below will also need to be
 	// changed.
-	return []metav1.OwnerReference{
-		*metav1.NewControllerRef(cr, schema.GroupVersionKind{
-			Group:   kdv1.SchemeGroupVersion.Group,
-			Version: kdv1.SchemeGroupVersion.Version,
-			Kind:    cr.GetObjectKind().GroupVersionKind().Kind,
-		}),
-	}
+	ref := metav1.NewControllerRef(cr, schema.GroupVersionKind{
+		Group:   kdv1.SchemeGroupVersion.Group,
+		Version: kdv1.SchemeGroupVersion.Version,
+		Kind:    cr.GetObjectKind().GroupVersionKind().Kind,
+	})
+	blockOwnerDeletion := false
+	ref.BlockOwnerDeletion = &blockOwnerDeletion
+	return []metav1.OwnerReference{*ref}
 }
 
 // OwnerReferencesPresent determines whether the desired references (from

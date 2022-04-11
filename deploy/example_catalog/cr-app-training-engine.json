@@ -10,9 +10,6 @@
 
     "spec": {
         "logoURL": "https://raw.githubusercontent.com/bluedatainc/solutions/master/MLOps/logos/training-engine-logo.png",
-        "categories": [
-            "AIML/Training"
-        ],
         "config": {
             "configMeta": {
                 "ml_engine": "python"
@@ -41,8 +38,7 @@
         "distroID": "hpecp/training-engine",
         "label": {
             "description": "Toolkit: TensorFlow, Scikit-Learn, PyTorch, Keras, XGBoost, LightGBM, hyperopt, Horovod; Core: Numpy, Scipy, Pandas, StatsModels, Anaconda, R kernel, Flask, CUDA; Visualization: Matplotlib, Seaborn, Plotly, Bokeh", 
-            "name": "ML Training Toolkit, with GPU support",
-            "AIML_category": "Training"
+            "name": "ML Training Toolkit, with GPU support"
         },
         "roles": [{
                 "cardinality": "1",
@@ -102,7 +98,6 @@
                     "port": 32700,
                     "urlScheme": "http"
                 },
-                "exported_service": "AIML/Training",
                 "id": "haproxy-train",
                 "label": {
                     "name": "Training API Server"

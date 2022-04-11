@@ -24,7 +24,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/bluek8s/kubedirector/pkg/triple"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-	"k8s.io/api/admissionregistration/v1beta1"
+	arv1 "k8s.io/api/admissionregistration/v1"
 	v1auth "k8s.io/api/authentication/v1"
 	sar "k8s.io/api/authorization/v1"
 	v1 "k8s.io/api/core/v1"
@@ -112,28 +112,23 @@ func createAdmissionService(
 		}
 	}
 
-	hardFailurePolicy := v1beta1.Fail
-	softFailurePolicy := v1beta1.Ignore
-	sideEffectsNone := v1beta1.SideEffectClassNone
+	hardFailurePolicy := arv1.Fail
+	softFailurePolicy := arv1.Ignore
+	sideEffectsNone := arv1.SideEffectClassNone
 
 	// Webhook handler with a "fail" failure policy; these operations
 	// will NOT be allowed even when the handler is down.
-	// Use the v1beta1 version until our K8s version support floor is 1.16 or
-	// better.
-	// Also note that until we raise our K8s support floor to 1.15, we can't
-	// use any properties in v1beta1.MutatingWebhook that were not also
-	// present in the old v1beta1.Webhook.
-	hardWebhookHandler := v1beta1.MutatingWebhook{
+	hardWebhookHandler := arv1.MutatingWebhook{
 		Name: "hard-" + webhookHandlerName,
-		ClientConfig: v1beta1.WebhookClientConfig{
-			Service: &v1beta1.ServiceReference{
+		ClientConfig: arv1.WebhookClientConfig{
+			Service: &arv1.ServiceReference{
 				Namespace: namespace,
 				Name:      serviceName,
 				Path:      shared.StrPtr(validationPath),
 			},
 			CABundle: signingCert,
 		},
-		Rules: []v1beta1.RuleWithOperations{
+		Rules: []arv1.RuleWithOperations{
 			// For kubedirectorclusters and kubedirectorconfigs, we don't
 			// actually do any delete validation, but if our whole operator is
 			// down (most likely failure case) the object won't go away
@@ -142,12 +137,12 @@ func createAdmissionService(
 			// let's head all of that off by just registering for Delete
 			// (with Fail failure policy) for those resources too.
 			{
-				Operations: []v1beta1.OperationType{
-					v1beta1.Create,
-					v1beta1.Update,
-					v1beta1.Delete,
+				Operations: []arv1.OperationType{
+					arv1.Create,
+					arv1.Update,
+					arv1.Delete,
 				},
-				Rule: v1beta1.Rule{
+				Rule: arv1.Rule{
 					APIGroups:   []string{"kubedirector.hpe.com"},
 					APIVersions: []string{"v1beta1"},
 					Resources: []string{
@@ -158,52 +153,53 @@ func createAdmissionService(
 				},
 			},
 		},
-		FailurePolicy: &hardFailurePolicy,
-		SideEffects:   &sideEffectsNone,
+		FailurePolicy:           &hardFailurePolicy,
+		SideEffects:             &sideEffectsNone,
+		AdmissionReviewVersions: []string{"v1beta1"},
 	}
 
 	// Webhook handler with an "ignore" failure policy; these operations
 	// WILL be allowed even when the handler is down.
-	// Use the v1beta1 version until our K8s version support floor is 1.16 or
-	// better.
-	// Also note that until we raise our K8s support floor to 1.15, we can't
-	// use any properties in v1beta1.MutatingWebhook that were not also
-	// present in the old v1beta1.Webhook.
-	softWebhookHandler := v1beta1.MutatingWebhook{
+	// To make sure that this webhook times out before an API client times
+	// out, set a shorter-than-30-seconds timeout for the webhook.
+	var softFailTimeoutSeconds int32 = 10
+	softWebhookHandler := arv1.MutatingWebhook{
 		Name: "soft-" + webhookHandlerName,
-		ClientConfig: v1beta1.WebhookClientConfig{
-			Service: &v1beta1.ServiceReference{
+		ClientConfig: arv1.WebhookClientConfig{
+			Service: &arv1.ServiceReference{
 				Namespace: namespace,
 				Name:      serviceName,
 				Path:      shared.StrPtr(validationPath),
 			},
 			CABundle: signingCert,
 		},
-		Rules: []v1beta1.RuleWithOperations{
+		Rules: []arv1.RuleWithOperations{
 			{
-				Operations: []v1beta1.OperationType{
-					v1beta1.Create,
+				Operations: []arv1.OperationType{
+					arv1.Create,
 				},
-				Rule: v1beta1.Rule{
+				Rule: arv1.Rule{
 					APIGroups:   []string{""},
 					APIVersions: []string{"v1"},
 					Resources:   []string{"persistentvolumeclaims"},
 				},
 			},
 		},
-		FailurePolicy: &softFailurePolicy,
-		SideEffects:   &sideEffectsNone,
+		FailurePolicy:           &softFailurePolicy,
+		SideEffects:             &sideEffectsNone,
+		AdmissionReviewVersions: []string{"v1beta1"},
+		TimeoutSeconds:          &softFailTimeoutSeconds,
 	}
 
-	validator := &v1beta1.MutatingWebhookConfiguration{
+	validator := &arv1.MutatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MutatingWebhookConfiguration",
-			APIVersion: "admissionregistration.k8s.io/v1beta1",
+			APIVersion: "admissionregistration.k8s.io/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: validatorWebhook,
 		},
-		Webhooks: []v1beta1.MutatingWebhook{hardWebhookHandler, softWebhookHandler},
+		Webhooks: []arv1.MutatingWebhook{hardWebhookHandler, softWebhookHandler},
 	}
 
 	if createValidator {

@@ -25,7 +25,7 @@ import (
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/observer"
-	"k8s.io/api/admission/v1beta1"
+	av1beta1 "k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -146,16 +146,16 @@ func validateOrPopulateMasterEncryptionKey(
 // admission response will include PATCH operations as necessary to populate
 // values for missing properties.
 func admitKDConfigCR(
-	ar *v1beta1.AdmissionReview,
-) *v1beta1.AdmissionResponse {
+	ar *av1beta1.AdmissionReview,
+) *av1beta1.AdmissionResponse {
 
-	var admitResponse = v1beta1.AdmissionResponse{
+	var admitResponse = av1beta1.AdmissionResponse{
 		Allowed: false,
 	}
 
 	// If this is a delete, the admission handler only needs to check that
 	// there are no existing kdclusters.
-	if ar.Request.Operation == v1beta1.Delete {
+	if ar.Request.Operation == av1beta1.Delete {
 		if shared.AnyClusters() {
 			admitResponse.Result = &metav1.Status{
 				Message: "\n" + invalidConfigDelete,
@@ -197,7 +197,7 @@ func admitKDConfigCR(
 	// If this is an update, get the previous version of the object ready for
 	// use in some checks.
 	prevConfigCR := kdv1.KubeDirectorConfig{}
-	if ar.Request.Operation == v1beta1.Update {
+	if ar.Request.Operation == av1beta1.Update {
 		prevRaw := ar.Request.OldObject.Raw
 		if prevJSONErr := json.Unmarshal(prevRaw, &prevConfigCR); prevJSONErr != nil {
 			admitResponse.Result = &metav1.Status{
@@ -326,7 +326,7 @@ func admitKDConfigCR(
 			patchResult, patchErr := json.Marshal(patches)
 			if patchErr == nil {
 				admitResponse.Patch = patchResult
-				patchType := v1beta1.PatchTypeJSONPatch
+				patchType := av1beta1.PatchTypeJSONPatch
 				admitResponse.PatchType = &patchType
 			} else {
 				valErrors = append(valErrors, failedToPatch)

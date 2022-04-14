@@ -60,7 +60,7 @@ const (
 	versionIsNotModified  = "The application %s of version %s is already running at the current cluster. Change the version for upgrade."
 	appNotUpgradable      = "The application %s of version %s doesn't support live upgrade. "
 
-	invalidDistroId       = "Invalid application with distroId: %s. Expected application with distroId: %s"
+	invalidDistroID       = "Invalid application with distroId: %s. Expected application with distroId: %s"
 	invalidNodeRoleID     = "Invalid roleID(%s) in roleServices array in config section. Valid roles: \"%s\""
 	invalidSelectedRoleID = "Invalid element(%s) in selectedRoles array in config section. Valid roles: \"%s\""
 	invalidServiceID      = "Invalid service_id(%s) in roleServices array in config section. Valid services: \"%s\""

@@ -194,14 +194,19 @@ type BlockStorage struct {
 	NumDevices   *int32  `json:"numDevices,omitempty"`
 }
 
+// RoleUpgradeStatus describes the common current upgrading state of the current role
+// If at least one member of this role is being upgraded/reverted, the role
+// should be in the corresponding status
 type RoleUpgradeStatus string
 
 const (
-	// Upgrade/Rollback process is finished
-	RoleUpgraded   RoleUpgradeStatus = "upgraded"
+	// RoleUpgraded means upgrade process is finished
+	RoleUpgraded RoleUpgradeStatus = "upgraded"
+	// RoleRolledBack means rollback process is finished
 	RoleRolledBack RoleUpgradeStatus = "rolledBack"
-	// In the middle of upgrade/rollback process
-	RoleUpgrading   RoleUpgradeStatus = "upgrading"
+	// RoleUpgrading means the role is in the middle of upgrade process
+	RoleUpgrading RoleUpgradeStatus = "upgrading"
+	// RoleRollingBack means the role is in the middle of rollback process
 	RoleRollingBack RoleUpgradeStatus = "rollingBack"
 )
 
@@ -215,6 +220,9 @@ type RoleStatus struct {
 	RoleUpgradeStatus   RoleUpgradeStatus  `json:"roleUpgradeStatus,omitempty"`
 }
 
+// UpgradeInfo decribes cluster upgrading status
+// IsRollingBack represents if cluster is rolling back to the previous app
+// PrevApp is the app name from which upgrade is being
 type UpgradeInfo struct {
 	IsRollingBack bool   `json:"isRollingBack"`
 	PrevApp       string `json:"prevApp,omitempty"`
@@ -227,12 +235,17 @@ type RollbackInfo struct {
 	Version  string `json:"appVersion"`
 }
 
+// MemberUpgradeStatus describes the current upgrading state of the current pod
 type MemberUpgradeStatus string
 
 const (
-	PodUpgraded    MemberUpgradeStatus = "upgraded"
-	PodRolledBack  MemberUpgradeStatus = "rolledBack"
-	PodUpgrading   MemberUpgradeStatus = "upgrading"
+	// PodUpgraded means upgrade process is finished
+	PodUpgraded MemberUpgradeStatus = "upgraded"
+	// PodRolledBack means rollback process is finished
+	PodRolledBack MemberUpgradeStatus = "rolledBack"
+	// PodUpgrading means the pod is in the middle of upgrade process
+	PodUpgrading MemberUpgradeStatus = "upgrading"
+	// PodRollingBack means the pod is in the middle of rollback process
 	PodRollingBack MemberUpgradeStatus = "rollingBack"
 )
 

@@ -99,22 +99,27 @@ const (
 	echo -n $? >> ` + appPrepConfigStatus + `' &`
 )
 
+// ConfigArg is enum of possible startscript arguments
 type ConfigArg string
 
 const (
-	Configure   ConfigArg = "configure"
-	Reconnect   ConfigArg = "reconnect"
+	// Configure arg signals the pod is ready to startscript configuring
+	Configure ConfigArg = "configure"
+	// Reconnect arg signals to reset the pod connection version
+	Reconnect ConfigArg = "reconnect"
+	// PodUpgraded signals the pod app version was upgraded
 	PodUpgraded ConfigArg = "pod_upgraded"
+	// PodReverted signals the pod app version was reverted after unsuccessful upgrade
 	PodReverted ConfigArg = "pod_reverted"
 )
 
 var cmdCache = make(map[ConfigArg]*string)
 
-// GetAppConfidCmd gets cached startscript command template for the specified `arg`
+// GetAppConfigCmd gets cached startscript command template for the specified `arg`
 // and substitutes containerId into this template.
-// The possible `arg` values currently are: Configure, Reconnect, PodUpgraded, PodReverted
+// The possible `arg` values currently are: Configure, Reconnect, PodUpgraded, PodReverted */
 func GetAppConfigCmd(
-	containerId string,
+	containerID string,
 	arg ConfigArg,
 ) string {
 
@@ -126,10 +131,10 @@ func GetAppConfigCmd(
 			cmd = `rm -f /opt/guestconfig/configure.* && ` + cmd
 		}
 		cmdCache[arg] = &cmd
-		return GetAppConfigCmd(containerId, arg)
+		return GetAppConfigCmd(containerID, arg)
 	}
 
-	return fmt.Sprintf(*cmdTemplate, containerId)
+	return fmt.Sprintf(*cmdTemplate, containerID)
 }
 
 const (

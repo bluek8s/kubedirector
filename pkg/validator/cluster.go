@@ -337,10 +337,10 @@ func validateGeneralClusterChanges(
 	}
 
 	// Check if any fields other than spec.app were changed
-	prevAppId := prevCr.Spec.AppID
+	prevAppID := prevCr.Spec.AppID
 	prevCr.Spec.AppID = cr.Spec.AppID
 	fieldsModified := !equality.Semantic.DeepEqual(cr.Spec, prevCr.Spec)
-	prevCr.Spec.AppID = prevAppId
+	prevCr.Spec.AppID = prevAppID
 
 	// If cluster is not configured and no rollback requested, reject any changes (app-related and other)
 	if !configured {
@@ -372,7 +372,7 @@ func validateGeneralClusterChanges(
 		// DistroID should stay the same
 		if prevCrApp.Spec.DistroID != crApp.Spec.DistroID {
 			appModifiedMsg := fmt.Sprintf(
-				invalidDistroId,
+				invalidDistroID,
 				crApp.Spec.DistroID,
 				prevCrApp.Spec.DistroID,
 			)

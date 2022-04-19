@@ -121,3 +121,36 @@ func StatefulSetContainers(
 
 	return statefulSet.Spec.Template.Spec.Containers
 }
+
+// GetRoleStatusByName looks for the RoleStatus
+// in KubeDirectorCluster.KubeDirectorClusterStatus.Roles[] array
+// by the passed role name and, if RoleStatus exists, returns its address or returns nil and error
+func GetRoleStatusByName(
+	cr *kdv1.KubeDirectorCluster,
+	roleName string,
+) (*kdv1.RoleStatus, error) {
+
+	for i, r := range cr.Status.Roles {
+		if r.Name == roleName {
+			return &cr.Status.Roles[i], nil
+		}
+	}
+	return nil, fmt.Errorf("RoleStatus for %s role name was not found", roleName)
+}
+
+// RoleStatusIsUpgrading checks, if some cluster member of the
+// passed role is currently in upgrading state
+// If role status is not found by passed roleName returns false
+func RoleStatusIsUpgrading(
+	cr *kdv1.KubeDirectorCluster,
+	roleName string,
+) bool {
+
+	rs, err := GetRoleStatusByName(cr, roleName)
+
+	if err != nil || rs.UpgradingMembers == nil {
+		return false
+	}
+
+	return len(rs.UpgradingMembers) > 0
+}

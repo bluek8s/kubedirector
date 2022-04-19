@@ -15,6 +15,8 @@
 package kubedirectorcluster
 
 import (
+	"fmt"
+
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 )
@@ -88,16 +90,52 @@ const (
 	chmod +x ` + appPrepStartscript + ` &&
 	rm -rf /opt/guestconfig/appconfig.tgz`
 	appPrepConfigStatus = "/opt/guestconfig/configure.status"
-	appPrepConfigRunCmd = `rm -f /opt/guestconfig/configure.* &&
-	echo -n %s= > ` + appPrepConfigStatus + ` && 
-	nohup sh -c '` + appPrepStartscript + ` --configure 2>/opt/guestconfig/configure.stderr 1>/opt/guestconfig/configure.stdout;
-	echo -n $? >> ` + appPrepConfigStatus + `' &`
+
 	fileInjectionCommand = `mkdir -p %s && cd %s &&
 	curl -L %s -o %s`
-	appPrepConfigReconnectCmd = `echo -n %s= > ` + appPrepConfigStatus + ` &&
-	nohup sh -c '` + appPrepStartscript + ` --reconnect 2>/opt/guestconfig/configure.stderr 1>/opt/guestconfig/configure.stdout;
+
+	appPrepConfigTemplateCmd = `echo -n %s= > ` + appPrepConfigStatus + ` &&
+	nohup sh -c '` + appPrepStartscript + ` --%s 2>/opt/guestconfig/configure.stderr 1>/opt/guestconfig/configure.stdout;
 	echo -n $? >> ` + appPrepConfigStatus + `' &`
 )
+
+// ConfigArg is enum of possible startscript arguments
+type ConfigArg string
+
+const (
+	// Configure arg signals the pod is ready to startscript configuring
+	Configure ConfigArg = "configure"
+	// Reconnect arg signals to reset the pod connection version
+	Reconnect ConfigArg = "reconnect"
+	// PodUpgraded signals the pod app version was upgraded
+	PodUpgraded ConfigArg = "pod_upgraded"
+	// PodReverted signals the pod app version was reverted after unsuccessful upgrade
+	PodReverted ConfigArg = "pod_reverted"
+)
+
+var cmdCache = make(map[ConfigArg]*string)
+
+// GetAppConfigCmd gets cached startscript command template for the specified `arg`
+// and substitutes containerId into this template.
+// The possible `arg` values currently are: Configure, Reconnect, PodUpgraded, PodReverted */
+func GetAppConfigCmd(
+	containerID string,
+	arg ConfigArg,
+) string {
+
+	cmdTemplate := cmdCache[arg]
+	if cmdTemplate == nil {
+		cmd := fmt.Sprintf(appPrepConfigTemplateCmd, "%s", arg)
+		// Clean all outputs before executing command with --run argument
+		if arg == Configure {
+			cmd = `rm -f /opt/guestconfig/configure.* && ` + cmd
+		}
+		cmdCache[arg] = &cmd
+		return GetAppConfigCmd(containerID, arg)
+	}
+
+	return fmt.Sprintf(*cmdTemplate, containerID)
+}
 
 const (
 	zeroPortsService = "n/a"

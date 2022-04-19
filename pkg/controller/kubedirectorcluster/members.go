@@ -323,7 +323,7 @@ func handleReadyMembers(
 				)
 
 				containerID := m.StateDetail.LastConfiguredContainer
-				cmd := fmt.Sprintf(appPrepConfigReconnectCmd, containerID)
+				cmd := GetAppConfigCmd(containerID, Reconnect)
 
 				cmdErr := executor.RunScript(
 					reqLogger,
@@ -446,6 +446,7 @@ func handleCreatingMembers(
 ) {
 
 	creating := role.membersByState[memberCreating]
+	rs := &role.roleStatus
 
 	// Fetch setup url package
 	setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, role.roleStatus.Name)
@@ -473,10 +474,16 @@ func handleCreatingMembers(
 				m.State = string(state)
 				m.StateDetail.ConfigErrorDetail = errorDetail
 			}
-
 			connectionVersion := getConnectionVersion(reqLogger, cr, role)
 
 			m.StateDetail.LastConnectionVersion = &connectionVersion
+
+			if (*rs).RoleUpgradeStatus == kdv1.RoleUpgrading {
+				(*m).PodUpgradeStatus = kdv1.PodUpgrading
+			}
+			if (*rs).RoleUpgradeStatus == kdv1.RoleRollingBack {
+				(*m).PodUpgradeStatus = kdv1.PodRollingBack
+			}
 
 			// Check to see if we have to inject one or more files for this member
 			if len(role.roleSpec.FileInjections) != 0 {
@@ -521,7 +528,7 @@ func handleCreatingMembers(
 				m.Pod,
 				containerID,
 				&m.StateDetail,
-				role.roleStatus.Name,
+				role.roleStatus,
 				configmetaGenerator,
 			)
 			if !isFinal {
@@ -535,6 +542,27 @@ func handleCreatingMembers(
 				)
 				return
 			}
+
+			// If appConfig returns true as a final member state
+			// remove the member from upgrading list
+			delete((*rs).UpgradingMembers, m.Pod)
+
+			// When there no role members left, change the role upgrade status that upgrade process is complete
+			leftUpgradingMembersCnt := len((*rs).UpgradingMembers)
+			// Change the current member upgrade status depends on role upgrade status
+			switch (*rs).RoleUpgradeStatus {
+			case kdv1.RoleUpgrading:
+				(*m).PodUpgradeStatus = kdv1.PodUpgraded
+				if leftUpgradingMembersCnt == 0 {
+					(*rs).RoleUpgradeStatus = kdv1.RoleUpgraded
+				}
+			case kdv1.RoleRollingBack:
+				(*m).PodUpgradeStatus = kdv1.PodRolledBack
+				if leftUpgradingMembersCnt == 0 {
+					(*rs).RoleUpgradeStatus = kdv1.RoleRolledBack
+				}
+			}
+
 			if configErr != nil {
 				shared.LogErrorf(
 					reqLogger,
@@ -1084,9 +1112,41 @@ func appConfig(
 	podName string,
 	expectedContainerID string,
 	stateDetail *kdv1.MemberStateDetail,
-	roleName string,
+	roleStatus *kdv1.RoleStatus,
 	configmetaGenerator func(string) string,
 ) (bool, error) {
+
+	roleName := roleStatus.Name
+	runConfigScript := func(
+		configArg ConfigArg,
+		loggingErr bool,
+	) error {
+		var cmdErr error = nil
+		cmd := GetAppConfigCmd(expectedContainerID, configArg)
+		cmdErr = executor.RunScript(
+			reqLogger,
+			cr,
+			cr.Namespace,
+			podName,
+			expectedContainerID,
+			executor.AppContainerName,
+			"app config",
+			strings.NewReader(cmd),
+		)
+		if loggingErr && cmdErr != nil {
+			shared.LogErrorf(
+				reqLogger,
+				cmdErr,
+				cr,
+				shared.EventReasonMember,
+				"failed to run startscript with --{%s} in member{%s} in role{%s}",
+				string(configArg),
+				podName,
+				roleName,
+			)
+		}
+		return cmdErr
+	}
 
 	// If a config error detail already exists, this is a restart of a member
 	// that had been in config error state. In that case we won't try
@@ -1158,7 +1218,14 @@ func appConfig(
 				}
 				status, convErr := strconv.Atoi(configStatus)
 				if convErr == nil && status == 0 {
-					return true, nil
+
+					var upgradeCmdErr error = nil
+					if roleStatus.RoleUpgradeStatus == kdv1.RoleUpgrading {
+						upgradeCmdErr = runConfigScript(PodUpgraded, true)
+					} else if roleStatus.RoleUpgradeStatus == kdv1.RoleRollingBack {
+						upgradeCmdErr = runConfigScript(PodReverted, true)
+					}
+					return true, upgradeCmdErr
 				}
 				statusErr := fmt.Errorf(
 					"configure failed with exit status {%s}",
@@ -1248,17 +1315,7 @@ func appConfig(
 		return true, nil
 	}
 	// Now kick off the initial config.
-	cmd := fmt.Sprintf(appPrepConfigRunCmd, expectedContainerID)
-	cmdErr := executor.RunScript(
-		reqLogger,
-		cr,
-		cr.Namespace,
-		podName,
-		expectedContainerID,
-		executor.AppContainerName,
-		"app config",
-		strings.NewReader(cmd),
-	)
+	cmdErr := runConfigScript(Configure, false)
 	if cmdErr != nil {
 		return true, cmdErr
 	}

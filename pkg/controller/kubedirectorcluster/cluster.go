@@ -57,6 +57,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		cr.Status = &kdv1.KubeDirectorClusterStatus{}
 		cr.Status.Roles = make([]kdv1.RoleStatus, 0)
 	}
+
 	if cr.Status.SpecGenerationToProcess == nil {
 		initSpecGen := int64(0)
 		cr.Status.SpecGenerationToProcess = &initSpecGen
@@ -219,6 +220,8 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		}
 	}()
 
+	handleClusterUpgrade(cr)
+
 	// If we're in this reconciliation function, restoreProgress should not
 	// be set. This only matters if this is the first iteration right after
 	// the being-restored label is removed, but it's fine just to always
@@ -319,7 +322,9 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		return memberServicesErr
 	}
 
-	if state == clusterMembersStableReady {
+	upgradeOrRollbackActive := (cr.Status.UpgradeInfo != nil)
+
+	if state == clusterMembersStableReady && !upgradeOrRollbackActive {
 		if cr.Status.State != string(clusterReady) {
 			shared.LogInfo(
 				reqLogger,
@@ -432,6 +437,68 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 	}
 
 	return nil
+}
+
+func handleClusterUpgrade(
+	cr *kdv1.KubeDirectorCluster,
+) {
+
+	// Check, if some statefulset is in the middle of upgrade/rollback process.
+	// If so, the current cluster state still can be in `configured` state, change it to `updating`
+	upgradeIsActive := false
+	for _, rs := range cr.Status.Roles {
+		if rs.RoleUpgradeStatus == kdv1.RoleRollingBack || rs.RoleUpgradeStatus == kdv1.RoleUpgrading {
+			upgradeIsActive = true
+			break
+		}
+	}
+
+	upgradeInfo := (*cr).Status.UpgradeInfo
+
+	// If all statefulsets completed their upgrade/rollback processes
+	// erase the cluster upgradeInfo object
+	if upgradeInfo != nil && !upgradeIsActive {
+
+		// Remove the cluster bind with the previous app
+		shared.RemoveClusterAppReference(
+			cr.Namespace,
+			cr.Name,
+			*cr.Spec.AppCatalog,
+			upgradeInfo.PrevApp,
+		)
+
+		cr.Status.UpgradeInfo = nil
+		upgradeInfo = nil
+	}
+
+	// KD cluster is created recently, init the Status.AppID field
+	if cr.Status.AppID == nil {
+		cr.Status.AppID = &cr.Spec.AppID
+	} else
+	// Spec.AppID was changed, create the upgradeInfo object and store there the current AppID
+	// Also, change cluster state to `updating`
+	if cr.Spec.AppID != *cr.Status.AppID && upgradeInfo == nil {
+		cr.Status.UpgradeInfo = &kdv1.UpgradeInfo{
+			IsRollingBack: false,
+			PrevApp:       *cr.Status.AppID,
+		}
+		// Bind the cluster with the new app
+		shared.EnsureClusterAppReference(
+			cr.Namespace,
+			cr.Name,
+			*cr.Spec.AppCatalog,
+			cr.Spec.AppID,
+		)
+		cr.Status.AppID = &cr.Spec.AppID
+	} else
+	// If KD cluster upgradeInfo object exists and is not in RollingBack status,
+	// but the current cluster AppID is the same as in the upgradeInfo
+	// it means that rollback is required
+	if upgradeInfo != nil && !upgradeInfo.IsRollingBack && cr.Spec.AppID == upgradeInfo.PrevApp {
+		upgradeInfo.IsRollingBack = true
+		upgradeInfo.PrevApp = *cr.Status.AppID
+		cr.Status.AppID = &cr.Spec.AppID
+	}
 }
 
 // Calculates md5sum of resource-versions of all resources

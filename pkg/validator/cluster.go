@@ -312,13 +312,94 @@ func validateGeneralClusterChanges(
 	valErrors []string,
 ) []string {
 
-	if cr.Spec.AppID != prevCr.Spec.AppID {
-		appModifiedMsg := fmt.Sprintf(
-			modifiedProperty,
-			"app",
-		)
-		valErrors = append(valErrors, appModifiedMsg)
+	// Check if cluster is ready. If so, permit the changes
+	configured := (*prevCr).Status.State == "configured"
+	appModified := cr.Spec.AppID != prevCr.Spec.AppID
+	rollbackRequested := false
+
+	upgradeInfo := prevCr.Status.UpgradeInfo
+
+	crApp, err := catalog.GetApp(cr)
+	if err != nil {
+		valErrors = append(valErrors, err.Error())
 	}
+
+	prevCrApp, err := catalog.GetApp(prevCr)
+	if err != nil {
+		valErrors = append(valErrors, err.Error())
+	}
+
+	// If changed cluster has actual upgradeInfo (was in Updating state)
+	// we may permit the changes for rollback case only
+	// It means, the current proposed AppId should be the same as the stored in the upgradeInfo object
+	if appModified && upgradeInfo != nil && !upgradeInfo.IsRollingBack {
+		rollbackRequested = cr.Spec.AppID == upgradeInfo.PrevApp
+	}
+
+	// Check if any fields other than spec.app were changed
+	prevAppID := prevCr.Spec.AppID
+	prevCr.Spec.AppID = cr.Spec.AppID
+	fieldsModified := !equality.Semantic.DeepEqual(cr.Spec, prevCr.Spec)
+	prevCr.Spec.AppID = prevAppID
+
+	// If cluster is not configured and no rollback requested, reject any changes (app-related and other)
+	if !configured {
+		if fieldsModified {
+			errorMsg := fmt.Sprintf(clusterNotReady, prevCr.Name)
+			valErrors = append(valErrors, errorMsg)
+		}
+		if !rollbackRequested && appModified {
+			errorMsg := fmt.Sprintf(clusterAppIsUpgrading, prevCr.Name)
+			valErrors = append(valErrors, errorMsg)
+		}
+
+		// In case when rollbackRequested==true && fieldModified==true
+		// valErrors will be returned by the cobdition below (appModified && fieldsModified)
+		// as rollbackRequested==true means also appModified==true
+		if !rollbackRequested {
+			return valErrors
+		}
+	}
+
+	// Can't change the spec.app and other spec fields in the same time
+	if appModified && fieldsModified {
+		valErrors = append(valErrors, notOnlyAppModified)
+		return valErrors
+	}
+
+	if appModified {
+
+		// DistroID should stay the same
+		if prevCrApp.Spec.DistroID != crApp.Spec.DistroID {
+			appModifiedMsg := fmt.Sprintf(
+				invalidDistroID,
+				crApp.Spec.DistroID,
+				prevCrApp.Spec.DistroID,
+			)
+			valErrors = append(valErrors, appModifiedMsg)
+		}
+
+		// App version should be different from previous one
+		if prevCrApp.Spec.Version == crApp.Spec.Version {
+			appModifiedMsg := fmt.Sprintf(
+				versionIsNotModified,
+				crApp.Spec.DistroID,
+				crApp.Spec.Version,
+			)
+			valErrors = append(valErrors, appModifiedMsg)
+		}
+
+		// Also, the current app should support upgrade
+		if !prevCrApp.Spec.Upgradable {
+			appModifiedMsg := fmt.Sprintf(
+				appNotUpgradable,
+				prevCrApp.Spec.DistroID,
+				prevCrApp.Spec.Version,
+			)
+			valErrors = append(valErrors, appModifiedMsg)
+		}
+	}
+
 	// appCatalog should not be nil at this point in the flow if everything
 	// has worked as expected, but it doesn't hurt to be robust against that.
 	appCatalogMatch := true

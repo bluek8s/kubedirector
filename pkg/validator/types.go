@@ -44,6 +44,7 @@ const (
 
 	multipleSpecChange = "Change to spec not allowed before previous spec change has been processed."
 	pendingNotifies    = "Change to spec not allowed because some members have not processed notifications of previous change."
+	notOnlyAppModified = "Change to spec not allowed because not only spec.app field was changed. Do not change spec.app with other spec fields in the same time."
 
 	appInUse           = "KubeDirectorApp resource cannot be deleted or modified while referenced by the following KubeDirectorCluster resources: %s"
 	invalidAppMessage  = "Invalid app(%s). This app resource ID has not been registered."
@@ -54,6 +55,12 @@ const (
 	modifiedProperty = "The %s property is read-only."
 	modifiedRole     = "Role(%s) properties other than the members count cannot be modified while role members exist."
 
+	clusterNotReady       = "The %s cluster spec cannot be changed, as currently it is busy with other changes."
+	clusterAppIsUpgrading = "The %s cluster already is upgrading, but it can be rolled back to the previous app"
+	versionIsNotModified  = "The application %s of version %s is already running at the current cluster. Change the version for upgrade."
+	appNotUpgradable      = "The application %s of version %s doesn't support live upgrade. "
+
+	invalidDistroID       = "Invalid application with distroId: %s. Expected application with distroId: %s"
 	invalidNodeRoleID     = "Invalid roleID(%s) in roleServices array in config section. Valid roles: \"%s\""
 	invalidSelectedRoleID = "Invalid element(%s) in selectedRoles array in config section. Valid roles: \"%s\""
 	invalidServiceID      = "Invalid service_id(%s) in roleServices array in config section. Valid services: \"%s\""

@@ -65,6 +65,8 @@ type KubeDirectorClusterStatus struct {
 	LastNodeID              int64            `json:"lastNodeID"`
 	Roles                   []RoleStatus     `json:"roles"`
 	LastConnectionHash      string           `json:"lastConnectionHash"`
+	AppID                   *string          `json:"app"`
+	UpgradeInfo             *UpgradeInfo     `json:"upgradeInfo,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -192,24 +194,72 @@ type BlockStorage struct {
 	NumDevices   *int32  `json:"numDevices,omitempty"`
 }
 
+// RoleUpgradeStatus describes the common current upgrading state of the current role
+// If at least one member of this role is being upgraded/reverted, the role
+// should be in the corresponding status
+type RoleUpgradeStatus string
+
+const (
+	// RoleUpgraded means upgrade process is finished
+	RoleUpgraded RoleUpgradeStatus = "upgraded"
+	// RoleRolledBack means rollback process is finished
+	RoleRolledBack RoleUpgradeStatus = "rolledBack"
+	// RoleUpgrading means the role is in the middle of upgrade process
+	RoleUpgrading RoleUpgradeStatus = "upgrading"
+	// RoleRollingBack means the role is in the middle of rollback process
+	RoleRollingBack RoleUpgradeStatus = "rollingBack"
+)
+
 // RoleStatus describes the component objects of a virtual cluster role.
 type RoleStatus struct {
-	Name                string            `json:"id"`
-	StatefulSet         string            `json:"statefulSet"`
-	Members             []MemberStatus    `json:"members"`
-	EncryptedSecretKeys map[string]string `json:"encryptedSecretKeys,omitempty"`
+	Name                string             `json:"id"`
+	StatefulSet         string             `json:"statefulSet"`
+	Members             []MemberStatus     `json:"members"`
+	EncryptedSecretKeys map[string]string  `json:"encryptedSecretKeys,omitempty"`
+	UpgradingMembers    map[string]*string `json:"upgradingMembers,omitempty"`
+	RoleUpgradeStatus   RoleUpgradeStatus  `json:"roleUpgradeStatus,omitempty"`
 }
+
+// UpgradeInfo decribes cluster upgrading status
+// IsRollingBack represents if cluster is rolling back to the previous app
+// PrevApp is the app name from which upgrade is being
+type UpgradeInfo struct {
+	IsRollingBack bool   `json:"isRollingBack"`
+	PrevApp       string `json:"prevApp,omitempty"`
+}
+
+// RollbackInfo describes the last working application spec for each RoleStatus.
+type RollbackInfo struct {
+	AppID    string `json:"appId"`
+	DistroID string `json:"distroId"`
+	Version  string `json:"appVersion"`
+}
+
+// MemberUpgradeStatus describes the current upgrading state of the current pod
+type MemberUpgradeStatus string
+
+const (
+	// PodUpgraded means upgrade process is finished
+	PodUpgraded MemberUpgradeStatus = "upgraded"
+	// PodRolledBack means rollback process is finished
+	PodRolledBack MemberUpgradeStatus = "rolledBack"
+	// PodUpgrading means the pod is in the middle of upgrade process
+	PodUpgrading MemberUpgradeStatus = "upgrading"
+	// PodRollingBack means the pod is in the middle of rollback process
+	PodRollingBack MemberUpgradeStatus = "rollingBack"
+)
 
 // MemberStatus describes the component objects of a virtual cluster member.
 type MemberStatus struct {
-	Pod              string            `json:"pod"`
-	Service          string            `json:"service"`
-	AuthToken        string            `json:"authToken,omitempty"`
-	PVC              string            `json:"pvc,omitempty"`
-	State            string            `json:"state"`
-	StateDetail      MemberStateDetail `json:"stateDetail,omitempty"`
-	NodeID           int64             `json:"nodeID"`
-	BlockDevicePaths []string          `json:"blockDevicePaths,omitempty"`
+	Pod              string              `json:"pod"`
+	Service          string              `json:"service"`
+	AuthToken        string              `json:"authToken,omitempty"`
+	PVC              string              `json:"pvc,omitempty"`
+	State            string              `json:"state"`
+	StateDetail      MemberStateDetail   `json:"stateDetail,omitempty"`
+	NodeID           int64               `json:"nodeID"`
+	BlockDevicePaths []string            `json:"blockDevicePaths,omitempty"`
+	PodUpgradeStatus MemberUpgradeStatus `json:"podUpgradeStatus,omitempty"`
 }
 
 // MemberStateDetail digs into detail about the management of configmeta and

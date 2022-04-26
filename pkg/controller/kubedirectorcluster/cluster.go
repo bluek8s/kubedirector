@@ -662,6 +662,8 @@ func updateStateRollup(
 	cr.Status.MemberStateRollup.MembersInitializing = false
 	cr.Status.MemberStateRollup.MembersWaiting = false
 	cr.Status.MemberStateRollup.MembersRestarting = false
+	cr.Status.MemberStateRollup.MembersUpgrading = false
+	cr.Status.MemberStateRollup.MembersRollingBack = false
 	cr.Status.MemberStateRollup.ConfigErrors = false
 
 	checkMemberDown := func(memberStatus kdv1.MemberStatus) {
@@ -714,6 +716,14 @@ func updateStateRollup(
 			if memberStatus.StateDetail.LastKnownContainerState == containerWaiting {
 				cr.Status.MemberStateRollup.MembersWaiting = true
 			}
+		}
+
+		// -ing RoleUpgradeStatus implies that at least one member of this role has the corresponding status
+		switch roleStatus.RoleUpgradeStatus {
+		case kdv1.RoleUpgrading:
+			cr.Status.MemberStateRollup.MembersUpgrading = true
+		case kdv1.RoleRollingBack:
+			cr.Status.MemberStateRollup.MembersRollingBack = true
 		}
 	}
 }

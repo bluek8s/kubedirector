@@ -534,6 +534,10 @@ spec:
                   type: boolean
                 membersRestarting:
                   type: boolean
+                membersUpgrading:
+                  type: boolean
+                membersRollingBack:
+                  type: boolean
                 configErrors:
                   type: boolean
             generationUID:

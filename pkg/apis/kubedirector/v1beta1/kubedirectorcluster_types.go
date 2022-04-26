@@ -175,6 +175,8 @@ type StateRollup struct {
 	MembersInitializing bool `json:"membersInitializing"`
 	MembersWaiting      bool `json:"membersWaiting"`
 	MembersRestarting   bool `json:"membersRestarting"`
+	MembersUpgrading    bool `json:"membersUpgrading"`
+	MembersRollingBack  bool `json:"membersRollingBack"`
 	ConfigErrors        bool `json:"configErrors"`
 }
 

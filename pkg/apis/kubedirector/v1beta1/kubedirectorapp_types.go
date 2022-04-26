@@ -21,21 +21,22 @@ import (
 
 // KubeDirectorAppSpec defines the desired state of KubeDirectorApp.
 type KubeDirectorAppSpec struct {
-	Label               Label               `json:"label"`
-	DistroID            string              `json:"distroID"`
-	Version             string              `json:"version"`
-	SchemaVersion       int                 `json:"configSchemaVersion"`
-	DefaultImageRepoTag *string             `json:"defaultImageRepoTag,omitempty"`
-	DefaultSetupPackage SetupPackage        `json:"defaultConfigPackage,omitempty"`
-	Services            []Service           `json:"services,omitempty"`
-	NodeRoles           []NodeRole          `json:"roles"`
-	Config              NodeGroupConfig     `json:"config"`
-	DefaultPersistDirs  *[]string           `json:"defaultPersistDirs,omitempty"`
-	DefaultEventList    *[]string           `json:"defaultEventList,omitempty"`
-	Capabilities        []corev1.Capability `json:"capabilities,omitempty"`
-	SystemdRequired     bool                `json:"systemdRequired,omitempty"`
-	LogoURL             string              `json:"logoURL,omitempty"`
-	Upgradable          bool                `json:"upgradable,omitempty"`
+	Label                 Label               `json:"label"`
+	DistroID              string              `json:"distroID"`
+	Version               string              `json:"version"`
+	SchemaVersion         int                 `json:"configSchemaVersion"`
+	DefaultImageRepoTag   *string             `json:"defaultImageRepoTag,omitempty"`
+	DefaultSetupPackage   SetupPackage        `json:"defaultConfigPackage,omitempty"`
+	Services              []Service           `json:"services,omitempty"`
+	NodeRoles             []NodeRole          `json:"roles"`
+	Config                NodeGroupConfig     `json:"config"`
+	DefaultPersistDirs    *[]string           `json:"defaultPersistDirs,omitempty"`
+	DefaultEventList      *[]string           `json:"defaultEventList,omitempty"`
+	Capabilities          []corev1.Capability `json:"capabilities,omitempty"`
+	SystemdRequired       bool                `json:"systemdRequired,omitempty"`
+	LogoURL               string              `json:"logoURL,omitempty"`
+	DefaultMaxLogSizeDump *int32              `json:"defaultMaxLogSizeDump,omitempty"`
+	Upgradable            bool                `json:"upgradable,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -70,14 +71,16 @@ type Label struct {
 // "explicitly set null". Therefore "operator-sdk generate crds" cannot be
 // used to generate a correct CRD in this case.
 type SetupPackage struct {
-	IsSet      bool
-	IsNull     bool
-	PackageURL SetupPackageURL
+	IsSet  bool
+	IsNull bool
+	Info   SetupPackageInfo
 }
 
-// SetupPackageURL is the URL of the setup package.
-type SetupPackageURL struct {
-	PackageURL string `json:"packageURL"`
+// SetupPackageInfo is the URL of the setup package, plus a flag on whether
+// the new setup layout (for configcli and persisted dirs) should be used.
+type SetupPackageInfo struct {
+	PackageURL        string `json:"packageURL"`
+	UseNewSetupLayout bool   `json:"useNewSetupLayout"`
 }
 
 // Service describes a network endpoint that should be exposed for external
@@ -104,14 +107,22 @@ type ServiceEndpoint struct {
 // the same services. At deployment time all role members will receive
 // identical resource assignments.
 type NodeRole struct {
-	ID            string               `json:"id"`
-	Cardinality   string               `json:"cardinality"`
-	ImageRepoTag  *string              `json:"imageRepoTag,omitempty"`
-	SetupPackage  SetupPackage         `json:"configPackage,omitempty"`
-	PersistDirs   *[]string            `json:"persistDirs,omitempty"`
-	EventList     *[]string            `json:"eventList,omitempty"`
-	MinResources  *corev1.ResourceList `json:"minResources,omitempty"`
-	ContainerSpec *ContainerSpec       `json:"containerSpec,omitempty"`
+	ID             string               `json:"id"`
+	Cardinality    string               `json:"cardinality"`
+	ImageRepoTag   *string              `json:"imageRepoTag,omitempty"`
+	SetupPackage   SetupPackage         `json:"configPackage,omitempty"`
+	PersistDirs    *[]string            `json:"persistDirs,omitempty"`
+	EventList      *[]string            `json:"eventList,omitempty"`
+	MinResources   *corev1.ResourceList `json:"minResources,omitempty"`
+	MinStorage     *MinStorage          `json:"minStorage,omitempty"`
+	ContainerSpec  *ContainerSpec       `json:"containerSpec,omitempty"`
+	MaxLogSizeDump *int32               `json:"maxLogSizeDump,omitempty"`
+}
+
+// MinStorage describes the minimum persistent storage requirement, if any.
+type MinStorage struct {
+	Size                   string `json:"size"`
+	EphemeralModeSupported bool   `json:"ephemeralModeSupported"`
 }
 
 //ContainerSpec comments

@@ -7,7 +7,7 @@ The [Getting Started with Amazon EKS](https://docs.aws.amazon.com/eks/latest/use
 As part of this process you will have a choice whether or not to use "AWS Fargate". For example, in the eksctl docs the cluster creation section has two tabs "AWS Fargate-only cluster" and "Cluster with Linux-only workloads". You may wish to follow the available links to read more about Fargate. FWIW we do *not* yet use Fargate when testing KubeDirector deployment and any EKS-related docs in this repo are currently written in the context of a non-Fargate deployment.
 
 Two other important notes to be aware of when creating an EKS cluster:
-* Be sure to specify Kubernetes version 1.14 or later.
+* Be sure to specify a Kubernetes version that is in the range of KubeDirector-supported versions.
 * Choose a worker [instance type](https://aws.amazon.com/ec2/instance-types/) with enough resources to host at least one virtual cluster member. The example type t3.medium is probably too small; consider using t3.xlarge or an m5 instance type.
 
 Use of eksctl and the AWS Management Console can be somewhat intermixed, because in the end they are just manipulating standard AWS resources, but this doc will assume you're just using one process or the other.

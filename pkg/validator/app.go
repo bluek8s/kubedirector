@@ -466,7 +466,9 @@ func admitAppCR(
 
 			// Validate changing Upgradable field value for already started applications
 			// It provides ability for live clusters upgrade with old app versions
-			prevAppCR.Spec.Upgradable = appCR.Spec.Upgradable
+			if prevAppCR.Spec.Upgradable == nil && appCR.Spec.Upgradable != nil {
+				prevAppCR.Spec.Upgradable = appCR.Spec.Upgradable
+			}
 
 			if !equality.Semantic.DeepEqual(appCR.Spec, prevAppCR.Spec) {
 				referencesStr := strings.Join(references, ", ")

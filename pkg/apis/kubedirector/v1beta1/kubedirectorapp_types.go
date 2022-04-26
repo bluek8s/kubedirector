@@ -35,7 +35,7 @@ type KubeDirectorAppSpec struct {
 	Capabilities        []corev1.Capability `json:"capabilities,omitempty"`
 	SystemdRequired     bool                `json:"systemdRequired,omitempty"`
 	LogoURL             string              `json:"logoURL,omitempty"`
-	Upgradable          bool                `json:"upgradable,omitempty"`
+	Upgradable          *bool               `json:"upgradable,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

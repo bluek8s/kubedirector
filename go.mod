@@ -3,6 +3,7 @@ module github.com/bluek8s/kubedirector
 go 1.16
 
 require (
+	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153 // indirect
 	github.com/go-logr/logr v0.1.0
 	github.com/google/gofuzz v1.1.0 // indirect

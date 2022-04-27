@@ -57,7 +57,7 @@ const (
 
 	clusterNotReady       = "The %s cluster spec cannot be changed, as currently it is busy with other changes."
 	clusterAppIsUpgrading = "The %s cluster already is upgrading, but it can be rolled back to the previous app"
-	versionIsNotModified  = "The application %s of version %s is already running at the current cluster. Change the version for upgrade."
+	versionIsNotNewer     = "The candidate app version %s is not newer than version %s that is already running at the current cluster."
 	appNotUpgradable      = "The application %s of version %s doesn't support live upgrade. "
 
 	invalidDistroID       = "Invalid application with distroId: %s. Expected application with distroId: %s"

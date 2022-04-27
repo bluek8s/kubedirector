@@ -8,7 +8,7 @@
     "spec" : {
         "logoURL": "https://raw.githubusercontent.com/bluedatainc/solutions/master/MLOps/logos/cassandra-3.11.png",
         "systemdRequired" : true,
-        "defaultPersistDirs" : ["/usr", "/opt", "/var", "/data"],
+        "defaultPersistDirs" : ["/var/lib/cassandra", "/var/log/cassandra", "/data"],
         "defaultEventList" : ["configure", "addnodes", "delnodes"],
         "capabilities" : [
             "SYS_RESOURCE",
@@ -43,7 +43,7 @@
             "description": "Cassandra 3.11 on centos 7.x"
         },
         "distroID": "bluedata/cassandra311",
-        "version": "3.1",
+        "version": "3.2",
         "configSchemaVersion": 7,
         "services": [
             {
@@ -69,7 +69,8 @@
             }
         ],
         "defaultConfigPackage": {
-            "packageURL": "file:///opt/configscripts/appconfig-3.1.tgz"
+            "packageURL": "file:///opt/configscripts/appconfig-3.1.tgz",
+            "useNewSetupLayout": true
         },
         "roles": [
             {

@@ -20,7 +20,7 @@ import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-	"k8s.io/api/admissionregistration/v1beta1"
+	arv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -190,13 +190,13 @@ func GetApp(
 // KubeDirector's namespace.
 func GetValidatorWebhook(
 	validator string,
-) (*v1beta1.MutatingWebhookConfiguration, error) {
+) (*arv1.MutatingWebhookConfiguration, error) {
 
 	kdNamespace, err := shared.GetKubeDirectorNamespace()
 	if err != nil {
 		return nil, err
 	}
-	result := &v1beta1.MutatingWebhookConfiguration{}
+	result := &arv1.MutatingWebhookConfiguration{}
 	err = shared.Get(
 		context.TODO(),
 		types.NamespacedName{Namespace: kdNamespace, Name: validator},
@@ -238,11 +238,14 @@ func GetKubeDirectorReference() (*metav1.OwnerReference, error) {
 		return nil, err
 	}
 
-	return metav1.NewControllerRef(kd, schema.GroupVersionKind{
+	ref := metav1.NewControllerRef(kd, schema.GroupVersionKind{
 		Group:   appsv1.SchemeGroupVersion.Group,
 		Version: appsv1.SchemeGroupVersion.Version,
 		Kind:    "Deployment",
-	}), nil
+	})
+	blockOwnerDeletion := false
+	ref.BlockOwnerDeletion = &blockOwnerDeletion
+	return ref, nil
 }
 
 // GetKDConfig fetches kubedirector config CR in KubeDirector's namespace.

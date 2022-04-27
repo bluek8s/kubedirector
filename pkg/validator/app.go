@@ -23,8 +23,9 @@ import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"k8s.io/api/admission/v1beta1"
+	av1beta1 "k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -35,22 +36,22 @@ type appPatchSpec struct {
 }
 
 type appPatchValue struct {
-	packageURLValue  *packageURL
+	packageInfoValue *kdv1.SetupPackageInfo
 	stringValue      *string
+	intValue         *int32
 	stringSliceValue *[]string
-}
-
-type packageURL struct {
-	URL string `json:"packageURL"`
 }
 
 func (obj appPatchValue) MarshalJSON() ([]byte, error) {
 
-	if obj.packageURLValue != nil {
-		return json.Marshal(obj.packageURLValue)
+	if obj.packageInfoValue != nil {
+		return json.Marshal(obj.packageInfoValue)
 	}
 	if obj.stringValue != nil {
 		return json.Marshal(obj.stringValue)
+	}
+	if obj.intValue != nil {
+		return json.Marshal(obj.intValue)
 	}
 	return json.Marshal(obj.stringSliceValue)
 }
@@ -163,9 +164,13 @@ func validateRoles(
 	// Any global defaults will be removed from the CR. Remember their values
 	// though for use in populating the role definitions.
 	var globalImageRepoTag *string
-	var globalSetupPackageURL *string
+	var globalSetupPackageInfo *kdv1.SetupPackageInfo
 	var globalPersistDirs *[]string
 	var globalEventList *[]string
+	var globalMaxLogSizeDump *int32
+
+	var globalMaxLogSizeDumpDefault = shared.DefaultMaxLogSizeDump
+	globalMaxLogSizeDump = &globalMaxLogSizeDumpDefault
 
 	if appCR.Spec.DefaultImageRepoTag == nil {
 		globalImageRepoTag = nil
@@ -182,13 +187,13 @@ func validateRoles(
 		)
 	}
 	if !appCR.Spec.DefaultSetupPackage.IsSet {
-		globalSetupPackageURL = nil
+		globalSetupPackageInfo = nil
 	} else {
 		if appCR.Spec.DefaultSetupPackage.IsNull {
-			globalSetupPackageURL = nil
+			globalSetupPackageInfo = nil
 		} else {
-			urlCopy := appCR.Spec.DefaultSetupPackage.PackageURL.PackageURL
-			globalSetupPackageURL = &urlCopy
+			packageInfoCopy := appCR.Spec.DefaultSetupPackage.Info
+			globalSetupPackageInfo = &packageInfoCopy
 		}
 		appCR.Spec.DefaultSetupPackage = kdv1.SetupPackage{}
 		patches = append(
@@ -229,6 +234,16 @@ func validateRoles(
 			},
 		)
 	}
+	if appCR.Spec.DefaultMaxLogSizeDump != nil {
+		globalMaxLogSizeDump = appCR.Spec.DefaultMaxLogSizeDump
+		patches = append(
+			patches,
+			appPatchSpec{
+				Op:   "remove",
+				Path: "/spec/defaultMaxLogSizeDump",
+			},
+		)
+	}
 
 	// OK let's do the roles.
 	numRoles := len(appCR.Spec.NodeRoles)
@@ -236,7 +251,7 @@ func validateRoles(
 		role := &(appCR.Spec.NodeRoles[index])
 		if role.SetupPackage.IsSet == false {
 			// Nothing specified so, inherit the global specification
-			if globalSetupPackageURL == nil {
+			if globalSetupPackageInfo == nil {
 				role.SetupPackage.IsSet = true
 				role.SetupPackage.IsNull = true
 				patches = append(
@@ -252,18 +267,28 @@ func validateRoles(
 			} else {
 				role.SetupPackage.IsSet = true
 				role.SetupPackage.IsNull = false
-				role.SetupPackage.PackageURL = kdv1.SetupPackageURL{
-					PackageURL: *globalSetupPackageURL,
-				}
+				role.SetupPackage.Info = *globalSetupPackageInfo
 				patches = append(
 					patches,
 					appPatchSpec{
 						Op:   "add",
 						Path: "/spec/roles/" + strconv.Itoa(index) + "/configPackage",
 						Value: appPatchValue{
-							packageURLValue: &packageURL{URL: *globalSetupPackageURL},
+							packageInfoValue: globalSetupPackageInfo,
 						},
 					},
+				)
+			}
+		}
+		if role.MinStorage != nil {
+			_, minErr := resource.ParseQuantity(role.MinStorage.Size)
+			if minErr != nil {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidMinStorageDef,
+						role.ID,
+					),
 				)
 			}
 		}
@@ -336,6 +361,19 @@ func validateRoles(
 				)
 			}
 		}
+		if role.MaxLogSizeDump == nil {
+			role.MaxLogSizeDump = globalMaxLogSizeDump
+			patches = append(
+				patches,
+				appPatchSpec{
+					Op:   "add",
+					Path: "/spec/roles/" + strconv.Itoa(index) + "/maxLogSizeDump",
+					Value: appPatchValue{
+						intValue: globalMaxLogSizeDump,
+					},
+				},
+			)
+		}
 	}
 
 	return patches, valErrors
@@ -368,18 +406,18 @@ func validateServices(
 // the top-specific validation subroutines and composes the admission
 // response.
 func admitAppCR(
-	ar *v1beta1.AdmissionReview,
-) *v1beta1.AdmissionResponse {
+	ar *av1beta1.AdmissionReview,
+) *av1beta1.AdmissionResponse {
 
 	var valErrors []string
 	var patches []appPatchSpec
 
-	var admitResponse = v1beta1.AdmissionResponse{
+	var admitResponse = av1beta1.AdmissionResponse{
 		Allowed: false,
 	}
 
 	// Reject a delete if the app CR is currently in use.
-	if ar.Request.Operation == v1beta1.Delete {
+	if ar.Request.Operation == av1beta1.Delete {
 		references := shared.ClustersUsingApp(
 			ar.Request.Namespace,
 			ar.Request.Name,
@@ -398,7 +436,7 @@ func admitAppCR(
 	}
 
 	// For a delete operation, we're done now.
-	if ar.Request.Operation == v1beta1.Delete {
+	if ar.Request.Operation == av1beta1.Delete {
 		admitResponse.Allowed = true
 		return &admitResponse
 	}
@@ -430,7 +468,7 @@ func admitAppCR(
 			patchResult, patchErr := json.Marshal(patches)
 			if patchErr == nil {
 				admitResponse.Patch = patchResult
-				patchType := v1beta1.PatchTypeJSONPatch
+				patchType := av1beta1.PatchTypeJSONPatch
 				admitResponse.PatchType = &patchType
 			} else {
 				valErrors = append(valErrors, failedToPatch)
@@ -441,7 +479,7 @@ func admitAppCR(
 	// Reject an update if the app CR is currently in use AND this update is
 	// changing the spec. Note that we don't do this at the beginning of the
 	// handler because we want to get defaults populated before comparing.
-	if ar.Request.Operation == v1beta1.Update {
+	if ar.Request.Operation == av1beta1.Update {
 		references := shared.ClustersUsingApp(
 			ar.Request.Namespace,
 			ar.Request.Name,

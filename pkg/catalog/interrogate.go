@@ -111,13 +111,22 @@ func GetRoleCardinality(
 	return int32(count), isScaleOut
 }
 
-// GetRoleMinResources is a utility function that fetching the minimum resources
+// GetRoleMinResources is a utility function that fetches the minimum resources
 // for a given app role
 func GetRoleMinResources(
 	appRole *kdv1.NodeRole,
 ) *v1.ResourceList {
 
 	return appRole.MinResources
+}
+
+// GetRoleMinStorage is a utility function that fetches the minimum persistent
+// storage spec given app role
+func GetRoleMinStorage(
+	appRole *kdv1.NodeRole,
+) *kdv1.MinStorage {
+
+	return appRole.MinStorage
 }
 
 // PortsForRole returns list of service port info (id and port num) for a given role.
@@ -196,19 +205,19 @@ func ImageForRole(
 	)
 }
 
-// AppSetupPackageURL returns the app setup package url for a given role. The
+// AppSetupPackageInfo returns the app setup package info for a given role. The
 // fact that this function is invoked means that setup package was specified
 // either for the node role or the application as a whole.
-func AppSetupPackageURL(
+func AppSetupPackageInfo(
 	cr *kdv1.KubeDirectorCluster,
 	role string,
-) (string, error) {
+) (*kdv1.SetupPackageInfo, error) {
 
 	// Fetch the app type definition if we haven't yet cached it in this
 	// handler pass.
 	appCR, err := GetApp(cr)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	for _, nodeRole := range appCR.Spec.NodeRoles {
@@ -218,16 +227,16 @@ func AppSetupPackageURL(
 			// setupPackage will always be set because we mutated the spec during
 			// validation.
 			if setupPackage.IsNull == false {
-				return setupPackage.PackageURL.PackageURL, nil
+				return &setupPackage.Info, nil
 			}
 
 			// No config package for this role.
-			return "", nil
+			return nil, nil
 		}
 	}
 
 	// Should never reach here.
-	return "", fmt.Errorf(
+	return nil, fmt.Errorf(
 		"Role {%s} not found for app {%s} when searching for config package",
 		role,
 		cr.Spec.AppID,

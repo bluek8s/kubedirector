@@ -125,6 +125,14 @@ type FileInjections struct {
 	Permissions *FilePermissions `json:"permissions,omitempty"`
 }
 
+// VolumeProjections describes an individual volume projection
+// spec for mounting user created volumes to
+type VolumeProjections struct {
+	PvcName   string `json:"pvcName"`
+	MountPath string `json:"mountPath"`
+	ReadOnly  bool   `json:"readOnly,omitempty"`
+}
+
 // Role describes a subset of the virtual cluster members that shares a common
 // image, resource requirements, persistent storage definition, and (as
 // defined by the cluster's KubeDirectorApp) set of service endpoints.
@@ -144,6 +152,7 @@ type Role struct {
 	BlockStorage       *BlockStorage               `json:"blockStorage,omitempty"`
 	ServiceAccountName string                      `json:"serviceAccountName,omitempty"`
 	SecretKeys         []SecretKey                 `json:"secretKeys,omitempty"`
+	VolumeProjections  []VolumeProjections         `json:"volumeProjections,omitempty"`
 }
 
 // SecretKey holds data which is supposed to be only available on configuration phase
@@ -178,6 +187,7 @@ type StateRollup struct {
 	MembersUpgrading    bool `json:"membersUpgrading"`
 	MembersRollingBack  bool `json:"membersRollingBack"`
 	ConfigErrors        bool `json:"configErrors"`
+	MembersNotScheduled bool `json:"membersNotScheduled"`
 }
 
 // ClusterStorage defines the persistent storage size/type, if any, to be used
@@ -275,6 +285,9 @@ type MemberStateDetail struct {
 	LastKnownContainerState  string              `json:"lastKnownContainerState,omitempty"`
 	PendingNotifyCmds        []*NotificationDesc `json:"pendingNotifyCmds,omitempty"`
 	LastConnectionVersion    *int64              `json:"lastConnectionVersion,omitempty"`
+	StartScriptOutMsg        string              `json:"startScriptStdoutMessage,omitempty"`
+	StartScriptErrMsg        string              `json:"startScriptStderrMessage,omitempty"`
+	SchedulingErrorMessage   *string             `json:"schedulingErrorMessage,omitempty"`
 }
 
 // NotificationDesc contains the info necessary to perform a notify command.

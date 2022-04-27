@@ -40,7 +40,6 @@ const (
 	ClusterAppAnnotation = shared.KdDomainBase + "/kdapp-prettyName"
 
 	statefulSetPodLabel = "statefulset.kubernetes.io/pod-name"
-	storageClassName    = "volume.beta.kubernetes.io/storage-class"
 	// AppContainerName is the name of KubeDirector app containers.
 	AppContainerName = "app"
 	// PvcNamePrefix (along with a hyphen) is prepended to the name of each
@@ -56,17 +55,22 @@ const (
 	systemdFSVolume       = "/sys/fs/cgroup/systemd"
 	tmpFSVolSize          = "20Gi"
 	kubedirectorInit      = "/etc/kubedirector.init"
+	// The file that contains full logs of copying persistent dirs
+	kubedirectorInitLogs = "/etc/kubedirector-init.log"
+	// The file that contains just a progress bar of copying persisten dirs
+	// The file is updated dynamically
+	kubedirectorInitProgressBar = "/etc/kubedirector-init-progress-bar.log"
 
-	// nvidiaGpuResourceName is the name of a GPU resource, schedulable for a container -
+	// nvidiaGpuResourcePrefix is the name of a GPU resource, schedulable for a container -
 	// specifically, a GPU by the vendor, NVIDIA
-	nvidiaGpuResourceName = "nvidia.com/gpu"
+	nvidiaGpuResourcePrefix = "nvidia.com/"
 	// nvidiaGpuVisWorkaroundEnvVarName is the name of an environment variable, which is to be
 	// injected in a scheduled container), as an NVIDIA-suggested work-around that
 	// avoids an NVIDIA GPU resource surfacing in a container for which it was not requested
-	nvidiaGpuVisWorkaroundEnvVarName = "NVIDIA_VISIBLE_DEVICE"
+	nvidiaGpuVisWorkaroundEnvVarName = "NVIDIA_VISIBLE_DEVICES"
 	// nvidiaGpuVisWorkaroundEnvVarValue is the value to be set for the environment variable
 	// named nvidiaGpuVisWorkaroundEnvVarName, in the above work-around
-	nvidiaGpuVisWorkaroundEnvVarValue = "VOID"
+	nvidiaGpuVisWorkaroundEnvVarValue = "void"
 	// defaultBlockDeviceSize is the size for a block volume if it is not specified in the spec
 	defaultBlockDeviceSize = "1Gi"
 	// blockPvcNamePrefix is the prefix name for the volume device that is auto-created by the statefulset.

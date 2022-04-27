@@ -18,6 +18,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -239,6 +240,52 @@ func syncMemberNotifies(
 	wgReady.Wait()
 }
 
+// https://github.com/bluek8s/kubedirector/issues/547
+// setStateDetailLogs sets the extracted results
+// of startscript executions
+// to corresponding MemberStateDetail fields
+func setStateDetailLogs(
+	readFileFn func(string, io.Writer) (bool, error),
+	stateDetail *kdv1.MemberStateDetail,
+	roleMaxLogSize *int32,
+) {
+
+	// It's possible for roleMaxLogSize to be nil for kdapps created prior to
+	// the KD version that introduced the field. In that case fall back to
+	// the default.
+	maxSize := shared.DefaultMaxLogSizeDump
+	if roleMaxLogSize != nil {
+		maxSize = *roleMaxLogSize
+	}
+
+	if maxSize == 0 {
+		return
+	}
+
+	extractStartScriptLog := func(filePath string) *string {
+		var strB strings.Builder
+		fileExists, fileError := readFileFn(filePath, &strB)
+		if fileError != nil {
+			return nil
+		}
+		var msg string
+		if fileExists {
+			msg = shared.GetLastLines(strB.String(), maxSize)
+		}
+		return &msg
+	}
+
+	stdout := extractStartScriptLog(appPrepConfigStdout)
+	stderr := extractStartScriptLog(appPrepConfigStderr)
+	if stdout != nil {
+		stateDetail.StartScriptOutMsg = *stdout
+	}
+
+	if stderr != nil {
+		stateDetail.StartScriptErrMsg = *stderr
+	}
+}
+
 // handleReadyMembers operates on all members in the role that are currently
 // in the ready state. It will update the configmeta inside each guest with
 // the latest content.
@@ -278,6 +325,7 @@ func handleReadyMembers(
 				executor.AppContainerName,
 				configMetaFile,
 				strings.NewReader(configmeta),
+				false,
 			)
 			if createFileErr != nil {
 				shared.LogErrorf(
@@ -323,6 +371,21 @@ func handleReadyMembers(
 				)
 
 				containerID := m.StateDetail.LastConfiguredContainer
+
+				readFile := func(filepath string, writer io.Writer) (bool, error) {
+					fileExists, fileError := executor.ReadFile(
+						reqLogger,
+						cr,
+						cr.Namespace,
+						m.Pod,
+						containerID,
+						executor.AppContainerName,
+						filepath,
+						writer,
+					)
+					return fileExists, fileError
+				}
+
 				cmd := GetAppConfigCmd(containerID, Reconnect)
 
 				cmdErr := executor.RunScript(
@@ -332,10 +395,17 @@ func handleReadyMembers(
 					m.Pod,
 					m.StateDetail.LastConfiguredContainer,
 					executor.AppContainerName,
-					"app config",
+					"app reconnect",
 					strings.NewReader(cmd),
 				)
+
 				if cmdErr != nil {
+					// https://github.com/bluek8s/kubedirector/issues/547
+					nodeRole := catalog.GetRoleFromID(cr.AppSpec, role.roleSpec.Name)
+					if nodeRole != nil {
+						setStateDetailLogs(readFile, &m.StateDetail, nodeRole.MaxLogSizeDump)
+					}
+
 					shared.LogErrorf(
 						reqLogger,
 						cmdErr,
@@ -448,15 +518,15 @@ func handleCreatingMembers(
 	creating := role.membersByState[memberCreating]
 	rs := &role.roleStatus
 
-	// Fetch setup url package
-	setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, role.roleStatus.Name)
-	if setupURLErr != nil {
+	// Fetch setup package info
+	setupInfo, setupInfoErr := catalog.AppSetupPackageInfo(cr, role.roleStatus.Name)
+	if setupInfoErr != nil {
 		shared.LogErrorf(
 			reqLogger,
-			setupURLErr,
+			setupInfoErr,
 			cr,
 			shared.EventReasonRole,
-			"failed to fetch setup url for role{%s}",
+			"failed to fetch setup info for role{%s}",
 			role.roleStatus.Name,
 		)
 		return
@@ -507,7 +577,7 @@ func handleCreatingMembers(
 				}
 			}
 
-			if setupURL == "" {
+			if setupInfo == nil {
 				setFinalState(memberReady, nil)
 				shared.LogInfof(
 					reqLogger,
@@ -524,7 +594,7 @@ func handleCreatingMembers(
 			isFinal, configErr := appConfig(
 				reqLogger,
 				cr,
-				setupURL,
+				setupInfo,
 				m.Pod,
 				containerID,
 				&m.StateDetail,
@@ -563,7 +633,26 @@ func handleCreatingMembers(
 				}
 			}
 
+			readFile := func(filepath string, writer io.Writer) (bool, error) {
+				fileExists, fileError := executor.ReadFile(
+					reqLogger,
+					cr,
+					cr.Namespace,
+					m.Pod,
+					containerID,
+					executor.AppContainerName,
+					filepath,
+					writer,
+				)
+				return fileExists, fileError
+			}
+
 			if configErr != nil {
+				nodeRole := catalog.GetRoleFromID(cr.AppSpec, role.roleSpec.Name)
+				if nodeRole != nil {
+					setStateDetailLogs(readFile, &m.StateDetail, nodeRole.MaxLogSizeDump)
+				}
+
 				shared.LogErrorf(
 					reqLogger,
 					configErr,
@@ -817,6 +906,7 @@ func replicasSynced(
 func setupNodePrep(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
+	useNewSetupLayout bool,
 	podName string,
 	expectedContainerID string,
 ) error {
@@ -831,6 +921,20 @@ func setupNodePrep(
 		expectedContainerID,
 		executor.AppContainerName,
 		configcliTestFile,
+	)
+	if fileError != nil {
+		return fileError
+	} else if fileExists {
+		return nil
+	}
+	fileExists, fileError = executor.IsFileExists(
+		reqLogger,
+		cr,
+		cr.Namespace,
+		podName,
+		expectedContainerID,
+		executor.AppContainerName,
+		configcliLegacyTestFile,
 	)
 	if fileError != nil {
 		return fileError
@@ -857,12 +961,19 @@ func setupNodePrep(
 		executor.AppContainerName,
 		configcliDestFile,
 		bufio.NewReader(nodePrepFile),
+		false,
 	)
 	if createErr != nil {
 		return createErr
 	}
 
 	// Install it.
+	var configcliInstallCmd string
+	if useNewSetupLayout {
+		configcliInstallCmd = fmt.Sprintf(configcliInstallCmdFmt, "--new", shared.ConfigCliLoc)
+	} else {
+		configcliInstallCmd = fmt.Sprintf(configcliInstallCmdFmt, "", shared.ConfigCliLegacyLoc)
+	}
 	return executor.RunScript(
 		reqLogger,
 		cr,
@@ -872,6 +983,31 @@ func setupNodePrep(
 		executor.AppContainerName,
 		"configcli setup",
 		strings.NewReader(configcliInstallCmd),
+	)
+}
+
+// setupLegacyLinks creates links from /usr/bin to the configcli scripts
+// in /usr/local/bin, if using the new setup layout.
+func setupLegacyLinks(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	useNewSetupLayout bool,
+	podName string,
+	expectedContainerID string,
+) error {
+
+	if !useNewSetupLayout {
+		return nil
+	}
+	return executor.RunScript(
+		reqLogger,
+		cr,
+		cr.Namespace,
+		podName,
+		expectedContainerID,
+		executor.AppContainerName,
+		"legacy configcli links",
+		strings.NewReader(legacyLinksCmd),
 	)
 }
 
@@ -904,7 +1040,7 @@ func setupAppConfig(
 	}
 
 	// Fetch and install it.
-	cmd := strings.Replace(appPrepInitCmd, "{{APP_CONFIG_URL}}", setupURL, -1)
+	cmd := fmt.Sprintf(appPrepInitCmdFmt, setupURL)
 	return executor.RunScript(
 		reqLogger,
 		cr,
@@ -1006,19 +1142,19 @@ func generateNotifies(
 			// referenced below will be nil. That case is covered here too.
 			continue
 		}
-		setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, otherRole.roleStatus.Name)
-		if setupURLErr != nil {
+		setupInfo, setupInfoErr := catalog.AppSetupPackageInfo(cr, otherRole.roleStatus.Name)
+		if setupInfoErr != nil {
 			shared.LogErrorf(
 				reqLogger,
-				setupURLErr,
+				setupInfoErr,
 				cr,
 				shared.EventReasonRole,
-				"failed to fetch setup url for role{%s}",
+				"failed to fetch setup info for role{%s}",
 				otherRole.roleStatus.Name,
 			)
-			setupURL = ""
+			setupInfo = nil
 		}
-		if setupURL == "" {
+		if setupInfo == nil {
 			// No notification necessary for any member in this role.
 			shared.LogInfof(
 				reqLogger,
@@ -1108,7 +1244,7 @@ func systemdOk(
 func appConfig(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	setupURL string,
+	setupInfo *kdv1.SetupPackageInfo,
 	podName string,
 	expectedContainerID string,
 	stateDetail *kdv1.MemberStateDetail,
@@ -1116,14 +1252,23 @@ func appConfig(
 	configmetaGenerator func(string) string,
 ) (bool, error) {
 
+	readFile := func(filepath string, writer io.Writer) (bool, error) {
+		return executor.ReadFile(
+			reqLogger,
+			cr,
+			cr.Namespace,
+			podName,
+			expectedContainerID,
+			executor.AppContainerName,
+			filepath,
+			writer,
+		)
+	}
+
 	roleName := roleStatus.Name
-	runConfigScript := func(
-		configArg ConfigArg,
-		loggingErr bool,
-	) error {
-		var cmdErr error = nil
+	runConfigScript := func(configArg ConfigArg, loggingErr bool) error {
 		cmd := GetAppConfigCmd(expectedContainerID, configArg)
-		cmdErr = executor.RunScript(
+		cmdErr := executor.RunScript(
 			reqLogger,
 			cr,
 			cr.Namespace,
@@ -1168,16 +1313,7 @@ func appConfig(
 		// will check back periodically. So let's have a look at the existing
 		// status if any.
 		var statusStrB strings.Builder
-		fileExists, fileError := executor.ReadFile(
-			reqLogger,
-			cr,
-			cr.Namespace,
-			podName,
-			expectedContainerID,
-			executor.AppContainerName,
-			appPrepConfigStatus,
-			&statusStrB,
-		)
+		fileExists, fileError := readFile(appPrepConfigStatus, &statusStrB)
 		if fileError != nil {
 			return true, fileError
 		}
@@ -1219,13 +1355,37 @@ func appConfig(
 				status, convErr := strconv.Atoi(configStatus)
 				if convErr == nil && status == 0 {
 
-					var upgradeCmdErr error = nil
+					// Notify upgrade/rollback completion as necessary.
+					var upgradeCmdErr error
 					if roleStatus.RoleUpgradeStatus == kdv1.RoleUpgrading {
 						upgradeCmdErr = runConfigScript(PodUpgraded, true)
 					} else if roleStatus.RoleUpgradeStatus == kdv1.RoleRollingBack {
 						upgradeCmdErr = runConfigScript(PodReverted, true)
 					}
-					return true, upgradeCmdErr
+
+					// Configure previously succeeded so basically we're done
+					// here. However, if this is a container restart, see if
+					// we need to re-establish configcli symlinks.
+					var linkErr error
+					if configContainerID != expectedContainerID {
+						linkErr = setupLegacyLinks(
+							reqLogger,
+							cr,
+							setupInfo.UseNewSetupLayout,
+							podName,
+							expectedContainerID,
+						)
+					}
+
+					// All good? If not, let's return an error. Prioritize
+					// upgrade issues over link issues.
+					if upgradeCmdErr != nil {
+						return true, upgradeCmdErr
+					}
+					if linkErr != nil {
+						return true, linkErr
+					}
+					return true, nil
 				}
 				statusErr := fmt.Errorf(
 					"configure failed with exit status {%s}",
@@ -1282,6 +1442,7 @@ func appConfig(
 		executor.AppContainerName,
 		configMetaFile,
 		strings.NewReader(configmetaGenerator(podName)),
+		setupInfo.UseNewSetupLayout,
 	)
 	if configmetaErr != nil {
 		return true, configmetaErr
@@ -1289,12 +1450,17 @@ func appConfig(
 	// Successfully injected configmeta so record that.
 	stateDetail.LastConfigDataGeneration = cr.Status.SpecGenerationToProcess
 	// Set up configcli package for this member (if not set up already).
-	prepErr := setupNodePrep(reqLogger, cr, podName, expectedContainerID)
+	prepErr := setupNodePrep(reqLogger, cr, setupInfo.UseNewSetupLayout, podName, expectedContainerID)
 	if prepErr != nil {
 		return true, prepErr
 	}
+	// Link configcli into /usr/bin if necessary for legacy script support.
+	linkErr := setupLegacyLinks(reqLogger, cr, setupInfo.UseNewSetupLayout, podName, expectedContainerID)
+	if linkErr != nil {
+		return true, linkErr
+	}
 	// Make sure the necessary app-specific materials are in place.
-	setupErr := setupAppConfig(reqLogger, cr, setupURL, podName, expectedContainerID, roleName)
+	setupErr := setupAppConfig(reqLogger, cr, setupInfo.PackageURL, podName, expectedContainerID, roleName)
 	if setupErr != nil {
 		return true, setupErr
 	}
@@ -1317,6 +1483,11 @@ func appConfig(
 	// Now kick off the initial config.
 	cmdErr := runConfigScript(Configure, false)
 	if cmdErr != nil {
+		// https://github.com/bluek8s/kubedirector/issues/547
+		nodeRole := catalog.GetRoleFromID(cr.AppSpec, roleName)
+		if nodeRole != nil {
+			setStateDetailLogs(readFile, stateDetail, nodeRole.MaxLogSizeDump)
+		}
 		return true, cmdErr
 	}
 	return false, nil

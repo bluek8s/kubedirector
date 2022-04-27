@@ -389,7 +389,7 @@ func validateGeneralClusterChanges(
 		}
 
 		// Also, the current app should support upgrade
-		if !prevCrApp.Spec.Upgradable {
+		if prevCrApp.Spec.Upgradable == nil || !*prevCrApp.Spec.Upgradable {
 			appModifiedMsg := fmt.Sprintf(
 				appNotUpgradable,
 				prevCrApp.Spec.DistroID,

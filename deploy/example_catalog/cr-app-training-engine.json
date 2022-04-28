@@ -10,9 +10,6 @@
 
     "spec": {
         "logoURL": "https://raw.githubusercontent.com/bluedatainc/solutions/master/MLOps/logos/training-engine-logo.png",
-        "categories": [
-            "AIML/Training"
-        ],
         "config": {
             "configMeta": {
                 "ml_engine": "python"
@@ -31,26 +28,17 @@
                         "haproxy-stats",
                         "haproxy-train"
                     ]
-                },
-                {
-                    "roleID": "controller",
-                    "serviceIDs": [
-                        "ssh",
-                        "jupyter-nb"
-                    ]
                 }
             ],
             "selectedRoles": [
                 "RESTServer",
-                "LoadBalancer",
-                "controller"
+                "LoadBalancer"
             ]
         },
         "distroID": "hpecp/training-engine",
         "label": {
-            "description": "Toolkit: TensorFlow, Scikit-Learn, PyTorch, Keras, XGBoost, LightGBM, hyperopt, Horovod; Core: Numpy, Scipy, Pandas, StatsModels, Anaconda, R kernel, Flask, Jupyter Notebook, CUDA; Visualization: Matplotlib, Seaborn, Plotly, Bokeh", 
-            "name": "ML Training Toolkit, with GPU support",
-            "AIML_category": "Training"
+            "description": "Toolkit: TensorFlow, Scikit-Learn, PyTorch, Keras, XGBoost, LightGBM, hyperopt, Horovod; Core: Numpy, Scipy, Pandas, StatsModels, Anaconda, R kernel, Flask, CUDA; Visualization: Matplotlib, Seaborn, Plotly, Bokeh", 
+            "name": "ML Training Toolkit, with GPU support"
         },
         "roles": [{
                 "cardinality": "1",
@@ -58,7 +46,7 @@
                     "packageURL": "file:///opt/configscript/flask_configure.tgz"
                 },
                 "id": "LoadBalancer",
-                "imageRepoTag": "bluedata/kd-api-serving:1.3"
+                "imageRepoTag": "bluedata/kd-training-api-serving:1.0"
             },
             {
                 "cardinality": "1+",
@@ -66,15 +54,7 @@
                     "packageURL": "file:///opt/configscript/flask_configure.tgz"
                 },
                 "id": "RESTServer",
-                "imageRepoTag": "bluedata/kd-api-serving:1.5"
-            },
-            {
-                "cardinality": "1",
-                "configPackage": {
-                    "packageURL": "file:///opt/configscript/appconfig.tgz"
-                },
-                "id": "controller",
-                "imageRepoTag": "bluedata/kd-training:1.5"
+                "imageRepoTag": "bluedata/kd-training-api-serving:1.0"
             }
         ],
         "services": [{
@@ -118,29 +98,9 @@
                     "port": 32700,
                     "urlScheme": "http"
                 },
-                "exported_service": "AIML/Training",
                 "id": "haproxy-train",
                 "label": {
                     "name": "Training API Server"
-                }
-            },
-            {
-                "id": "httpd",
-                "label": {
-                    "name": "Apache HTTP Server"
-                }
-            },
-            {
-                "endpoint": {
-                    "isDashboard": true,
-                    "path": "/",
-                    "port": 8000,
-                    "urlScheme": "http",
-                    "hasAuthToken": true
-                },
-                "id": "jupyter-nb",
-                "label": {
-                    "name": "Jupyter Notebook"
                 }
             }
         ],

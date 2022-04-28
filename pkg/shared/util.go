@@ -81,13 +81,14 @@ func OwnerReferences(
 	// IF THIS IS EVER CHANGED TO RETURN MORE THAN ONE REFERENCE for some
 	// reason, then ownerReferencesPresent below will also need to be
 	// changed.
-	return []metav1.OwnerReference{
-		*metav1.NewControllerRef(cr, schema.GroupVersionKind{
-			Group:   kdv1.SchemeGroupVersion.Group,
-			Version: kdv1.SchemeGroupVersion.Version,
-			Kind:    cr.GetObjectKind().GroupVersionKind().Kind,
-		}),
-	}
+	ref := metav1.NewControllerRef(cr, schema.GroupVersionKind{
+		Group:   kdv1.SchemeGroupVersion.Group,
+		Version: kdv1.SchemeGroupVersion.Version,
+		Kind:    cr.GetObjectKind().GroupVersionKind().Kind,
+	})
+	blockOwnerDeletion := false
+	ref.BlockOwnerDeletion = &blockOwnerDeletion
+	return []metav1.OwnerReference{*ref}
 }
 
 // OwnerReferencesPresent determines whether the desired references (from
@@ -112,6 +113,31 @@ func OwnerReferencesPresent(
 		}
 	}
 	return false
+}
+
+// GetLastLines returns few last whole lines of
+// the input src string that are included
+// into the last maxSize characters of src
+// If maxSize is greater than src length, it returns src
+func GetLastLines(
+	src string,
+	maxSize int32,
+) string {
+
+	size := len(src)
+	if size <= int(maxSize) {
+		return src
+	}
+
+	start := size - (int(maxSize) + 1)
+
+	for i := start; i < size-1; i++ {
+		if src[i] == '\n' {
+			start = i + 1
+			break
+		}
+	}
+	return src[start:]
 }
 
 // StatefulSetContainers returns the array of containers are run for a given statefulSet

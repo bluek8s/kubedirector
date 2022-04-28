@@ -1,3 +1,12 @@
+#### First, check Kubernetes version requirements
+
+From KubeDirector v0.4.0 up through v0.8.1, the minimum supported K8s version was 1.14 and the maximum was 1.21.
+
+Starting with KD v0.10.0, the minimum supported K8s version is 1.16 and there is no maximum supported K8s version (yet).
+
+Select your desired KubeDirector version accordingly, and possibly also coordinate with any desired K8s upgrades.
+
+
 #### If upgrading from KubeDirector v0.5.0 or later:
 
 **1) Update the Deployment resource named "kubedirector".**

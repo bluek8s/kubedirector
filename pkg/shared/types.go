@@ -48,6 +48,20 @@ const (
 	// DefaultNamingScheme - default naming scheme if not specified in
 	// the configCR
 	DefaultNamingScheme = "UID"
+
+	// ConfigCliLoc is the root directory for installing configcli scripts
+	// and python modules within the member container, if the role asks for
+	// the new setup layout.
+	ConfigCliLoc = "/usr/local"
+
+	// ConfigCliLegacyLoc is the root directory for installing configcli scripts
+	// and python modules within the member container, if the role uses the
+	// old setup layout.
+	ConfigCliLegacyLoc = "/usr"
+
+	// DefaultMaxLogSizeDump is the max size for stderr/stdout log dump fields
+	// that is used when a kdapp does not explicitly specify a max.
+	DefaultMaxLogSizeDump int32 = 256
 )
 
 // Event reason constants for recording events

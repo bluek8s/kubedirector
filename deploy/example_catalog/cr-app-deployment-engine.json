@@ -15,14 +15,10 @@
         "configSchemaVersion": 7,
         "label": {
             "name": "ML Inferencing",
-            "description": "Toolkit: TensorFLow, Keras, PyTorch, Scikit-Learn, XGBoost; Core: Pandas, numpy, Flask",
-            "AIML_category": "Deployment"
+            "description": "Toolkit: TensorFLow, Keras, PyTorch, Scikit-Learn, XGBoost; Core: Pandas, numpy, Flask"
         },
 
         "systemdRequired": true,
-        "categories": [
-            "AIML/Deployment"
-        ],
 
         "services": [{
                 "id": "haproxy-stats",
@@ -58,7 +54,6 @@
                 }
             },
             {
-                "exported_service": "AIML/Deployment",
                 "endpoint": {
                     "urlScheme": "http",
                     "path": "/<<model_name>>/<<model_version>>/predict",
@@ -80,7 +75,7 @@
 
         ],
 
-        "defaultImageRepoTag": "bluedata/kd-api-serving:2.0",
+        "defaultImageRepoTag": "bluedata/kd-deployment-api-serving:1.0",
         "defaultConfigPackage": {
             "packageURL": "file:///opt/configscript/flask_configure.tgz"
         },

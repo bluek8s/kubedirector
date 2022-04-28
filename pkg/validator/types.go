@@ -16,11 +16,11 @@ package validator
 
 import (
 	"github.com/bluek8s/kubedirector/pkg/shared"
-	"k8s.io/api/admission/v1beta1"
+	av1beta1 "k8s.io/api/admission/v1beta1"
 )
 
 // admitFunc is used as the type for all the callback validators
-type admitFunc func(*v1beta1.AdmissionReview) *v1beta1.AdmissionResponse
+type admitFunc func(*av1beta1.AdmissionReview) *av1beta1.AdmissionResponse
 
 type checkFunc func() error
 
@@ -88,11 +88,14 @@ const (
 	invalidStorageSize  = "Storage size for role (%s) should be greater than zero."
 	invalidStorageClass = "Unable to fetch storageClass object with the provided name(%s)."
 
+	invalidMinStorageDef = "Minimum storage size for role (%s) is incorrectly defined."
+
 	invalidRoleStorageClass = "Unable to fetch storageClassName(%s) for role(%s)."
 	noDefaultStorageClass   = "storageClassName is not specified for one or more roles, and no default storage class is available."
 	badDefaultStorageClass  = "storageClassName is not specified for one or more roles, and default storage class (%s) is not available on the system."
 
 	invalidResource = "Specified resource(\"%s\") value(\"%s\") for role(\"%s\") is invalid. Minimum value must be \"%s\"."
+	invalidStorage  = "Specified persistent storage size(\"%s\") for role(\"%s\") is invalid. Minimum size must be \"%s\"."
 	invalidSrcURL   = "Unable to access the specified URL(\"%s\") in file injection spec for the role (%s). error: %s."
 
 	maxMemberLimit = "Maximum number of total members per KD cluster supported is %d."
@@ -103,6 +106,11 @@ const (
 	masterEncryptionKeyChange                       = "masterEncryptionKey value cannot be changed while kdclusters exist"
 
 	invalidConfigDelete = "kd-global-config cannot be deleted while kdclusters exist"
+
+	invalidPVC        = "Unable to find persistentvolumeclaim(%s) in namespace(%s) as specified for role(%s)."
+	invalidVolumeMode = "Specified persistentvolumeclaim(%s) for role (%s) is invalid. VolumeMode(%s) for the underlying volume must be configured as Filesystem."
+	invalidAccessMode = "Specified persistentvolumeclaim(%s) is invalid. AccessModes for this volume must contain either ReadWriteMany or ReadOnlyMany, since its consumed by more than 1 member of the cluster."
+	invalidMountPath  = "Specified mountPath(%s) for role(%s) is invalid. It must be unique within the role."
 )
 
 type dictValue map[string]string

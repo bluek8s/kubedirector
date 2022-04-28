@@ -19,7 +19,11 @@ project_name := kubedirector
 bin_name := kubedirector
 
 home_dir := /home/kubedirector
-configcli_version := 0.7.2
+
+configcli_version := 0.8
+configcli_pkg := v$(configcli_version).tar.gz
+configcli_pkg_pattern := v*.tar.gz
+configcli_container_pkg := configcli.tgz
 
 local_deploy_yaml := deploy/kubedirector/deployment-localbuilt.yaml
 
@@ -35,7 +39,6 @@ sedignorecase =
 endif
 
 build_dir := build/_output
-configcli_dest := build/configcli.tgz
 goarch := amd64
 cgo_enabled := 0
 
@@ -67,9 +70,12 @@ build: configcli pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go version-
 	@echo
 
 configcli:
-	@if [ -e $(configcli_dest) ]; then exit 0; fi;                             \
+	@if [ -e build/$(configcli_container_pkg) ] && [ -e build/$(configcli_pkg) ]; then exit 0; fi;                             \
      echo "* Downloading configcli package ...";                               \
-     curl -L -o $(configcli_dest) https://github.com/bluek8s/configcli/archive/v$(configcli_version).tar.gz
+     rm -f build/$(configcli_container_pkg) build/$(configcli_pkg_pattern); \
+     cd build && \
+     curl -L -O https://github.com/bluek8s/configcli/archive/$(configcli_pkg) && \
+     ln -sf $(configcli_pkg) $(configcli_container_pkg)
 
 pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go:  \
         pkg/apis/kubedirector/v1beta1/${app_resource_name}_types.go \
@@ -159,7 +165,7 @@ deploy:
         done
 	@echo
 	@echo
-	while ! kubectl get service kubedirector-validator &> /dev/null; do \
+	@while ! kubectl get service kubedirector-validator &> /dev/null; do \
 	    sleep 3; \
 	done
 	@echo \* Creating example application types...
@@ -180,10 +186,10 @@ redeploy:
 	@echo \* Injecting new configcli package...
 	@set -e; \
         podname=`kubectl get -o jsonpath='{.items[0].metadata.name}' pods -l name=${project_name}`; \
-        kubectl exec $$podname -- mv -f ${home_dir}/configcli.tgz ${home_dir}/configcli.tgz.bak || true; \
-        kubectl cp ${configcli_dest} $$podname:${home_dir}/configcli.tgz; \
-        kubectl exec $$podname -- chgrp 0 ${home_dir}/configcli.tgz; \
-        kubectl exec $$podname -- chmod ug=rw ${home_dir}/configcli.tgz
+        kubectl exec $$podname -- mv -f ${home_dir}/${configcli_container_pkg} ${home_dir}/${configcli_container_pkg}.bak || true; \
+        kubectl cp build/${configcli_pkg} $$podname:${home_dir}/${configcli_container_pkg}; \
+        kubectl exec $$podname -- chgrp 0 ${home_dir}/${configcli_container_pkg}; \
+        kubectl exec $$podname -- chmod ug=rw ${home_dir}/${configcli_container_pkg}
 	@echo
 	@echo \* Injecting and starting new KubeDirector binary...
 	@set -e; \
@@ -273,6 +279,9 @@ undeploy:
         echo \* Deleting KubeDirector deployment...; \
         delete_namespaced_thing deployment ${project_name}; \
         echo; \
+        echo \* Deleting KubeDirector API webhook...; \
+        delete_cluster_thing MutatingWebhookConfiguration ${project_name}-webhook; \
+        echo; \
         echo \* Deleting role and service account...; \
         delete_cluster_thing clusterrolebinding ${project_name}; \
         delete_cluster_thing clusterrole ${project_name}; \
@@ -339,7 +348,7 @@ clean:
 	-rm -f deploy/kubedirector/deployment-localbuilt.yaml
 	-rm -f pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go
 	-rm -rf ${build_dir}
-	-rm -f ${configcli_dest}
+	-rm -f build/$(configcli_container_pkg) build/$(configcli_pkg_pattern)
 
 modules:
 	go mod tidy

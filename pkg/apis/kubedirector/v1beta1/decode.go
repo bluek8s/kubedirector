@@ -36,7 +36,7 @@ func (setupPackage *SetupPackage) UnmarshalJSON(
 		return nil
 	}
 
-	if err := json.Unmarshal(data, &setupPackage.PackageURL); err != nil {
+	if err := json.Unmarshal(data, &setupPackage.Info); err != nil {
 		return err
 	}
 	setupPackage.IsNull = false

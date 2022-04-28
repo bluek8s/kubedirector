@@ -1,3 +1,46 @@
+# v0.10.0-beta.1 - Apr 11, 2022
+
+Note that this is a BETA release. It is being made available so that it can be more easily/widely tested.
+
+The main focus of this release is to remove the usage of some deprecated K8s APIs. As a result of this change, KubeDirector can now be deployed on K8s version 1.22 and later. Also, KubeDirector is dropping support for deploying on K8s versions before 1.16.
+
+We're also starting to qualify KubeDirector for deployment on OpenShift, so you can start experimenting with that environment as of this release.
+
+The final non-beta v0.10.0 release (expected before end-of-month) will therefore move the supported-K8s-version window as described above. It will also contain any changes for the initial experimental support of KubeDirector on OpenShift, but it will not yet make OpenShift a recommended environment for deploying KubeDirector.
+
+The specific changes included in this beta:
+* [specify additionalPrinterColumns for kdcluster/kdapp](https://github.com/bluek8s/kubedirector/issues/288)
+* [stop using deprecated APIs in apiextensions.k8s.io and admissionregistration.k8s.io](https://github.com/bluek8s/kubedirector/issues/504)
+* [cooperate with the OwnerReferencesPermissionEnforcement admission controller](https://github.com/bluek8s/kubedirector/issues/583)
+
+# v0.9.0 - Mar 31, 2022
+
+A collection of kdcluster features and bugfixes here. In order of issue number:
+* [allow requesting PV storage for kdcluster role members](https://github.com/bluek8s/kubedirector/issues/411); cf. the 0.9.0 additions to the [role spec](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorCluster-Definition#rolespec)
+* [don't put owner ref on MutatingWebhookConfiguration](https://github.com/bluek8s/kubedirector/issues/505) since K8s no longer honors this; the kubedirector-webhook needs to be explicitly remove if uninstalling KD ([which "make teardown" now does](https://github.com/bluek8s/kubedirector/issues/570))
+* [make configscript error info available in member status](https://github.com/bluek8s/kubedirector/issues/547); cf. the 0.9.0 additions to the [memberStateDetail](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorCluster-Definition#memberstatedetail) in per-member status and to the [kdapp spec](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorApp-Definition#kubedirectorappspec)
+* [fix application of the NVIDIA_VISIBLE_DEVICES environment var](https://github.com/bluek8s/kubedirector/issues/507) to properly set this to "void" when no NVidia GPU resources are requested
+* [stop using a deprecated method of setting PVC storage class](https://github.com/bluek8s/kubedirector/issues/556); this also fixes some PV backup issues when using Velero
+* [make the pod-unschedulable reason available in member status](https://github.com/bluek8s/kubedirector/issues/562); cf. the 0.9.0 additions to the [memberStateDetail](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorCluster-Definition#memberstatedetail) in per-member status
+* [give init containers the same resources as app containers](https://github.com/bluek8s/kubedirector/issues/565) to avoid locking down excess resources
+* [mark that the KD webhooks support "dry run"](https://github.com/bluek8s/kubedirector/issues/568)
+
+# v0.8.1 - Feb 14, 2022
+
+Happy Valentine's Day! This dot-release is for showing some love to kdapp developers who want to transition to the "new layout" introduced in the prior release, but who will need more time to transition to the more restrictive permissions on /etc/guestconfig. The [app-filesystem-layout.md](doc/app-filesystem-layout.md) doc has been updated with tips. [PR 557](https://github.com/bluek8s/kubedirector/pull/557) describes the corresponding functional change in KubeDirector.
+
+# v0.8.0 - Feb 2, 2022
+
+The primary focus of this release is to add a new option for kdapp CRs that changes the processes and file layout around "app setup script" installation and use: the ["useNewSetupLayout" boolean in the default and per-role config package objects](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorApp-Definition#configpackage). This option can speed up the deployment of PVs in the kdclusters for those apps; it also makes certain directory contents readable only by the container user, for increased security in apps that support login by other user accounts. See the [app-filesystem-layout.md](doc/app-filesystem-layout.md) doc for more info about using this option in your kdapp definitions. Two of the example kdapps (cassandra and jupyter-notebook) have been updated to use this option.
+
+Another new kdapp feature is the ability to optionally specify a minimum valid persistent storage size for each role: the ["minStorage" attribute](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorApp-Definition#role). This helps to prevent cases where a kdcluster requesting a too-small PV cannot come up successfully.
+
+Other changes in this release:
+* remove CentOS 8 example kdapp due to EOL
+* [handle container images where "rm" is aliased to "rm -i"](https://github.com/bluek8s/kubedirector/issues/530)
+* [handle a race in "make deploy" where kdapp creation is attempted too soon](https://github.com/bluek8s/kubedirector/pull/544)
+
+
 # v0.7.1 - Nov 24, 2021
 
 This dot-release doesn't contain any new features or bugfixes within the KubeDirector code. It updates the base image of the KubeDirector deployment (from UBI7 to UBI8), raises the minimum allowed version of golang for compilation (from 1.13 to 1.16), and updates several of the module dependencies.

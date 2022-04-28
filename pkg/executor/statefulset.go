@@ -16,6 +16,7 @@ package executor
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -38,10 +39,28 @@ import (
 // that will always be placed on shared persistent storage (when available).
 var defaultMountFolders = []string{"/etc"}
 
-// appConfigDefaultMountFolders identifies set of member filesystems directories
-// that will always be placed on shared persistent storage, if app config is provided
-// for a role
-var appConfigDefaultMountFolders = []string{"/etc", "/opt", "/usr"}
+// appConfigDefaultMountFolders identifies set of member filesystems
+// directories that will always be placed on shared persistent storage, if app
+// config is provided for a role, and if that role's package has
+// useNewSetupLayout set true. Note that the code in getStatefulset assumes
+// this is a superset of the defaultMountFolders list.
+var appConfigDefaultMountFolders = []string{
+	"/etc",
+	"/opt/guestconfig",
+	"/var/log/guestconfig",
+	"/usr/local/bin",
+	"/usr/local/lib",
+}
+
+// appConfigLegacyDefaultMountFolders identifies set of member filesystems
+// directories that will always be placed on shared persistent storage, if app
+// config is provided for a role, and if that role's package has
+// useNewSetupLayout set false.
+var appConfigLegacyDefaultMountFolders = []string{
+	"/etc",
+	"/opt",
+	"/usr",
+}
 
 // CreateStatefulSet creates in k8s a zero-replicas statefulset for
 // implementing the given role.
@@ -306,59 +325,111 @@ func getStatefulset(
 		return nil, persistErr
 	}
 
-	defaultPersistDirs := &defaultMountFolders
+	defaultPersistDirs := defaultMountFolders
 
 	// Check if there is an app config package for this role, If so we have
 	// to add additional defaults
-	setupURL, setupURLErr := catalog.AppSetupPackageURL(cr, role.Name)
-	if setupURLErr != nil {
-		return nil, setupURLErr
+	setupInfo, setupInfoErr := catalog.AppSetupPackageInfo(cr, role.Name)
+	if setupInfoErr != nil {
+		return nil, setupInfoErr
 	}
 
-	if setupURL != "" {
-		defaultPersistDirs = &appConfigDefaultMountFolders
+	if setupInfo != nil {
+		if setupInfo.UseNewSetupLayout {
+			defaultPersistDirs = appConfigDefaultMountFolders
+		} else {
+			defaultPersistDirs = appConfigLegacyDefaultMountFolders
+		}
 	}
 
 	// Create a combined unique list of directories that have be persisted
 	// Start with default mounts
-	var maxLen = len(*defaultPersistDirs)
+	var maxLen = len(defaultPersistDirs)
 	if appPersistDirs != nil {
 		maxLen += len(*appPersistDirs)
 	}
-	persistDirs := make([]string, len(*defaultPersistDirs), maxLen)
-	copy(persistDirs, *defaultPersistDirs)
+	persistDirs := make([]string, 0, maxLen)
 
-	// if the app directory is either same or a subdir of one of the default mount
-	// dirs, we can skip them. if not we should add them to the persistDirs list
-	// Also eliminate any duplicates or sub-dirs from appPersistDirs as well
-	if appPersistDirs != nil {
-		for _, appDir := range *appPersistDirs {
-			isSubDir := false
-			for _, defaultDir := range persistDirs {
-				// Get relative path of the app dir wrt defaultDir
-				rel, _ := filepath.Rel(defaultDir, appDir)
+	// Utility func here to add elements from sourceDirList to persistDirs. An
+	// element from sourceDirList will be skipped if it is a subdir of some
+	// other element from sourceDirList or otherDirList. If it is a dup of
+	// some element from sourceDirList, it will be skipped only if the
+	// discovered dup is earlier in the list. If it is a dup of some element
+	// from otherDirList, it will be skipped only if checkOtherDups is true.
+	addToDirs := func(
+		sourceDirList []string,
+		otherDirList *[]string,
+		checkOtherDups bool,
+		sourceDesc string,
+	) {
 
-				// If rel path doesn't start with "..", it is a subdir
-				if !strings.HasPrefix(rel, "..") {
-					shared.LogInfof(
-						reqLogger,
-						cr,
-						shared.EventReasonNoEvent,
-						"skipping {%s} from volume claim mounts. dir {%s} covers it",
-						appDir,
-						defaultDir,
-					)
-					isSubDir = true
-					break
+		for sourceIndex, sourceDir := range sourceDirList {
+			var coveringDir *string
+			absSource, _ := filepath.Abs(sourceDir)
+			for otherSourceIndex, otherSourceDir := range sourceDirList {
+				absOtherSource, _ := filepath.Abs(otherSourceDir)
+				relOther, _ := filepath.Rel(absOtherSource, absSource)
+				if !strings.HasPrefix(relOther, "..") {
+					if relOther != "." {
+						// subdir
+						coveringDir = &otherSourceDir
+						break
+					}
+					// dup... we only care if the matched index is earlier
+					if otherSourceIndex < sourceIndex {
+						coveringDir = &otherSourceDir
+						break
+					}
 				}
 			}
-			if !isSubDir {
-				// Get the absolute path for the app dir
-				abs, _ := filepath.Abs(appDir)
-
-				persistDirs = append(persistDirs, abs)
+			if (coveringDir == nil) && (otherDirList != nil) {
+				for _, otherDir := range *otherDirList {
+					absCheck, _ := filepath.Abs(otherDir)
+					relCheck, _ := filepath.Rel(absCheck, absSource)
+					if !strings.HasPrefix(relCheck, "..") {
+						if relCheck != "." {
+							// subdir
+							coveringDir = &otherDir
+							break
+						}
+						// dup... we only care if checkOtherDups is true
+						if checkOtherDups {
+							coveringDir = &otherDir
+							break
+						}
+					}
+				}
 			}
+			if coveringDir != nil {
+				shared.LogInfof(
+					reqLogger,
+					cr,
+					shared.EventReasonNoEvent,
+					"skipping {%s} from %s persistDirs; dir {%s} covers it",
+					sourceDir,
+					sourceDesc,
+					*coveringDir,
+				)
+				continue
+			}
+			// OK to add to the list.
+			persistDirs = append(persistDirs, absSource)
 		}
+	}
+
+	// Time to build the union of directory info to persist. This is not
+	// quite the most efficient way to do it, but it's reasonable (for a
+	// one-time-per-statefulset op and a small number of dirs) and not
+	// too confusing to reason about its correctness and memory safety.
+
+	// First let's take any of the default dirs that are not a subdirectory
+	// of any other default or app dir, or a dup of a default dir.
+	addToDirs(defaultPersistDirs, appPersistDirs, false, "default")
+
+	// Now add any of the app dirs that are not a subdirectory or dup of any
+	// other default or app dir.
+	if appPersistDirs != nil {
+		addToDirs(*appPersistDirs, &defaultPersistDirs, true, role.Name)
 	}
 
 	useServiceAccount := false
@@ -454,7 +525,7 @@ func getStatefulset(
 							VolumeMounts:    volumeMounts,
 							VolumeDevices:   volumeDevices,
 							SecurityContext: securityContext,
-							Env:             chkModifyEnvVars(role),
+							Env:             chkModifyEnvVars(role, setupInfo),
 							TTY:             hasTTY(cr, role.Name),
 							Stdin:           hasSTDIN(cr, role.Name),
 						},
@@ -481,19 +552,37 @@ func getStatefulset(
 	return sset, nil
 }
 
-// chkModifyEnvVars checks a role's resource requests. If an NVIDIA GPU resource has
-// NOT been requested for the role, a work-around is added (as an environment variable), to
-// avoid a GPU being surfaced anyway in a container related to the role
+// chkModifyEnvVars checks a role's resource requests. If an NVIDIA GPU resource
+// has NOT been requested for the role, a work-around is added (as an environment
+// variable), to avoid a GPU being surfaced anyway in a container related to
+// the role. The PYTHONUSERBASE environment var will also be set to /usr/local
+// if the role's useNewSetupLayout flag is true.
 func chkModifyEnvVars(
 	role *kdv1.Role,
+	setupInfo *kdv1.SetupPackageInfo,
 ) (envVar []v1.EnvVar) {
 
 	envVar = role.EnvVars
+
+	// Handle PYTHONUSERBASE first.
+	if setupInfo != nil {
+		if setupInfo.UseNewSetupLayout {
+			pythonUserBase := v1.EnvVar{
+				Name:  "PYTHONUSERBASE",
+				Value: shared.ConfigCliLoc,
+				// ValueFrom not used
+			}
+			envVar = append(envVar, pythonUserBase)
+		}
+	}
+
 	rsrcmap := role.Resources.Requests
 	// return the role's environment variables unmodified, if an NVIDIA GPU is
 	// indeed a resource requested for this role
-	if quantity, found := rsrcmap[nvidiaGpuResourceName]; found == true && quantity.IsZero() != true {
-		return envVar
+	for name, quantity := range rsrcmap {
+		if strings.HasPrefix(string(name), nvidiaGpuResourcePrefix) && !quantity.IsZero() {
+			return envVar
+		}
 	}
 
 	// add an environment variable, as a work-around to ensure that an NVIDIA GPU is
@@ -530,8 +619,6 @@ func getInitContainer(
 	}
 
 	initVolumeMounts := generateInitVolumeMounts(pvcNamePrefix)
-	cpus, _ := resource.ParseQuantity("1")
-	mem, _ := resource.ParseQuantity("512Mi")
 	initContainer = []v1.Container{
 		{
 			Args: []string{
@@ -541,18 +628,9 @@ func getInitContainer(
 			Command: []string{
 				"/bin/bash",
 			},
-			Image: imageID,
-			Name:  initContainerName,
-			Resources: v1.ResourceRequirements{
-				Limits: v1.ResourceList{
-					"cpu":    cpus,
-					"memory": mem,
-				},
-				Requests: v1.ResourceList{
-					"cpu":    cpus,
-					"memory": mem,
-				},
-			},
+			Image:     imageID,
+			Name:      initContainerName,
+			Resources: role.Resources,
 			SecurityContext: &v1.SecurityContext{
 				RunAsUser: &rootUID,
 			},
@@ -578,9 +656,6 @@ func getVolumeClaimTemplate(
 		volClaim := v1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: pvcNamePrefix,
-				Annotations: map[string]string{
-					storageClassName: *role.Storage.StorageClass,
-				},
 			},
 			Spec: v1.PersistentVolumeClaimSpec{
 				AccessModes: []v1.PersistentVolumeAccessMode{
@@ -591,6 +666,7 @@ func getVolumeClaimTemplate(
 						v1.ResourceStorage: volSize,
 					},
 				},
+				StorageClassName: role.Storage.StorageClass,
 			},
 		}
 		volTemplate = append(volTemplate, volClaim)
@@ -616,9 +692,6 @@ func getVolumeClaimTemplate(
 			blockClaim := v1.PersistentVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: deviceName,
-					Annotations: map[string]string{
-						storageClassName: *role.BlockStorage.StorageClass,
-					},
 				},
 				Spec: v1.PersistentVolumeClaimSpec{
 					AccessModes: []v1.PersistentVolumeAccessMode{
@@ -668,19 +741,77 @@ func getStartupScript(
 	}
 }
 
+// genrateRsyncInstalledCmd checks if the rsync command is available.
+// If rsync is installed and all the options are available
+// the RSYNC_CHECK_STATUS variable will be 0.
+func genrateRsyncInstalledCmd() string {
+
+	// Here we check two things:
+	// 1) rsync is installed and available
+	// 2) The options --log-file, --info=progress2 --relative -a -x are available.
+	// Some of these options are not available in the first
+	// versions of rsync.
+	// The rsync-check-status-dummy.log file (dummy log file) is not used.
+	// It is needed only to check that option --log-file is available
+	cmd := "rsync --log-file=./rsync-check-status-dummy.log --info=progress2 --relative -ax --version; RSYNC_CHECK_STATUS=$?;"
+	return cmd
+}
+
+// generateRsyncCmd generates command that will do copying with rsync
+// The progress will be stored in a file.
+func generateRsyncCmd(
+	persistDirs []string,
+) string {
+
+	// The directory should be created in /mnt in advance,
+	// otherwise the rsync log file will not be created
+	createRsyncLogFileBaseDir := fmt.Sprintf("mkdir -p /mnt%s", filepath.Dir(kubedirectorInitLogs))
+
+	rsyncCmd := fmt.Sprintf("%s; rsync --log-file=/mnt%s --info=progress2 --relative -ax %s /mnt > /mnt%s;",
+		createRsyncLogFileBaseDir,
+		kubedirectorInitLogs,
+		strings.Join(persistDirs, " "),
+		kubedirectorInitProgressBar)
+
+	return rsyncCmd
+}
+
+// generateCpCmd generates command that will do copying with cp
+// No way to display progress
+func generateCpCmd(
+	persistDirs []string,
+) string {
+
+	cpCmd := fmt.Sprintf("cp --parent -ax %s /mnt", strings.Join(persistDirs, " "))
+	return cpCmd
+}
+
 // generateInitContainerLaunch generates the container entrypoint command for
 // init containers. This command will populate the initial contents of the
 // directories-to-be-persisted under the "/mnt" directory on the init
 // container filesystem, then terminate the container.
-func generateInitContainerLaunch(persistDirs []string) string {
+func generateInitContainerLaunch(
+	persistDirs []string,
+) string {
 
 	// To be safe in the case that this container is restarted by someone,
 	// don't do this copy if the kubedirector.init file already exists in /etc.
-	launchCmd := "! [ -f /mnt" + kubedirectorInit + " ]" + " && " +
-		"cp --parent -ax " + strings.Join(persistDirs, " ") +
-		" /mnt; touch /mnt" + kubedirectorInit
+	copyCondition := fmt.Sprintf("! [ -f /mnt%s ]", kubedirectorInit)
 
-	return launchCmd
+	// In order to perform copying rsync will be used.
+	// It allows to report the progress that will be saved in a file.
+	// Here we check if the rsync command is installed.
+	rsyncInstalled := genrateRsyncInstalledCmd()
+
+	// If the rsync command is not available the cp command will be used.
+	fullCmd := fmt.Sprintf("%s %s && ( [ ${RSYNC_CHECK_STATUS} != 0 ] && (%s) || (%s)); touch /mnt%s;",
+		rsyncInstalled,
+		copyCondition,
+		generateCpCmd(persistDirs),
+		generateRsyncCmd(persistDirs),
+		kubedirectorInit)
+
+	return fullCmd
 }
 
 // generateSecretVolume generates VolumeMount and Volume
@@ -714,10 +845,42 @@ func generateSecretVolume(
 
 }
 
+// generateVolumeProjectionMounts generates VolumeMount and Volume
+// object for mounting volumeProjections
+func generateVolumeProjectionMounts(
+	volIndex int,
+	projectedVol *kdv1.VolumeProjections,
+) ([]v1.VolumeMount, []v1.Volume) {
+
+	volName := "projected-vol-" + strconv.Itoa(volIndex)
+	volSource := v1.PersistentVolumeClaimVolumeSource{
+		ClaimName: projectedVol.PvcName,
+		ReadOnly:  projectedVol.ReadOnly,
+	}
+	return []v1.VolumeMount{
+			v1.VolumeMount{
+				Name:      volName,
+				MountPath: projectedVol.MountPath,
+				ReadOnly:  projectedVol.ReadOnly,
+			},
+		}, []v1.Volume{
+			v1.Volume{
+				Name: volName,
+				VolumeSource: v1.VolumeSource{
+					PersistentVolumeClaim: &volSource,
+				},
+			},
+		}
+	return []v1.VolumeMount{}, []v1.Volume{}
+
+}
+
 // generateVolumeMounts generates all of an app container's volume and mount
 // specs for persistent storage, tmpfs and systemctl support that are
 // appropriate for members of the given role. For systemctl support,
 // nativeSystemdSupport flag is examined along with the app requirement.
+// Additionally generate volume mount spec if a role has
+// requested for volume projections.
 func generateVolumeMounts(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
@@ -740,6 +903,16 @@ func generateVolumeMounts(
 	secretVolMnts, secretVols := generateSecretVolume(role.Secret)
 	volumeMounts = append(volumeMounts, secretVolMnts...)
 	volumes = append(volumes, secretVols...)
+
+	// Generate volume projections (if any)
+	numVolumes := len(role.VolumeProjections)
+	for i := 0; i < numVolumes; i++ {
+		projectedVol := role.VolumeProjections[i]
+		volProjectionMnts, volProjections := generateVolumeProjectionMounts(i, &projectedVol)
+
+		volumeMounts = append(volumeMounts, volProjectionMnts...)
+		volumes = append(volumes, volProjections...)
+	}
 
 	isSystemdReqd, err := catalog.SystemdRequired(cr)
 

@@ -565,6 +565,8 @@ func checkContainerStates(
 		for j := 0; j < numMemberStatuses; j++ {
 			memberStatus := &(roleStatus.Members[j])
 			containerID := ""
+			// clear SchedulingErrorMessage in MemberStateDetail
+			memberStatus.StateDetail.SchedulingErrorMessage = nil
 			if memberStatus.Pod != "" {
 				memberStatus.StateDetail.LastKnownContainerState = containerMissing
 				pod, podErr := observer.GetPod(cr.Namespace, memberStatus.Pod)
@@ -646,6 +648,8 @@ func checkContainerStates(
 						}
 					}
 				}
+				// Set pod blocking message in MemberStateDetail if LastKnownContainerState is containerMissing
+				updateSchedulingErrorMessage(pod, memberStatus)
 			}
 		}
 	}
@@ -665,6 +669,7 @@ func updateStateRollup(
 	cr.Status.MemberStateRollup.MembersUpgrading = false
 	cr.Status.MemberStateRollup.MembersRollingBack = false
 	cr.Status.MemberStateRollup.ConfigErrors = false
+	cr.Status.MemberStateRollup.MembersNotScheduled = false
 
 	checkMemberDown := func(memberStatus kdv1.MemberStatus) {
 		if (memberStatus.StateDetail.LastKnownContainerState == containerTerminated) ||
@@ -688,6 +693,9 @@ func updateStateRollup(
 				// Count missing container as waiting, at this point.
 				if memberStatus.StateDetail.LastKnownContainerState == containerMissing {
 					cr.Status.MemberStateRollup.MembersWaiting = true
+					if memberStatus.StateDetail.SchedulingErrorMessage != nil {
+						cr.Status.MemberStateRollup.MembersNotScheduled = true
+					}
 				}
 			case memberCreating:
 				checkMemberDown(memberStatus)

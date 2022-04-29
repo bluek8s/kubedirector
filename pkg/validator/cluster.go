@@ -380,8 +380,16 @@ func validateGeneralClusterChanges(
 		}
 
 		// App version should be different from previous one
-		prevVer := semver.New(prevCrApp.Spec.Version)
-		newVer := semver.New(crApp.Spec.Version)
+		prevVer, err := semver.NewVersion(prevCrApp.Spec.Version)
+		if err != nil {
+			valErrors = append(valErrors, fmt.Sprintf(invalidVersionFmt, prevCrApp.Spec.Version))
+			return valErrors
+		}
+		newVer, err := semver.NewVersion(crApp.Spec.Version)
+		if err != nil {
+			valErrors = append(valErrors, fmt.Sprintf(invalidVersionFmt, crApp.Spec.Version))
+			return valErrors
+		}
 
 		if !prevVer.LessThan(*newVer) {
 			appModifiedMsg := fmt.Sprintf(

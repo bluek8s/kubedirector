@@ -29,6 +29,7 @@ import (
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/secretkeys"
 	"github.com/bluek8s/kubedirector/pkg/shared"
+	semver "github.com/coreos/go-semver/semver"
 	av1beta1 "k8s.io/api/admission/v1beta1"
 	v1 "k8s.io/api/authentication/v1"
 	core "k8s.io/api/core/v1"
@@ -379,11 +380,22 @@ func validateGeneralClusterChanges(
 		}
 
 		// App version should be different from previous one
-		if prevCrApp.Spec.Version == crApp.Spec.Version {
+		prevVer, err := semver.NewVersion(prevCrApp.Spec.Version)
+		if err != nil {
+			valErrors = append(valErrors, fmt.Sprintf(invalidVersionFmt, prevCrApp.Spec.Version))
+			return valErrors
+		}
+		newVer, err := semver.NewVersion(crApp.Spec.Version)
+		if err != nil {
+			valErrors = append(valErrors, fmt.Sprintf(invalidVersionFmt, crApp.Spec.Version))
+			return valErrors
+		}
+
+		if !prevVer.LessThan(*newVer) {
 			appModifiedMsg := fmt.Sprintf(
-				versionIsNotModified,
-				crApp.Spec.DistroID,
-				crApp.Spec.Version,
+				versionIsNotNewer,
+				prevVer.String(),
+				newVer.String(),
 			)
 			valErrors = append(valErrors, appModifiedMsg)
 		}

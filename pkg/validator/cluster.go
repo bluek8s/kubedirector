@@ -412,28 +412,10 @@ func validateGeneralClusterChanges(
 			return valErrors
 		}
 
-		// https://github.com/bluek8s/kubedirector/issues/591
-		// Also, check the new app differs from the current one in the role images only
-		for _, appRole := range crApp.Spec.NodeRoles {
-			for i, prevAppRole := range prevCrApp.Spec.NodeRoles {
-				if appRole.ID == prevAppRole.ID {
-					prevCrApp.Spec.NodeRoles[i].ImageRepoTag = appRole.ImageRepoTag
-					break
-				}
-			}
-		}
-
-		// Ignore differences between spec.Version and spec.Upgradable fields
-		prevCrApp.Spec.Version = crApp.Spec.Version
-		prevCrApp.Spec.Upgradable = crApp.Spec.Upgradable
-
-		if !equality.Semantic.DeepEqual(prevCrApp.Spec, crApp.Spec) {
-			appsTooDifferentMsg := fmt.Sprintf(
-				appsTooDifferent,
-				crApp.Name,
-				prevCrApp.Name,
-			)
-			valErrors = append(valErrors, appsTooDifferentMsg)
+		// Also, check the new app differs from the current one in the role images and cardinality only
+		errStr := validateAppSpecChanges(prevCr, prevCrApp, crApp)
+		if errStr != nil {
+			valErrors = append(valErrors, *errStr)
 			return valErrors
 		}
 	}
@@ -459,6 +441,74 @@ func validateGeneralClusterChanges(
 	}
 
 	return valErrors
+}
+
+// https://github.com/bluek8s/kubedirector/issues/591
+// validateAppSpecChanges checks for modifications to app spec properties
+// at the live cluster upgrade period. There shouldn't be any difference
+// between the actual and proposed application specs, except the role image tags,
+// Version and Upgradable fields (because the target app.spec.Upgradable may have `false` value)
+// and role cardinality. Meanwhile, the cardinality changes shouldn't conflict with the
+// current cluster role members count. Otherwise, user should previously change
+// cluster role members count at a preceded cluster updating.
+func validateAppSpecChanges(
+	prevCr *kdv1.KubeDirectorCluster,
+	prevApp *kdv1.KubeDirectorApp,
+	targetApp *kdv1.KubeDirectorApp,
+) *string {
+
+	for _, appRole := range targetApp.Spec.NodeRoles {
+		// First, check that role image tags match
+		prevAppRoleIdx := 0
+		for i, prevAppRole := range prevApp.Spec.NodeRoles {
+			if appRole.ID == prevAppRole.ID {
+				prevAppRoleIdx = i
+				prevApp.Spec.NodeRoles[prevAppRoleIdx].ImageRepoTag = appRole.ImageRepoTag
+				break
+			}
+		}
+
+		// Then, check that cardinality changes don't conflict with the current cluster role members count
+		for _, prevCrRole := range prevCr.Status.Roles {
+			if prevCrRole.Name == appRole.ID {
+				allowedRoleMembersCount, scaledOut := catalog.GetRoleCardinality(&appRole)
+				prevCrRoleMembersCount := len(prevCrRole.Members)
+
+				validCardinality := prevCrRoleMembersCount == int(allowedRoleMembersCount)
+				if scaledOut {
+					validCardinality = prevCrRoleMembersCount >= int(allowedRoleMembersCount)
+				}
+
+				if !validCardinality {
+					invalidAppCardinalityMsg := fmt.Sprintf(
+						invalidAppCardinality,
+						targetApp.Name,
+						appRole.ID,
+						appRole.ID,
+					)
+					return &invalidAppCardinalityMsg
+				}
+
+				// If there are cardinality changes but they don't affect on cluster members - permit them
+				prevApp.Spec.NodeRoles[prevAppRoleIdx].Cardinality = appRole.Cardinality
+			}
+		}
+	}
+
+	// Ignore differences between spec.Version and spec.Upgradable fields
+	prevApp.Spec.Version = targetApp.Spec.Version
+	prevApp.Spec.Upgradable = targetApp.Spec.Upgradable
+
+	// Compare app specs
+	if !equality.Semantic.DeepEqual(prevApp.Spec, targetApp.Spec) {
+		appsTooDifferentMsg := fmt.Sprintf(
+			appsTooDifferent,
+			targetApp.Name,
+			prevApp.Name,
+		)
+		return &appsTooDifferentMsg
+	}
+	return nil
 }
 
 // validateRoleChanges checks for modifications to role properties. The

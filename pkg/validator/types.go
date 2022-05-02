@@ -60,7 +60,8 @@ const (
 	versionIsNotNewer     = "The candidate app version %s is not newer than version %s that is already running at the current cluster."
 	invalidVersionFmt     = "The version string %s cannot be recognized according Semantic Versioning rules (see https://semver.org/)."
 	appNotUpgradable      = "The application %s of version %s doesn't support live upgrade."
-	appsTooDifferent      = "The candidate app %s spec is too different from the actual app %s spec. Currently the potential differences are only for role image tags."
+	appsTooDifferent      = "The candidate app %s spec is too different from the actual app %s spec. Currently the potential differences are only for role image tags and cardinality."
+	invalidAppCardinality = "The candidate app %s %s role cardinality doesn't satisfy the current cluster %s role active members count"
 
 	invalidDistroID       = "Invalid application with distroId: %s. Expected application with distroId: %s"
 	invalidNodeRoleID     = "Invalid roleID(%s) in roleServices array in config section. Valid roles: \"%s\""

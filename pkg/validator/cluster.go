@@ -398,6 +398,7 @@ func validateGeneralClusterChanges(
 				newVer.String(),
 			)
 			valErrors = append(valErrors, appModifiedMsg)
+			return valErrors
 		}
 
 		// Also, the current app should support upgrade
@@ -408,6 +409,32 @@ func validateGeneralClusterChanges(
 				prevCrApp.Spec.Version,
 			)
 			valErrors = append(valErrors, appModifiedMsg)
+			return valErrors
+		}
+
+		// https://github.com/bluek8s/kubedirector/issues/591
+		// Also, check the new app differs from the current one in the role images only
+		for _, appRole := range crApp.Spec.NodeRoles {
+			for i, prevAppRole := range prevCrApp.Spec.NodeRoles {
+				if appRole.ID == prevAppRole.ID {
+					prevCrApp.Spec.NodeRoles[i].ImageRepoTag = appRole.ImageRepoTag
+					break
+				}
+			}
+		}
+
+		// Ignore differences between spec.Version and spec.Upgradable fields
+		prevCrApp.Spec.Version = crApp.Spec.Version
+		prevCrApp.Spec.Upgradable = crApp.Spec.Upgradable
+
+		if !equality.Semantic.DeepEqual(prevCrApp.Spec, crApp.Spec) {
+			appsTooDifferentMsg := fmt.Sprintf(
+				appsTooDifferent,
+				crApp.Name,
+				prevCrApp.Name,
+			)
+			valErrors = append(valErrors, appsTooDifferentMsg)
+			return valErrors
 		}
 	}
 

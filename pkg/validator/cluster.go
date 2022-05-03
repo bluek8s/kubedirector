@@ -474,12 +474,12 @@ func validateAppSpecChanges(
 				allowedRoleMembersCount, scaledOut := catalog.GetRoleCardinality(&appRole)
 				prevCrRoleMembersCount := len(prevCrRole.Members)
 
-				validCardinality := prevCrRoleMembersCount == int(allowedRoleMembersCount)
+				isValidCardinality := prevCrRoleMembersCount == int(allowedRoleMembersCount)
 				if scaledOut {
-					validCardinality = prevCrRoleMembersCount >= int(allowedRoleMembersCount)
+					isValidCardinality = prevCrRoleMembersCount >= int(allowedRoleMembersCount)
 				}
 
-				if !validCardinality {
+				if !isValidCardinality {
 					invalidAppCardinalityMsg := fmt.Sprintf(
 						invalidAppCardinality,
 						targetApp.Name,

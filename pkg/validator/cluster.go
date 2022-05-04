@@ -391,7 +391,7 @@ func validateGeneralClusterChanges(
 			return valErrors
 		}
 
-		if !prevVer.LessThan(*newVer) {
+		if !prevVer.LessThan(*newVer) && !rollbackRequested {
 			appModifiedMsg := fmt.Sprintf(
 				versionIsNotNewer,
 				prevVer.String(),

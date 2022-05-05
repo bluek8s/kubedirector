@@ -412,7 +412,7 @@ func validateGeneralClusterChanges(
 			return valErrors
 		}
 
-		// Also, check the new app differs from the current one in the role images and cardinality only
+		// Also, check that the new app differs only in allowed ways
 		errStr := validateAppSpecChanges(prevCr, prevCrApp, crApp)
 		if errStr != nil {
 			valErrors = append(valErrors, *errStr)
@@ -451,6 +451,7 @@ func validateGeneralClusterChanges(
 // and role cardinality. Meanwhile, the cardinality changes shouldn't conflict with the
 // current cluster role members count. Otherwise, user should previously change
 // cluster role members count at a preceded cluster updating.
+// Returns error message or nil, if check is passed.
 func validateAppSpecChanges(
 	prevCr *kdv1.KubeDirectorCluster,
 	prevApp *kdv1.KubeDirectorApp,
@@ -458,7 +459,7 @@ func validateAppSpecChanges(
 ) *string {
 
 	for _, appRole := range targetApp.Spec.NodeRoles {
-		// First, check that role image tags match
+		// First, ignore role image tags
 		prevAppRoleIdx := 0
 		for i, prevAppRole := range prevApp.Spec.NodeRoles {
 			if appRole.ID == prevAppRole.ID {

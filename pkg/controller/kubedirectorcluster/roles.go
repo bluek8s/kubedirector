@@ -386,11 +386,21 @@ func handleRoleConfig(
 	role *roleInfo,
 ) {
 
+	setRoleStatusFn := func(needRollback bool) {
+		rs := (*role).roleStatus
+		if needRollback {
+			(*rs).RoleUpgradeStatus = kdv1.RoleRollingBack
+		} else {
+			(*rs).RoleUpgradeStatus = kdv1.RoleUpgrading
+		}
+	}
+
 	updateErr := executor.UpdateStatefulSetNonReplicas(
 		reqLogger,
 		cr,
 		role.roleSpec,
 		role.statefulSet,
+		setRoleStatusFn,
 	)
 	if updateErr != nil {
 		shared.LogErrorf(

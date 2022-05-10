@@ -156,6 +156,7 @@ func UpdateStatefulSetNonReplicas(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
 	statefulSet *appsv1.StatefulSet,
+	setRoleStatusFn func(bool),
 ) error {
 
 	// If no spec, nothing to do.
@@ -238,7 +239,6 @@ func UpdateStatefulSetNonReplicas(
 		// and set role UpgradeStatus field to RoleRollingBack state
 		if needRollback {
 			rs.UpgradingMembers = nil
-			rs.RoleUpgradeStatus = kdv1.RoleRollingBack
 		} else {
 			if (*rs).UpgradingMembers == nil {
 				(*rs).UpgradingMembers = make(map[string]*string)
@@ -250,8 +250,9 @@ func UpdateStatefulSetNonReplicas(
 				(*rs).UpgradingMembers[m.Pod] = &appRoleImage
 			}
 			// Set role UpgradeStatus field to RoleUpgrading state
-			(*rs).RoleUpgradeStatus = kdv1.RoleUpgrading
 		}
+		// Set role UpgradeStatus field
+		setRoleStatusFn(needRollback)
 
 		needPatch = true
 	}

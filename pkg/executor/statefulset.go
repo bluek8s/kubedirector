@@ -235,22 +235,16 @@ func UpdateStatefulSetNonReplicas(
 		copy(patchedContainers, containers)
 		patchedContainers[0].Image = appRoleImage
 
-		// In the case of rollback we should clear UpgradingMembers map
-		// and set role UpgradeStatus field to RoleRollingBack state
-		if needRollback {
-			rs.UpgradingMembers = nil
-		} else {
-			if (*rs).UpgradingMembers == nil {
-				(*rs).UpgradingMembers = make(map[string]*string)
-			}
-
-			// Fill UpgradingMembers map by current role members should be upgraded
-			// It will be used at the syncMembers() step
-			for _, m := range (*rs).Members {
-				(*rs).UpgradingMembers[m.Pod] = &appRoleImage
-			}
-			// Set role UpgradeStatus field to RoleUpgrading state
+		// Fill UpgradingMembers map by current role members should be upgraded
+		// It will be used at the syncMembers() step
+		if (*rs).UpgradingMembers == nil {
+			(*rs).UpgradingMembers = make(map[string]*string)
 		}
+
+		for _, m := range (*rs).Members {
+			(*rs).UpgradingMembers[m.Pod] = &appRoleImage
+		}
+
 		// Set role UpgradeStatus field
 		setRoleStatusFn(needRollback)
 

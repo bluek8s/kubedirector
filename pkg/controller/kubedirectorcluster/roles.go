@@ -385,6 +385,14 @@ func handleRoleConfig(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 ) {
+	setRoleStatusFn := func(needRollback bool) {
+		rs := (*role).roleStatus
+		if needRollback {
+			(*rs).RoleUpgradeStatus = kdv1.RoleRollingBack
+		} else {
+			(*rs).RoleUpgradeStatus = kdv1.RoleUpgrading
+		}
+	}
 
 	setRoleStatusFn := func(needRollback bool) {
 		rs := (*role).roleStatus

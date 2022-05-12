@@ -601,9 +601,8 @@ spec:
                         type: string
                       statefulSet:
                         type: string
-                      upgradingMembers:
-                        type: object
-                        nullable: true
+                      membersUpgrading:
+                        type: integer
                       roleUpgradeStatus:
                         type: string
                       members:

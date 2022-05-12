@@ -613,22 +613,20 @@ func handleCreatingMembers(
 				return
 			}
 
-			// If appConfig returns true as a final member state
-			// remove the member from upgrading list
-			delete((*rs).UpgradingMembers, m.Pod)
-
+			if (*rs).MembersUpgrading > 0 {
+				(*rs).MembersUpgrading--
+			}
 			// When there no role members left, change the role upgrade status that upgrade process is complete
-			leftUpgradingMembersCnt := len((*rs).UpgradingMembers)
 			// Change the current member upgrade status depends on role upgrade status
 			switch (*rs).RoleUpgradeStatus {
 			case kdv1.RoleUpgrading:
 				(*m).PodUpgradeStatus = kdv1.PodUpgraded
-				if leftUpgradingMembersCnt == 0 {
+				if (*rs).MembersUpgrading == 0 {
 					(*rs).RoleUpgradeStatus = kdv1.RoleUpgraded
 				}
 			case kdv1.RoleRollingBack:
 				(*m).PodUpgradeStatus = kdv1.PodRolledBack
-				if leftUpgradingMembersCnt == 0 {
+				if (*rs).MembersUpgrading == 0 {
 					(*rs).RoleUpgradeStatus = kdv1.RoleRolledBack
 				}
 			}

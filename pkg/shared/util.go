@@ -163,20 +163,3 @@ func GetRoleStatusByName(
 	}
 	return nil, fmt.Errorf("RoleStatus for %s role name was not found", roleName)
 }
-
-// RoleStatusIsUpgrading checks, if some cluster member of the
-// passed role is currently in upgrading state
-// If role status is not found by passed roleName returns false
-func RoleStatusIsUpgrading(
-	cr *kdv1.KubeDirectorCluster,
-	roleName string,
-) bool {
-
-	rs, err := GetRoleStatusByName(cr, roleName)
-
-	if err != nil || rs.UpgradingMembers == nil {
-		return false
-	}
-
-	return len(rs.UpgradingMembers) > 0
-}

@@ -461,11 +461,11 @@ func handleClusterUpgrade(
 		// There could happens the situation when cluster receives rollback signal
 		// after the part of member were already successfully upgraded
 		// It means, that we shouldn't clean the upgradeInfo object while at least the one
-		// cluster role has upgrade status "Upgraded" instead "RolledBack"
+		// cluster role has upgrade status other than "RolledBack" or empty
 		finalizeUpgrade := true
 		if upgradeInfo.IsRollingBack {
 			for _, rs := range cr.Status.Roles {
-				if rs.RoleUpgradeStatus != kdv1.RoleRolledBack {
+				if rs.RoleUpgradeStatus != kdv1.RoleRolledBack && rs.RoleUpgradeStatus != "" {
 					finalizeUpgrade = false
 					break
 				}

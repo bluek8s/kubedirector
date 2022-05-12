@@ -235,14 +235,14 @@ func UpdateStatefulSetNonReplicas(
 		copy(patchedContainers, containers)
 		patchedContainers[0].Image = appRoleImage
 
-		// Fill UpgradingMembers map by current role members should be upgraded
+		// Set MembersUpgrading to current role members count when the role should be upgraded
+		// For the rollback case MembersUpgrading count will be equal to difference
+		// between quantities of all members and members are still not upgraded
 		// It will be used at the syncMembers() step
-		if (*rs).UpgradingMembers == nil {
-			(*rs).UpgradingMembers = make(map[string]*string)
-		}
-
-		for _, m := range (*rs).Members {
-			(*rs).UpgradingMembers[m.Pod] = &appRoleImage
+		if needRollback {
+			(*rs).MembersUpgrading = len(rs.Members) - (*rs).MembersUpgrading
+		} else if (*rs).MembersUpgrading == 0 {
+			(*rs).MembersUpgrading = len(rs.Members)
 		}
 
 		// Set role UpgradeStatus field

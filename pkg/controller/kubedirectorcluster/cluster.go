@@ -480,7 +480,7 @@ func handleClusterUpgrade(
 				*cr.Spec.AppCatalog,
 				upgradeInfo.PrevApp,
 			)
-			for i, _ := range cr.Status.Roles {
+			for i := range cr.Status.Roles {
 				(*cr).Status.Roles[i].RoleUpgradeStatus = kdv1.RoleConfigured
 			}
 			cr.Status.UpgradeInfo = nil

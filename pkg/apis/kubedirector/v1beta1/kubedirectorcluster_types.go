@@ -253,10 +253,8 @@ type RollbackInfo struct {
 type MemberUpgradeStatus string
 
 const (
-	// PodUpgraded means upgrade process is finished
-	PodUpgraded MemberUpgradeStatus = "upgraded"
-	// PodRolledBack means rollback process is finished
-	PodRolledBack MemberUpgradeStatus = "rolledBack"
+	// PodConfigured is default empty value means the pod is in ready state
+	PodConfigured MemberUpgradeStatus = ""
 	// PodUpgrading means the pod is in the middle of upgrade process
 	PodUpgrading MemberUpgradeStatus = "upgrading"
 	// PodRollingBack means the pod is in the middle of rollback process

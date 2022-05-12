@@ -616,16 +616,15 @@ func handleCreatingMembers(
 			if (*rs).MembersUpgrading > 0 {
 				(*rs).MembersUpgrading--
 			}
+			(*m).PodUpgradeStatus = kdv1.PodConfigured
 			// When there no role members left, change the role upgrade status that upgrade process is complete
 			// Change the current member upgrade status depends on role upgrade status
 			switch (*rs).RoleUpgradeStatus {
 			case kdv1.RoleUpgrading:
-				(*m).PodUpgradeStatus = kdv1.PodUpgraded
 				if (*rs).MembersUpgrading == 0 {
 					(*rs).RoleUpgradeStatus = kdv1.RoleUpgraded
 				}
 			case kdv1.RoleRollingBack:
-				(*m).PodUpgradeStatus = kdv1.PodRolledBack
 				if (*rs).MembersUpgrading == 0 {
 					(*rs).RoleUpgradeStatus = kdv1.RoleRolledBack
 				}

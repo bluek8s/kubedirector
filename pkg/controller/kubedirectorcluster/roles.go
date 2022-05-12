@@ -385,11 +385,19 @@ func handleRoleConfig(
 	cr *kdv1.KubeDirectorCluster,
 	role *roleInfo,
 ) {
-	setRoleStatusFn := func(needRollback bool) {
+
+	updateRoleStatusFn := func(needRollback bool) {
 		rs := (*role).roleStatus
+
+		// Set MembersUpgrading to current role members count when the role should be upgraded
+		// For the rollback case MembersUpgrading count will be equal to difference
+		// between quantities of all members and members are still not upgraded
+		// It will be used at the syncMembers() step
 		if needRollback {
+			(*rs).MembersUpgrading = len(rs.Members) - (*rs).MembersUpgrading
 			(*rs).RoleUpgradeStatus = kdv1.RoleRollingBack
 		} else {
+			(*rs).MembersUpgrading = len(rs.Members)
 			(*rs).RoleUpgradeStatus = kdv1.RoleUpgrading
 		}
 	}
@@ -399,7 +407,7 @@ func handleRoleConfig(
 		cr,
 		role.roleSpec,
 		role.statefulSet,
-		setRoleStatusFn,
+		updateRoleStatusFn,
 	)
 	if updateErr != nil {
 		shared.LogErrorf(

@@ -45,10 +45,20 @@ spec:
                   type: string
                   maxLength: 63
             spec:
+              # This x-kubernetes-preserve-unknown-fields is a transitional
+              # allowance to prevent breaking some existing kdapps. It WILL
+              # be removed in a future KD version. Use annotations or labels
+              # if attaching additional info to a kdapp is required.
+              x-kubernetes-preserve-unknown-fields: true
               type: object
               required: [label, distroID, version, roles, config, configSchemaVersion]
               properties:
                 label:
+                  # This x-kubernetes-preserve-unknown-fields is a transitional
+                  # allowance to prevent breaking some existing kdapps. It WILL
+                  # be removed in a future KD version. Use annotations or labels
+                  # if attaching additional info to a kdapp is required.
+                  x-kubernetes-preserve-unknown-fields: true
                   type: object
                   required: [name]
                   properties:
@@ -85,6 +95,11 @@ spec:
                 services:
                   type: array
                   items:
+                    # This x-kubernetes-preserve-unknown-fields is a transitional
+                    # allowance to prevent breaking some existing kdapps. It WILL
+                    # be removed in a future KD version. Use annotations or labels
+                    # if attaching additional info to a kdapp is required.
+                    x-kubernetes-preserve-unknown-fields: true
                     type: object
                     required: [id]
                     properties:
@@ -169,6 +184,8 @@ spec:
                           tty:
                             type: boolean
                       minResources:
+                        # This x-kubernetes-preserve-unknown-fields is REQUIRED
+                        # in order to support extended resource types.
                         x-kubernetes-preserve-unknown-fields: true
                         type: object
                         nullable: true

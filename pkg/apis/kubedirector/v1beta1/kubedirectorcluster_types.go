@@ -212,6 +212,8 @@ type BlockStorage struct {
 type RoleUpgradeStatus string
 
 const (
+	// RoleConfigured is default empty value means the role is in ready state
+	RoleConfigured RoleUpgradeStatus = ""
 	// RoleUpgraded means upgrade process is finished
 	RoleUpgraded RoleUpgradeStatus = "upgraded"
 	// RoleRolledBack means rollback process is finished

@@ -26,6 +26,7 @@ kubectl replace -f kubedirector.hpe.com_kubedirectorclusters_crd.yaml
 kubectl replace -f kubedirector.hpe.com_kubedirectorstatusbackups_crd.yaml
 ```
 
+Note that specifically using "kubectl replace" (rather than "kubectl apply") is recommended to get a clean update of the CRD. If you are upgrading from a release before 0.7.0 where the kubedirectorstatusbackups CRD does not yet exist, you can use "kubectl create" for that one.
 
 #### If upgrading from KubeDirector v0.4.x:
 

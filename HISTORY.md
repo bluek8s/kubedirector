@@ -1,3 +1,21 @@
+# v0.10.0 - May 13, 2022
+
+The main focus of this release is to remove the usage of some deprecated K8s APIs. As a result of this change, KubeDirector can now be deployed on K8s version 1.22 and later. Also, KubeDirector is dropping support for deploying on K8s versions before 1.16.
+
+We're also starting to qualify KubeDirector for deployment on OpenShift, so you can start experimenting with that environment as of this release.
+
+See the release notes for v0.10.0-beta.1 for more details. There is only one further change in this final release, as follows:
+
+The new API version for CRDs is by default more strict about whether CRs can accept properties that are not present in the CRD's schema. By default such out-of-schema properties will be ignored and not stored in the CR. Depending on your version of kubectl, kubectl may not even allow you to submit a CR with out-of-schema properties unless you use the "--validate=false" flag. This is generally good for reasons described here: https://kubernetes.io/blog/2019/06/20/crd-structural-schema/
+
+KD-related CRDs will be adopting this new stricter behavior. For VERY old legacy reasons however, some of the example kdapp CRs previously included some out-of-schema properties like "categories". These properties are not required for any of KD's own functionality, but some other clients might still look for such properties in a kdapp. Also if a kdapp CR was created from a copy of one of our example CRs, it might still contain such properties even if they are not actually used, creating issues when applying the CR with kubectl as mentioned above.
+
+So _for now_ the kdapp CRD will include declarations to allow and preserve out-of-schema properties in "spec", "spec.label", and the items of the "spec.services" list. This is purely to avoid causing near-term issues with existing kdapp CRs. If you have a kdapp CR that includes out-of-schema properties, please work to remove them. If those properties contain useful information that some client is consuming, consider moving that information to an annotation or label in the CR metadata instead.
+
+These "relaxations" of strictness for out-of-schema properties will be removed for the 1.0.0 release of KubeDirector.
+
+(Note that there is one other instance of allowed out-of-schema properties in the kdapp CRD, and that is in the minResources declaration for a role. This allowance is needed to support extended resource types, and it will not be removed.)
+
 # v0.10.0-beta.1 - Apr 11, 2022
 
 Note that this is a BETA release. It is being made available so that it can be more easily/widely tested.

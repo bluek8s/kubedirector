@@ -32,3 +32,108 @@ spec:
               properties:
                 statusBackup:
                   type: object
+                  nullable: true
+                  properties:
+                    state:
+                      type: string
+                    restoreProgress:
+                      type: object
+                      nullable: true
+                      properties:
+                        awaitingApp:
+                          type: boolean
+                        awaitingStatus:
+                          type: boolean
+                        awaitingResources:
+                          type: boolean
+                        error:
+                          type: string
+                    memberStateRollup:
+                      type: object
+                      properties:
+                        membershipChanging:
+                          type: boolean
+                        membersDown:
+                          type: boolean
+                        membersInitializing:
+                          type: boolean
+                        membersWaiting:
+                          type: boolean
+                        membersRestarting:
+                          type: boolean
+                        configErrors:
+                          type: boolean
+                        membersNotScheduled:
+                          type: boolean
+                    generationUID:
+                      type: string
+                    lastConnectionHash:
+                      type: string  
+                    specGenerationToProcess:
+                      type: integer
+                    clusterService:
+                      type: string
+                    lastNodeID:
+                      type: integer
+                    roles:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          statefulSet:
+                            type: string
+                          members:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                pod:
+                                  type: string
+                                nodeID:
+                                  type: integer
+                                service:
+                                  type: string
+                                pvc:
+                                  type: string
+                                blockDevicePaths:
+                                  type: array
+                                  items:
+                                    type: string
+                                authToken:
+                                  type: string  
+                                state:
+                                  type: string
+                                stateDetail:
+                                  type: object
+                                  properties:
+                                    configErrorDetail:
+                                      type: string
+                                    lastConfigDataGeneration:
+                                      type: integer
+                                    lastSetupGeneration:
+                                      type: integer
+                                    configuringContainer:
+                                      type: string
+                                    lastConfiguredContainer:
+                                      type: string
+                                    lastKnownContainerState:
+                                      type: string
+                                    lastConnectionVersion:
+                                      type: integer
+                                    startScriptStdoutMessage:
+                                      type: string
+                                    startScriptStderrMessage:
+                                      type: string
+                                    schedulingErrorMessage:
+                                      type: string
+                                    pendingNotifyCmds:
+                                      type: array
+                                      items:
+                                        type: object
+                                        properties:
+                                          arguments:
+                                            type: array
+                                            items:
+                                              type: string

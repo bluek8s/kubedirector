@@ -1,3 +1,10 @@
+# v0.10.1 - May 23, 2022
+
+This is a targetted bugfix release for the issue of the new (stricter-schema) v1 CRDs [incorrectly discarding custom labels/annotations](https://github.com/bluek8s/kubedirector/issues/611) for kdcluster member pods/services.
+
+The only functional change is in the CRDs; however the KD image has also been updated so that it logs itself as version 0.10.1.
+
+
 # v0.10.0 - May 13, 2022
 
 The main focus of this release is to remove the usage of some deprecated K8s APIs. As a result of this change, KubeDirector can now be deployed on K8s version 1.22 and later. Also, KubeDirector is dropping support for deploying on K8s versions before 1.16.

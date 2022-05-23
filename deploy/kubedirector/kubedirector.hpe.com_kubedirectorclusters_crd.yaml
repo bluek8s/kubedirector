@@ -108,15 +108,23 @@ spec:
                       podLabels:
                         type: object
                         nullable: true
+                        additionalProperties:
+                          type: string
                       podAnnotations:
                         type: object
                         nullable: true
+                        additionalProperties:
+                          type: string
                       serviceLabels:
                         type: object
                         nullable: true
+                        additionalProperties:
+                          type: string
                       serviceAnnotations:
                         type: object
                         nullable: true
+                        additionalProperties:
+                          type: string
                       members:
                         type: integer
                         minimum: 0

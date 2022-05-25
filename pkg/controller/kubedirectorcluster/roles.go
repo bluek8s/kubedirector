@@ -394,10 +394,10 @@ func handleRoleConfig(
 		// between quantities of all members and members are still not upgraded
 		// It will be used at the syncMembers() step
 		if needRollback {
-			(*rs).MembersUpgrading = len(rs.Members) - (*rs).MembersUpgrading
+			(*rs).UpgradingMembersCount = int32(len(rs.Members)) - (*rs).UpgradingMembersCount
 			(*rs).RoleUpgradeStatus = kdv1.RoleRollingBack
 		} else {
-			(*rs).MembersUpgrading = len(rs.Members)
+			(*rs).UpgradingMembersCount = int32(len(rs.Members))
 			(*rs).RoleUpgradeStatus = kdv1.RoleUpgrading
 		}
 	}

@@ -601,7 +601,7 @@ spec:
                         type: string
                       statefulSet:
                         type: string
-                      membersUpgrading:
+                      upgradingMembersCount:
                         type: integer
                       roleUpgradeStatus:
                         type: string

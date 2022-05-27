@@ -386,11 +386,28 @@ func handleRoleConfig(
 	role *roleInfo,
 ) {
 
+	updateRoleStatusFn := func(needRollback bool) {
+		rs := (*role).roleStatus
+
+		// Set MembersUpgrading to current role members count when the role should be upgraded
+		// For the rollback case MembersUpgrading count will be equal to difference
+		// between quantities of all members and members are still not upgraded
+		// It will be used at the syncMembers() step
+		if needRollback {
+			(*rs).UpgradingMembersCount = int32(len(rs.Members)) - (*rs).UpgradingMembersCount
+			(*rs).RoleUpgradeStatus = kdv1.RoleRollingBack
+		} else {
+			(*rs).UpgradingMembersCount = int32(len(rs.Members))
+			(*rs).RoleUpgradeStatus = kdv1.RoleUpgrading
+		}
+	}
+
 	updateErr := executor.UpdateStatefulSetNonReplicas(
 		reqLogger,
 		cr,
 		role.roleSpec,
 		role.statefulSet,
+		updateRoleStatusFn,
 	)
 	if updateErr != nil {
 		shared.LogErrorf(

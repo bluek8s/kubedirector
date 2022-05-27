@@ -156,6 +156,7 @@ func UpdateStatefulSetNonReplicas(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
 	statefulSet *appsv1.StatefulSet,
+	updateRoleStatusFn func(bool),
 ) error {
 
 	// If no spec, nothing to do.
@@ -221,11 +222,6 @@ func UpdateStatefulSetNonReplicas(
 	needUpgrade := upgradeInfo != nil
 	needRollback := needUpgrade && upgradeInfo.IsRollingBack
 
-	rs, err := shared.GetRoleStatusByName(cr, role.Name)
-	if err != nil {
-		return err
-	}
-
 	// Check is upgrade for the current role is required
 	if needUpgrade && appRoleImage != currentRoleImage {
 
@@ -234,24 +230,8 @@ func UpdateStatefulSetNonReplicas(
 		copy(patchedContainers, containers)
 		patchedContainers[0].Image = appRoleImage
 
-		// In the case of rollback we should clear UpgradingMembers map
-		// and set role UpgradeStatus field to RoleRollingBack state
-		if needRollback {
-			rs.UpgradingMembers = nil
-			rs.RoleUpgradeStatus = kdv1.RoleRollingBack
-		} else {
-			if (*rs).UpgradingMembers == nil {
-				(*rs).UpgradingMembers = make(map[string]*string)
-			}
-
-			// Fill UpgradingMembers map by current role members should be upgraded
-			// It will be used at the syncMembers() step
-			for _, m := range (*rs).Members {
-				(*rs).UpgradingMembers[m.Pod] = &appRoleImage
-			}
-			// Set role UpgradeStatus field to RoleUpgrading state
-			(*rs).RoleUpgradeStatus = kdv1.RoleUpgrading
-		}
+		// Update RoleStatus
+		updateRoleStatusFn(needRollback)
 
 		needPatch = true
 	}

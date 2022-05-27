@@ -458,17 +458,34 @@ func handleClusterUpgrade(
 	// If all statefulsets completed their upgrade/rollback processes
 	// erase the cluster upgradeInfo object
 	if upgradeInfo != nil && !upgradeIsActive {
+		// There could happens the situation when cluster receives rollback signal
+		// after the part of member were already successfully upgraded
+		// It means, that we shouldn't clean the upgradeInfo object while at least the one
+		// cluster role has upgrade status "RoleUpgraded"
+		finalizeUpgrade := true
+		if upgradeInfo.IsRollingBack {
+			for _, rs := range cr.Status.Roles {
+				if rs.RoleUpgradeStatus == kdv1.RoleUpgraded {
+					finalizeUpgrade = false
+					break
+				}
+			}
+		}
 
-		// Remove the cluster bind with the previous app
-		shared.RemoveClusterAppReference(
-			cr.Namespace,
-			cr.Name,
-			*cr.Spec.AppCatalog,
-			upgradeInfo.PrevApp,
-		)
-
-		cr.Status.UpgradeInfo = nil
-		upgradeInfo = nil
+		if finalizeUpgrade {
+			// Remove the cluster bind with the previous app
+			shared.RemoveClusterAppReference(
+				cr.Namespace,
+				cr.Name,
+				*cr.Spec.AppCatalog,
+				upgradeInfo.PrevApp,
+			)
+			for i := range cr.Status.Roles {
+				(*cr).Status.Roles[i].RoleUpgradeStatus = kdv1.RoleConfigured
+			}
+			cr.Status.UpgradeInfo = nil
+			upgradeInfo = nil
+		}
 	}
 
 	// KD cluster is created recently, init the Status.AppID field
@@ -495,8 +512,15 @@ func handleClusterUpgrade(
 	// but the current cluster AppID is the same as in the upgradeInfo
 	// it means that rollback is required
 	if upgradeInfo != nil && !upgradeInfo.IsRollingBack && cr.Spec.AppID == upgradeInfo.PrevApp {
-		upgradeInfo.IsRollingBack = true
-		upgradeInfo.PrevApp = *cr.Status.AppID
+		(*upgradeInfo).IsRollingBack = true
+		(*upgradeInfo).PrevApp = *cr.Status.AppID
+		// Bind the cluster with the spec app
+		shared.EnsureClusterAppReference(
+			cr.Namespace,
+			cr.Name,
+			*cr.Spec.AppCatalog,
+			cr.Spec.AppID,
+		)
 		cr.Status.AppID = &cr.Spec.AppID
 	}
 }

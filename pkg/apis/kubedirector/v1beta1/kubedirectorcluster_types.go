@@ -212,6 +212,8 @@ type BlockStorage struct {
 type RoleUpgradeStatus string
 
 const (
+	// RoleConfigured is default empty value means the role is in ready state
+	RoleConfigured RoleUpgradeStatus = ""
 	// RoleUpgraded means upgrade process is finished
 	RoleUpgraded RoleUpgradeStatus = "upgraded"
 	// RoleRolledBack means rollback process is finished
@@ -224,12 +226,12 @@ const (
 
 // RoleStatus describes the component objects of a virtual cluster role.
 type RoleStatus struct {
-	Name                string             `json:"id"`
-	StatefulSet         string             `json:"statefulSet"`
-	Members             []MemberStatus     `json:"members"`
-	EncryptedSecretKeys map[string]string  `json:"encryptedSecretKeys,omitempty"`
-	UpgradingMembers    map[string]*string `json:"upgradingMembers,omitempty"`
-	RoleUpgradeStatus   RoleUpgradeStatus  `json:"roleUpgradeStatus,omitempty"`
+	Name                  string            `json:"id"`
+	StatefulSet           string            `json:"statefulSet"`
+	Members               []MemberStatus    `json:"members"`
+	EncryptedSecretKeys   map[string]string `json:"encryptedSecretKeys,omitempty"`
+	UpgradingMembersCount int32             `json:"upgradingMembersCount,omitempty"`
+	RoleUpgradeStatus     RoleUpgradeStatus `json:"roleUpgradeStatus,omitempty"`
 }
 
 // UpgradeInfo decribes cluster upgrading status
@@ -251,10 +253,8 @@ type RollbackInfo struct {
 type MemberUpgradeStatus string
 
 const (
-	// PodUpgraded means upgrade process is finished
-	PodUpgraded MemberUpgradeStatus = "upgraded"
-	// PodRolledBack means rollback process is finished
-	PodRolledBack MemberUpgradeStatus = "rolledBack"
+	// PodConfigured is default empty value means the pod is in ready state
+	PodConfigured MemberUpgradeStatus = ""
 	// PodUpgrading means the pod is in the middle of upgrade process
 	PodUpgrading MemberUpgradeStatus = "upgrading"
 	// PodRollingBack means the pod is in the middle of rollback process

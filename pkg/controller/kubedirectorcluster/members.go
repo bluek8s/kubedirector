@@ -679,7 +679,9 @@ func handleCreatingMembers(
 			member.StateDetail.ConfiguringContainer = ""
 			if member.PodUpgradeStatus != kdv1.PodConfigured {
 				member.PodUpgradeStatus = kdv1.PodConfigured
-				(*rs).UpgradingMembersCount--
+				if (*rs).UpgradingMembersCount > 0 {
+					(*rs).UpgradingMembersCount--
+				}
 			}
 		}
 	}

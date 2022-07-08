@@ -451,6 +451,15 @@ func handleCreatePendingMembers(
 
 	createPending := role.membersByState[memberCreatePending]
 
+	for _, member := range createPending {
+		if role.roleStatus.RoleUpgradeStatus == kdv1.RoleUpgrading {
+			member.PodUpgradeStatus = kdv1.PodUpgrading
+		}
+		if role.roleStatus.RoleUpgradeStatus == kdv1.RoleRollingBack {
+			member.PodUpgradeStatus = kdv1.PodRollingBack
+		}
+	}
+
 	// Check each new member to see if it is running yet.
 	var wgRunning sync.WaitGroup
 	wgRunning.Add(len(createPending))
@@ -547,13 +556,6 @@ func handleCreatingMembers(
 			connectionVersion := getConnectionVersion(reqLogger, cr, role)
 
 			m.StateDetail.LastConnectionVersion = &connectionVersion
-
-			if (*rs).RoleUpgradeStatus == kdv1.RoleUpgrading {
-				m.PodUpgradeStatus = kdv1.PodUpgrading
-			}
-			if (*rs).RoleUpgradeStatus == kdv1.RoleRollingBack {
-				m.PodUpgradeStatus = kdv1.PodRollingBack
-			}
 
 			// Check to see if we have to inject one or more files for this member
 			if len(role.roleSpec.FileInjections) != 0 {
@@ -679,9 +681,7 @@ func handleCreatingMembers(
 			member.StateDetail.ConfiguringContainer = ""
 			if member.PodUpgradeStatus != kdv1.PodConfigured {
 				member.PodUpgradeStatus = kdv1.PodConfigured
-				if (*rs).UpgradingMembersCount > 0 {
-					(*rs).UpgradingMembersCount--
-				}
+				(*rs).UpgradingMembersCount--
 			}
 		}
 	}

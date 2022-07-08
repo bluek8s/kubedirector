@@ -198,6 +198,7 @@ func UpdateStatefulSetNonReplicas(
 	// Make sure, that according this logic, there is no sence to edit a statefulset
 	// directly, as it will be reconciled back to the KDCluster spec state.
 
+	initContainers := shared.StatefulSetInitContainers(statefulSet)
 	containers := shared.StatefulSetContainers(statefulSet)
 	currentRoleImage := containers[0].Image
 
@@ -229,6 +230,11 @@ func UpdateStatefulSetNonReplicas(
 		patchedContainers := shared.StatefulSetContainers(&patchedRes)
 		copy(patchedContainers, containers)
 		patchedContainers[0].Image = appRoleImage
+
+		patchedRes.Spec.Template.Spec.InitContainers = make([]v1.Container, len(initContainers))
+		patchedInitContainers := shared.StatefulSetContainers(&patchedRes)
+		copy(patchedInitContainers, initContainers)
+		patchedInitContainers[0].Image = appRoleImage
 
 		// Update RoleStatus
 		updateRoleStatusFn(needRollback)

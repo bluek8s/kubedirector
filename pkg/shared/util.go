@@ -147,3 +147,10 @@ func StatefulSetContainers(
 
 	return statefulSet.Spec.Template.Spec.Containers
 }
+
+func StatefulSetInitContainers(
+	statefulSet *appsv1.StatefulSet,
+) []v1.Container {
+
+	return statefulSet.Spec.Template.Spec.InitContainers
+}

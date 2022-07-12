@@ -198,8 +198,8 @@ func UpdateStatefulSetNonReplicas(
 	// Make sure, that according this logic, there is no sence to edit a statefulset
 	// directly, as it will be reconciled back to the KDCluster spec state.
 
-	initContainers := shared.StatefulSetInitContainers(statefulSet)
-	containers := shared.StatefulSetContainers(statefulSet)
+	initContainers := statefulSet.Spec.Template.Spec.InitContainers
+	containers := statefulSet.Spec.Template.Spec.Containers
 	currentRoleImage := containers[0].Image
 
 	appRoleImage, err := catalog.ImageForRole(cr, role.Name)
@@ -226,13 +226,13 @@ func UpdateStatefulSetNonReplicas(
 	// Check is upgrade for the current role is required
 	if needUpgrade && appRoleImage != currentRoleImage {
 
-		patchedRes.Spec.Template.Spec.Containers = make([]v1.Container, len(containers))
-		patchedContainers := shared.StatefulSetContainers(&patchedRes)
+		patchedContainers := make([]v1.Container, len(containers))
+		patchedRes.Spec.Template.Spec.Containers = patchedContainers
 		copy(patchedContainers, containers)
 		patchedContainers[0].Image = appRoleImage
 
-		patchedRes.Spec.Template.Spec.InitContainers = make([]v1.Container, len(initContainers))
-		patchedInitContainers := shared.StatefulSetContainers(&patchedRes)
+		patchedInitContainers := make([]v1.Container, len(initContainers))
+		patchedRes.Spec.Template.Spec.InitContainers = patchedInitContainers
 		copy(patchedInitContainers, initContainers)
 		patchedInitContainers[0].Image = appRoleImage
 

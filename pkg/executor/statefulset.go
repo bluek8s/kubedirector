@@ -692,7 +692,7 @@ func generateRsyncCmd(
 	// otherwise the rsync log file will not be created
 	createRsyncLogFileBaseDir := fmt.Sprintf("mkdir -p /mnt%s", filepath.Dir(kubedirectorInitLogs))
 
-	rsyncCmd := fmt.Sprintf("%s; rsync --log-file=/mnt%s --info=progress2 --relative -ax %s /mnt > /mnt%s;",
+	rsyncCmd := fmt.Sprintf("%s; rsync --log-file=/mnt%s --info=progress2 --relative -ax --no-inc-recursive %s /mnt > /mnt%s;",
 		createRsyncLogFileBaseDir,
 		kubedirectorInitLogs,
 		strings.Join(persistDirs, " "),

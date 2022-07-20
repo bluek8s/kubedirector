@@ -353,7 +353,7 @@ func ExecCommand(
 	}
 
 	foundContainer := false
-	for _, containerStatus := range pod.Status.ContainerStatuses {
+	for _, containerStatus := range append(pod.Status.InitContainerStatuses, pod.Status.ContainerStatuses...) {
 		if containerStatus.Name == containerName {
 			foundContainer = true
 			if containerStatus.ContainerID != expectedContainerID {

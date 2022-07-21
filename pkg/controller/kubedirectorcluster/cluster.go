@@ -500,8 +500,8 @@ func checkContainerStates(
 			containerID := ""
 			// clear SchedulingErrorMessage in MemberStateDetail
 			memberStatus.StateDetail.SchedulingErrorMessage = nil
-			// clear StorageInitPercent in MemberStateDetail
-			memberStatus.StateDetail.StorageInitPercent = nil
+			// clear StorageInitProgress in MemberStateDetail
+			memberStatus.StateDetail.StorageInitProgress = nil
 			if memberStatus.Pod != "" {
 				memberStatus.StateDetail.LastKnownContainerState = containerMissing
 				pod, podErr := observer.GetPod(cr.Namespace, memberStatus.Pod)
@@ -537,7 +537,7 @@ func checkContainerStates(
 								if (len(pod.Status.InitContainerStatuses) != 0) &&
 									(pod.Status.InitContainerStatuses[0].State.Terminated == nil) {
 									memberStatus.StateDetail.LastKnownContainerState = containerInitializing
-									executor.UpdateStorageInitPercent(reqLogger, cr, memberStatus, pod.Status.InitContainerStatuses[0])
+									executor.UpdateStorageInitProgress(reqLogger, cr, memberStatus, pod.Status.InitContainerStatuses[0])
 								} else {
 									memberStatus.StateDetail.LastKnownContainerState = containerWaiting
 								}

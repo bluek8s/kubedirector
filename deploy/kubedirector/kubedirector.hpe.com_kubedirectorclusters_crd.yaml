@@ -638,7 +638,7 @@ spec:
                                   type: string
                                 schedulingErrorMessage:
                                   type: string
-                                storageInitPercent:
+                                storageInitProgress:
                                   type: string
                                 pendingNotifyCmds:
                                   type: array

@@ -231,9 +231,9 @@ func compactMembers(
 	*m = (*m)[:numMembers-numRemovedMembers]
 }
 
-// UpdateStorageInitPercent parses rsync output
+// UpdateStorageInitProgress parses rsync output
 // and sets the current % progress to memberStatus.StateDetail.StorageInitPercent field
-func UpdateStorageInitPercent(
+func UpdateStorageInitProgress(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	memberStatus *kdv1.MemberStatus,
@@ -268,6 +268,6 @@ func UpdateStorageInitPercent(
 		lines := strings.Split(rsyncStatusStrB.String(), "\r")
 		lastLine := lines[len(lines)-1]
 		fields := strings.Fields(lastLine)
-		memberStatus.StateDetail.StorageInitPercent = &fields[1]
+		memberStatus.StateDetail.StorageInitProgress = &fields[1]
 	}
 }

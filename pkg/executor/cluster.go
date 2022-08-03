@@ -267,7 +267,6 @@ func UpdateStorageInitProgress(
 	if read {
 		lines := strings.Split(rsyncStatusStrB.String(), "\r")
 		lastLine := lines[len(lines)-1]
-		fields := strings.Fields(lastLine)
-		memberStatus.StateDetail.StorageInitProgress = &fields[1]
+		memberStatus.StateDetail.StorageInitProgress = &lastLine
 	}
 }

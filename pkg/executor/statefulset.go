@@ -678,7 +678,7 @@ func genrateRsyncInstalledCmd() string {
 	// versions of rsync.
 	// The rsync-check-status-dummy.log file (dummy log file) is not used.
 	// It is needed only to check that option --log-file is available
-	cmd := "rsync --log-file=./rsync-check-status-dummy.log --info=progress2 --relative -ax --version; RSYNC_CHECK_STATUS=$?;"
+	cmd := "rsync --log-file=./rsync-check-status-dummy.log --info=progress2 --relative -ax --no-inc-recursive --version; RSYNC_CHECK_STATUS=$?;"
 	return cmd
 }
 

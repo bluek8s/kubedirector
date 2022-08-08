@@ -673,7 +673,7 @@ func genrateRsyncInstalledCmd() string {
 
 	// Here we check two things:
 	// 1) rsync is installed and available
-	// 2) The options --log-file, --info=progress2 --relative -a -x are available.
+	// 2) The options --log-file, --info=progress2 --relative -a -x, --no-inc-recursive are available.
 	// Some of these options are not available in the first
 	// versions of rsync.
 	// The rsync-check-status-dummy.log file (dummy log file) is not used.

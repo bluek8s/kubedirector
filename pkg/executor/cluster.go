@@ -15,6 +15,7 @@
 package executor
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -240,6 +241,39 @@ func UpdateStorageInitProgress(
 	initContainerStatus corev1.ContainerStatus,
 ) {
 
+	isRsyncInstalled := func() bool {
+
+		var stdOut bytes.Buffer
+		ioStreams := &Streams{Out: &stdOut}
+
+		err := ExecCommand(
+			reqLogger,
+			cr,
+			cr.Namespace,
+			(*memberStatus).Pod,
+			initContainerStatus.ContainerID,
+			initContainerName,
+			[]string{"/bin/bash", "-c", "rsync --version > /dev/null; echo $?;"},
+			ioStreams,
+		)
+		if err != nil {
+			shared.LogErrorf(
+				reqLogger,
+				err,
+				cr,
+				shared.EventReasonCluster,
+				"rsync check failed",
+			)
+		}
+		return strings.Trim(stdOut.String(), "\n") == "0"
+	}
+
+	// First, check if rsync utility is available at the container
+	rsyncInstalled := isRsyncInstalled()
+	if !rsyncInstalled {
+		return
+	}
+
 	var rsyncStatusStrB strings.Builder
 	progressBarFile := fmt.Sprintf("/mnt%s", kubedirectorInitProgressBar)
 
@@ -253,6 +287,7 @@ func UpdateStorageInitProgress(
 		progressBarFile,
 		&rsyncStatusStrB,
 	)
+
 	if err != nil {
 		shared.LogErrorf(
 			reqLogger,

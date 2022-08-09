@@ -638,6 +638,8 @@ spec:
                                   type: string
                                 schedulingErrorMessage:
                                   type: string
+                                storageInitProgress:
+                                  type: string
                                 pendingNotifyCmds:
                                   type: array
                                   items:

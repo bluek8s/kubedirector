@@ -236,6 +236,7 @@ type MemberStateDetail struct {
 	StartScriptOutMsg        string              `json:"startScriptStdoutMessage,omitempty"`
 	StartScriptErrMsg        string              `json:"startScriptStderrMessage,omitempty"`
 	SchedulingErrorMessage   *string             `json:"schedulingErrorMessage,omitempty"`
+	StorageInitProgress      *string             `json:"storageInitProgress,omitempty"`
 }
 
 // NotificationDesc contains the info necessary to perform a notify command.

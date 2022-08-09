@@ -673,12 +673,12 @@ func genrateRsyncInstalledCmd() string {
 
 	// Here we check two things:
 	// 1) rsync is installed and available
-	// 2) The options --log-file, --info=progress2 --relative -a -x are available.
+	// 2) The options --log-file, --info=progress2 --relative -a -x, --no-inc-recursive are available.
 	// Some of these options are not available in the first
 	// versions of rsync.
 	// The rsync-check-status-dummy.log file (dummy log file) is not used.
 	// It is needed only to check that option --log-file is available
-	cmd := "rsync --log-file=./rsync-check-status-dummy.log --info=progress2 --relative -ax --version; RSYNC_CHECK_STATUS=$?;"
+	cmd := "rsync --log-file=./rsync-check-status-dummy.log --info=progress2 --relative -ax --no-inc-recursive --version; RSYNC_CHECK_STATUS=$?;"
 	return cmd
 }
 
@@ -692,7 +692,7 @@ func generateRsyncCmd(
 	// otherwise the rsync log file will not be created
 	createRsyncLogFileBaseDir := fmt.Sprintf("mkdir -p /mnt%s", filepath.Dir(kubedirectorInitLogs))
 
-	rsyncCmd := fmt.Sprintf("%s; rsync --log-file=/mnt%s --info=progress2 --relative -ax %s /mnt > /mnt%s;",
+	rsyncCmd := fmt.Sprintf("%s; rsync --log-file=/mnt%s --info=progress2 --relative -ax --no-inc-recursive %s /mnt > /mnt%s;",
 		createRsyncLogFileBaseDir,
 		kubedirectorInitLogs,
 		strings.Join(persistDirs, " "),

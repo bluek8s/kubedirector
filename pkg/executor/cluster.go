@@ -24,6 +24,7 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/exec"
 )
 
 // UpdateClusterStatus propagates status changes back to k8s. Roles or members
@@ -239,12 +240,12 @@ func UpdateStorageInitProgress(
 	memberStatus *kdv1.MemberStatus,
 	initContainerStatus corev1.ContainerStatus,
 ) {
-	// Try to read the progress file. If file does not exist, this indicates
-	// that we're not using rsync. If the file check itself fails, the init
-	// container is probably not ready yet (e.g. image pull).
+	// If the rsync progress file does not exist, this indicates that we're
+	// not using rsync. If the file check itself fails, the init container is
+	// probably not ready yet (e.g. image pull is ongoing).
 	var rsyncStatusStrB strings.Builder
 	progressBarFile := fmt.Sprintf("/mnt%s", kubedirectorInitProgressBar)
-	fileExists, err := ReadFile(
+	fileExists, fileExistsErr := IsFileExists(
 		reqLogger,
 		cr,
 		cr.Namespace,
@@ -252,17 +253,73 @@ func UpdateStorageInitProgress(
 		initContainerStatus.ContainerID,
 		initContainerName,
 		progressBarFile,
-		&rsyncStatusStrB,
 	)
-	if err != nil {
-		message := "the init container is not yet ready"
+	if fileExistsErr != nil {
+		message := initContainerNotReady
 		memberStatus.StateDetail.StorageInitProgress = &message
-	} else if fileExists {
-		lines := strings.Split(rsyncStatusStrB.String(), "\r")
-		lastLine := lines[len(lines)-1]
-		memberStatus.StateDetail.StorageInitProgress = &lastLine
-	} else {
-		message := "detailed storage initialization progress is not available"
+		return
+	} else if !fileExists {
+		message := initProgressNotAvailable
 		memberStatus.StateDetail.StorageInitProgress = &message
+		return
 	}
+	// Progress file exists. We want to get the last whole line (as demarcated
+	// by carriage returns). This is complicated by the fact that rsync is
+	// still writing the file, and we don't really want to rely on any
+	// knowledge of the line format, so we can't say if the last line really
+	// is a complete line. So we'll use the second-to-last line. Given the
+	// rate at which these lines update (which is much faster than our
+	// reconciliation period anyway), that's fine.
+	// Also, that progress log file is potentially large. So we don't want to
+	// make a copy of it for processing, and we don't want to read it all into
+	// memory here. Instead we'll "tail" a chunk of it back to us here (that
+	// is more than big enough to contain two complete lines) and then look
+	// for the second-to-last complete line in that output.
+	ioStreams := &Streams{
+		Out: &rsyncStatusStrB,
+	}
+	tailExecErr := ExecCommand(
+		reqLogger,
+		cr,
+		cr.Namespace,
+		(*memberStatus).Pod,
+		initContainerStatus.ContainerID,
+		initContainerName,
+		[]string{"tail", "-c", "1024", progressBarFile},
+		ioStreams,
+	)
+	if tailExecErr != nil {
+		_, iscoe := tailExecErr.(exec.CodeExitError)
+		if iscoe {
+			// Non-zero exit status for the command. Could be a problem with
+			// "tail" in the container? ... who knows. Not going to dig into
+			// it deeply here.
+			shared.LogError(
+				reqLogger,
+				tailExecErr,
+				cr,
+				shared.EventReasonCluster,
+				"error status on attempt to pull last line(s) from rsync progress file",
+			)
+			message := initProgressNotAvailable
+			memberStatus.StateDetail.StorageInitProgress = &message
+		}
+		// At this point we have just a failure to run the command at all.
+		// Since we already successfully did the file check above, the most
+		// likely reason for this is that the init is done. Don't set a
+		// progress message.
+		return
+	}
+	// OK let's pull some set of lines out of what we received.
+	lines := strings.Split(rsyncStatusStrB.String(), "\r")
+	numLines := len(lines)
+	// If there's not two lines, we can't start reporting yet.
+	if numLines < 2 {
+		message := initProgressPending
+		memberStatus.StateDetail.StorageInitProgress = &message
+		return
+	}
+	// Otherwise, we have progress to report.
+	lastFullLine := strings.TrimSpace(lines[numLines-2])
+	memberStatus.StateDetail.StorageInitProgress = &lastFullLine
 }

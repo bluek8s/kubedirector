@@ -76,6 +76,10 @@ const (
 	// blockPvcNamePrefix is the prefix name for the volume device that is auto-created by the statefulset.
 	// This is assigned in accordance with the PvcPrefix
 	blockPvcNamePrefix = "b"
+
+	initContainerNotReady    = "the init container is not yet ready"
+	initProgressNotAvailable = "storage initialization progress reporting is not available"
+	initProgressPending      = "storage initialization progress reporting has not started yet"
 )
 
 // Streams for stdin, stdout, stderr of executed commands

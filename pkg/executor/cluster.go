@@ -15,7 +15,6 @@
 package executor
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -232,52 +231,20 @@ func compactMembers(
 	*m = (*m)[:numMembers-numRemovedMembers]
 }
 
-// UpdateStorageInitProgress parses rsync output
-// and sets the current % progress to memberStatus.StateDetail.StorageInitPercent field
+// UpdateStorageInitProgress parses rsync output (if available) and sets the
+// memberStatus.StateDetail.StorageInitProgress field
 func UpdateStorageInitProgress(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	memberStatus *kdv1.MemberStatus,
 	initContainerStatus corev1.ContainerStatus,
 ) {
-
-	isRsyncInstalled := func() bool {
-
-		var stdOut bytes.Buffer
-		ioStreams := &Streams{Out: &stdOut}
-
-		err := ExecCommand(
-			reqLogger,
-			cr,
-			cr.Namespace,
-			(*memberStatus).Pod,
-			initContainerStatus.ContainerID,
-			initContainerName,
-			[]string{"/bin/bash", "-c", "rsync --version > /dev/null; echo $?;"},
-			ioStreams,
-		)
-		if err != nil {
-			shared.LogErrorf(
-				reqLogger,
-				err,
-				cr,
-				shared.EventReasonCluster,
-				"rsync check failed",
-			)
-		}
-		return strings.Trim(stdOut.String(), "\n") == "0"
-	}
-
-	// First, check if rsync utility is available at the container
-	rsyncInstalled := isRsyncInstalled()
-	if !rsyncInstalled {
-		return
-	}
-
+	// Try to read the progress file. If file does not exist, this indicates
+	// that we're not using rsync. If the file check itself fails, the init
+	// container is probably not ready yet (e.g. image pull).
 	var rsyncStatusStrB strings.Builder
 	progressBarFile := fmt.Sprintf("/mnt%s", kubedirectorInitProgressBar)
-
-	read, err := ReadFile(
+	fileExists, err := ReadFile(
 		reqLogger,
 		cr,
 		cr.Namespace,
@@ -287,21 +254,15 @@ func UpdateStorageInitProgress(
 		progressBarFile,
 		&rsyncStatusStrB,
 	)
-
 	if err != nil {
-		shared.LogErrorf(
-			reqLogger,
-			err,
-			cr,
-			shared.EventReasonCluster,
-			"failed to read %s",
-			progressBarFile,
-		)
-	}
-
-	if read {
+		message := "the init container is not yet ready"
+		memberStatus.StateDetail.StorageInitProgress = &message
+	} else if fileExists {
 		lines := strings.Split(rsyncStatusStrB.String(), "\r")
 		lastLine := lines[len(lines)-1]
 		memberStatus.StateDetail.StorageInitProgress = &lastLine
+	} else {
+		message := "detailed storage initialization progress is not available"
+		memberStatus.StateDetail.StorageInitProgress = &message
 	}
 }

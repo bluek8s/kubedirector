@@ -76,6 +76,8 @@ const (
 	// blockPvcNamePrefix is the prefix name for the volume device that is auto-created by the statefulset.
 	// This is assigned in accordance with the PvcPrefix
 	blockPvcNamePrefix = "b"
+
+	ProjectedVolNamePrefix = "projected-vol-"
 )
 
 // Streams for stdin, stdout, stderr of executed commands

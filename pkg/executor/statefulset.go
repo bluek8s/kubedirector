@@ -361,7 +361,7 @@ func getStatefulset(
 	if role.ServiceAccountName != "" {
 		useServiceAccount = true
 	}
-	volumeMounts, volumes, volumesErr := generateVolumeMounts(
+	volumeMounts, volumes, volumesErr := GenerateVolumeMounts(
 		cr,
 		role,
 		PvcNamePrefix,
@@ -777,7 +777,7 @@ func generateVolumeProjectionMounts(
 	projectedVol *kdv1.VolumeProjections,
 ) ([]v1.VolumeMount, []v1.Volume) {
 
-	volName := "projected-vol-" + strconv.Itoa(volIndex)
+	volName := ProjectedVolNamePrefix + strconv.Itoa(volIndex)
 	volSource := v1.PersistentVolumeClaimVolumeSource{
 		ClaimName: projectedVol.PvcName,
 		ReadOnly:  projectedVol.ReadOnly,
@@ -800,13 +800,13 @@ func generateVolumeProjectionMounts(
 
 }
 
-// generateVolumeMounts generates all of an app container's volume and mount
+// GenerateVolumeMounts generates all of an app container's volume and mount
 // specs for persistent storage, tmpfs and systemctl support that are
 // appropriate for members of the given role. For systemctl support,
 // nativeSystemdSupport flag is examined along with the app requirement.
 // Additionally generate volume mount spec if a role has
 // requested for volume projections.
-func generateVolumeMounts(
+func GenerateVolumeMounts(
 	cr *kdv1.KubeDirectorCluster,
 	role *kdv1.Role,
 	pvcNamePrefix string,

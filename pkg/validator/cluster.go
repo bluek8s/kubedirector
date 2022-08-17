@@ -1097,7 +1097,7 @@ func validateVolumeProjections(
 			for j := 0; j < totalVolMnts; j++ {
 				if !strings.HasPrefix(allVolumeMnts[j].Name, executor.ProjectedVolNamePrefix) &&
 					allVolumeMnts[j].MountPath == volume.MountPath {
-					// Bump up systemMountPaths map to check later
+					// Bump up systemMountPathConflict map to check later
 					systemMountPathConflict[volume.MountPath] = true
 				}
 			}

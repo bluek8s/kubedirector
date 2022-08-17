@@ -16,6 +16,7 @@ package kubedirectorcluster
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -568,6 +569,68 @@ func handleCreatingMembers(
 		return
 	}
 
+	handleConfigPackage := func(member *kdv1.MemberStatus) {
+		pod, podErr := observer.GetPod(cr.Namespace, member.Pod)
+		if podErr != nil {
+			shared.LogErrorf(reqLogger, podErr, cr, shared.EventReasonMember, "failed to get pod %s", member.Pod)
+		}
+
+		backupExists, err := executor.IsFileExists(
+			reqLogger,
+			cr,
+			cr.Namespace,
+			member.Pod,
+			pod.Status.ContainerStatuses[0].ContainerID,
+			executor.AppContainerName,
+			"/opt/guestconfig.backup",
+			true,
+		)
+
+		if err != nil {
+			shared.LogError(reqLogger, podErr, cr, shared.EventReasonMember, "failed to check /opt/guestconfig.backup folder existence")
+		}
+
+		var cmd []string
+		if member.PodUpgradeStatus == kdv1.PodUpgrading {
+			cmd = []string{"/bin/bash", "-c", "cp -r /opt/guestconfig /opt/guestconfig.backup && rm -rf /opt/guestconfig"}
+		} else if member.PodUpgradeStatus == kdv1.PodRollingBack {
+			if backupExists {
+				cmd = []string{"/bin/bash", "-c", "/rm -rf /opt/guestconfig; mv /opt/guestconfig.backup /opt/guestconfig"}
+			}
+		} else {
+			return
+		}
+
+		var stdOut bytes.Buffer
+		ioStreams := &executor.Streams{Out: &stdOut}
+
+		backupErr := executor.ExecCommand(
+			reqLogger,
+			cr,
+			cr.Namespace,
+			member.Pod,
+			pod.Status.ContainerStatuses[0].ContainerID,
+			executor.AppContainerName,
+			cmd,
+			ioStreams,
+		)
+
+		if backupErr != nil {
+			shared.LogError(reqLogger, backupErr, cr, shared.EventReasonMember, "failed to backup guestconfig")
+		}
+
+		backupExists, err = executor.IsFileExists(
+			reqLogger,
+			cr,
+			cr.Namespace,
+			member.Pod,
+			pod.Status.ContainerStatuses[0].ContainerID,
+			executor.AppContainerName,
+			"/opt/guestconfig.backup",
+			true,
+		)
+	}
+
 	// Perform setup on all of these members.
 	var wgSetup sync.WaitGroup
 	wgSetup.Add(len(creating))
@@ -605,6 +668,8 @@ func handleCreatingMembers(
 					return
 				}
 			}
+
+			handleConfigPackage(m)
 
 			if setupInfo == nil {
 				setFinalState(memberReady, nil)
@@ -936,6 +1001,7 @@ func setupNodePrep(
 		expectedContainerID,
 		executor.AppContainerName,
 		configcliTestFile,
+		false,
 	)
 	if fileError != nil {
 		return fileError
@@ -950,6 +1016,7 @@ func setupNodePrep(
 		expectedContainerID,
 		executor.AppContainerName,
 		configcliLegacyTestFile,
+		false,
 	)
 	if fileError != nil {
 		return fileError
@@ -1047,6 +1114,7 @@ func setupAppConfig(
 		expectedContainerID,
 		executor.AppContainerName,
 		appPrepStartscript,
+		false,
 	)
 	if fileError != nil {
 		return fileError
@@ -1370,14 +1438,6 @@ func appConfig(
 				status, convErr := strconv.Atoi(configStatus)
 				if convErr == nil && status == 0 {
 
-					// Notify upgrade/rollback completion as necessary.
-					var upgradeCmdErr error
-					if roleStatus.RoleUpgradeStatus == kdv1.RoleUpgrading {
-						upgradeCmdErr = runConfigScript(PodUpgraded, true)
-					} else if roleStatus.RoleUpgradeStatus == kdv1.RoleRollingBack {
-						upgradeCmdErr = runConfigScript(PodReverted, true)
-					}
-
 					// Configure previously succeeded so basically we're done
 					// here. However, if this is a container restart, see if
 					// we need to re-establish configcli symlinks.
@@ -1394,9 +1454,6 @@ func appConfig(
 
 					// All good? If not, let's return an error. Prioritize
 					// upgrade issues over link issues.
-					if upgradeCmdErr != nil {
-						return true, upgradeCmdErr
-					}
 					if linkErr != nil {
 						return true, linkErr
 					}
@@ -1495,8 +1552,25 @@ func appConfig(
 	if role.EventList != nil && !shared.StringInList("configure", *role.EventList) {
 		return true, nil
 	}
+
+	// Notify upgrade/rollback completion as necessary.
+	var cmdErr error
+	if roleStatus.RoleUpgradeStatus == kdv1.RoleUpgrading {
+		cmdErr = runConfigScript(PodUpgraded, true)
+		if cmdErr != nil {
+			return true, cmdErr
+		}
+		return true, nil
+	} else if roleStatus.RoleUpgradeStatus == kdv1.RoleRollingBack {
+		cmdErr = runConfigScript(PodReverted, true)
+		if cmdErr != nil {
+			return true, cmdErr
+		}
+		return true, nil
+	}
+
 	// Now kick off the initial config.
-	cmdErr := runConfigScript(Configure, false)
+	cmdErr = runConfigScript(Configure, false)
 	if cmdErr != nil {
 		// https://github.com/bluek8s/kubedirector/issues/547
 		nodeRole := catalog.GetRoleFromID(cr.AppSpec, roleName)

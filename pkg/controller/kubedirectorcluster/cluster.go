@@ -459,7 +459,7 @@ func handleClusterUpgrade(
 	// erase the cluster upgradeInfo object
 	if upgradeInfo != nil && !upgradeIsActive {
 		// There could happens the situation when cluster receives rollback signal
-		// after the part of member were already successfully upgraded
+		// after the part of members was already successfully upgraded
 		// It means, that we shouldn't clean the upgradeInfo object while at least the one
 		// cluster role has upgrade status "RoleUpgraded"
 		finalizeUpgrade := true

@@ -666,10 +666,10 @@ func getStartupScript(
 	}
 }
 
-// genrateRsyncInstalledCmd checks if the rsync command is available.
+// generateRsyncInstalledCmd checks if the rsync command is available.
 // If rsync is installed and all the options are available
 // the RSYNC_CHECK_STATUS variable will be 0.
-func genrateRsyncInstalledCmd() string {
+func generateRsyncInstalledCmd() string {
 
 	// Here we check two things:
 	// 1) rsync is installed and available
@@ -726,7 +726,7 @@ func generateInitContainerLaunch(
 	// In order to perform copying rsync will be used.
 	// It allows to report the progress that will be saved in a file.
 	// Here we check if the rsync command is installed.
-	rsyncInstalled := genrateRsyncInstalledCmd()
+	rsyncInstalled := generateRsyncInstalledCmd()
 
 	// If the rsync command is not available the cp command will be used.
 	fullCmd := fmt.Sprintf("%s %s && ( [ ${RSYNC_CHECK_STATUS} != 0 ] && (%s) || (%s)); touch /mnt%s;",

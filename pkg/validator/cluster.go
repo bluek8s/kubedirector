@@ -26,6 +26,7 @@ import (
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
 	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/controller/kubedirectorcluster"
+	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/observer"
 	"github.com/bluek8s/kubedirector/pkg/secretkeys"
 	"github.com/bluek8s/kubedirector/pkg/shared"
@@ -1043,7 +1044,8 @@ func addRestoreLabel(
 // If PVC is validated, following additional checks are made
 // - VolumeMode must be FileSystem
 // - Within a cluster if a pvc is reused, validate AccessModes to contain either ReadWriteMany or ReadOnlyMany
-// - Within a role, make sure mountPaths are unique
+// - Within a role, make sure mountPaths specified through volumeProjections are unique
+// - make sure mountPaths specified through volumeProjections doesn't conflict with system generated mountPaths
 func validateVolumeProjections(
 	cr *kdv1.KubeDirectorCluster,
 	userInfo v1.UserInfo,
@@ -1053,19 +1055,52 @@ func validateVolumeProjections(
 
 	numRoles := len(cr.Spec.Roles)
 	exclusivePvcs := make(map[string]int32)
+	nativeSystemdSupport := shared.GetNativeSystemdSupport()
 
 	for i := 0; i < numRoles; i++ {
 		mountPaths := make(map[string]int32)
+		systemMountPathConflict := make(map[string]bool)
 		role := &(cr.Spec.Roles[i])
 		if len(role.VolumeProjections) == 0 {
 			continue
 		}
+
+		// Fetch all volumemounts and volumes for this role
+		allVolumeMnts, _, err := executor.GenerateVolumeMounts(
+			cr,
+			role,
+			executor.PvcNamePrefix,
+			nativeSystemdSupport,
+			[]string{},
+		)
+
+		if err != nil {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					failedVolumeMountCheck,
+					role.Name,
+				),
+			)
+			continue
+		}
+
 		numVolumes := len(role.VolumeProjections)
 		for j := 0; j < numVolumes; j++ {
 			volume := role.VolumeProjections[j]
 
 			// Bump up mountPath map to check later
 			mountPaths[volume.MountPath]++
+
+			// Check for clash with system mountPaths
+			totalVolMnts := len(allVolumeMnts)
+			for j := 0; j < totalVolMnts; j++ {
+				if !strings.HasPrefix(allVolumeMnts[j].Name, executor.ProjectedVolNamePrefix) &&
+					allVolumeMnts[j].MountPath == volume.MountPath {
+					// Bump up systemMountPathConflict map to check later
+					systemMountPathConflict[volume.MountPath] = true
+				}
+			}
 
 			// Check to make sure pvc exists in the cluster namespace
 			pvc, pvcErr := observer.GetPVC(cr.Namespace, volume.PvcName)
@@ -1117,22 +1152,34 @@ func validateVolumeProjections(
 				role.ServiceAccountName,
 				"get",
 			)
+
 			if errStr != "" {
 				valErrors = append(valErrors, errStr)
 			}
-		}
 
+		}
 		for mountPath, mountNum := range mountPaths {
 			if mountNum > 1 {
 				valErrors = append(
 					valErrors,
 					fmt.Sprintf(
-						invalidMountPath,
+						duplicateMountPath,
 						mountPath,
 						role.Name,
 					),
 				)
 			}
+		}
+
+		for mountPath := range systemMountPathConflict {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					systemMountPathClash,
+					mountPath,
+					role.Name,
+				),
+			)
 		}
 	}
 

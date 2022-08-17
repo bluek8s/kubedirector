@@ -77,6 +77,9 @@ const (
 	// This is assigned in accordance with the PvcPrefix
 	blockPvcNamePrefix = "b"
 
+	// ProjectedVolNamePrefix is the prefix used for volume names/mounts for project volumes for a role
+	ProjectedVolNamePrefix = "projected-vol-"
+
 	initContainerNotReady    = "the init container is not yet ready"
 	initProgressNotAvailable = "storage initialization progress reporting is not available"
 	initProgressPending      = "storage initialization progress reporting has not started yet"

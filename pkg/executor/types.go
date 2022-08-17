@@ -77,6 +77,7 @@ const (
 	// This is assigned in accordance with the PvcPrefix
 	blockPvcNamePrefix = "b"
 
+	// ProjectedVolNamePrefix is the prefix used for volume names/mounts for project volumes for a role
 	ProjectedVolNamePrefix = "projected-vol-"
 )
 

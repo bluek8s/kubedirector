@@ -1171,7 +1171,7 @@ func validateVolumeProjections(
 			}
 		}
 
-		for mountPath, _ := range systemMountPathConflict {
+		for mountPath := range systemMountPathConflict {
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(

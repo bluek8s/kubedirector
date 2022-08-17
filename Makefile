@@ -45,7 +45,7 @@ cgo_enabled := 0
 .DEFAULT_GOAL := build
 
 version-check:
-	@if go version | grep -q 'go1\.1[8-9]'; then \
+	@if go version | grep -q 'go1\.\(1[8-9]\|[2-9]\)'; then \
         true; \
     else \
         echo "Error:"; \

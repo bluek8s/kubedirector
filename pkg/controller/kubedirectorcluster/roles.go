@@ -396,7 +396,7 @@ func handleRoleConfig(
 		if needRollback {
 			(*rs).UpgradingMembersCount = 0
 			for _, member := range rs.Members {
-				if member.PodUpgradeStatus != kdv1.PodConfigured {
+				if member.PodUpgradeStatus == kdv1.PodUpgraded {
 					(*rs).UpgradingMembersCount++
 				}
 			}

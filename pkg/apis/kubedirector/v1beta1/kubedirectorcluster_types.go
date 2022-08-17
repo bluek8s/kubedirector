@@ -259,6 +259,12 @@ const (
 	PodUpgrading MemberUpgradeStatus = "upgrading"
 	// PodRollingBack means the pod is in the middle of rollback process
 	PodRollingBack MemberUpgradeStatus = "rollingBack"
+	// PodUpgraded means the pod finished upgrade process  but waits for the
+	// upgrade finalization on cluster level
+	PodUpgraded MemberUpgradeStatus = "upgraded"
+	// PodRolledBack means the pod finished the rollback process but waits for the
+	// upgrade finalization on cluster level
+	PodRolledBack MemberUpgradeStatus = "rolledBack"
 )
 
 // MemberStatus describes the component objects of a virtual cluster member.

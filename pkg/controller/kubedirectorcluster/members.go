@@ -679,8 +679,12 @@ func handleCreatingMembers(
 		if member.State != string(memberCreating) {
 			member.StateDetail.LastConfiguredContainer = member.StateDetail.ConfiguringContainer
 			member.StateDetail.ConfiguringContainer = ""
-			if member.PodUpgradeStatus != kdv1.PodConfigured {
-				member.PodUpgradeStatus = kdv1.PodConfigured
+			if member.PodUpgradeStatus == kdv1.PodUpgrading {
+				member.PodUpgradeStatus = kdv1.PodUpgraded
+				(*rs).UpgradingMembersCount--
+			}
+			if member.PodUpgradeStatus == kdv1.PodRollingBack {
+				member.PodUpgradeStatus = kdv1.PodRolledBack
 				(*rs).UpgradingMembersCount--
 			}
 		}

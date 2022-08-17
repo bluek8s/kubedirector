@@ -481,6 +481,9 @@ func handleClusterUpgrade(
 				upgradeInfo.PrevApp,
 			)
 			for i := range cr.Status.Roles {
+				for j := range (*cr).Status.Roles[i].Members {
+					(*cr).Status.Roles[i].Members[j].PodUpgradeStatus = kdv1.PodConfigured
+				}
 				(*cr).Status.Roles[i].RoleUpgradeStatus = kdv1.RoleConfigured
 			}
 			cr.Status.UpgradeInfo = nil

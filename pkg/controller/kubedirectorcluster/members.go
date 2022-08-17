@@ -424,6 +424,34 @@ func handleReadyMembers(
 
 			m.StateDetail.LastConfigDataGeneration = cr.Status.SpecGenerationToProcess
 		}(member)
+
+		updateRoleUpgradeStatus := func() {
+
+			rs := &role.roleStatus
+			switch (*rs).RoleUpgradeStatus {
+			case kdv1.RoleUpgrading:
+				for _, member := range role.roleStatus.Members {
+					if member.PodUpgradeStatus != kdv1.PodUpgraded {
+						return
+					}
+				}
+				(*rs).RoleUpgradeStatus = kdv1.RoleUpgraded
+				reqLogger.Info(fmt.Sprintf("role %s -> %s", role.roleSpec.Name, (*rs).RoleUpgradeStatus))
+
+			case kdv1.RoleRollingBack:
+				for _, member := range role.roleStatus.Members {
+					if member.PodUpgradeStatus != kdv1.PodRolledBack {
+						return
+					}
+				}
+				(*rs).RoleUpgradeStatus = kdv1.RoleRolledBack
+				reqLogger.Info(fmt.Sprintf("role %s -> %s", role.roleSpec.Name, (*rs).RoleUpgradeStatus))
+			}
+		}
+
+		if cr.Status.UpgradeInfo != nil {
+			updateRoleUpgradeStatus()
+		}
 	}
 	wgReady.Wait()
 
@@ -525,7 +553,6 @@ func handleCreatingMembers(
 ) {
 
 	creating := role.membersByState[memberCreating]
-	rs := &role.roleStatus
 
 	// Fetch setup package info
 	setupInfo, setupInfoErr := catalog.AppSetupPackageInfo(cr, role.roleStatus.Name)
@@ -681,22 +708,10 @@ func handleCreatingMembers(
 			member.StateDetail.ConfiguringContainer = ""
 			if member.PodUpgradeStatus == kdv1.PodUpgrading {
 				member.PodUpgradeStatus = kdv1.PodUpgraded
-				(*rs).UpgradingMembersCount--
 			}
 			if member.PodUpgradeStatus == kdv1.PodRollingBack {
 				member.PodUpgradeStatus = kdv1.PodRolledBack
-				(*rs).UpgradingMembersCount--
 			}
-		}
-	}
-	switch (*rs).RoleUpgradeStatus {
-	case kdv1.RoleUpgrading:
-		if (*rs).UpgradingMembersCount == 0 {
-			(*rs).RoleUpgradeStatus = kdv1.RoleUpgraded
-		}
-	case kdv1.RoleRollingBack:
-		if (*rs).UpgradingMembersCount == 0 {
-			(*rs).RoleUpgradeStatus = kdv1.RoleRolledBack
 		}
 	}
 }

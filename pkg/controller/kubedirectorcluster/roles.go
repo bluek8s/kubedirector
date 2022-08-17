@@ -394,15 +394,8 @@ func handleRoleConfig(
 		// between quantities of all members and members are still not upgraded
 		// It will be used at the syncMembers() step
 		if needRollback {
-			(*rs).UpgradingMembersCount = 0
-			for _, member := range rs.Members {
-				if member.PodUpgradeStatus == kdv1.PodUpgraded {
-					(*rs).UpgradingMembersCount++
-				}
-			}
 			(*rs).RoleUpgradeStatus = kdv1.RoleRollingBack
 		} else {
-			(*rs).UpgradingMembersCount = int32(len(rs.Members))
 			(*rs).RoleUpgradeStatus = kdv1.RoleUpgrading
 		}
 	}

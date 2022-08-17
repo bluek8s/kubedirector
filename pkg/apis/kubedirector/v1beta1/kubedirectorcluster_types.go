@@ -226,12 +226,11 @@ const (
 
 // RoleStatus describes the component objects of a virtual cluster role.
 type RoleStatus struct {
-	Name                  string            `json:"id"`
-	StatefulSet           string            `json:"statefulSet"`
-	Members               []MemberStatus    `json:"members"`
-	EncryptedSecretKeys   map[string]string `json:"encryptedSecretKeys,omitempty"`
-	UpgradingMembersCount int32             `json:"upgradingMembersCount,omitempty"`
-	RoleUpgradeStatus     RoleUpgradeStatus `json:"roleUpgradeStatus,omitempty"`
+	Name                string            `json:"id"`
+	StatefulSet         string            `json:"statefulSet"`
+	Members             []MemberStatus    `json:"members"`
+	EncryptedSecretKeys map[string]string `json:"encryptedSecretKeys,omitempty"`
+	RoleUpgradeStatus   RoleUpgradeStatus `json:"roleUpgradeStatus,omitempty"`
 }
 
 // UpgradeInfo decribes cluster upgrading status

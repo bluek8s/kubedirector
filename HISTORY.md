@@ -1,3 +1,13 @@
+# v0.11.0 - Aug 18, 2022
+
+One of the primary motivators for this release is to update the minimum version of go required for compiling KubeDirector, to 1.18 instead of 1.16. This lets us close three critical CVEs. We have a couple of other features/fixes ready to ship so they are included in this release as well.
+
+Changes in order of issue number:
+* [report progress for persistent storage initialization](https://github.com/bluek8s/kubedirector/issues/540); cf. the 0.11.0 additions to the [MemberStateDetail](https://github.com/bluek8s/kubedirector/wiki/KubeDirectorCluster-Definition#memberstatedetail) in kdcluster status
+* [validate that mount paths are unique within a statefulset](https://github.com/bluek8s/kubedirector/issues/555)
+* [require golang 1.18 for KD build](https://github.com/bluek8s/kubedirector/issues/628)
+
+
 # v0.10.1 - May 23, 2022
 
 This is a targetted bugfix release for the issue of the new (stricter-schema) v1 CRDs [incorrectly discarding custom labels/annotations](https://github.com/bluek8s/kubedirector/issues/611) for kdcluster member pods/services.

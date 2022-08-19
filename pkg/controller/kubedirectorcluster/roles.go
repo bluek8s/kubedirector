@@ -104,6 +104,10 @@ func syncClusterRoles(
 		if !allRoleMembersReadyOrError(cr, r) {
 			allMembersReady = false
 		}
+
+		if cr.Status.UpgradeInfo != nil {
+			updateRoleUpgradeStatus(r.roleStatus)
+		}
 	}
 	// Let the caller know about significant changes that happened.
 	var returnState clusterStateInternal
@@ -118,6 +122,32 @@ func syncClusterRoles(
 	}
 
 	return roles, returnState, nil
+}
+
+func updateRoleUpgradeStatus(
+	rs *kdv1.RoleStatus,
+) {
+	if rs == nil {
+		return
+	}
+
+	switch (*rs).RoleUpgradeStatus {
+	case kdv1.RoleUpgrading:
+		for _, member := range rs.Members {
+			if member.PodUpgradeStatus != kdv1.PodUpgraded {
+				return
+			}
+		}
+		(*rs).RoleUpgradeStatus = kdv1.RoleUpgraded
+
+	case kdv1.RoleRollingBack:
+		for _, member := range rs.Members {
+			if member.PodUpgradeStatus != kdv1.PodRolledBack {
+				return
+			}
+		}
+		(*rs).RoleUpgradeStatus = kdv1.RoleRolledBack
+	}
 }
 
 // initRoleInfo constructs a slice of elements representing all current or

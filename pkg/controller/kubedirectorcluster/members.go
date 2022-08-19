@@ -424,37 +424,8 @@ func handleReadyMembers(
 
 			m.StateDetail.LastConfigDataGeneration = cr.Status.SpecGenerationToProcess
 		}(member)
-
-		updateRoleUpgradeStatus := func() {
-
-			rs := &role.roleStatus
-			switch (*rs).RoleUpgradeStatus {
-			case kdv1.RoleUpgrading:
-				for _, member := range role.roleStatus.Members {
-					if member.PodUpgradeStatus != kdv1.PodUpgraded {
-						return
-					}
-				}
-				(*rs).RoleUpgradeStatus = kdv1.RoleUpgraded
-				reqLogger.Info(fmt.Sprintf("role %s -> %s", role.roleSpec.Name, (*rs).RoleUpgradeStatus))
-
-			case kdv1.RoleRollingBack:
-				for _, member := range role.roleStatus.Members {
-					if member.PodUpgradeStatus != kdv1.PodRolledBack {
-						return
-					}
-				}
-				(*rs).RoleUpgradeStatus = kdv1.RoleRolledBack
-				reqLogger.Info(fmt.Sprintf("role %s -> %s", role.roleSpec.Name, (*rs).RoleUpgradeStatus))
-			}
-		}
-
-		if cr.Status.UpgradeInfo != nil {
-			updateRoleUpgradeStatus()
-		}
 	}
 	wgReady.Wait()
-
 }
 
 // handleCreatePendingMembers operates on all members in the role that are

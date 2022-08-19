@@ -104,6 +104,10 @@ func syncClusterRoles(
 		if !allRoleMembersReadyOrError(cr, r) {
 			allMembersReady = false
 		}
+
+		if cr.Status.UpgradeInfo != nil {
+			updateRoleUpgradeStatus(r.roleStatus)
+		}
 	}
 	// Let the caller know about significant changes that happened.
 	var returnState clusterStateInternal
@@ -118,6 +122,36 @@ func syncClusterRoles(
 	}
 
 	return roles, returnState, nil
+}
+
+// updateRoleUpgradeStatus check if all the upgrading role members
+// comleted their own upgrade process. If so, the role upgrade status
+// is also marked as completed.
+func updateRoleUpgradeStatus(
+	rs *kdv1.RoleStatus,
+) {
+
+	if rs == nil {
+		return
+	}
+
+	switch (*rs).RoleUpgradeStatus {
+	case kdv1.RoleUpgrading:
+		for _, member := range rs.Members {
+			if member.PodUpgradeStatus != kdv1.PodUpgraded {
+				return
+			}
+		}
+		(*rs).RoleUpgradeStatus = kdv1.RoleUpgraded
+
+	case kdv1.RoleRollingBack:
+		for _, member := range rs.Members {
+			if member.PodUpgradeStatus != kdv1.PodRolledBack {
+				return
+			}
+		}
+		(*rs).RoleUpgradeStatus = kdv1.RoleRolledBack
+	}
 }
 
 // initRoleInfo constructs a slice of elements representing all current or
@@ -394,15 +428,8 @@ func handleRoleConfig(
 		// between quantities of all members and members are still not upgraded
 		// It will be used at the syncMembers() step
 		if needRollback {
-			(*rs).UpgradingMembersCount = 0
-			for _, member := range rs.Members {
-				if member.PodUpgradeStatus != kdv1.PodConfigured {
-					(*rs).UpgradingMembersCount++
-				}
-			}
 			(*rs).RoleUpgradeStatus = kdv1.RoleRollingBack
 		} else {
-			(*rs).UpgradingMembersCount = int32(len(rs.Members))
 			(*rs).RoleUpgradeStatus = kdv1.RoleUpgrading
 		}
 	}

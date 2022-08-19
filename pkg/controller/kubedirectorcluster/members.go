@@ -426,7 +426,6 @@ func handleReadyMembers(
 		}(member)
 	}
 	wgReady.Wait()
-
 }
 
 // handleCreatePendingMembers operates on all members in the role that are
@@ -525,7 +524,6 @@ func handleCreatingMembers(
 ) {
 
 	creating := role.membersByState[memberCreating]
-	rs := &role.roleStatus
 
 	// Fetch setup package info
 	setupInfo, setupInfoErr := catalog.AppSetupPackageInfo(cr, role.roleStatus.Name)
@@ -679,20 +677,12 @@ func handleCreatingMembers(
 		if member.State != string(memberCreating) {
 			member.StateDetail.LastConfiguredContainer = member.StateDetail.ConfiguringContainer
 			member.StateDetail.ConfiguringContainer = ""
-			if member.PodUpgradeStatus != kdv1.PodConfigured {
-				member.PodUpgradeStatus = kdv1.PodConfigured
-				(*rs).UpgradingMembersCount--
+			if member.PodUpgradeStatus == kdv1.PodUpgrading {
+				member.PodUpgradeStatus = kdv1.PodUpgraded
 			}
-		}
-	}
-	switch (*rs).RoleUpgradeStatus {
-	case kdv1.RoleUpgrading:
-		if (*rs).UpgradingMembersCount == 0 {
-			(*rs).RoleUpgradeStatus = kdv1.RoleUpgraded
-		}
-	case kdv1.RoleRollingBack:
-		if (*rs).UpgradingMembersCount == 0 {
-			(*rs).RoleUpgradeStatus = kdv1.RoleRolledBack
+			if member.PodUpgradeStatus == kdv1.PodRollingBack {
+				member.PodUpgradeStatus = kdv1.PodRolledBack
+			}
 		}
 	}
 }

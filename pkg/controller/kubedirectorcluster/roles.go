@@ -124,9 +124,13 @@ func syncClusterRoles(
 	return roles, returnState, nil
 }
 
+// updateRoleUpgradeStatus check if all the upgrading role members
+// comleted their own upgrade process. If so, the role upgrade status
+// is also marked as completed.
 func updateRoleUpgradeStatus(
 	rs *kdv1.RoleStatus,
 ) {
+
 	if rs == nil {
 		return
 	}

@@ -44,9 +44,14 @@ func IsFileExists(
 	expectedContainerID string,
 	containerName string,
 	filePath string,
+	isDirectory bool,
 ) (bool, error) {
 
-	command := []string{"test", "-f", filePath}
+	testExpr := "-f"
+	if isDirectory {
+		testExpr = "-d"
+	}
+	command := []string{"test", testExpr, filePath}
 	// We only need the exit status, but we have to supply at least one
 	// stream to avoid an error.
 	var stdOut bytes.Buffer
@@ -377,6 +382,7 @@ func ExecCommand(
 			pod.Status.Phase,
 		)
 	}
+	reqLogger.Info(fmt.Sprint("executing command: ", strings.Join(command, " ")))
 
 	request := shared.ClientSet().CoreV1().RESTClient().Post().
 		Resource("pods").

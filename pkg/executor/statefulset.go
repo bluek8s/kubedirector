@@ -47,6 +47,7 @@ var defaultMountFolders = []string{"/etc"}
 var appConfigDefaultMountFolders = []string{
 	"/etc",
 	"/opt/guestconfig",
+	"/opt/guestconfig.backup",
 	"/var/log/guestconfig",
 	"/usr/local/bin",
 	"/usr/local/lib",

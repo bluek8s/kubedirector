@@ -16,7 +16,6 @@ package kubedirectorcluster
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -516,41 +515,31 @@ func handleConfigPackage(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	member *kdv1.MemberStatus,
-) {
+) error {
 
 	// Do nothing if the pod is not upgrading/rolling back
 	if member.PodUpgradeStatus != kdv1.PodUpgrading && member.PodUpgradeStatus != kdv1.PodRollingBack {
-		return
-	}
-
-	logErrWrapper := func(err error, message string) {
-		shared.LogError(
-			reqLogger,
-			err,
-			cr,
-			shared.EventReasonMember,
-			message)
+		return nil
 	}
 
 	pod, podErr := observer.GetPod(cr.Namespace, member.Pod)
 	if podErr != nil {
-		logErrWrapper(podErr, fmt.Sprintf("failed to get pod %s", member.Pod))
+		return podErr
 	}
 
-	execCommandWrapper := func(cmd string) error {
+	runScriptWrapper := func(cmd string, description string) error {
 
-		var stdOut bytes.Buffer
-		ioStreams := &executor.Streams{Out: &stdOut}
+		reader := strings.NewReader(cmd)
 
-		return executor.ExecCommand(
+		return executor.RunScript(
 			reqLogger,
 			cr,
 			cr.Namespace,
 			member.Pod,
 			pod.Status.ContainerStatuses[0].ContainerID,
 			executor.AppContainerName,
-			[]string{"/bin/bash", "-c", cmd},
-			ioStreams,
+			description,
+			reader,
 		)
 	}
 
@@ -566,7 +555,7 @@ func handleConfigPackage(
 	)
 
 	if err != nil {
-		logErrWrapper(err, fmt.Sprintf("failed to check %s folder existence", appConfigBackupPath))
+		return err
 	}
 
 	var cmd string
@@ -574,29 +563,24 @@ func handleConfigPackage(
 	if member.PodUpgradeStatus == kdv1.PodUpgrading {
 		// If some previous backup already exists we should remove it
 		if backupExists {
-			err = execCommandWrapper(fmt.Sprintf("rm -rf %s", appConfigBackupPath))
+			err = runScriptWrapper(fmt.Sprintf("rm -rf %s", appConfigBackupPath), "removing guestconfig")
 			if err != nil {
-				logErrWrapper(podErr, fmt.Sprintf("failed to remove already present %s backup folder", appConfigBackupPath))
+				return err
 			}
 		}
 
 		// Then backup the current guestconfig folder
 		cmd = appConfigBackupCmd
 		action = "backup"
-	} else if member.PodUpgradeStatus == kdv1.PodRollingBack {
+	} else {
+		// RollingBack case
 		if backupExists {
 			cmd = appConfigRestoreCmd
 			action = "restore"
 		}
-	} else {
-		return
 	}
 
-	backupErr := execCommandWrapper(cmd)
-
-	if backupErr != nil {
-		logErrWrapper(backupErr, fmt.Sprintf("failed to %s guestconfig", action))
-	}
+	return runScriptWrapper(cmd, fmt.Sprintf("%s appconfig", action))
 }
 
 // handleCreatingMembers operates on all members in the role that are
@@ -667,7 +651,15 @@ func handleCreatingMembers(
 				}
 			}
 
-			handleConfigPackage(reqLogger, cr, m)
+			backupErr := handleConfigPackage(reqLogger, cr, m)
+
+			if backupErr != nil {
+				statusErrMsg := fmt.Sprintf(
+					"failed to backup config package after upgrade: %s",
+					backupErr.Error(),
+				)
+				setFinalState(memberConfigError, &statusErrMsg)
+			}
 
 			if setupInfo == nil {
 				setFinalState(memberReady, nil)
@@ -1436,14 +1428,6 @@ func appConfig(
 				status, convErr := strconv.Atoi(configStatus)
 				if convErr == nil && status == 0 {
 
-					// Notify upgrade/rollback completion as necessary.
-					var upgradeCmdErr error
-					if roleStatus.RoleUpgradeStatus == kdv1.RoleUpgrading {
-						upgradeCmdErr = runConfigScript(PodUpgraded, true)
-					} else if roleStatus.RoleUpgradeStatus == kdv1.RoleRollingBack {
-						upgradeCmdErr = runConfigScript(PodReverted, true)
-					}
-
 					// Configure previously succeeded so basically we're done
 					// here. However, if this is a container restart, see if
 					// we need to re-establish configcli symlinks.
@@ -1458,11 +1442,7 @@ func appConfig(
 						)
 					}
 
-					// All good? If not, let's return an error. Prioritize
-					// upgrade issues over link issues.
-					if upgradeCmdErr != nil {
-						return true, upgradeCmdErr
-					}
+					// All good? If not, let's return an error.
 					if linkErr != nil {
 						return true, linkErr
 					}

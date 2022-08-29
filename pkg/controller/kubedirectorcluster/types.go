@@ -85,8 +85,8 @@ const (
 	configcliTestFile       = shared.ConfigCliLoc + "/bin/configcli"
 	configcliLegacyTestFile = shared.ConfigCliLegacyLoc + "/bin/configcli"
 	appConfigBackupPath     = "/opt/guestconfig.backup"
-	appConfigBackupCmd      = `cp -r /opt/guestconfig ` + appConfigBackupPath + `; rm -rf /opt/guestconfig`
-	appConfigRestoreCmd     = `rm -rf /opt/guestconfig ; mv ` + appConfigBackupPath + `/opt/guestconfig`
+	appConfigBackupCmd      = `cp -r /opt/guestconfig/* ` + appConfigBackupPath + `; rm -rf /opt/guestconfig`
+	appConfigRestoreCmd     = `rm -rf /opt/guestconfig ; mv ` + appConfigBackupPath + ` /opt/guestconfig`
 	appPrepStartscript      = "/opt/guestconfig/*/startscript"
 	appPrepInitCmdFmt       = `mkdir -p /opt/guestconfig &&
 	chmod 700 /opt/guestconfig &&

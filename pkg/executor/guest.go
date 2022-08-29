@@ -382,7 +382,6 @@ func ExecCommand(
 			pod.Status.Phase,
 		)
 	}
-	reqLogger.Info(fmt.Sprint("executing command: ", strings.Join(command, " ")))
 
 	request := shared.ClientSet().CoreV1().RESTClient().Post().
 		Resource("pods").

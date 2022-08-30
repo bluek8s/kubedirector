@@ -659,6 +659,7 @@ func handleCreatingMembers(
 					backupErr.Error(),
 				)
 				setFinalState(memberConfigError, &statusErrMsg)
+				return
 			}
 
 			if setupInfo == nil {

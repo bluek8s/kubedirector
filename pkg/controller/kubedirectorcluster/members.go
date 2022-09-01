@@ -1526,22 +1526,6 @@ func appConfig(
 	if setupErr != nil {
 		return true, setupErr
 	}
-	// Run the config file iff the event is registered during initial configuration.
-	appCr, appErr := catalog.GetApp(cr)
-	if appErr != nil {
-		shared.LogError(
-			reqLogger,
-			appErr,
-			cr,
-			shared.EventReasonCluster,
-			"app referenced by cluster does not exist",
-		)
-		return true, appErr
-	}
-	role := catalog.GetRoleFromID(appCr, roleName)
-	if role.EventList != nil && !shared.StringInList("configure", *role.EventList) {
-		return true, nil
-	}
 
 	// Notify upgrade/rollback completion as necessary.
 	var cmdErr error
@@ -1556,6 +1540,23 @@ func appConfig(
 		if cmdErr != nil {
 			return true, cmdErr
 		}
+		return true, nil
+	}
+
+	// Run the config file if the event is registered during initial configuration.
+	appCr, appErr := catalog.GetApp(cr)
+	if appErr != nil {
+		shared.LogError(
+			reqLogger,
+			appErr,
+			cr,
+			shared.EventReasonCluster,
+			"app referenced by cluster does not exist",
+		)
+		return true, appErr
+	}
+	role := catalog.GetRoleFromID(appCr, roleName)
+	if role.EventList != nil && !shared.StringInList("configure", *role.EventList) {
 		return true, nil
 	}
 

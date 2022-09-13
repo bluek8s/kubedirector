@@ -106,7 +106,7 @@ func syncClusterRoles(
 		}
 
 		if cr.Status.UpgradeInfo != nil {
-			updateRoleUpgradeStatus(r.roleStatus)
+			updateRoleUpgradeStatus(reqLogger, cr, r.roleStatus)
 		}
 	}
 	// Let the caller know about significant changes that happened.
@@ -128,6 +128,8 @@ func syncClusterRoles(
 // comleted their own upgrade process. If so, the role upgrade status
 // is also marked as completed.
 func updateRoleUpgradeStatus(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
 	rs *kdv1.RoleStatus,
 ) {
 
@@ -143,6 +145,17 @@ func updateRoleUpgradeStatus(
 			}
 		}
 		(*rs).RoleUpgradeStatus = kdv1.RoleUpgraded
+		for _, member := range rs.Members {
+			RunConfigScript(
+				reqLogger,
+				cr,
+				rs.Name,
+				member.Pod,
+				RoleUpgradedNotification,
+				member.StateDetail.ConfiguringContainer,
+				true,
+			)
+		}
 
 	case kdv1.RoleRollingBack:
 		for _, member := range rs.Members {
@@ -151,6 +164,17 @@ func updateRoleUpgradeStatus(
 			}
 		}
 		(*rs).RoleUpgradeStatus = kdv1.RoleRolledBack
+		for _, member := range rs.Members {
+			RunConfigScript(
+				reqLogger,
+				cr,
+				rs.Name,
+				member.Pod,
+				RoleRevertedNotification,
+				member.StateDetail.ConfiguringContainer,
+				true,
+			)
+		}
 	}
 }
 

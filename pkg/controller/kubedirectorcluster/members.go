@@ -386,7 +386,7 @@ func handleReadyMembers(
 					return fileExists, fileError
 				}
 
-				cmd := GetAppConfigCmd(containerID, Reconnect)
+				cmd := GetAppConfigCmd(containerID, ReconnectNotification)
 
 				cmdErr := executor.RunScript(
 					reqLogger,
@@ -1252,32 +1252,6 @@ func appConfig(
 	}
 
 	roleName := roleStatus.Name
-	runConfigScript := func(configArg ConfigArg, loggingErr bool) error {
-		cmd := GetAppConfigCmd(expectedContainerID, configArg)
-		cmdErr := executor.RunScript(
-			reqLogger,
-			cr,
-			cr.Namespace,
-			podName,
-			expectedContainerID,
-			executor.AppContainerName,
-			"app config",
-			strings.NewReader(cmd),
-		)
-		if loggingErr && cmdErr != nil {
-			shared.LogErrorf(
-				reqLogger,
-				cmdErr,
-				cr,
-				shared.EventReasonMember,
-				"failed to run startscript with --{%s} in member{%s} in role{%s}",
-				string(configArg),
-				podName,
-				roleName,
-			)
-		}
-		return cmdErr
-	}
 
 	// If a config error detail already exists, this is a restart of a member
 	// that had been in config error state. In that case we won't try
@@ -1344,9 +1318,9 @@ func appConfig(
 					// Notify upgrade/rollback completion as necessary.
 					var upgradeCmdErr error
 					if roleStatus.RoleUpgradeStatus == kdv1.RoleUpgrading {
-						upgradeCmdErr = runConfigScript(PodUpgraded, true)
+						upgradeCmdErr = RunConfigScript(reqLogger, cr, roleName, podName, PodUpgradedNotification, expectedContainerID, true)
 					} else if roleStatus.RoleUpgradeStatus == kdv1.RoleRollingBack {
-						upgradeCmdErr = runConfigScript(PodReverted, true)
+						upgradeCmdErr = RunConfigScript(reqLogger, cr, roleName, podName, PodRevertedNotification, expectedContainerID, true)
 					}
 
 					// Configure previously succeeded so basically we're done
@@ -1467,7 +1441,7 @@ func appConfig(
 		return true, nil
 	}
 	// Now kick off the initial config.
-	cmdErr := runConfigScript(Configure, false)
+	cmdErr := RunConfigScript(reqLogger, cr, roleName, podName, ConfigureNotification, expectedContainerID, false)
 	if cmdErr != nil {
 		// https://github.com/bluek8s/kubedirector/issues/547
 		nodeRole := catalog.GetRoleFromID(cr.AppSpec, roleName)

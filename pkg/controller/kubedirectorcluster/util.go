@@ -15,7 +15,12 @@
 package kubedirectorcluster
 
 import (
+	"strings"
+
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
+	"github.com/bluek8s/kubedirector/pkg/executor"
+	"github.com/bluek8s/kubedirector/pkg/shared"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -34,4 +39,42 @@ func updateSchedulingErrorMessage(
 			}
 		}
 	}
+}
+
+// RunConfigScript executes an app configuration script
+// with different notifications which describe the current cluster state
+func RunConfigScript(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	roleName string,
+	podName string,
+	configArg ConfigArg,
+	expectedContainerID string,
+	loggingErr bool,
+) error {
+
+	cmd := GetAppConfigCmd(expectedContainerID, configArg)
+	cmdErr := executor.RunScript(
+		reqLogger,
+		cr,
+		cr.Namespace,
+		podName,
+		expectedContainerID,
+		executor.AppContainerName,
+		"app config",
+		strings.NewReader(cmd),
+	)
+	if loggingErr && cmdErr != nil {
+		shared.LogErrorf(
+			reqLogger,
+			cmdErr,
+			cr,
+			shared.EventReasonMember,
+			"failed to run startscript with --{%s} in member{%s} in role{%s}",
+			string(configArg),
+			podName,
+			roleName,
+		)
+	}
+	return cmdErr
 }

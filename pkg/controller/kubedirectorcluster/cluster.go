@@ -220,7 +220,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		}
 	}()
 
-	handleClusterUpgrade(cr)
+	handleClusterUpgrade(reqLogger, cr)
 
 	// If we're in this reconciliation function, restoreProgress should not
 	// be set. This only matters if this is the first iteration right after
@@ -440,6 +440,7 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 }
 
 func handleClusterUpgrade(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 ) {
 
@@ -480,9 +481,26 @@ func handleClusterUpgrade(
 				*cr.Spec.AppCatalog,
 				upgradeInfo.PrevApp,
 			)
-			for i := range cr.Status.Roles {
-				for j := range (*cr).Status.Roles[i].Members {
+
+			var clusterNotification ConfigArg
+			if upgradeInfo.IsRollingBack {
+				clusterNotification = ClusterRevertedNotification
+			} else {
+				clusterNotification = ClusterUpgradedNotification
+			}
+
+			for i, role := range cr.Status.Roles {
+				for j, member := range (*cr).Status.Roles[i].Members {
 					(*cr).Status.Roles[i].Members[j].PodUpgradeStatus = kdv1.PodConfigured
+					RunConfigScript(
+						reqLogger,
+						cr,
+						role.Name,
+						member.Pod,
+						clusterNotification,
+						member.StateDetail.ConfiguringContainer,
+						true,
+					)
 				}
 				(*cr).Status.Roles[i].RoleUpgradeStatus = kdv1.RoleConfigured
 			}

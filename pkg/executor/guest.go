@@ -44,9 +44,14 @@ func IsFileExists(
 	expectedContainerID string,
 	containerName string,
 	filePath string,
+	isDirectory bool,
 ) (bool, error) {
 
-	command := []string{"test", "-f", filePath}
+	testExpr := "-f"
+	if isDirectory {
+		testExpr = "-d"
+	}
+	command := []string{"test", testExpr, filePath}
 	// We only need the exit status, but we have to supply at least one
 	// stream to avoid an error.
 	var stdOut bytes.Buffer

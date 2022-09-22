@@ -446,7 +446,7 @@ func validateGeneralClusterChanges(
 // https://github.com/bluek8s/kubedirector/issues/591
 // validateAppSpecChanges checks for modifications to app spec properties
 // at the live cluster upgrade period. There shouldn't be any difference
-// between the actual and proposed application specs, except the role image tags,
+// between the actual and proposed application specs, except the role image tags, application config package paths,
 // Version and Upgradable fields (because the target app.spec.Upgradable may have `false` value)
 // and role cardinality. Meanwhile, the cardinality changes shouldn't conflict with the
 // current cluster role members count. Otherwise, user should previously change
@@ -460,11 +460,13 @@ func validateAppSpecChanges(
 
 	for _, appRole := range targetApp.Spec.NodeRoles {
 		// First, ignore role image tags
+		// Second, ignore app config package url
 		prevAppRoleIdx := 0
 		for i, prevAppRole := range prevApp.Spec.NodeRoles {
 			if appRole.ID == prevAppRole.ID {
 				prevAppRoleIdx = i
 				prevApp.Spec.NodeRoles[prevAppRoleIdx].ImageRepoTag = appRole.ImageRepoTag
+				(&prevApp.Spec.NodeRoles[prevAppRoleIdx].SetupPackage.Info).PackageURL = appRole.SetupPackage.Info.PackageURL
 				break
 			}
 		}

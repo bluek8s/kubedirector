@@ -386,17 +386,14 @@ func handleReadyMembers(
 					return fileExists, fileError
 				}
 
-				cmd := GetAppConfigCmd(containerID, ReconnectNotification)
-
-				cmdErr := executor.RunScript(
+				cmdErr := RunConfigScript(
 					reqLogger,
 					cr,
 					cr.Namespace,
 					m.Pod,
-					m.StateDetail.LastConfiguredContainer,
-					executor.AppContainerName,
-					"app reconnect",
-					strings.NewReader(cmd),
+					ReconnectNotification,
+					containerID,
+					true,
 				)
 
 				if cmdErr != nil {
@@ -405,16 +402,6 @@ func handleReadyMembers(
 					if nodeRole != nil {
 						setStateDetailLogs(readFile, &m.StateDetail, nodeRole.MaxLogSizeDump)
 					}
-
-					shared.LogErrorf(
-						reqLogger,
-						cmdErr,
-						cr,
-						shared.EventReasonMember,
-						"failed to run startcsript with --reconnect in member{%s} in role{%s}",
-						m.Pod,
-						role.roleStatus.Name,
-					)
 					return
 				}
 				memberVersion = memberVersion + int64(1)

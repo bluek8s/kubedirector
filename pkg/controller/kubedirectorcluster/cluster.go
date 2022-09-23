@@ -498,7 +498,7 @@ func handleClusterUpgrade(
 						role.Name,
 						member.Pod,
 						clusterNotification,
-						member.StateDetail.ConfiguringContainer,
+						member.StateDetail.LastConfiguredContainer,
 						true,
 					)
 				}

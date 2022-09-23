@@ -152,7 +152,7 @@ func updateRoleUpgradeStatus(
 				rs.Name,
 				member.Pod,
 				RoleUpgradedNotification,
-				member.StateDetail.ConfiguringContainer,
+				member.StateDetail.LastConfiguredContainer,
 				true,
 			)
 		}
@@ -171,7 +171,7 @@ func updateRoleUpgradeStatus(
 				rs.Name,
 				member.Pod,
 				RoleRevertedNotification,
-				member.StateDetail.ConfiguringContainer,
+				member.StateDetail.LastConfiguredContainer,
 				true,
 			)
 		}

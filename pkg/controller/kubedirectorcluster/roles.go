@@ -159,7 +159,8 @@ func updateRoleUpgradeStatus(
 
 	case kdv1.RoleRollingBack:
 		for _, member := range rs.Members {
-			if member.PodUpgradeStatus != kdv1.PodRolledBack {
+			if member.PodUpgradeStatus != kdv1.PodRolledBack &&
+				member.PodUpgradeStatus != kdv1.PodConfigured {
 				return
 			}
 		}

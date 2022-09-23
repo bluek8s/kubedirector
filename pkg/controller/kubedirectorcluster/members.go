@@ -441,7 +441,9 @@ func handleCreatePendingMembers(
 		if role.roleStatus.RoleUpgradeStatus == kdv1.RoleUpgrading {
 			member.PodUpgradeStatus = kdv1.PodUpgrading
 		}
-		if role.roleStatus.RoleUpgradeStatus == kdv1.RoleRollingBack {
+		// If member is not changed there is no sence to roll it back
+		if role.roleStatus.RoleUpgradeStatus == kdv1.RoleRollingBack &&
+			member.PodUpgradeStatus != kdv1.PodConfigured {
 			member.PodUpgradeStatus = kdv1.PodRollingBack
 		}
 	}

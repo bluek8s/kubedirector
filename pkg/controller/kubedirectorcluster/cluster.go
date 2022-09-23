@@ -504,7 +504,7 @@ func handleClusterUpgrade(
 				}
 				(*cr).Status.Roles[i].RoleUpgradeStatus = kdv1.RoleConfigured
 			}
-			cr.Status.UpgradeInfo = nil
+			(*cr).Status.UpgradeInfo = nil
 			upgradeInfo = nil
 		}
 	}

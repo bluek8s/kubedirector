@@ -15,9 +15,11 @@
 package kubedirectorcluster
 
 import (
+	"fmt"
 	"strings"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
+	"github.com/bluek8s/kubedirector/pkg/catalog"
 	"github.com/bluek8s/kubedirector/pkg/executor"
 	"github.com/bluek8s/kubedirector/pkg/shared"
 	"github.com/go-logr/logr"
@@ -77,4 +79,111 @@ func RunConfigScript(
 		)
 	}
 	return cmdErr
+}
+
+// QueueNotify prepares the info for handling a lifecycle event to a currently
+// ready node, and adds the info to the node's notification queue. We are
+// notifying about new members either being added to the modifiedRole (if it
+// has members in creating state) or being removed (if it has members in
+// delete pending state).
+func QueueNotify(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	podName string,
+	stateDetail *kdv1.MemberStateDetail,
+	roleName string,
+	modifiedRole *roleInfo,
+	// This function should return the operation argument as first value and updated FQDNs as second value
+	evalOpFqdnsFn func() (string, string),
+) {
+
+	op, deltaFqdns := evalOpFqdnsFn()
+	reqLogger.Info(fmt.Sprintf("QueueNotify >>> pod %s, op: %s, delta: %s", podName, op, deltaFqdns))
+	if deltaFqdns == "" && (op == "addnodes" || op == "delnodes") {
+		// No nodes actually being created/deleted. One example of this
+		// is in the creating case where none have been successfully
+		// configured.
+		reqLogger.Info("QueueNotify >>> empty deltaFqdns")
+		return
+	}
+	// Notify the node iff the event is registered during initial configuration.
+	appCr, appErr := catalog.GetApp(cr)
+	if appErr != nil {
+		shared.LogError(
+			reqLogger,
+			appErr,
+			cr,
+			shared.EventReasonCluster,
+			"app referenced by cluster does not exist")
+	}
+	role := catalog.GetRoleFromID(appCr, roleName)
+
+	if role.EventList != nil && !shared.StringInList(op, *role.EventList) {
+		reqLogger.Info(fmt.Sprintf("QueueNotify >>> op %s is not in event list %s", op, *role.EventList))
+		return
+	}
+	shared.LogInfof(
+		reqLogger,
+		cr,
+		shared.EventReasonNoEvent,
+		"will notify member{%s}: %s",
+		podName,
+		op,
+	)
+	// Compose the notify command arguments.
+	arguments := []string{
+		"--" + op,
+		"--nodegroup 1", // currently only 1 nodegroup possible
+		"--role",
+		modifiedRole.roleStatus.Name,
+		"--fqdns",
+		deltaFqdns,
+	}
+	notifyDesc := kdv1.NotificationDesc{
+		Arguments: arguments,
+	}
+	stateDetail.PendingNotifyCmds = append(
+		stateDetail.PendingNotifyCmds,
+		&notifyDesc,
+	)
+}
+
+// FqdnsList generates a comma-separated list of FQDNs given a list of members.
+func FqdnsList(
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	members []*kdv1.MemberStatus,
+) string {
+
+	getMemberFqdn := func(m *kdv1.MemberStatus) string {
+		s := []string{
+			m.Pod,
+			cr.Status.ClusterService,
+			cr.Namespace + shared.GetSvcClusterDomainBase(),
+		}
+		return strings.Join(s, ".")
+	}
+	numMembers := len(members)
+	reqLogger.Info(fmt.Sprintf("FqdnsList >>> numMembers: %x", numMembers))
+
+	fqdns := make([]string, 0, numMembers)
+	for i := 0; i < numMembers; i++ {
+		// Grab any member in the deletePending state.
+		if members[i].State == memberDeletePending {
+			fqdns = append(fqdns, getMemberFqdn(members[i]))
+			continue
+		}
+		// Skip any member in the creating state, since it has not been
+		// successfully configured. Also skip any member with
+		// lastConfiguredContainer already set since it is a reboot.
+		reqLogger.Info(fmt.Sprintf("FqdnsList >>> member %s, state %s", members[i].Pod, members[i].State))
+		if (members[i].State != memberCreating) && (members[i].StateDetail.LastConfiguredContainer == "") ||
+			(members[i].State == memberReady) && (members[i].StateDetail.LastConfiguredContainer != "") {
+			reqLogger.Info(fmt.Sprintf("FqdnsList >>> member %s, fqdn: %s", members[i].Pod, getMemberFqdn(members[i])))
+			fqdns = append(fqdns, getMemberFqdn(members[i]))
+		}
+	}
+	reqLogger.Info(fmt.Sprintf("FqdnsList >>> return fqdns: %s", fqdns))
+
+	return strings.Join(fqdns, ",")
 }

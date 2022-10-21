@@ -106,7 +106,7 @@ func syncClusterRoles(
 		}
 
 		if cr.Status.UpgradeInfo != nil {
-			updateRoleUpgradeStatus(reqLogger, cr, r.roleStatus)
+			updateRoleUpgradeStatus(reqLogger, cr, r)
 		}
 	}
 	// Let the caller know about significant changes that happened.
@@ -130,11 +130,46 @@ func syncClusterRoles(
 func updateRoleUpgradeStatus(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	rs *kdv1.RoleStatus,
+	role *roleInfo,
 ) {
 
-	if rs == nil {
+	if role == nil || role.roleStatus == nil {
 		return
+	}
+
+	rs := role.roleStatus
+	var eventNotification ConfigArg
+
+	// evaluate role lifecycle event and collect the
+	// FQDNs of the affected members.
+	evaluateRoleNotificationFn := func() (string, string) {
+
+		deltaFqdns := ""
+		if creatingOrCreated, ok := role.membersByState[memberCreating]; ok {
+			deltaFqdns = FqdnsList(reqLogger, cr, creatingOrCreated)
+		} else {
+			reqLogger.Info("creating not ok")
+		}
+		if _, ok := role.membersByState[memberCreatePending]; !ok {
+			reqLogger.Info("create pending not ok")
+		}
+		if ready, ok := role.membersByState[memberReady]; !ok {
+			reqLogger.Info("ready not ok")
+		} else {
+			deltaFqdns = FqdnsList(reqLogger, cr, ready)
+			reqLogger.Info(fmt.Sprintf("evaluateRoleNotificationFn >>> deltaFqdns: %s", deltaFqdns))
+		}
+		if _, ok := role.membersByState[memberConfigError]; !ok {
+			reqLogger.Info("config error not ok")
+		}
+		if _, ok := role.membersByState[memberDeletePending]; !ok {
+			reqLogger.Info("delete pending not ok")
+		}
+		if _, ok := role.membersByState[memberDeleting]; !ok {
+			reqLogger.Info("deleting not ok")
+		}
+
+		return string(eventNotification), deltaFqdns
 	}
 
 	switch (*rs).RoleUpgradeStatus {
@@ -145,17 +180,7 @@ func updateRoleUpgradeStatus(
 			}
 		}
 		(*rs).RoleUpgradeStatus = kdv1.RoleUpgraded
-		for _, member := range rs.Members {
-			RunConfigScript(
-				reqLogger,
-				cr,
-				rs.Name,
-				member.Pod,
-				RoleUpgradedNotification,
-				member.StateDetail.LastConfiguredContainer,
-				true,
-			)
-		}
+		eventNotification = RoleUpgradedNotification
 
 	case kdv1.RoleRollingBack:
 		for _, member := range rs.Members {
@@ -165,17 +190,22 @@ func updateRoleUpgradeStatus(
 			}
 		}
 		(*rs).RoleUpgradeStatus = kdv1.RoleRolledBack
-		for _, member := range rs.Members {
-			RunConfigScript(
-				reqLogger,
-				cr,
-				rs.Name,
-				member.Pod,
-				RoleRevertedNotification,
-				member.StateDetail.LastConfiguredContainer,
-				true,
-			)
-		}
+		eventNotification = RoleRevertedNotification
+	default:
+		return
+	}
+
+	// Add role notification to the queue
+	for _, member := range rs.Members {
+		QueueNotify(
+			reqLogger,
+			cr,
+			member.Pod,
+			&member.StateDetail,
+			rs.Name,
+			role,
+			evaluateRoleNotificationFn,
+		)
 	}
 }
 

@@ -153,13 +153,10 @@ func syncMemberNotifies(
 		for j := 0; j < numMembers; j++ {
 			memberStatus := &(roleStatus.Members[j])
 			if memberStatus.State == string(memberReady) {
-				reqLogger.Info(fmt.Sprintf("syncMemberNotifies >>> member %s is Ready, pending cmds: %x",
-					memberStatus.Pod, len(memberStatus.StateDetail.PendingNotifyCmds)))
 				// Ready-member handling depends on whether it has any
 				// pending notifies.
 				if len(memberStatus.StateDetail.PendingNotifyCmds) != 0 {
 					// If it does, we'll need to process the notifies below.
-					reqLogger.Info(fmt.Sprintf("syncMemberNotifies >>> append member %s", memberStatus.Pod))
 					membersToProcess = append(membersToProcess, memberStatus)
 				} else if !transitionalMembers {
 					// If not, AND if there are no transitional-state members
@@ -173,7 +170,6 @@ func syncMemberNotifies(
 				// clear out any previously noted members-to-skip-notifies.
 				// Notification skipping will have to wait until everyone is
 				// stable.
-				reqLogger.Info(fmt.Sprintf("syncMemberNotifies >>> member %s, state is %s", memberStatus.Pod, memberStatus.State))
 				transitionalMembers = true
 				membersSkippingNotifies = nil
 			}
@@ -189,7 +185,6 @@ func syncMemberNotifies(
 	}
 	// Bail out now if there are no notifies to send.
 	numToProcess := len(membersToProcess)
-	reqLogger.Info(fmt.Sprintf("syncMemberNotifies >>> numToProcess: %x", numToProcess))
 
 	if numToProcess == 0 {
 		return
@@ -203,8 +198,6 @@ func syncMemberNotifies(
 			var newQueue []*kdv1.NotificationDesc
 			for _, notify := range m.StateDetail.PendingNotifyCmds {
 				cmd := appPrepStartscript + " " + strings.Join(notify.Arguments, " ")
-				reqLogger.Info(fmt.Sprintf("syncMemberNotifies >>> member: %s, cmd: %s", m.Pod, cmd))
-
 				notifyError := executor.RunScript(
 					reqLogger,
 					cr,
@@ -1249,12 +1242,12 @@ func generateNotifies(
 				// will appropriately skip the ones that are still creating, or the
 				// ones in other states that are just reboots.
 				op = "addnodes"
-				deltaFqdns = FqdnsList(reqLogger, cr, creatingOrCreated)
+				deltaFqdns = FqdnsList(cr, creatingOrCreated)
 			}
 			if op == "" {
 				if deletePending, ok := role.membersByState[memberDeletePending]; ok {
 					op = "delnodes"
-					deltaFqdns = FqdnsList(reqLogger, cr, deletePending)
+					deltaFqdns = FqdnsList(cr, deletePending)
 				}
 			}
 			return op, deltaFqdns
@@ -1272,9 +1265,7 @@ func generateNotifies(
 					reqLogger,
 					cr,
 					member.Pod,
-					&member.StateDetail,
 					otherRole.roleStatus.Name,
-					role,
 					addOrDeletePodNotification,
 				)
 			}
@@ -1526,14 +1517,12 @@ func appConfig(
 	// Notify upgrade/rollback completion as necessary.
 	var cmdErr error
 	if roleStatus.RoleUpgradeStatus == kdv1.RoleUpgrading {
-		reqLogger.Info(fmt.Sprintf("appConfig >>> pod %s pod_upgraded", podName))
 		cmdErr = RunConfigScript(reqLogger, cr, roleName, podName, PodUpgradedNotification, expectedContainerID, true)
 		if cmdErr != nil {
 			return true, cmdErr
 		}
 		return true, nil
 	} else if roleStatus.RoleUpgradeStatus == kdv1.RoleRollingBack {
-		reqLogger.Info(fmt.Sprintf("appConfig >>> pod %s pod_reverted", podName))
 		cmdErr = RunConfigScript(reqLogger, cr, roleName, podName, PodRevertedNotification, expectedContainerID, true)
 		if cmdErr != nil {
 			return true, cmdErr

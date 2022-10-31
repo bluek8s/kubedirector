@@ -15,7 +15,6 @@
 package kubedirectorcluster
 
 import (
-	"fmt"
 	"strings"
 
 	kdv1 "github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1"
@@ -90,20 +89,16 @@ func QueueNotify(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	podName string,
-	stateDetail *kdv1.MemberStateDetail,
 	roleName string,
-	modifiedRole *roleInfo,
 	// This function should return the operation argument as first value and updated FQDNs as second value
 	evalOpFqdnsFn func() (string, string),
 ) {
 
 	op, deltaFqdns := evalOpFqdnsFn()
-	reqLogger.Info(fmt.Sprintf("QueueNotify >>> pod %s, op: %s, delta: %s", podName, op, deltaFqdns))
 	if deltaFqdns == "" && (op == "addnodes" || op == "delnodes") {
 		// No nodes actually being created/deleted. One example of this
 		// is in the creating case where none have been successfully
 		// configured.
-		reqLogger.Info("QueueNotify >>> empty deltaFqdns")
 		return
 	}
 	// Notify the node iff the event is registered during initial configuration.
@@ -119,9 +114,9 @@ func QueueNotify(
 	role := catalog.GetRoleFromID(appCr, roleName)
 
 	if role.EventList != nil && !shared.StringInList(op, *role.EventList) {
-		reqLogger.Info(fmt.Sprintf("QueueNotify >>> op %s is not in event list %s", op, *role.EventList))
 		return
 	}
+
 	shared.LogInfof(
 		reqLogger,
 		cr,
@@ -135,22 +130,29 @@ func QueueNotify(
 		"--" + op,
 		"--nodegroup 1", // currently only 1 nodegroup possible
 		"--role",
-		modifiedRole.roleStatus.Name,
+		roleName,
 		"--fqdns",
 		deltaFqdns,
 	}
 	notifyDesc := kdv1.NotificationDesc{
 		Arguments: arguments,
 	}
-	stateDetail.PendingNotifyCmds = append(
-		stateDetail.PendingNotifyCmds,
-		&notifyDesc,
-	)
+
+	for i, role := range cr.Status.Roles {
+		if role.Name == roleName {
+			for j, member := range cr.Status.Roles[i].Members {
+				if member.Pod == podName {
+					(*cr).Status.Roles[i].Members[j].StateDetail.PendingNotifyCmds = append(
+						(*cr).Status.Roles[i].Members[j].StateDetail.PendingNotifyCmds, &notifyDesc)
+					break
+				}
+			}
+		}
+	}
 }
 
 // FqdnsList generates a comma-separated list of FQDNs given a list of members.
 func FqdnsList(
-	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
 	members []*kdv1.MemberStatus,
 ) string {
@@ -164,7 +166,6 @@ func FqdnsList(
 		return strings.Join(s, ".")
 	}
 	numMembers := len(members)
-	reqLogger.Info(fmt.Sprintf("FqdnsList >>> numMembers: %x", numMembers))
 
 	fqdns := make([]string, 0, numMembers)
 	for i := 0; i < numMembers; i++ {
@@ -176,14 +177,11 @@ func FqdnsList(
 		// Skip any member in the creating state, since it has not been
 		// successfully configured. Also skip any member with
 		// lastConfiguredContainer already set since it is a reboot.
-		reqLogger.Info(fmt.Sprintf("FqdnsList >>> member %s, state %s", members[i].Pod, members[i].State))
 		if (members[i].State != memberCreating) && (members[i].StateDetail.LastConfiguredContainer == "") ||
 			(members[i].State == memberReady) && (members[i].StateDetail.LastConfiguredContainer != "") {
-			reqLogger.Info(fmt.Sprintf("FqdnsList >>> member %s, fqdn: %s", members[i].Pod, getMemberFqdn(members[i])))
 			fqdns = append(fqdns, getMemberFqdn(members[i]))
 		}
 	}
-	reqLogger.Info(fmt.Sprintf("FqdnsList >>> return fqdns: %s", fqdns))
 
 	return strings.Join(fqdns, ",")
 }

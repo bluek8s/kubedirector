@@ -225,7 +225,7 @@ func UpdateStatefulSetNonReplicas(
 	needRollback := needUpgrade && upgradeInfo.IsRollingBack
 
 	// Check is upgrade for the current role is required
-	if needUpgrade && appRoleImage != currentRoleImage {
+	if needRollback || needUpgrade && appRoleImage != currentRoleImage {
 
 		patchedContainers := make([]v1.Container, len(containers))
 		patchedRes.Spec.Template.Spec.Containers = patchedContainers

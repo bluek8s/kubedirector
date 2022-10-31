@@ -145,30 +145,9 @@ func updateRoleUpgradeStatus(
 	evaluateRoleNotificationFn := func() (string, string) {
 
 		deltaFqdns := ""
-		if creatingOrCreated, ok := role.membersByState[memberCreating]; ok {
-			deltaFqdns = FqdnsList(reqLogger, cr, creatingOrCreated)
-		} else {
-			reqLogger.Info("creating not ok")
-		}
-		if _, ok := role.membersByState[memberCreatePending]; !ok {
-			reqLogger.Info("create pending not ok")
-		}
 		if ready, ok := role.membersByState[memberReady]; !ok {
-			reqLogger.Info("ready not ok")
-		} else {
-			deltaFqdns = FqdnsList(reqLogger, cr, ready)
-			reqLogger.Info(fmt.Sprintf("evaluateRoleNotificationFn >>> deltaFqdns: %s", deltaFqdns))
+			deltaFqdns = FqdnsList(cr, ready)
 		}
-		if _, ok := role.membersByState[memberConfigError]; !ok {
-			reqLogger.Info("config error not ok")
-		}
-		if _, ok := role.membersByState[memberDeletePending]; !ok {
-			reqLogger.Info("delete pending not ok")
-		}
-		if _, ok := role.membersByState[memberDeleting]; !ok {
-			reqLogger.Info("deleting not ok")
-		}
-
 		return string(eventNotification), deltaFqdns
 	}
 
@@ -201,9 +180,7 @@ func updateRoleUpgradeStatus(
 			reqLogger,
 			cr,
 			member.Pod,
-			&member.StateDetail,
 			rs.Name,
-			role,
 			evaluateRoleNotificationFn,
 		)
 	}

@@ -495,23 +495,22 @@ func handleClusterUpgrade(
 			var roleInfo *roleInfo
 			evaluateClusterNotificationFn := func() (string, string) {
 				deltaFqdns := ""
-				if creatingOrCreated, ok := roleInfo.membersByState[memberReady]; ok {
-					deltaFqdns = FqdnsList(reqLogger, cr, creatingOrCreated)
+				if ready, ok := roleInfo.membersByState[memberReady]; ok {
+					deltaFqdns = FqdnsList(cr, ready)
 				}
 
 				return string(clusterNotification), deltaFqdns
 			}
 
-			for i, roleInfo := range roles {
+			for i, r := range roles {
+				roleInfo = r
 				for j, member := range roleInfo.roleStatus.Members {
 					(*cr).Status.Roles[i].Members[j].PodUpgradeStatus = kdv1.PodConfigured
 					QueueNotify(
 						reqLogger,
 						cr,
 						member.Pod,
-						&member.StateDetail,
 						roleInfo.roleStatus.Name,
-						roleInfo,
 						evaluateClusterNotificationFn,
 					)
 				}

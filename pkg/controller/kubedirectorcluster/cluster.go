@@ -502,10 +502,11 @@ func handleClusterUpgrade(
 				return string(clusterNotification), deltaFqdns
 			}
 
-			for i, r := range roles {
-				roleInfo = r
-				for j, member := range roleInfo.roleStatus.Members {
-					(*cr).Status.Roles[i].Members[j].PodUpgradeStatus = kdv1.PodConfigured
+			for i := 0; i < len(roles); i++ {
+				roleInfo = roles[i]
+				for j := 0; j < len(roleInfo.roleStatus.Members); j++ {
+					member := &roleInfo.roleStatus.Members[j]
+					member.PodUpgradeStatus = kdv1.PodConfigured
 					QueueNotify(
 						reqLogger,
 						cr,

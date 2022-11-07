@@ -138,12 +138,14 @@ func QueueNotify(
 		Arguments: arguments,
 	}
 
-	for i, role := range cr.Status.Roles {
+	for i := 0; i < len(cr.Status.Roles); i++ {
+		role := &cr.Status.Roles[i]
 		if role.Name == roleName {
-			for j, member := range cr.Status.Roles[i].Members {
+			for j := 0; j < len(role.Members); j++ {
+				member := &role.Members[j]
 				if member.Pod == podName {
-					(*cr).Status.Roles[i].Members[j].StateDetail.PendingNotifyCmds = append(
-						(*cr).Status.Roles[i].Members[j].StateDetail.PendingNotifyCmds, &notifyDesc)
+					member.StateDetail.PendingNotifyCmds = append(
+						member.StateDetail.PendingNotifyCmds, &notifyDesc)
 					break
 				}
 			}

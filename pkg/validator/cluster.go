@@ -461,12 +461,30 @@ func validateAppSpecChanges(
 	for _, appRole := range targetApp.Spec.NodeRoles {
 		// First, ignore role image tags
 		// Second, ignore app config package url
+		roleImageChanged := false
 		prevAppRoleIdx := 0
-		for i, prevAppRole := range prevApp.Spec.NodeRoles {
+		for i := 0; i < len(prevApp.Spec.NodeRoles); i++ {
+			prevAppRole := &prevApp.Spec.NodeRoles[i]
 			if appRole.ID == prevAppRole.ID {
 				prevAppRoleIdx = i
-				prevApp.Spec.NodeRoles[prevAppRoleIdx].ImageRepoTag = appRole.ImageRepoTag
-				(&prevApp.Spec.NodeRoles[prevAppRoleIdx].SetupPackage.Info).PackageURL = appRole.SetupPackage.Info.PackageURL
+				if *prevAppRole.ImageRepoTag != *appRole.ImageRepoTag {
+					prevAppRole.ImageRepoTag = appRole.ImageRepoTag
+					roleImageChanged = true
+				}
+
+				if prevAppRole.SetupPackage.Info.PackageURL != appRole.SetupPackage.Info.PackageURL {
+					// https://github.com/bluek8s/kubedirector/issues/618
+					// If the role image was not changed but some other role attributes were changed
+					// decline the upgrade
+					if !roleImageChanged {
+						imageWasNotChangedMsg := fmt.Sprintf(
+							imageWasNotChanged,
+							prevAppRole.ID,
+						)
+						return &imageWasNotChangedMsg
+					}
+					(&prevAppRole.SetupPackage.Info).PackageURL = appRole.SetupPackage.Info.PackageURL
+				}
 				break
 			}
 		}

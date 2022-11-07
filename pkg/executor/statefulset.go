@@ -232,13 +232,10 @@ func UpdateStatefulSetNonReplicas(
 		copy(patchedContainers, containers)
 		patchedContainers[0].Image = appRoleImage
 
-		initContainersLen := len(initContainers)
-		if initContainersLen > 0 {
-			patchedInitContainers := make([]v1.Container, initContainersLen)
-			patchedRes.Spec.Template.Spec.InitContainers = patchedInitContainers
-			copy(patchedInitContainers, initContainers)
-			patchedInitContainers[0].Image = appRoleImage
-		}
+		patchedInitContainers := make([]v1.Container, len(initContainers))
+		patchedRes.Spec.Template.Spec.InitContainers = patchedInitContainers
+		copy(patchedInitContainers, initContainers)
+		patchedInitContainers[0].Image = appRoleImage
 
 		// Update RoleStatus
 		updateRoleStatusFn(needRollback)

@@ -517,7 +517,8 @@ func validateRoleStorageClass(
 	return valErrors, patches
 }
 
-// validateRoleSharedMemory checks for valid quantity syntax.
+// validateRoleSharedMemory checks for valid quantity syntax. Also the K8s
+// version must be >= 1.22.
 func validateRoleSharedMemory(
 	cr *kdv1.KubeDirectorCluster,
 	valErrors []string,
@@ -527,6 +528,17 @@ func validateRoleSharedMemory(
 	for i := 0; i < numRoles; i++ {
 		role := &(cr.Spec.Roles[i])
 		if role.SharedMemory == nil {
+			continue
+		}
+		k8sVersionOk, _ := shared.K8sVersionIsAtLeast(1, 22)
+		if !k8sVersionOk {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					invalidShmemK8sVersion,
+					role.Name,
+				),
+			)
 			continue
 		}
 		shmemQuant, err := resource.ParseQuantity(*role.SharedMemory)

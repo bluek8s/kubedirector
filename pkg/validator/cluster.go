@@ -530,12 +530,24 @@ func validateRoleSharedMemory(
 		if role.SharedMemory == nil {
 			continue
 		}
-		k8sVersionOk, _ := shared.K8sVersionIsAtLeast(1, 22)
-		if !k8sVersionOk {
+		forceSharedMemorySizeSupport := shared.GetForceSharedMemorySizeSupport()
+		if forceSharedMemorySizeSupport == nil {
+			k8sVersionOk, _ := shared.K8sVersionIsAtLeast(1, 22)
+			if !k8sVersionOk {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidShmemK8sVersion,
+						role.Name,
+					),
+				)
+				continue
+			}
+		} else if *forceSharedMemorySizeSupport == false {
 			valErrors = append(
 				valErrors,
 				fmt.Sprintf(
-					invalidShmemK8sVersion,
+					invalidShmemFeature,
 					role.Name,
 				),
 			)
@@ -550,6 +562,7 @@ func validateRoleSharedMemory(
 					role.Name,
 				),
 			)
+			continue
 		}
 		if shmemQuant.Sign() != 1 {
 			valErrors = append(

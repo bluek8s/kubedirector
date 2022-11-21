@@ -87,9 +87,10 @@ const (
 	noDefaultStorageClass   = "storageClassName is not specified for one or more roles, and no default storage class is available."
 	badDefaultStorageClass  = "storageClassName is not specified for one or more roles, and default storage class (%s) is not available on the system."
 
-	invalidShmemDef  = "Shared memory size for role (%s) is incorrectly defined."
-	invalidShmemSize = "Shared memory size for role (%s) should be greater than zero."
+	invalidShmemDef        = "Shared memory size for role (%s) is incorrectly defined."
+	invalidShmemSize       = "Shared memory size for role (%s) should be greater than zero."
 	invalidShmemK8sVersion = "Specifying shared memory size for role (%s) requires K8s version >= 1.22."
+	invalidShmemFeature    = "Specifying shared memory size for role (%s) not allowed; feature disabled by global KubeDirector config."
 
 	invalidResource = "Specified resource(\"%s\") value(\"%s\") for role(\"%s\") is invalid. Minimum value must be \"%s\"."
 	invalidStorage  = "Specified persistent storage size(\"%s\") for role(\"%s\") is invalid. Minimum size must be \"%s\"."

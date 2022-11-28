@@ -504,15 +504,14 @@ func handleClusterUpgrade(
 
 			for i := 0; i < len(roles); i++ {
 				roleInfo = roles[i]
-				roleMembers := roleInfo.roleStatus.Members
-				for j := 0; j < len(roleMembers); j++ {
-					member := roleMembers[j]
+				for j := 0; j < len(roleInfo.roleStatus.Members); j++ {
+					member := &roleInfo.roleStatus.Members[j]
 					member.PodUpgradeStatus = kdv1.PodConfigured
 					QueueNotify(
 						reqLogger,
 						cr,
 						roleInfo.roleStatus.Name,
-						&member,
+						member,
 						evaluateClusterNotificationFn,
 					)
 				}

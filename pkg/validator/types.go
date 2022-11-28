@@ -62,6 +62,7 @@ const (
 	appNotUpgradable      = "The application %s of version %s doesn't support live upgrade."
 	appsTooDifferent      = "The candidate app %s spec is too different from the actual app %s spec. Currently the potential differences are only for role image tags and cardinality."
 	invalidAppCardinality = "The candidate app %s %s role cardinality doesn't satisfy the current cluster %s role active members count"
+	imageWasNotChanged    = "As role %s spec was changed its image also must be changed"
 
 	invalidDistroID       = "Invalid application with distroId: %s. Expected application with distroId: %s"
 	invalidNodeRoleID     = "Invalid roleID(%s) in roleServices array in config section. Valid roles: \"%s\""

@@ -88,8 +88,8 @@ func RunConfigScript(
 func QueueNotify(
 	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
-	podName string,
 	roleName string,
+	member *kdv1.MemberStatus,
 	// This function should return the operation argument as first value and updated FQDNs as second value
 	evalOpFqdnsFn func() (string, string),
 ) {
@@ -122,7 +122,7 @@ func QueueNotify(
 		cr,
 		shared.EventReasonNoEvent,
 		"will notify member{%s}: %s",
-		podName,
+		member.Pod,
 		op,
 	)
 	// Compose the notify command arguments.
@@ -138,19 +138,8 @@ func QueueNotify(
 		Arguments: arguments,
 	}
 
-	for i := 0; i < len(cr.Status.Roles); i++ {
-		role := &cr.Status.Roles[i]
-		if role.Name == roleName {
-			for j := 0; j < len(role.Members); j++ {
-				member := &role.Members[j]
-				if member.Pod == podName {
-					member.StateDetail.PendingNotifyCmds = append(
-						member.StateDetail.PendingNotifyCmds, &notifyDesc)
-					break
-				}
-			}
-		}
-	}
+	member.StateDetail.PendingNotifyCmds = append(
+		member.StateDetail.PendingNotifyCmds, &notifyDesc)
 }
 
 // FqdnsList generates a comma-separated list of FQDNs given a list of members.

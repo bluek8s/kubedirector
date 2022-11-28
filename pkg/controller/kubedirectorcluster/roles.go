@@ -175,12 +175,12 @@ func updateRoleUpgradeStatus(
 	}
 
 	// Add role notification to the queue
-	for _, member := range rs.Members {
+	for i := range rs.Members {
 		QueueNotify(
 			reqLogger,
 			cr,
-			member.Pod,
 			rs.Name,
+			&rs.Members[i],
 			evaluateRoleNotificationFn,
 		)
 	}

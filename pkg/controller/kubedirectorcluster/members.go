@@ -1254,18 +1254,18 @@ func generateNotifies(
 		}
 
 		processor := func(stateMembers []*kdv1.MemberStatus) {
-			for _, member := range stateMembers {
-				if member.StateDetail.LastSetupGeneration == nil {
+			for i := range stateMembers {
+				if stateMembers[i].StateDetail.LastSetupGeneration == nil {
 					continue
 				}
-				if *member.StateDetail.LastSetupGeneration == *cr.Status.SpecGenerationToProcess {
+				if *stateMembers[i].StateDetail.LastSetupGeneration == *cr.Status.SpecGenerationToProcess {
 					continue
 				}
 				QueueNotify(
 					reqLogger,
 					cr,
-					member.Pod,
 					otherRole.roleStatus.Name,
+					stateMembers[i],
 					addOrDeletePodNotification,
 				)
 			}

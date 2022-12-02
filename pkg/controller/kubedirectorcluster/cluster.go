@@ -220,8 +220,6 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		}
 	}()
 
-	handleClusterUpgrade(cr)
-
 	// If we're in this reconciliation function, restoreProgress should not
 	// be set. This only matters if this is the first iteration right after
 	// the being-restored label is removed, but it's fine just to always
@@ -276,6 +274,8 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 		errLog("roles", rolesErr)
 		return rolesErr
 	}
+
+	handleClusterUpgrade(reqLogger, cr, roles)
 
 	// The "state" calculated above can be different on next handler pass,
 	// so we need to make sure we bump the spec gen now if necessary.
@@ -440,7 +440,9 @@ func (r *ReconcileKubeDirectorCluster) syncCluster(
 }
 
 func handleClusterUpgrade(
+	reqLogger logr.Logger,
 	cr *kdv1.KubeDirectorCluster,
+	roles []*roleInfo,
 ) {
 
 	// Check, if some statefulset is in the middle of upgrade/rollback process.
@@ -480,13 +482,42 @@ func handleClusterUpgrade(
 				*cr.Spec.AppCatalog,
 				upgradeInfo.PrevApp,
 			)
-			for i := range cr.Status.Roles {
-				for j := range (*cr).Status.Roles[i].Members {
-					(*cr).Status.Roles[i].Members[j].PodUpgradeStatus = kdv1.PodConfigured
-				}
-				(*cr).Status.Roles[i].RoleUpgradeStatus = kdv1.RoleConfigured
+
+			var clusterNotification ConfigArg
+			if upgradeInfo.IsRollingBack {
+				clusterNotification = ClusterRevertedNotification
+			} else {
+				clusterNotification = ClusterUpgradedNotification
 			}
-			cr.Status.UpgradeInfo = nil
+
+			// evaluate cluster lifecycle event and collect the
+			// FQDNs of the affected members.
+			var roleInfo *roleInfo
+			evaluateClusterNotificationFn := func() (string, string) {
+				deltaFqdns := ""
+				if ready, ok := roleInfo.membersByState[memberReady]; ok {
+					deltaFqdns = FqdnsList(cr, ready)
+				}
+
+				return string(clusterNotification), deltaFqdns
+			}
+
+			for i := 0; i < len(roles); i++ {
+				roleInfo = roles[i]
+				for j := 0; j < len(roleInfo.roleStatus.Members); j++ {
+					member := &roleInfo.roleStatus.Members[j]
+					member.PodUpgradeStatus = kdv1.PodConfigured
+					QueueNotify(
+						reqLogger,
+						cr,
+						roleInfo.roleStatus.Name,
+						member,
+						evaluateClusterNotificationFn,
+					)
+				}
+				roleInfo.roleStatus.RoleUpgradeStatus = kdv1.RoleConfigured
+			}
+			(*cr).Status.UpgradeInfo = nil
 			upgradeInfo = nil
 		}
 	}

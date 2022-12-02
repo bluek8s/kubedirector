@@ -116,13 +116,21 @@ type ConfigArg string
 
 const (
 	// Configure arg signals the pod is ready to startscript configuring
-	Configure ConfigArg = "configure"
+	ConfigureNotification ConfigArg = "configure"
 	// Reconnect arg signals to reset the pod connection version
-	Reconnect ConfigArg = "reconnect"
+	ReconnectNotification ConfigArg = "reconnect"
 	// PodUpgraded signals the pod app version was upgraded
-	PodUpgraded ConfigArg = "pod_upgraded"
+	PodUpgradedNotification ConfigArg = "pod_upgraded"
 	// PodReverted signals the pod app version was reverted after unsuccessful upgrade
-	PodReverted ConfigArg = "pod_reverted"
+	PodRevertedNotification ConfigArg = "pod_reverted"
+	// RoleUpgraded signals that all pods of the current role were upgraded
+	RoleUpgradedNotification ConfigArg = "role_upgraded"
+	// RoleReverted signals that all already upgraded pods of the current role were reverted
+	RoleRevertedNotification ConfigArg = "role_reverted"
+	// ClusterUpgraded signals that all roles finished their upgrade processes
+	ClusterUpgradedNotification ConfigArg = "cluster_upgraded"
+	// ClusterReverted signals that all roles finished their rollback processes
+	ClusterRevertedNotification ConfigArg = "cluster_reverted"
 )
 
 var cmdCache = make(map[ConfigArg]*string)
@@ -139,7 +147,7 @@ func GetAppConfigCmd(
 	if cmdTemplate == nil {
 		cmd := fmt.Sprintf(appPrepConfigTemplateCmd, "%s", arg)
 		// Clean all outputs before executing command with --run argument
-		if arg == Configure {
+		if arg == ConfigureNotification {
 			cmd = `rm -f /opt/guestconfig/configure.* && ` + cmd
 		}
 		cmdCache[arg] = &cmd

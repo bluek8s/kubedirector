@@ -161,7 +161,7 @@ spec:
                         type: array
                         items:
                           type: string
-                          pattern: '^configure$|^addnodes$|^delnodes$'
+                          pattern: '^configure$|^addnodes$|^delnodes$|^role_upgraded$|^role_reverted$|^cluster_upgraded$|^cluster_reverted$'
                       containerSpec:
                         type: object
                         nullable: true

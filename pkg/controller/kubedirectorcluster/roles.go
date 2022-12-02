@@ -106,7 +106,7 @@ func syncClusterRoles(
 		}
 
 		if cr.Status.UpgradeInfo != nil {
-			updateRoleUpgradeStatus(r.roleStatus)
+			updateRoleUpgradeStatus(reqLogger, cr, r)
 		}
 	}
 	// Let the caller know about significant changes that happened.
@@ -128,11 +128,27 @@ func syncClusterRoles(
 // comleted their own upgrade process. If so, the role upgrade status
 // is also marked as completed.
 func updateRoleUpgradeStatus(
-	rs *kdv1.RoleStatus,
+	reqLogger logr.Logger,
+	cr *kdv1.KubeDirectorCluster,
+	role *roleInfo,
 ) {
 
-	if rs == nil {
+	if role == nil || role.roleStatus == nil {
 		return
+	}
+
+	rs := role.roleStatus
+	var eventNotification ConfigArg
+
+	// evaluate role lifecycle event and collect the
+	// FQDNs of the affected members.
+	evaluateRoleNotificationFn := func() (string, string) {
+
+		deltaFqdns := ""
+		if ready, ok := role.membersByState[memberReady]; !ok {
+			deltaFqdns = FqdnsList(cr, ready)
+		}
+		return string(eventNotification), deltaFqdns
 	}
 
 	switch (*rs).RoleUpgradeStatus {
@@ -143,14 +159,30 @@ func updateRoleUpgradeStatus(
 			}
 		}
 		(*rs).RoleUpgradeStatus = kdv1.RoleUpgraded
+		eventNotification = RoleUpgradedNotification
 
 	case kdv1.RoleRollingBack:
 		for _, member := range rs.Members {
-			if member.PodUpgradeStatus != kdv1.PodRolledBack {
+			if member.PodUpgradeStatus != kdv1.PodRolledBack &&
+				member.PodUpgradeStatus != kdv1.PodConfigured {
 				return
 			}
 		}
 		(*rs).RoleUpgradeStatus = kdv1.RoleRolledBack
+		eventNotification = RoleRevertedNotification
+	default:
+		return
+	}
+
+	// Add role notification to the queue
+	for i := range rs.Members {
+		QueueNotify(
+			reqLogger,
+			cr,
+			rs.Name,
+			&rs.Members[i],
+			evaluateRoleNotificationFn,
+		)
 	}
 }
 

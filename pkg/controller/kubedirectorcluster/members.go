@@ -185,6 +185,7 @@ func syncMemberNotifies(
 	}
 	// Bail out now if there are no notifies to send.
 	numToProcess := len(membersToProcess)
+
 	if numToProcess == 0 {
 		return
 	}
@@ -386,17 +387,14 @@ func handleReadyMembers(
 					return fileExists, fileError
 				}
 
-				cmd := GetAppConfigCmd(containerID, Reconnect)
-
-				cmdErr := executor.RunScript(
+				cmdErr := RunConfigScript(
 					reqLogger,
 					cr,
 					cr.Namespace,
 					m.Pod,
-					m.StateDetail.LastConfiguredContainer,
-					executor.AppContainerName,
-					"app reconnect",
-					strings.NewReader(cmd),
+					ReconnectNotification,
+					containerID,
+					true,
 				)
 
 				if cmdErr != nil {
@@ -405,16 +403,6 @@ func handleReadyMembers(
 					if nodeRole != nil {
 						setStateDetailLogs(readFile, &m.StateDetail, nodeRole.MaxLogSizeDump)
 					}
-
-					shared.LogErrorf(
-						reqLogger,
-						cmdErr,
-						cr,
-						shared.EventReasonMember,
-						"failed to run startcsript with --reconnect in member{%s} in role{%s}",
-						m.Pod,
-						role.roleStatus.Name,
-					)
 					return
 				}
 				memberVersion = memberVersion + int64(1)
@@ -454,7 +442,9 @@ func handleCreatePendingMembers(
 		if role.roleStatus.RoleUpgradeStatus == kdv1.RoleUpgrading {
 			member.PodUpgradeStatus = kdv1.PodUpgrading
 		}
-		if role.roleStatus.RoleUpgradeStatus == kdv1.RoleRollingBack {
+		// If member is not changed there is no sence to roll it back
+		if role.roleStatus.RoleUpgradeStatus == kdv1.RoleRollingBack &&
+			member.PodUpgradeStatus != kdv1.PodConfigured {
 			member.PodUpgradeStatus = kdv1.PodRollingBack
 		}
 	}
@@ -1239,21 +1229,44 @@ func generateNotifies(
 			)
 			continue
 		}
+
+		addOrDeletePodNotification := func() (string, string) {
+
+			// Figure out which lifecycle event we're dealing with, and collect the
+			// FQDNs of the affected members.
+			op := ""
+			deltaFqdns := ""
+			if creatingOrCreated, ok := role.membersByState[memberCreating]; ok {
+				// At the time this function is called, members in this list are
+				// marked as creating, ready, or config error. The fqdnsList function
+				// will appropriately skip the ones that are still creating, or the
+				// ones in other states that are just reboots.
+				op = "addnodes"
+				deltaFqdns = FqdnsList(cr, creatingOrCreated)
+			}
+			if op == "" {
+				if deletePending, ok := role.membersByState[memberDeletePending]; ok {
+					op = "delnodes"
+					deltaFqdns = FqdnsList(cr, deletePending)
+				}
+			}
+			return op, deltaFqdns
+		}
+
 		processor := func(stateMembers []*kdv1.MemberStatus) {
-			for _, member := range stateMembers {
-				if member.StateDetail.LastSetupGeneration == nil {
+			for i := range stateMembers {
+				if stateMembers[i].StateDetail.LastSetupGeneration == nil {
 					continue
 				}
-				if *member.StateDetail.LastSetupGeneration == *cr.Status.SpecGenerationToProcess {
+				if *stateMembers[i].StateDetail.LastSetupGeneration == *cr.Status.SpecGenerationToProcess {
 					continue
 				}
-				queueNotify(
+				QueueNotify(
 					reqLogger,
 					cr,
-					member.Pod,
-					&member.StateDetail,
 					otherRole.roleStatus.Name,
-					role,
+					stateMembers[i],
+					addOrDeletePodNotification,
 				)
 			}
 		}
@@ -1340,32 +1353,6 @@ func appConfig(
 	}
 
 	roleName := roleStatus.Name
-	runConfigScript := func(configArg ConfigArg, loggingErr bool) error {
-		cmd := GetAppConfigCmd(expectedContainerID, configArg)
-		cmdErr := executor.RunScript(
-			reqLogger,
-			cr,
-			cr.Namespace,
-			podName,
-			expectedContainerID,
-			executor.AppContainerName,
-			"app config",
-			strings.NewReader(cmd),
-		)
-		if loggingErr && cmdErr != nil {
-			shared.LogErrorf(
-				reqLogger,
-				cmdErr,
-				cr,
-				shared.EventReasonMember,
-				"failed to run startscript with --{%s} in member{%s} in role{%s}",
-				string(configArg),
-				podName,
-				roleName,
-			)
-		}
-		return cmdErr
-	}
 
 	// If a config error detail already exists, this is a restart of a member
 	// that had been in config error state. In that case we won't try
@@ -1530,13 +1517,13 @@ func appConfig(
 	// Notify upgrade/rollback completion as necessary.
 	var cmdErr error
 	if roleStatus.RoleUpgradeStatus == kdv1.RoleUpgrading {
-		cmdErr = runConfigScript(PodUpgraded, true)
+		cmdErr = RunConfigScript(reqLogger, cr, roleName, podName, PodUpgradedNotification, expectedContainerID, true)
 		if cmdErr != nil {
 			return true, cmdErr
 		}
 		return true, nil
 	} else if roleStatus.RoleUpgradeStatus == kdv1.RoleRollingBack {
-		cmdErr = runConfigScript(PodReverted, true)
+		cmdErr = RunConfigScript(reqLogger, cr, roleName, podName, PodRevertedNotification, expectedContainerID, true)
 		if cmdErr != nil {
 			return true, cmdErr
 		}
@@ -1561,7 +1548,7 @@ func appConfig(
 	}
 
 	// Now kick off the initial config.
-	cmdErr = runConfigScript(Configure, false)
+	cmdErr = RunConfigScript(reqLogger, cr, roleName, podName, ConfigureNotification, expectedContainerID, false)
 	if cmdErr != nil {
 		// https://github.com/bluek8s/kubedirector/issues/547
 		nodeRole := catalog.GetRoleFromID(cr.AppSpec, roleName)
@@ -1571,118 +1558,6 @@ func appConfig(
 		return true, cmdErr
 	}
 	return false, nil
-}
-
-// queueNotify prepares the info for handling a lifecycle event to a currently
-// ready node, and adds the info to the node's notification queue. We are
-// notifying about new members either being added to the modifiedRole (if it
-// has members in creating state) or being removed (if it has members in
-// delete pending state).
-func queueNotify(
-	reqLogger logr.Logger,
-	cr *kdv1.KubeDirectorCluster,
-	podName string,
-	stateDetail *kdv1.MemberStateDetail,
-	roleName string,
-	modifiedRole *roleInfo,
-) {
-
-	// Figure out which lifecycle event we're dealing with, and collect the
-	// FQDNs of the affected members.
-	op := ""
-	deltaFqdns := ""
-	if creatingOrCreated, ok := modifiedRole.membersByState[memberCreating]; ok {
-		// At the time this function is called, members in this list are
-		// marked as creating, ready, or config error. The fqdnsList function
-		// will appropriately skip the ones that are still creating, or the
-		// ones in other states that are just reboots.
-		op = "addnodes"
-		deltaFqdns = fqdnsList(cr, creatingOrCreated)
-	}
-	if op == "" {
-		if deletePending, ok := modifiedRole.membersByState[memberDeletePending]; ok {
-			op = "delnodes"
-			deltaFqdns = fqdnsList(cr, deletePending)
-		}
-	}
-
-	if deltaFqdns == "" {
-		// No nodes actually being created/deleted. One example of this
-		// is in the creating case where none have been successfully
-		// configured.
-		return
-	}
-	// Notify the node iff the event is registered during initial configuration.
-	appCr, appErr := catalog.GetApp(cr)
-	if appErr != nil {
-		shared.LogError(
-			reqLogger,
-			appErr,
-			cr,
-			shared.EventReasonCluster,
-			"app referenced by cluster does not exist")
-	}
-	role := catalog.GetRoleFromID(appCr, roleName)
-	if role.EventList != nil && !shared.StringInList(op, *role.EventList) {
-		return
-	}
-	shared.LogInfof(
-		reqLogger,
-		cr,
-		shared.EventReasonNoEvent,
-		"will notify member{%s}: %s",
-		podName,
-		op,
-	)
-	// Compose the notify command arguments.
-	arguments := []string{
-		"--" + op,
-		"--nodegroup 1", // currently only 1 nodegroup possible
-		"--role",
-		modifiedRole.roleStatus.Name,
-		"--fqdns",
-		deltaFqdns,
-	}
-	notifyDesc := kdv1.NotificationDesc{
-		Arguments: arguments,
-	}
-	stateDetail.PendingNotifyCmds = append(
-		stateDetail.PendingNotifyCmds,
-		&notifyDesc,
-	)
-}
-
-// fqdnsList generates a comma-separated list of FQDNs given a list of members.
-func fqdnsList(
-	cr *kdv1.KubeDirectorCluster,
-	members []*kdv1.MemberStatus,
-) string {
-
-	getMemberFqdn := func(m *kdv1.MemberStatus) string {
-		s := []string{
-			m.Pod,
-			cr.Status.ClusterService,
-			cr.Namespace + shared.GetSvcClusterDomainBase(),
-		}
-		return strings.Join(s, ".")
-	}
-	numMembers := len(members)
-	fqdns := make([]string, 0, numMembers)
-	for i := 0; i < numMembers; i++ {
-		// Grab any member in the deletePending state.
-		if members[i].State == memberDeletePending {
-			fqdns = append(fqdns, getMemberFqdn(members[i]))
-			continue
-		}
-		// Skip any member in the creating state, since it has not been
-		// successfully configured. Also skip any member with
-		// lastConfiguredContainer already set since it is a reboot.
-		if (members[i].State != memberCreating) &&
-			(members[i].StateDetail.LastConfiguredContainer == "") {
-			fqdns = append(fqdns, getMemberFqdn(members[i]))
-		}
-	}
-	return strings.Join(fqdns, ",")
 }
 
 // getConnectionVersion will fetch the HashChangeIncrementor from the cluster Annotations

@@ -78,6 +78,8 @@ spec:
                   type: boolean
                 allowRestoreWithoutConnections:
                   type: boolean
+                forceSharedMemorySizeSupport:
+                  type: boolean
             status:
               type: object
               nullable: true

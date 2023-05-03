@@ -187,6 +187,18 @@ func GetAllowRestoreWithoutConnections() bool {
 	return false
 }
 
+// GetForceSharedMemorySizeSupport extracts the boolean-or-nil value from the
+// globalConfig CR data if present, otherwise returns nil.
+func GetForceSharedMemorySizeSupport() *bool {
+
+	globalConfigLock.RLock()
+	defer globalConfigLock.RUnlock()
+	if globalConfig != nil {
+		return globalConfig.Spec.ForceSharedMemorySizeSupport
+	}
+	return nil
+}
+
 // RemoveGlobalConfig removes the current globalConfig
 func RemoveGlobalConfig() {
 

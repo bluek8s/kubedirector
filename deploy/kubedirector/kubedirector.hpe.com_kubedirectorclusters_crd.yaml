@@ -197,6 +197,9 @@ spec:
                               minLength: 1
                             value:
                               type: string
+                      sharedMemory:
+                        type: string
+                        pattern: '^([0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'
                       storage:
                         type: object
                         nullable: true

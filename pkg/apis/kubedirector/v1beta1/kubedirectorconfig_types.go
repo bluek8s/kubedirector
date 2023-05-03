@@ -33,6 +33,7 @@ type KubeDirectorConfigSpec struct {
 	ServiceAnnotations             map[string]string `json:"serviceAnnotations,omitempty"`
 	BackupClusterStatus            *bool             `json:"backupClusterStatus,omitempty"`
 	AllowRestoreWithoutConnections *bool             `json:"allowRestoreWithoutConnections,omitempty"`
+	ForceSharedMemorySizeSupport   *bool             `json:"forceSharedMemorySizeSupport,omitempty"`
 }
 
 // KubeDirectorConfigStatus defines the observed state of KubeDirectorConfig.

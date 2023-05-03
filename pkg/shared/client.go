@@ -17,6 +17,8 @@ package shared
 import (
 	"context"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
@@ -244,4 +246,37 @@ func Delete(
 ) error {
 
 	return client.Delete(ctx, obj, opts...)
+}
+
+// K8sVersionIsAtLeast compares the requested minimum K8s version to the
+// reported K8s version. Returns true iff the K8s version >= minimum.
+func K8sVersionIsAtLeast(
+	minVersionMajor int,
+	minVersionMinor int,
+) (bool, error) {
+
+	versionInfo, versionInfoErr := clientSet.Discovery().ServerVersion()
+	if versionInfoErr != nil {
+		return false, versionInfoErr
+	}
+	majorStr := versionInfo.Major
+	major, majorErr := strconv.Atoi(majorStr)
+	if majorErr != nil {
+		return false, majorErr
+	}
+	minorStr := strings.TrimSuffix(versionInfo.Minor, "+")
+	minor, minorErr := strconv.Atoi(minorStr)
+	if minorErr != nil {
+		return false, minorErr
+	}
+	if major < minVersionMajor {
+		return false, nil
+	}
+	if major > minVersionMajor {
+		return true, nil
+	}
+	if minor < minVersionMinor {
+		return false, nil
+	}
+	return true, nil
 }

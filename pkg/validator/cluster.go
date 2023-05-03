@@ -437,7 +437,7 @@ func validateRoleStorageClass(
 					role.Name,
 				),
 			)
-			break
+			continue
 		}
 		if storageSize.Sign() != 1 {
 			valErrors = append(
@@ -447,7 +447,7 @@ func validateRoleStorageClass(
 					role.Name,
 				),
 			)
-			break
+			continue
 		}
 		storageClass := role.Storage.StorageClass
 		if storageClass != nil {
@@ -515,6 +515,68 @@ func validateRoleStorageClass(
 	}
 
 	return valErrors, patches
+}
+
+// validateRoleSharedMemory checks for valid quantity syntax. Also the K8s
+// version must be >= 1.22.
+func validateRoleSharedMemory(
+	cr *kdv1.KubeDirectorCluster,
+	valErrors []string,
+) []string {
+
+	numRoles := len(cr.Spec.Roles)
+	for i := 0; i < numRoles; i++ {
+		role := &(cr.Spec.Roles[i])
+		if role.SharedMemory == nil {
+			continue
+		}
+		forceSharedMemorySizeSupport := shared.GetForceSharedMemorySizeSupport()
+		if forceSharedMemorySizeSupport == nil {
+			k8sVersionOk, _ := shared.K8sVersionIsAtLeast(1, 22)
+			if !k8sVersionOk {
+				valErrors = append(
+					valErrors,
+					fmt.Sprintf(
+						invalidShmemK8sVersion,
+						role.Name,
+					),
+				)
+				continue
+			}
+		} else if *forceSharedMemorySizeSupport == false {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					invalidShmemFeature,
+					role.Name,
+				),
+			)
+			continue
+		}
+		shmemQuant, err := resource.ParseQuantity(*role.SharedMemory)
+		if err != nil {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					invalidShmemDef,
+					role.Name,
+				),
+			)
+			continue
+		}
+		if shmemQuant.Sign() != 1 {
+			valErrors = append(
+				valErrors,
+				fmt.Sprintf(
+					invalidShmemSize,
+					role.Name,
+				),
+			)
+			continue
+		}
+	}
+
+	return valErrors
 }
 
 // validateRoleSA validates whether the SA exists and if it does
@@ -1384,7 +1446,11 @@ func admitClusterCR(
 	// Validate if the role's service account exists and if the user has permission to use
 	valErrors = validateRoleServiceAccount(&clusterCR, valErrors, ar.Request.UserInfo)
 
+	// Validate that any specified storage class exists, and handle defaulting.
 	valErrors, patches = validateRoleStorageClass(&clusterCR, valErrors, patches)
+
+	// Validate the syntax of any specified shared-memory value.
+	valErrors = validateRoleSharedMemory(&clusterCR, valErrors)
 
 	// Validate service type and generate patch in case no service type defined or change
 	valErrors, patches = addServiceType(&clusterCR, valErrors, patches)

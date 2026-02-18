@@ -28,7 +28,7 @@ See the files in the "doc" directory for information about deploying and using K
 
 # Contributing
 
-You’re welcome to join the [BlueK8s Slack workspace](http://bit.ly/KubeDirectorSlack) for feedback and discussion.
+We welcome contributions to KubeDirector! You're welcome to join the [BlueK8s Slack workspace](http://bit.ly/KubeDirectorSlack) for feedback and discussion.
 
 Please read through the [CONTRIBUTING](CONTRIBUTING.md) guide before making a pull request. If you run into an issue with the contributing guide, please send a pull request to fix the contributing guide.
 

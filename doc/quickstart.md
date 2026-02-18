@@ -102,4 +102,4 @@ When you are completely done with KubeDirector, or want to start over fresh, you
     make teardown
 ```
 
-This will delete not only KubeDirector itself but also any KubeDirector-managed virtual clusters and app types that you have created.
+**Warning:** This will delete not only KubeDirector itself but also any KubeDirector-managed virtual clusters and app types that you have created. Make sure to backup any important data before running this command.

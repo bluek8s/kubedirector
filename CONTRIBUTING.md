@@ -34,6 +34,6 @@ Current work items are tracked in the [GitHub issues list](https://github.com/bl
 
 Before making a Pull Request (PR), it is almost always best to ensure that you are addressing an existing issue that has been assigned to you. This consideration doesn't necessarily apply to very minor PRs such as typo fixes, but usually you should be able to point to the issue that you are solving with your PR. If an issue doesn't exist yet, please file one! If an issue exists but is unassigned, feel free to ask in the issue comments if you can take it.
 
-Once you have made and tested your change, do a final build before creating a PR. Make sure all of your code is pushed to your fork of KubeDirector. (If you have Travis CI integration for your fork as described above, you can have some confidence that the PR build checks will pass.) Then go ahead and create your PR.
+Once you have made and tested your change, do a final build before creating a PR. Make sure all of your code is pushed to your fork of KubeDirector. (If you have CI integration set up for your fork, you can have some confidence that the PR build checks will pass.) Then go ahead and create your PR.
 
 We don't currently have a PR template that must be adhered to. If you identify the issue number that you are solving, describe your changes, and describe the testing you have done, then your PR is off to a great start. We will do our best to get to your PR in a timely fashion.

@@ -1,0 +1,43 @@
+apiVersion: kubedirector.hpe.com/v1beta1
+kind: KubeDirectorApp
+metadata:
+  name: vllm-server
+spec:
+  label:
+    name: "vLLM Inference Server"
+    description: "High-throughput LLM inference server"
+  distroID: "vllm/server"
+  version: "1.0"
+  configSchemaVersion: 8
+  systemdRequired: false
+  
+  # Use Ollama for lightweight LLM inference
+  defaultImageRepoTag: "ollama/ollama:latest"
+  
+  roles:
+  - id: inference-server
+    cardinality: "1+"                # Allow scaling
+    minResources:
+      memory: "512Mi"                # k3d-friendly minimum
+      cpu: "0.5"                     # k3d-friendly minimum
+    persistDirs:
+    - "/root/.ollama"                # Ollama model storage
+    
+  services:
+  - id: llm-api
+    label:
+      name: "LLM API"
+    endpoint:
+      port: 11434                   # Ollama uses port 11434
+      urlScheme: "http"
+      path: "/"
+      isDashboard: false
+      hasAuthToken: false
+  
+  config:
+    selectedRoles:
+    - inference-server
+    roleServices:
+    - roleID: inference-server
+      serviceIDs:
+      - llm-api

@@ -1,0 +1,23 @@
+apiVersion: kubedirector.hpe.com/v1beta1
+kind: KubeDirectorCluster
+metadata:
+  name: ollama-test-cluster
+spec:
+  app: vllm-server
+  appCatalog: local
+  roles:
+  - id: inference-server
+    members: 1
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "0.5"
+      limits:
+        memory: "1Gi"
+        cpu: "2"
+    storage:
+      size: "20Gi"                   # For model downloads
+      storageClassName: "local-path" # k3d default storage class
+  connections:
+    secrets: []
+    configmaps: []

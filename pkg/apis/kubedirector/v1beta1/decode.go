@@ -43,3 +43,17 @@ func (setupPackage *SetupPackage) UnmarshalJSON(
 
 	return nil
 }
+
+// MarshalJSON for SetupPackage handles the marshalling to complete
+// the custom JSON serialization alongside UnmarshalJSON.
+func (setupPackage SetupPackage) MarshalJSON() ([]byte, error) {
+	if !setupPackage.IsSet {
+		return nil, nil
+	}
+	
+	if setupPackage.IsNull {
+		return json.Marshal(nil)
+	}
+	
+	return json.Marshal(setupPackage.Info)
+}

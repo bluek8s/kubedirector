@@ -124,7 +124,7 @@ type MinStorage struct {
 	EphemeralModeSupported bool   `json:"ephemeralModeSupported"`
 }
 
-//ContainerSpec comments
+// ContainerSpec defines container runtime settings for virtual cluster members.
 type ContainerSpec struct {
 	Stdin bool `json:"stdin,omitempty"`
 	Tty   bool `json:"tty,omitempty"`

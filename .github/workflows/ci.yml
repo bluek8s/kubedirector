@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.18.x'
+        
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+          
+    - name: Install Operator SDK
+      run: |
+        export OPERATOR_SDK_VERSION="v0.15.2"
+        curl -L -s https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_VERSION}/operator-sdk-${OPERATOR_SDK_VERSION}-x86_64-linux-gnu -o /usr/local/bin/operator-sdk
+        chmod +x /usr/local/bin/operator-sdk
+        operator-sdk version
+        
+    - name: Install golint
+      run: go install golang.org/x/lint/golint@latest
+      
+    - name: Tidy modules
+      run: go mod tidy
+      
+    - name: Run compile
+      run: make compile
+      
+    - name: Run golint
+      run: make golint
+      
+    - name: Check format
+      run: make check-format

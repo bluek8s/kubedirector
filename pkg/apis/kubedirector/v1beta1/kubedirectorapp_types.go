@@ -70,9 +70,9 @@ type Label struct {
 // "explicitly set null". Therefore "operator-sdk generate crds" cannot be
 // used to generate a correct CRD in this case.
 type SetupPackage struct {
-	IsSet  bool
-	IsNull bool
-	Info   SetupPackageInfo
+	IsSet  bool             `json:"-"`
+	IsNull bool             `json:"-"`
+	Info   SetupPackageInfo `json:"-"`
 }
 
 // SetupPackageInfo is the URL of the setup package, plus a flag on whether

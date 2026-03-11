@@ -52,11 +52,14 @@ version-check:
         echo "go version 1.18 or later is required"; \
         exit 1; \
     fi
-	@if operator-sdk version | grep -q 'operator-sdk version: "v0.15.2'; then \
+	@ver=$$(operator-sdk version 2>/dev/null | sed -n 's/operator-sdk version: "v\([^"]*\)".*/\1/p'); \
+    if printf '%s\n' "$$ver" | grep -qE '^0\.15\.2$$'; then \
+        true; \
+    elif printf '%s\n' "$$ver" | grep -qE '^1\.'; then \
         true; \
     else \
         echo "Error:"; \
-        echo "operator-sdk version 0.15.2 is required"; \
+        echo "operator-sdk version 0.15.2 or 1.x is required (found: $$ver)"; \
         exit 1; \
     fi
 
@@ -82,7 +85,18 @@ pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go:  \
         pkg/apis/kubedirector/v1beta1/${cluster_resource_name}_types.go \
         pkg/apis/kubedirector/v1beta1/${config_resource_name}_types.go \
         pkg/apis/kubedirector/v1beta1/${status_resource_name}_types.go
-	operator-sdk generate k8s
+	@ver=$$(operator-sdk version 2>/dev/null | sed -n 's/operator-sdk version: "v\([^"]*\)".*/\1/p'); \
+	if printf '%s\n' "$$ver" | grep -qE '^0\.15\.2$$'; then \
+	    operator-sdk generate k8s; \
+	else \
+	    go run k8s.io/code-generator/cmd/deepcopy-gen \
+	        -O zz_generated.deepcopy \
+	        -i github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1 \
+	        -h /dev/null -o . -p github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1 && \
+	    mv github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go \
+	        pkg/apis/kubedirector/v1beta1/ && \
+	    rm -rf github.com; \
+	fi
 
 push:
 	@set -e; \

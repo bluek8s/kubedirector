@@ -71,9 +71,9 @@ type Label struct {
 // used to generate a correct CRD in this case.
 // +k8s:deepcopy-gen=false
 type SetupPackage struct {
-	IsSet  bool             
-	IsNull bool             
-	Info   SetupPackageInfo 
+	IsSet  bool             `json:"-"`
+	IsNull bool             `json:"-"`
+	Info   SetupPackageInfo `json:"-"`
 }
 
 // DeepCopyInto is required for runtime.Object interface compatibility

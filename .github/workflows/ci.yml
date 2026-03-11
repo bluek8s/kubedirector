@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: Test
+    name: Kubedirector CI pipeline
     runs-on: ubuntu-latest
     
     steps:

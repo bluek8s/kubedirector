@@ -18,9 +18,9 @@ import "encoding/json"
 
 // UnmarshalJSON for SetupPackage handles the unmarshalling of three
 // scenarios wrt 'defaultConfigPackage':
-//   1. omitted                 : IsSet==false
-//   2. explicitly set to null  : IsSet==true && IsNull==true
-//   3. Set to a valid object   : IsSet==true && IsNull==false
+//  1. omitted                 : IsSet==false
+//  2. explicitly set to null  : IsSet==true && IsNull==true
+//  3. Set to a valid object   : IsSet==true && IsNull==false
 func (setupPackage *SetupPackage) UnmarshalJSON(
 	data []byte,
 ) error {
@@ -42,4 +42,18 @@ func (setupPackage *SetupPackage) UnmarshalJSON(
 	setupPackage.IsNull = false
 
 	return nil
+}
+
+// MarshalJSON for SetupPackage handles the marshalling to complete
+// the custom JSON serialization alongside UnmarshalJSON.
+func (setupPackage SetupPackage) MarshalJSON() ([]byte, error) {
+	if !setupPackage.IsSet {
+		return nil, nil
+	}
+
+	if setupPackage.IsNull {
+		return json.Marshal(nil)
+	}
+
+	return json.Marshal(setupPackage.Info)
 }

@@ -1,4 +1,5 @@
 name: CI
+# Test deepcopy generation fixes
 
 on:
   push:
@@ -8,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: Test
+    name: Kubedirector CI pipeline
     runs-on: ubuntu-latest
     
     steps:
@@ -26,9 +27,9 @@ jobs:
         path: |
           ~/.cache/go-build
           ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-go-v2-${{ hashFiles('**/go.sum', '**/go.mod') }}
         restore-keys: |
-          ${{ runner.os }}-go-
+          ${{ runner.os }}-go-v2-
           
     - name: Install Operator SDK
       run: |
@@ -42,6 +43,9 @@ jobs:
       
     - name: Tidy modules
       run: go mod tidy
+      
+    - name: Clean previous builds
+      run: make clean
       
     - name: Run compile
       run: make compile

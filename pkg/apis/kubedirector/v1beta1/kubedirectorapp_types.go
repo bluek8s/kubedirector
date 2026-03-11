@@ -69,10 +69,27 @@ type Label struct {
 // this type in decode.go to allow us to distinguish the cases of "unset" from
 // "explicitly set null". Therefore "operator-sdk generate crds" cannot be
 // used to generate a correct CRD in this case.
+// +k8s:deepcopy-gen=false
 type SetupPackage struct {
-	IsSet  bool
-	IsNull bool
-	Info   SetupPackageInfo
+	IsSet  bool             `json:"-"`
+	IsNull bool             `json:"-"`
+	Info   SetupPackageInfo `json:"-"`
+}
+
+// DeepCopyInto is required for runtime.Object interface compatibility
+func (in *SetupPackage) DeepCopyInto(out *SetupPackage) {
+	*out = *in
+	out.Info = in.Info
+}
+
+// DeepCopy creates a deep copy of SetupPackage
+func (in *SetupPackage) DeepCopy() *SetupPackage {
+	if in == nil {
+		return nil
+	}
+	out := new(SetupPackage)
+	in.DeepCopyInto(out)
+	return out
 }
 
 // SetupPackageInfo is the URL of the setup package, plus a flag on whether
@@ -124,7 +141,7 @@ type MinStorage struct {
 	EphemeralModeSupported bool   `json:"ephemeralModeSupported"`
 }
 
-//ContainerSpec comments
+// ContainerSpec defines container runtime settings for virtual cluster members.
 type ContainerSpec struct {
 	Stdin bool `json:"stdin,omitempty"`
 	Tty   bool `json:"tty,omitempty"`

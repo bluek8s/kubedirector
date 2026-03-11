@@ -85,18 +85,13 @@ pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go:  \
         pkg/apis/kubedirector/v1beta1/${cluster_resource_name}_types.go \
         pkg/apis/kubedirector/v1beta1/${config_resource_name}_types.go \
         pkg/apis/kubedirector/v1beta1/${status_resource_name}_types.go
-	@ver=$$(operator-sdk version 2>/dev/null | sed -n 's/operator-sdk version: "v\([^"]*\)".*/\1/p'); \
-	if printf '%s\n' "$$ver" | grep -qE '^0\.15\.2$$'; then \
-	    operator-sdk generate k8s; \
-	else \
-	    go run k8s.io/code-generator/cmd/deepcopy-gen \
-	        -O zz_generated.deepcopy \
-	        -i github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1 \
-	        -h /dev/null -o . -p github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1 && \
-	    mv github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go \
-	        pkg/apis/kubedirector/v1beta1/ && \
-	    rm -rf github.com; \
-	fi
+	@go run k8s.io/code-generator/cmd/deepcopy-gen \
+	    -O zz_generated.deepcopy \
+	    -i github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1 \
+	    -h /dev/null -o . -p github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1 && \
+	mv github.com/bluek8s/kubedirector/pkg/apis/kubedirector/v1beta1/zz_generated.deepcopy.go \
+	    pkg/apis/kubedirector/v1beta1/ && \
+	rm -rf github.com
 
 push:
 	@set -e; \
@@ -353,6 +348,9 @@ compile: version-check configcli pkg/apis/kubedirector/v1beta1/zz_generated.deep
 	-rm -rf ${build_dir}
 	GOOS=linux GOARCH=${goarch} CGO_ENABLED=${cgo_enabled} \
         go build -gcflags "all=-trimpath=$$GOPATH" -o ${build_dir}/bin/${bin_name} ./cmd/manager
+	@echo
+	@echo Compilation successful: ${build_dir}/bin/${bin_name}
+	@echo
 
 format:
 	go fmt $(shell go list ./...)

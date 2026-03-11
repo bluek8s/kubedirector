@@ -1,6 +1,6 @@
 # KubeDirector
 
-[![Build Status](https://travis-ci.com/bluek8s/kubedirector.svg?branch=master)](https://travis-ci.com/bluek8s/kubedirector)
+[![CI](https://github.com/bluek8s/kubedirector/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/bluek8s/kubedirector/actions?query=branch%3Amaster)
 
 ## What is KubeDirector?
 

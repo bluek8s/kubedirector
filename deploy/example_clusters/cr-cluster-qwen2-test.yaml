@@ -1,0 +1,23 @@
+apiVersion: kubedirector.hpe.com/v1beta1
+kind: KubeDirectorCluster
+metadata:
+  name: qwen2-test-cluster
+spec:
+  app: qwen2-server
+  appCatalog: local
+  roles:
+  - id: inference-server
+    members: 1
+    resources:
+      requests:
+        memory: "1Gi"                # Qwen2 requires more memory
+        cpu: "1"
+      limits:
+        memory: "2Gi"                # Higher limits for Qwen2
+        cpu: "3"
+    storage:
+      size: "30Gi"                   # Larger storage for Qwen2 model (~7GB)
+      storageClassName: "local-path" # k3d default storage class
+  connections:
+    secrets: []
+    configmaps: []

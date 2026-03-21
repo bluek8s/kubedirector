@@ -1,0 +1,43 @@
+apiVersion: kubedirector.hpe.com/v1beta1
+kind: KubeDirectorApp
+metadata:
+  name: qwen2-server
+spec:
+  label:
+    name: "Qwen2 Inference Server"
+    description: "Qwen2 large language model inference server powered by Ollama"
+  distroID: "qwen2/server"
+  version: "1.0"
+  configSchemaVersion: 8
+  systemdRequired: false
+  
+  # Use Ollama for Qwen2 model inference
+  defaultImageRepoTag: "ollama/ollama:latest"
+  
+  roles:
+  - id: inference-server
+    cardinality: "1+"                # Allow scaling
+    minResources:
+      memory: "1Gi"                  # Qwen2 requires more memory than TinyLlama
+      cpu: "1"                       # Higher CPU requirement for Qwen2
+    persistDirs:
+    - "/root/.ollama"                # Ollama model storage
+    
+  services:
+  - id: qwen2-api
+    label:
+      name: "Qwen2 API"
+    endpoint:
+      port: 11434                   # Ollama uses port 11434
+      urlScheme: "http"
+      path: "/"
+      isDashboard: false
+      hasAuthToken: false
+  
+  config:
+    selectedRoles:
+    - inference-server
+    roleServices:
+    - roleID: inference-server
+      serviceIDs:
+      - qwen2-api

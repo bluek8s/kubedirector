@@ -90,7 +90,7 @@ install_kubedirector() {
     
     # Wait for kubedirector to be ready
     log_info "Waiting for KubeDirector operator to be ready..."
-    kubectl wait --for=condition=available --timeout=300s deployment/kubedirector -n kubedirector
+    kubectl wait --for=condition=available --timeout=300s deployment/kubedirector -n default
     
     log_info "KubeDirector installed successfully ✓"
 }

@@ -4,9 +4,35 @@
 
 ## What is KubeDirector?
 
-**KubeDirector** uses standard Kubernetes (K8s) facilities of custom resources and API extensions to implement stateful scaleout application clusters. This approach enables transparent integration with K8s user/resource management and existing K8s clients and tools.
+**KubeDirector** is a Kubernetes operator designed for deploying and managing complex, stateful applications with a focus on **generative AI and machine learning infrastructure**. It uses standard Kubernetes (K8s) facilities of custom resources and API extensions to implement stateful scaleout application clusters, enabling transparent integration with K8s user/resource management and existing K8s clients and tools.
 
-In broad terms, KubeDirector is a "custom controller" (itself deployed into K8s) that watches for custom resources of a given type to be created or modified within some K8s namespace(s). On such an event, KubeDirector uses K8s APIs to create or update the resources and configuration of a cluster to bring it into accordance with the spec defined in that custom resource.
+### Generative AI Infrastructure Made Simple
+
+**For AI researchers, MLOps engineers, and data scientists**, KubeDirector provides a production-ready platform for deploying and scaling generative AI workloads:
+
+- **🤖 Large Language Models**: Deploy LLMs for inference, fine-tuning, and experimentation with automatic scaling and resource management
+- **🔬 Research & Development**: Rapidly prototype with various AI frameworks without complex infrastructure setup
+- **🚀 Production AI Services**: Scale from research to production with the same declarative approach
+- **📊 Multi-tenant AI Workspaces**: Isolated environments for different teams and projects
+- **⚡ GPU-optimized Clusters**: Efficient utilization of expensive GPU resources across multiple workloads
+
+The included **Ollama integration** demonstrates how teams can deploy lightweight LLM inference servers (TinyLlama, Llama 2, Code Llama) with a simple `kubectl apply`, enabling immediate experimentation with state-of-the-art language models.
+
+### Upcoming AI Applications (Contributions Welcome!)
+
+We're actively expanding our catalog of AI/ML applications. Examples coming soon include:
+- **Stable Diffusion** clusters for image generation workloads
+- **Vector databases** (Weaviate, Pinecone, Chroma) for RAG applications  
+- **Fine-tuning frameworks** (LoRA, QLoRA) for custom model training
+- **Jupyter environments** with pre-configured AI libraries and GPU access
+- **MLflow** tracking servers for experiment management
+- **Ray clusters** for distributed AI training and serving
+
+**Contributions are welcome!** Help us expand the generative AI ecosystem by contributing new application definitions.
+
+### How It Works
+
+KubeDirector is a "custom controller" deployed into K8s that watches for custom resources of a given type to be created or modified within some K8s namespace(s). On such an event, KubeDirector uses K8s APIs to create or update the resources and configuration of a cluster to bring it into accordance with the spec defined in that custom resource.
 
 Unlike some other custom controller implementations, KubeDirector does not tie a custom resource definition to a particular type of application, or contain hardcoded application-specific logic within the controller. Instead, application characteristics are defined by metadata and an associated package of configuration artifacts. This separation of responsibilities has several useful characteristics, including:
 

@@ -157,9 +157,9 @@ setup_qwen2_model() {
     # Wait for pod to be ready
     kubectl wait --for=condition=ready pod/$POD_NAME --timeout=300s
     
-    # Pull Qwen2 model (this will take longer than TinyLlama)
-    log_warn "Pulling Qwen2 model (this will take 10-15 minutes due to model size ~7GB)..."
-    kubectl exec -it $POD_NAME -- ollama pull qwen2:7b
+    # Pull Qwen2 model (1.5B parameter version for better memory efficiency)
+    log_warn "Pulling Qwen2:1.5b model (this will take 3-5 minutes due to model size ~1GB)..."
+    kubectl exec -it $POD_NAME -- ollama pull qwen2:1.5b
     
     log_info "Qwen2 model ready ✓"
 }
@@ -171,25 +171,25 @@ get_service_info() {
     SERVICE_INFO=$(kubectl get svc -l kubedirector.hpe.com/kdcluster=qwen2-test-cluster)
     echo "$SERVICE_INFO"
     
-    # Get the NodePort for the service
-    NODE_PORT=$(kubectl get svc -l kubedirector.hpe.com/kdcluster=qwen2-test-cluster -o jsonpath='{.items[0].spec.ports[0].nodePort}')
+    # Get the NodePort for the LoadBalancer service (not the ClusterIP headless service)
+    NODE_PORT=$(kubectl get svc -l kubedirector.hpe.com/kdcluster=qwen2-test-cluster,kubedirector.hpe.com/role=inference-server -o jsonpath='{.items[0].spec.ports[0].nodePort}')
     
     if [ ! -z "$NODE_PORT" ]; then
         log_info "Qwen2 API is available at: http://localhost:$NODE_PORT"
         echo
         echo "You can test the inference with:"
-        echo "curl http://localhost:$NODE_PORT/api/generate -d '{\"model\":\"qwen2:7b\",\"prompt\":\"Hello, how are you?\"}'"
+        echo "curl http://localhost:$NODE_PORT/api/generate -d '{\"model\":\"qwen2:1.5b\",\"prompt\":\"Hello, how are you?\"}'"
         echo
         echo "Or use the chat API:"
-        echo "curl http://localhost:$NODE_PORT/api/chat -d '{\"model\":\"qwen2:7b\",\"messages\":[{\"role\":\"user\",\"content\":\"What is machine learning?\"}]}'"
+        echo "curl http://localhost:$NODE_PORT/api/chat -d '{\"model\":\"qwen2:1.5b\",\"messages\":[{\"role\":\"user\",\"content\":\"What is machine learning?\"}]}'"
     fi
 }
 
 test_qwen2_inference() {
     log_blue "Testing Qwen2 inference..."
     
-    # Get the NodePort
-    NODE_PORT=$(kubectl get svc -l kubedirector.hpe.com/kdcluster=qwen2-test-cluster -o jsonpath='{.items[0].spec.ports[0].nodePort}')
+    # Get the NodePort from LoadBalancer service
+    NODE_PORT=$(kubectl get svc -l kubedirector.hpe.com/kdcluster=qwen2-test-cluster,kubedirector.hpe.com/role=inference-server -o jsonpath='{.items[0].spec.ports[0].nodePort}')
     
     if [ -z "$NODE_PORT" ]; then
         log_error "Could not get service port"
@@ -207,10 +207,10 @@ test_qwen2_inference() {
     echo
     echo -n "🤖 Qwen2 Response: "
     
-    # Test with a simple prompt
+    # Test with a simple prompt  
     curl -s -X POST "$HOST/api/generate" \
         -H "Content-Type: application/json" \
-        -d '{"model":"qwen2:7b","prompt":"Explain quantum computing in simple terms","stream":false}' | \
+        -d '{"model":"qwen2:1.5b","prompt":"Explain quantum computing in simple terms","stream":false}' | \
     if command -v jq >/dev/null 2>&1; then
         jq -r '.response'
     else
